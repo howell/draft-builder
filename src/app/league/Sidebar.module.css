@@ -1,0 +1,38 @@
+.sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: 100%;
+    background-color: #333;
+    color: white;
+    transform: translateX(-80%);
+    transition: transform 0.3s ease-in-out;
+    overflow: hidden;
+}
+
+.sidebar.open {
+    transform: translateX(0%);
+    left: 0;
+}
+
+.toggleButton {
+    position: absolute;
+    right: 10px;
+    height: 24px;
+    width: 24px;
+    z-index: 1;
+    background-color: #333;
+    color: rgb(232, 8, 8);
+    border: none;
+}
+
+.content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    transition: transform 0.3s ease-in-out;
+    background-color: rgb(46, 46, 46);
+}
