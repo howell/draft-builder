@@ -13,12 +13,12 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({leagueID, years}) => {
 	const [isOpen, setIsOpen] = useState(true);
+	const [showDrafts, setShowDrafts] = useState(true);
     const currentYear = parseDraftYear(usePathname())
+	const toggleSidebar = () => { setIsOpen(!isOpen); };
+    const toggleDrafts = () => { setShowDrafts(!showDrafts); };
 
     years.sort((a, b) => b - a);
-	const toggleSidebar = () => {
-		setIsOpen(!isOpen);
-	};
 
     return (
         <div className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
@@ -26,14 +26,19 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years}) => {
                 {isOpen ? '<<' : '>>'}
             </button>
             <div className={styles.content}>
-                <h2>Sidebar Content</h2>
-                <ul className={styles.yearList}>
-                    {years.map((year) => (
-                        <li key={year} className={year === currentYear ? styles.activeYear : ''}>
-                            <a href={`/league/${leagueID}/drafts/${year}`}>{year}</a>
-                        </li>
-                    ))}
-                </ul>
+                <h2>Your League</h2>
+                <span onClick={toggleDrafts} className={`${styles.draftButton}`}>
+                  Drafts { showDrafts ? 'v' : '^' }
+                </span>
+                {showDrafts && (
+                    <ul className={styles.yearList}>
+                        {years.map((year) => (
+                            <li key={year} className={year === currentYear ? styles.activeYear : ''}>
+                                <a href={`/league/${leagueID}/drafts/${year}`}>{year}</a>
+                            </li>
+                        ))}
+                    </ul>
+                )}
             </div>
         </div>
     );

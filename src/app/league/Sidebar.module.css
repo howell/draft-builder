@@ -26,7 +26,28 @@
     color: rgb(232, 8, 8);
     border: none;
 }
+.draftButton {
+    position: float;
+    top: 10px;
+    left: 10px;
+    color: white;
+    border: none;
+    /* Remove border-radius to make it square */
+    /* border-radius: 50%; */
+    font-size: 1.2em;
+    align-items: left;
+    justify-content: left;
+    cursor: pointer;
+    transition: background-color 0.3s ease-in-out;
+}
 
+.draftButton:hover {
+    background-color: #555;
+}
+
+.draftButton:focus {
+    outline: none;
+}
 .content {
     position: absolute;
     top: 0;
