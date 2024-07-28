@@ -1,5 +1,5 @@
 import DraftTable, { TableData } from './DraftTable';
-import { fetchDraftInfo, fetchAllPlayerInfo, fetchTeamsAtWeek } from '@/espn/league';
+import { fetchDraftInfo, fetchAllPlayerInfo, fetchTeamsAtWeek, slotCategoryIdToPositionMap } from '@/espn/league';
 import Sidebar from '../../../Sidebar';
 
 const Page = async ({ params }: Readonly<{ params: { leagueID: string, draftYear: string} }>) => {
@@ -73,6 +73,6 @@ function makeTableRow(data: DraftedPlayer) : TableData {
         auctionPrice: data.bidAmount,
         numberDrafted: data.overallPickNumber,
         teamDrafted: data.draftedBy.name,
-        position: data.defaultPositionId.toString(),
+        position: slotCategoryIdToPositionMap[data.defaultPositionId],
     }
 }

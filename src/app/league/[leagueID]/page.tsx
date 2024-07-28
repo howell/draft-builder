@@ -13,6 +13,7 @@ export default async function LeaguePage({ params }: Readonly<{ params: { league
     }
 
     const prevYears = await fetchLeagueHistory(leagueID, leagueInfo.status.previousSeasons);
+    prevYears.set(DEFAULT_YEAR, leagueInfo);
     const prevAuctions = []
     for (const [year, info] of prevYears) {
         if (typeof info === 'number') {

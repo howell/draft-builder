@@ -92,3 +92,33 @@ function buildTeamsRoute(leagueID: number, season: number, scoringPeriodId: numb
         `?scoringPeriodId=${scoringPeriodId}&view=mRoster&view=mTeam`
     );
 }
+
+// source: https://github.com/mkreiser/ESPN-Fantasy-Football-API/blob/e73cb6f52b3620a83302f24a4d26fc9d8303bbbe/src/constants.js#L7C1-L34C3
+export const slotCategoryIdToPositionMap: { [key: number] : string } = {
+    0: 'QB',
+    1: 'TQB',
+    2: 'RB',
+    3: 'RB/WR',
+    4: 'WR',
+    5: 'WR/TE',
+    6: 'TE',
+    7: 'OP',
+    8: 'DT',
+    9: 'DE',
+    10: 'LB',
+    11: 'DL',
+    12: 'CB',
+    13: 'S',
+    14: 'DB',
+    15: 'DP',
+    16: 'D/ST',
+    17: 'K',
+    18: 'P',
+    19: 'HC',
+    20: 'Bench',
+    21: 'IR',
+    22: 'INVALID_CODE', // https://github.com/cwendt94/espn-api/blob/master/espn_api/football/constant.py#L24
+    23: 'RB/WR/TE',
+    24: 'ER',
+    25: 'Rookie'
+  };
