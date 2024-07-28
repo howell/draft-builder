@@ -1,6 +1,5 @@
 import DraftTable, { TableData } from './DraftTable';
 import { fetchDraftInfo, fetchAllPlayerInfo, fetchTeamsAtWeek, slotCategoryIdToPositionMap } from '@/espn/league';
-import Sidebar from '../../../Sidebar';
 
 const Page = async ({ params }: Readonly<{ params: { leagueID: string, draftYear: string} }>) => {
     const leagueID = parseInt(params.leagueID);
@@ -27,13 +26,12 @@ const Page = async ({ params }: Readonly<{ params: { leagueID: string, draftYear
         return <h1>Error fetching team data: {teamsData}</h1>;
     }
 
-    console.log(JSON.stringify(Object.keys(teamsData.members[0]), null, 2));
+    // console.log(JSON.stringify(Object.keys(teamsData.members[0]), null, 2));
     const draftData = mergeDraftAndPlayerInfo(response.draftDetail.picks, playerData.players, teamsData.teams)
     const tableData = draftData.map(makeTableRow);
 
     return (
         <div>
-            <Sidebar leagueID={leagueID} currentYear={draftYear} years={[draftYear]} />
             <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>Your {draftYear} Draft Recap!</h1>
             <DraftTable picks={tableData} />
             <div>

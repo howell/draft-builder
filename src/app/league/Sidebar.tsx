@@ -2,16 +2,18 @@
 
 import { useState } from 'react';
 import styles from './Sidebar.module.css';
+import { usePathname } from 'next/navigation'
+import Link from 'next/link'
 
 interface SidebarProps {
     leagueID: number;
-    currentYear: number;
     years: number[];
 }
 
 
-const Sidebar: React.FC<SidebarProps> = ({leagueID, currentYear, years}) => {
+const Sidebar: React.FC<SidebarProps> = ({leagueID, years}) => {
 	const [isOpen, setIsOpen] = useState(true);
+    const currentYear = parseDraftYear(usePathname())
 
     years.sort((a, b) => b - a);
 	const toggleSidebar = () => {
@@ -32,10 +34,15 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, currentYear, years}) => {
                         </li>
                     ))}
                 </ul>
-                <p>Some content here...</p>
             </div>
         </div>
     );
 };
 
 export default Sidebar;
+
+function parseDraftYear(pathname: string): number {
+    const pathSegments = pathname.split('/')
+    const draftIdx = pathSegments.indexOf('drafts')
+    return draftIdx !== -1 ? parseInt(pathSegments[draftIdx + 1]) : 0;
+}
