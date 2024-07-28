@@ -9,13 +9,9 @@ export default async function Page({params, searchParams} : Readonly<{params: Re
     const leagueInfo = await fetchLeagueInfo(leagueID, DEFAULT_YEAR);
     if (typeof leagueInfo === 'number') {
         redirect('/');
+    } else {
+        redirect(`/league/${leagueID}`);
     }
 
-    return (
-        <div className="flex min-h-screen flex-col items-center justify-between p-24">
-            <h1>Welcome to league {leagueInfo.settings.name}!</h1>
-            <p>Here is some information about your league:</p>
-            <pre>{JSON.stringify(leagueInfo, null, 2)}</pre>
-        </div>
-    );
+    return <p>Redirecting...</p>;
 }

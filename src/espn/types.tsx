@@ -147,3 +147,103 @@ type TradeSettings = {
     revisionHours: number;
     vetoVotesRequired: number;
 };
+
+type DraftInfo = {
+    draftDetail: DraftInfoDetail;
+    gameId: number;
+    id: number;
+    schedule: any;
+    scoringPeriodId: number;
+    seasonId: number;
+    segmentId: number;
+    settings: Settings;
+    status: Status;
+    teams: any;
+}
+
+type DraftInfoDetail = {
+    completeDate: number;
+    drafted: boolean;
+    inProgress: boolean;
+    picks: DraftPick[];
+};
+
+type DraftPick = {
+    autoDraftTypeId: number;
+    bidAmount: number;
+    id: number;
+    keeper: boolean;
+    lineupSlotId: number;
+    memberId: string;
+    nominatingTeamId: number;
+    overallPickNumber: number;
+    playerId: number;
+    reservedForKeeper: boolean;
+    roundId: number;
+    roundPickNumber: number;
+    teamId: number;
+    tradeLocked: boolean;
+};
+
+type PlayersInfo = {
+    players: PlayerInfo[];
+    positionAgainstOpponent: any;
+};
+
+type PlayerInfo = {
+    draftAuctionValue: number;
+    id: number;
+    keeperValue: number;
+    keeperValueFuture: number;
+    lineupLocked: boolean;
+    onTeamId: number;
+    player: {
+        active: boolean;
+        defaultPositionId: number;
+        droppable: boolean;
+        eligibleSlots: number[];
+        firstName: string;
+        fullName: string;
+        id: number;
+        injured: boolean;
+        injuryStatus: string;
+        jersey: string;
+        lastName: string;
+        ownership: {
+            activityLevel: null;
+            auctionValueAverage: number;
+            auctionValueAverageChange: number;
+            averageDraftPosition: number;
+            averageDraftPositionPercentChange: number;
+            date: null;
+            leagueType: number;
+            percentChange: number;
+            percentOwned: number;
+            percentStarted: number;
+        };
+        proTeamId: number;
+        stats: {
+            appliedTotal: number;
+            externalId: string;
+            id: string;
+            proTeamId: number;
+            scoringPeriodId: number;
+            seasonId: number;
+            statSourceId: number;
+            statSplitTypeId: number;
+            stats: {
+                [key: string]: number;
+            };
+        }[];
+    };
+    ratings: {
+        [key: string]: {
+            positionalRanking: number;
+            totalRanking: number;
+            totalRating: number;
+        };
+    };
+    rosterLocked: boolean;
+    status: string;
+    tradeLocked: boolean;
+};

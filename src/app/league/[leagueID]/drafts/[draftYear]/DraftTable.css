@@ -1,0 +1,48 @@
+/* DraftTable.css */
+
+.table-container {
+    margin: 20px;
+    border-collapse: collapse;
+    width: 100%;
+    margin-left: 100px;
+    font-family: Arial, sans-serif;
+}
+
+.table-container th, .table-container td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.table-container th {
+    background-color: #f2f2f2;
+    color: #333;
+    cursor: pointer;
+}
+
+.table-container tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.table-container tr:hover {
+    background-color: #ddd;
+}
+
+.table-container th.sort-asc::after {
+    content: " ▲";
+}
+
+.table-container th.sort-desc::after {
+    content: " ▼";
+}
+.table-container td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.table-container .small-column {
+    max-width: 10px;
+}
+.table-container td:not(.small-column) th:not(.small-column) {
+    max-width: 10px;
+}
