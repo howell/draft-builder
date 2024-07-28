@@ -55,17 +55,11 @@ const DraftTable: React.FC<DraftTableProps> = ({picks}) => {
         <table className="table-container">
             <thead>
                 <tr>
-                    <th className={getSortClass('auctionPrice')} onClick={() => handleSort('auctionPrice')}>
-                        <div className="small-column">Price</div>
-                    </th>
-                    <th className={getSortClass('numberDrafted')} onClick={() => handleSort('numberDrafted')}>
-                        <div className="small-column">Nominated</div>
-                    </th>
-                    <th className={getSortClass('teamDrafted')} onClick={() => handleSort('teamDrafted')}>Drafted By</th>
-                    <th className={getSortClass('name')} onClick={() => handleSort('name')}>Name</th>
-                    <th className={getSortClass('position')} onClick={() => handleSort('position')}>
-                        <div className="small-column">Position</div>
-                        </th>
+                    <th className={`${getSortClass('auctionPrice')} small-column`} onClick={() => handleSort('auctionPrice')}> Price</th>
+                    <th className={`${getSortClass('numberDrafted')} small-column`} onClick={() => handleSort('numberDrafted')}>Nom.</th>
+                    <th className={`${getSortClass('teamDrafted')} large-column`} onClick={() => handleSort('teamDrafted')}>Drafted By</th>
+                    <th className={`${getSortClass('name')} large-column`} onClick={() => handleSort('name')}>Name</th>
+                    <th className={`${getSortClass('position')} small-column`} onClick={() => handleSort('position')}>Pos.</th>
                 </tr>
             </thead>
             <tbody>
@@ -73,8 +67,8 @@ const DraftTable: React.FC<DraftTableProps> = ({picks}) => {
                     <tr key={item.name}>
                         <td><div className="small-column">{item.auctionPrice}</div></td>
                         <td><div className="small-column">{item.numberDrafted}</div></td>
-                        <td>{item.teamDrafted}</td>
-                        <td>{item.name}</td>
+                        <td><div className="large-column">{item.teamDrafted}</div></td>
+                        <td><div className="large-column">{item.name}</div></td>
                         <td><div className="small-column">{item.position}</div></td>
                     </tr>
                 ))}

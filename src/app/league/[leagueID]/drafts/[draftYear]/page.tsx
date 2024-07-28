@@ -1,5 +1,5 @@
 import DraftTable, { TableData } from './DraftTable';
-import { fetchDraftInfo, fetchAllPlayerInfo } from '@/espn/league';
+import { fetchDraftInfo, fetchAllPlayerInfo, fetchTeamsAtWeek } from '@/espn/league';
 import Sidebar from '../../../Sidebar';
 
 const Page = async ({ params }: Readonly<{ params: { leagueID: string, draftYear: string} }>) => {
@@ -7,6 +7,7 @@ const Page = async ({ params }: Readonly<{ params: { leagueID: string, draftYear
     const draftYear = parseInt(params.draftYear);
 
     const playerResponse = fetchAllPlayerInfo(leagueID, draftYear);
+    const teamsResponse = fetchTeamsAtWeek(leagueID, draftYear, 0);
 
     const response = await fetchDraftInfo(leagueID, draftYear);
     if (typeof response === 'number') {
@@ -20,33 +21,48 @@ const Page = async ({ params }: Readonly<{ params: { leagueID: string, draftYear
         return <h1>Error fetching player data: {playerData}</h1>;
     }
 
-    console.log(Object.keys(response));
-    const draftData = mergeDraftAndPlayerInfo(response.draftDetail.picks, playerData.players)
+    const teamsData = await teamsResponse;
+    if (typeof teamsData === 'number') {
+        console.error('Error fetching team data:', teamsData);
+        return <h1>Error fetching team data: {teamsData}</h1>;
+    }
+
+    console.log(JSON.stringify(Object.keys(teamsData.members[0]), null, 2));
+    const draftData = mergeDraftAndPlayerInfo(response.draftDetail.picks, playerData.players, teamsData.teams)
     const tableData = draftData.map(makeTableRow);
 
     return (
         <div>
-            <Sidebar leagueID = {leagueID} currentYear={draftYear} years={[draftYear]} />
-            <h1>Draft Page</h1>
+            <Sidebar leagueID={leagueID} currentYear={draftYear} years={[draftYear]} />
+            <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>Your {draftYear} Draft Recap!</h1>
             <DraftTable picks={tableData} />
+            <div>
+                {JSON.stringify(teamsData.members[0], null, 2)}
+            </div>
         </div>
     );
 };
 
 export default Page;
 
-type DraftedPlayer = DraftPick & PlayerInfo["player"];
+type DraftedPlayer = DraftPick & PlayerInfo["player"] & { draftedBy: Team };
 
-function mergeDraftAndPlayerInfo(draftData: DraftPick[], playerData: PlayerInfo[]): DraftedPlayer[] {
+function mergeDraftAndPlayerInfo(draftData: DraftPick[], playerData: PlayerInfo[], teams: Team[]): DraftedPlayer[] {
     return draftData.map((pick) => {
         const player = playerData.find((info: PlayerInfo) => info.player.id === pick.playerId);
+        const team = teams.find((team: Team) => team.id === pick.teamId);
         if (!player) {
             console.error('Player not found for pick:', pick);
             throw new Error('Player not found for pick');
         }
+        if (!team) {
+            console.error('Team not found for pick:', pick);
+            throw new Error('Team not found for pick');
+        }
         return {
             ...pick,
-            ...player.player
+            ...player.player,
+            draftedBy: team
         };
     });
 }
@@ -56,7 +72,7 @@ function makeTableRow(data: DraftedPlayer) : TableData {
         name: data.fullName,
         auctionPrice: data.bidAmount,
         numberDrafted: data.overallPickNumber,
-        teamDrafted: data.teamId.toString(),
+        teamDrafted: data.draftedBy.name,
         position: data.defaultPositionId.toString(),
     }
 }

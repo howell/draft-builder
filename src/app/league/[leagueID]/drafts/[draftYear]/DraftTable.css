@@ -1,16 +1,15 @@
 /* DraftTable.css */
 
 .table-container {
-    margin: 20px;
+    margin: 20px auto;
     border-collapse: collapse;
-    width: 100%;
-    margin-left: 100px;
+    width: auto;
     font-family: Arial, sans-serif;
 }
 
 .table-container th, .table-container td {
-    border: 1px solid #ddd;
-    padding: 8px;
+    border: 3px solid #ddd;
+    padding: 6px;
     text-align: left;
 }
 
@@ -41,8 +40,8 @@
     white-space: nowrap;
 }
 .table-container .small-column {
-    max-width: 10px;
+    width: max-content
 }
-.table-container td:not(.small-column) th:not(.small-column) {
-    max-width: 10px;
+.table-container .large-column {
+    width: max-content
 }

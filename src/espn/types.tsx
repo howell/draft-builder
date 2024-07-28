@@ -247,3 +247,158 @@ type PlayerInfo = {
     status: string;
     tradeLocked: boolean;
 };
+
+type TeamInfo = {
+    teams: Team[];
+    members: Member[];
+};
+
+type Team = {
+    abbrev: string;
+    currentProjectedRank: number;
+    divisionId: number;
+    draftDayProjectedRank: number;
+    id: number;
+    isActive: boolean;
+    logo: string;
+    logoType: string;
+    name: string;
+    owners: string[];
+    playoffSeed: number;
+    points: number;
+    pointsAdjusted: number;
+    pointsDelta: number;
+    primaryOwner: string;
+    rankCalculatedFinal: number;
+    rankFinal: number;
+    record: {
+        away: TeamRecord;
+        division: TeamRecord;
+        home: TeamRecord;
+        overall: TeamRecord;
+    };
+    roster: {
+        appliedStatTotal: number;
+        entries: RosterEntry[]; // You can replace `any` with the appropriate type
+        tradeReservedEntries: number;
+    };
+    transactionCounter: {
+        acquisitionBudgetSpent: number;
+        acquisitions: number;
+        drops: number;
+        matchupAcquisitionTotals: Record<string, number>;
+        misc: number;
+        moveToActive: number;
+        moveToIR: number;
+        paid: number;
+        teamCharges: number;
+        trades: number;
+    };
+    valuesByStat: Record<string, number>;
+    waiverRank: number;
+}
+
+type TeamRecord = {
+    gamesBack: number;
+    losses: number;
+    percentage: number;
+    pointsAgainst: number;
+    pointsFor: number;
+    streakLength: number;
+    streakType: string;
+    ties: number;
+    wins: number;
+}
+
+type RosterEntry = {
+    acquisitionDate: null | string;
+    acquisitionType: null | string;
+    injuryStatus: "NORMAL" | "ACTIVE";
+    lineupSlotId: number;
+    pendingTransactionIds: null | string[];
+    playerId: number;
+    playerPoolEntry: {
+        appliedStatTotal: number;
+        id: number;
+        keeperValue: number;
+        keeperValueFuture: number;
+        lineupLocked: boolean;
+        onTeamId: number;
+        player: {
+            active: boolean;
+            defaultPositionId: number;
+            draftRanksByRankType: {
+                PPR: {
+                    auctionValue: number;
+                    published: boolean;
+                    rank: number;
+                    rankSourceId: number;
+                    rankType: "PPR";
+                    slotId: number;
+                };
+                STANDARD: {
+                    auctionValue: number;
+                    published: boolean;
+                    rank: number;
+                    rankSourceId: number;
+                    rankType: "STANDARD";
+                    slotId: number;
+                };
+            };
+            droppable: boolean;
+            eligibleSlots: number[];
+            firstName: string;
+            fullName: string;
+            id: number;
+            injured: boolean;
+            injuryStatus: "ACTIVE";
+            lastName: string;
+            ownership: {
+                auctionValueAverage: number;
+                averageDraftPosition: number;
+                percentChange: number;
+                percentOwned: number;
+                percentStarted: number;
+            };
+            proTeamId: number;
+            stats: {
+                appliedAverage?: number;
+                appliedStats?: Record<string, number>;
+                appliedTotal: number;
+                externalId: string;
+                id: string;
+                proTeamId: number;
+                scoringPeriodId: number;
+                seasonId: number;
+                statSourceId: number;
+                statSplitTypeId: number;
+                stats?: Record<string, number>;
+            }[];
+        };
+        universeId: number;
+    };
+    ratings: {
+        [key: string]: {
+            positionalRanking: number;
+            totalRanking: number;
+            totalRating: number;
+        };
+    };
+    rosterLocked: boolean;
+    status: "ONTEAM" | "NORMAL";
+    tradeLocked: boolean;
+};
+
+type Member = {
+    displayName: string;
+    firstName: string;
+    id: string;
+    lastName: string;
+    notificationSettings: NotificationSetting[];
+};
+
+type NotificationSetting = {
+    enabled: boolean;
+    id: string;
+    type: string;
+};

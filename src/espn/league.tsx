@@ -74,3 +74,21 @@ function buildPlayerRoute(leagueID: number, season: number, scoringPeriodId = 0)
         `?scoringPeriodId=${scoringPeriodId}&view=kona_player_info`
     );
 }
+
+export async function fetchTeamsAtWeek(leagueID: number, season: number, scoringPeriodId: number): Promise<number | TeamInfo> {
+    const teamsResponse = await fetch(buildTeamsRoute(leagueID, season, scoringPeriodId), {
+        headers: {
+            Cookie: `espn_s2=${ESPN_S2}; SWID=${ESPN_SWID}`
+        }
+    });
+    if (teamsResponse.status !== 200) {
+        return teamsResponse.status;
+    }
+    return await teamsResponse.json();
+}
+
+function buildTeamsRoute(leagueID: number, season: number, scoringPeriodId: number) {
+    return buildRoute(`${season}/segments/0/leagues/${leagueID}`,
+        `?scoringPeriodId=${scoringPeriodId}&view=mRoster&view=mTeam`
+    );
+}
