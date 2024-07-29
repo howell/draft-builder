@@ -2,12 +2,20 @@
 import React from 'react';
 import MockRosterEntry, { MockPlayer } from './MockRosterEntry';
 import './MockTable.css';
+import PlayerTable from '../drafts/[draftYear]/PlayerTable';
 
 interface RosterProps {
     auctionBudget: number;
     positions: Map<string, number>;
     players: MockPlayer[];
 }
+
+const availablePlayerColumns: [(keyof MockPlayer), string][] = [
+    ['name', 'Player'],
+    ['defaultPosition', 'Position'],
+    ['positionRank', 'Position Rank'],
+    ['estimatedCost', 'Cost'],
+];
 
 const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players }) => {
     return (
@@ -42,26 +50,7 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players })
                 </div>
                 <div className='available-players-container'>
                     <h2>Available Players</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Player</th>
-                                <th>Position</th>
-                                <th>Cost</th>
-                                <th>Position Rank</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {players.map(player => (
-                                <tr key={player.id}>
-                                    <td>{player.name}</td>
-                                    <td>{player.defaultPosition}</td>
-                                    <td>{player.estimatedCost}</td>
-                                    <td>{player.positionRank}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <PlayerTable players={players} columns={availablePlayerColumns} defaultSortColumn='positionRank' />
                 </div>
             </div>
         </div>

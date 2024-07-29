@@ -10,12 +10,13 @@ export interface MockPlayer {
     positionRank: number;
 }
 
-export interface AutocompleteProps {
+export interface MockRosterEntryProps {
     players: MockPlayer[];
     position: string;
+    key: string;
 }
 
-const MockRosterEntry: React.FC<AutocompleteProps> = ({ players, position }) => {
+const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ players, position, key }) => {
     const [inputValue, setInputValue] = useState('');
     const [suggestions, setSuggestions] = useState<MockPlayer[]>([]);
     const [selectedPlayer, setSelectedPlayer] = useState<MockPlayer | null>(null);
@@ -40,7 +41,7 @@ const MockRosterEntry: React.FC<AutocompleteProps> = ({ players, position }) => 
     };
 
     return (
-        <tr>
+        <tr key={key}>
             <td>{position}</td>
             <td>
                 <input
