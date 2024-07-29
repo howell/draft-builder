@@ -6,15 +6,15 @@ const DEFAULT_YEAR = 2023;
 
 const LeagueLayout = async ({ children, params } : { children: React.ReactNode, params: {leagueID: string, draftYear?: string } }) => {
     const leagueID = parseInt(params.leagueID);
-    const leagueInfo = await fetchLeagueInfo(leagueID, DEFAULT_YEAR);
-    if (typeof leagueInfo === 'number') {
+    const leagueHistory = await fetchLeagueHistory(leagueID, DEFAULT_YEAR);
+    if (leagueHistory.size === 0) {
         redirect('/');
     }
 
-    const prevYears = await fetchLeagueHistory(leagueID, leagueInfo.status.previousSeasons);
-    prevYears.set(DEFAULT_YEAR, leagueInfo);
+    // const prevYears = await fetchLeagueHistory(leagueID, leagueInfo.status.previousSeasons);
+    // prevYears.set(DEFAULT_YEAR, leagueInfo);
     const prevAuctions = []
-    for (const [year, info] of prevYears) {
+    for (const [year, info] of leagueHistory) {
         if (typeof info === 'number') {
             console.error(`Failed to fetch league info for ${year}: ${info}`);
         } else {

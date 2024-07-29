@@ -21,12 +21,24 @@ function buildLeagueInfoRoute(leagueID: number, seasonID: number) {
     return buildRoute(`${seasonID}/segments/0/leagues/${leagueID}`, '?view=mSettings');
 }
 
-export async function fetchLeagueHistory(leagueID: number, seasons: number[]): Promise<Map<number, number | LeagueInfo>> {
+export async function fetchLeagueHistory(leagueID: number, latestYear: number): Promise<Map<number, number | LeagueInfo>> {
     const map = new Map<number, number | LeagueInfo>();
-    for (const season of seasons) {
+    const latestInfo = await fetchLeagueInfo(leagueID, latestYear);
+    console.log(typeof latestInfo);
+    if (typeof latestInfo === 'number') {
+        return map;
+    }
+    map.set(latestYear, latestInfo);
+
+    const historyResponse = await Promise.all(latestInfo.status.previousSeasons.map(async (season) => {
         const leagueResponse = await fetchLeagueInfo(leagueID, season); 
+        return {season, leagueResponse};
+    }));
+
+    for (const {season, leagueResponse} of historyResponse) {
         map.set(season, leagueResponse);
     }
+    
     return map;
 }
 
