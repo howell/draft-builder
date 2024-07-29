@@ -23,7 +23,6 @@ const PlayerTable = <T extends object,>({
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(defaultSortDirection);
 
     const handleSort = (column: SortColumn) => {
-        console.log('Sorting by', column);
         if (column === sortColumn) {
             setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
         } else {
@@ -57,14 +56,14 @@ const PlayerTable = <T extends object,>({
             <thead>
                 <tr>
                     {columns.map(([column, name]) => (
-                        <th className={getSortClass(column)} onClick={() => handleSort(column)}>{name}</th>))}
+                        <th key={column.toString()} className={getSortClass(column)} onClick={() => handleSort(column)}>{name}</th>))}
                 </tr>
             </thead>
             <tbody>
                 {sortedData.map((item) => (
                     <tr key={item.id}>
                         {columns.map(([column, _]) => (
-                            <td><div >{(item[column] as object).toString()}</div></td>))}
+                            <td key={`${column.toString()} ${item.id}`}><div >{(item[column] as object).toString()}</div></td>))}
                     </tr>
                 ))}
             </tbody>

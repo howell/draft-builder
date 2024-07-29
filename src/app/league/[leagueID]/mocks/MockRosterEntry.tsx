@@ -13,10 +13,9 @@ export interface MockPlayer {
 export interface MockRosterEntryProps {
     players: MockPlayer[];
     position: string;
-    key: string;
 }
 
-const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ players, position, key }) => {
+const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ players, position}) => {
     const [inputValue, setInputValue] = useState('');
     const [suggestions, setSuggestions] = useState<MockPlayer[]>([]);
     const [selectedPlayer, setSelectedPlayer] = useState<MockPlayer | null>(null);
@@ -41,7 +40,7 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ players, position, ke
     };
 
     return (
-        <tr key={key}>
+        <tr >
             <td>{position}</td>
             <td>
                 <input
