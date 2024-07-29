@@ -24,7 +24,6 @@ function buildLeagueInfoRoute(leagueID: number, seasonID: number) {
 export async function fetchLeagueHistory(leagueID: number, latestYear: number): Promise<Map<number, LeagueInfo>> {
     const map = new Map<number, LeagueInfo>();
     const latestInfo = await fetchLeagueInfo(leagueID, latestYear);
-    console.log(typeof latestInfo);
     if (typeof latestInfo === 'number') {
         return map;
     }

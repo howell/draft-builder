@@ -36,7 +36,6 @@ const Page = async ({ params }: Readonly<{ params: { leagueID: string, draftYear
         return <h1>Error fetching team data: {teamsData}</h1>;
     }
 
-    // console.log(JSON.stringify(Object.keys(teamsData.members[0]), null, 2));
     const draftData = mergeDraftAndPlayerInfo(response.draftDetail.picks, playerData.players, teamsData.teams)
     const tableData = draftData.map(makeTableRow);
     const tableColumns: [keyof(TableData), string][] = [['numberDrafted', 'Nominated'],

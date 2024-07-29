@@ -11,8 +11,6 @@ const LeagueLayout = async ({ children, params } : { children: React.ReactNode, 
         redirect('/');
     }
 
-    // const prevYears = await fetchLeagueHistory(leagueID, leagueInfo.status.previousSeasons);
-    // prevYears.set(DEFAULT_YEAR, leagueInfo);
     const prevAuctions = []
     for (const [year, info] of leagueHistory) {
         if (typeof info === 'number') {
@@ -23,9 +21,6 @@ const LeagueLayout = async ({ children, params } : { children: React.ReactNode, 
             }
         }
     }
-
-    console.log("Params: ", params);
-    const draftYear = params.draftYear ? parseInt(params.draftYear) : 0;
 
     return (
         <div>
