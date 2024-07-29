@@ -20,7 +20,7 @@
 }
 
 .table-container tr:nth-child(even) {
-    background-color: #f9f9f9;
+    background-color: #9b939377;
 }
 
 .table-container tr:hover {
