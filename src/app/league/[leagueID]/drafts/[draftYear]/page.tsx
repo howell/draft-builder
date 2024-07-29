@@ -1,5 +1,15 @@
-import DraftTable, { TableData } from './DraftTable';
+import PlayerTable from './PlayerTable';
 import { fetchDraftInfo, fetchAllPlayerInfo, fetchTeamsAtWeek, slotCategoryIdToPositionMap } from '@/espn/league';
+
+type TableData = {
+    id: any;
+    name: string;
+    auctionPrice: number;
+    numberDrafted: number;
+    teamDrafted: string;
+    position: string;
+};
+
 
 const Page = async ({ params }: Readonly<{ params: { leagueID: string, draftYear: string} }>) => {
     const leagueID = parseInt(params.leagueID);
@@ -29,11 +39,17 @@ const Page = async ({ params }: Readonly<{ params: { leagueID: string, draftYear
     // console.log(JSON.stringify(Object.keys(teamsData.members[0]), null, 2));
     const draftData = mergeDraftAndPlayerInfo(response.draftDetail.picks, playerData.players, teamsData.teams)
     const tableData = draftData.map(makeTableRow);
+    const tableColumns: [keyof(TableData), string][] = [['numberDrafted', 'Nominated'],
+                                                        ['auctionPrice', 'Price'],
+                                                        ['name', 'Name'],
+                                                        ['position', 'Position'],
+                                                        ['teamDrafted', 'Drafted By'],
+                                                       ];
 
     return (
         <div>
             <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>Your {draftYear} Draft Recap!</h1>
-            <DraftTable picks={tableData} />
+            <PlayerTable players={tableData} columns={tableColumns} defaultSortColumn='auctionPrice'/>
             <div>
                 {JSON.stringify(teamsData.members[0], null, 2)}
             </div>
@@ -67,6 +83,7 @@ function mergeDraftAndPlayerInfo(draftData: DraftPick[], playerData: PlayerInfo[
 
 function makeTableRow(data: DraftedPlayer) : TableData {
     return {
+        id: data.id,
         name: data.fullName,
         auctionPrice: data.bidAmount,
         numberDrafted: data.overallPickNumber,
