@@ -21,8 +21,8 @@ function buildLeagueInfoRoute(leagueID: number, seasonID: number) {
     return buildRoute(`${seasonID}/segments/0/leagues/${leagueID}`, '?view=mSettings');
 }
 
-export async function fetchLeagueHistory(leagueID: number, latestYear: number): Promise<Map<number, number | LeagueInfo>> {
-    const map = new Map<number, number | LeagueInfo>();
+export async function fetchLeagueHistory(leagueID: number, latestYear: number): Promise<Map<number, LeagueInfo>> {
+    const map = new Map<number, LeagueInfo>();
     const latestInfo = await fetchLeagueInfo(leagueID, latestYear);
     console.log(typeof latestInfo);
     if (typeof latestInfo === 'number') {
@@ -36,7 +36,9 @@ export async function fetchLeagueHistory(leagueID: number, latestYear: number): 
     }));
 
     for (const {season, leagueResponse} of historyResponse) {
-        map.set(season, leagueResponse);
+        if (typeof leagueResponse !== 'number') {
+            map.set(season, leagueResponse);
+        }
     }
     
     return map;
@@ -134,3 +136,13 @@ export const slotCategoryIdToPositionMap: { [key: number] : string } = {
     24: 'ER',
     25: 'Rookie'
   };
+
+export function leagueLineupSettings(league: LeagueInfo): Map<string, number> {
+    const slotCounts = league.settings.rosterSettings.lineupSlotCounts;
+    const positionCounts: [string, number][] = Object.keys(slotCounts).map((slot: string) =>
+        [
+            slotCategoryIdToPositionMap[parseInt(slot)],
+            slotCounts[slot],
+        ]);
+    return new Map(positionCounts);
+}

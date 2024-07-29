@@ -39,6 +39,9 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years}) => {
                         ))}
                     </ul>
                 )}
+                <span className={styles.draftButton}>
+                    <Link href={`/league/${leagueID}/mocks`}>Mock!</Link>
+                </span>
             </div>
         </div>
     );

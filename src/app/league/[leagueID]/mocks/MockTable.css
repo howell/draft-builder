@@ -1,0 +1,29 @@
+.MockTable {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+}
+
+.MockTable > * {
+    margin-bottom: 10px;
+}
+
+.MockTable h2 {
+    font-size: 24px;
+}
+
+.tables-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 5%; /* Optional: Adds space between the tables */
+}
+
+.roster-table-container,
+.available-players-container {
+    flex: 1; /* Ensures both containers take equal space */
+}
+
+.available-players-container {
+    max-width: 50%; /* Optional: Limits the width of the available players table */
+}
