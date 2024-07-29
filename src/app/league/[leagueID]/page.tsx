@@ -1,5 +1,5 @@
 'use server'
-import { fetchLeagueHistory, fetchLeagueInfo, } from '@/espn/league';
+import { fetchLeagueInfo, leagueLineupSettings } from '@/espn/league';
 import { redirect } from 'next/navigation';
 
 const DEFAULT_YEAR = 2023;
@@ -16,6 +16,12 @@ export default async function LeaguePage({ params }: Readonly<{ params: { league
             <div className="flex min-h-screen flex-col items-center justify-between p-24">
                 <h1>Welcome to league {leagueInfo.settings.name}!</h1>
                 <p>Here is some information about your league:</p>
+                <p>Lineup Settings:</p>
+                <ul>
+                    {Array.from(leagueLineupSettings(leagueInfo)).map(([position, count]) => (
+                        count > 0 ? <li key={position}>{position}: {count}</li> : null
+                    ))}
+                </ul>
                 <pre>{JSON.stringify(leagueInfo, null, 2)}</pre>
             </div>
         </div>
