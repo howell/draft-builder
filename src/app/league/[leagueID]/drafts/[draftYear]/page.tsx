@@ -1,7 +1,8 @@
 import PlayerTable from './PlayerTable';
 import { fetchDraftInfo, fetchAllPlayerInfo, fetchTeamsAtWeek, slotCategoryIdToPositionMap } from '@/espn/league';
+import PlayerScatterChart from './PlayerScatterChart';
 
-type TableData = {
+export type TableData = {
     id: any;
     name: string;
     auctionPrice: number;
@@ -49,6 +50,7 @@ const Page = async ({ params }: Readonly<{ params: { leagueID: string, draftYear
         <div>
             <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>Your {draftYear} Draft Recap!</h1>
             <PlayerTable players={tableData} columns={tableColumns} defaultSortColumn='auctionPrice'/>
+            <PlayerScatterChart data={tableData} />
             <div>
                 {JSON.stringify(teamsData.members[0], null, 2)}
             </div>

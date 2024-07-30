@@ -120,6 +120,8 @@ type ScheduleSettings = {
     variablePlayoffMatchupPeriodLength: boolean;
 };
 
+type ScoringType = 'STANDARD' | 'PPR';
+
 type ScoringSettings = {
     allowOutOfPositionScoring: boolean;
     homeTeamBonus: number;
@@ -137,7 +139,7 @@ type ScoringSettings = {
         pointsOverrides: { [key: string]: number };
         statId: number;
     }[];
-    scoringType: string;
+    scoringType: ScoringType;
 };
 
 type TradeSettings = {
@@ -190,6 +192,21 @@ type PlayersInfo = {
     positionAgainstOpponent: any;
 };
 
+type DraftRanksByRankType = {
+    STANDARD: RankInfo;
+    PPR: RankInfo;
+};
+
+type RankInfo = {
+    auctionValue: number;
+    averageRank?: number;
+    published: boolean;
+    rank: number;
+    rankSourceId: number;
+    rankType: ScoringType;
+    slotId: number;
+};
+
 type PlayerInfo = {
     draftAuctionValue: number;
     id: number;
@@ -200,6 +217,7 @@ type PlayerInfo = {
     player: {
         active: boolean;
         defaultPositionId: number;
+        draftRanksByRankType?: DraftRanksByRankType;
         droppable: boolean;
         eligibleSlots: number[];
         firstName: string;
@@ -236,7 +254,7 @@ type PlayerInfo = {
             };
         }[];
     };
-    ratings: {
+    ratings?: {
         [key: string]: {
             positionalRanking: number;
             totalRanking: number;
@@ -327,6 +345,11 @@ type RosterEntry = {
         player: {
             active: boolean;
             defaultPositionId: number;
+            eligibleSlots: number[];
+            firstName: string;
+            lastName: string;
+            fullName: string;
+            id: number;
             draftRanksByRankType: {
                 PPR: {
                     auctionValue: number;
@@ -345,14 +368,12 @@ type RosterEntry = {
                     slotId: number;
                 };
             };
+            rankings?: {
+                [key: string]: RankInfo[];
+            };
             droppable: boolean;
-            eligibleSlots: number[];
-            firstName: string;
-            fullName: string;
-            id: number;
             injured: boolean;
-            injuryStatus: "ACTIVE";
-            lastName: string;
+            injuryStatus: string;
             ownership: {
                 auctionValueAverage: number;
                 averageDraftPosition: number;

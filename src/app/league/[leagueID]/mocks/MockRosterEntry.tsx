@@ -6,7 +6,9 @@ export interface MockPlayer {
     name: string;
     defaultPosition: string;
     positions: string[];
+    suggestedCost: number,
     estimatedCost: number;
+    overallRank: number;
     positionRank: number;
 }
 
@@ -47,7 +49,7 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ players, position}) =
                     type="text"
                     value={inputValue}
                     onChange={handleInputChange}
-                    onBlur={() => setSuggestions([])}
+                    onBlur={() => setTimeout(() => setSuggestions([]), 100)}
                     placeholder="Search for a player..."
                 />
 

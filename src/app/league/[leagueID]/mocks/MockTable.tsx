@@ -13,8 +13,10 @@ interface RosterProps {
 const availablePlayerColumns: [(keyof MockPlayer), string][] = [
     ['name', 'Player'],
     ['defaultPosition', 'Position'],
+    ['overallRank', 'Overall Rank'],
     ['positionRank', 'Position Rank'],
-    ['estimatedCost', 'Cost'],
+    ['suggestedCost', 'Suggested Cost'],
+    ['estimatedCost', 'Estimated Cost'],
 ];
 
 const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players }) => {
@@ -50,7 +52,7 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players })
                 </div>
                 <div className='available-players-container'>
                     <h2>Available Players</h2>
-                    <PlayerTable players={players} columns={availablePlayerColumns} defaultSortColumn='positionRank' />
+                    <PlayerTable players={players} columns={availablePlayerColumns} defaultSortColumn='estimatedCost' defaultSortDirection='desc' />
                 </div>
             </div>
         </div>
