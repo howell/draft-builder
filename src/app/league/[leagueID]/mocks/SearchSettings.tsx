@@ -56,7 +56,7 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
             minPrice: minPrice,
             maxPrice: maxPrice,
         });
-    }, [selectedPositions, playerCount, minPrice, maxPrice, onSettingsChanged]);
+    }, [selectedPositions, playerCount, minPrice, maxPrice]);
 
     return (
         <div>

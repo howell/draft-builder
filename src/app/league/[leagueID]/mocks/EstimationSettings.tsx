@@ -4,22 +4,25 @@ export interface EstimationSettingsProps {
     years: number[];
     defaultYears?: number[];
     defaultWeight?: number;
-    onYearsChange?: (selectedYears: number[]) => void;
-    onWeightChange?: (weight: number) => void;
+    onEstimationSettingsChanged?: (settings: EstimationSettingsState) => void;
 }
+
+export type EstimationSettingsState = {
+    years: number[];
+    weight: number;
+};
 
 const EstimationSettings: React.FC<EstimationSettingsProps> = ({
     years,
     defaultYears = years,
     defaultWeight = 50,
-    onYearsChange = () => {},
-    onWeightChange = () => {},
+    onEstimationSettingsChanged = () => {},
 }) => {
     const [selectedYears, setSelectedYears] = useState<number[]>(defaultYears);
     const [weight, setWeight] = useState<number>(defaultWeight);
 
-    useEffect(() => { onYearsChange(selectedYears); }, [selectedYears, onYearsChange]);
-    useEffect(() => { onWeightChange(weight); }, [weight, onWeightChange]);
+    useEffect(() => { onEstimationSettingsChanged({ years: selectedYears, weight }); }, [selectedYears, weight]);
+
     const handleYearToggle = (year: number) => {
         if (selectedYears.includes(year)) {
             setSelectedYears(selectedYears.filter((y) => y !== year));

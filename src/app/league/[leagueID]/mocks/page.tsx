@@ -46,14 +46,25 @@ function buildPlayerDb(players: PlayerInfo[], scoringType: ScoringType, draftAna
         defaultPosition: slotCategoryIdToPositionMap[player.player.defaultPositionId],
         positions: player.player.eligibleSlots.map(slot => slotCategoryIdToPositionMap[slot]),
         suggestedCost: (player.draftAuctionValue),
-        estimatedCost: estimateCost(player, rankings, draftAnalyses),
+        estimatedCost: 1,
         overallRank: 1 + (rankings.overall.get(player.player.id) as number),
         positionRank: 1 + (rankings.positional.get(player.player.defaultPositionId)?.get(player.player.id) as number)
     }));
 }
 
 function rankPlayers(players: PlayerInfo[], scoringType: ScoringType) : Rankings  {
-    players.sort((a, b) => a.player.draftRanksByRankType[scoringType] - a.player.draftRanksByRankType[scoringType]);
+    const comparePlayers = (a: PlayerInfo, b: PlayerInfo) => {
+        const aCost = a.draftAuctionValue;
+        const bCost = b.draftAuctionValue;
+        if (aCost !== bCost) {
+            return bCost - aCost;
+        }
+        const aRank = b.player.draftRanksByRankType[scoringType];
+        const bRank = a.player.draftRanksByRankType[scoringType];
+        return bRank - aRank;
+
+    } 
+    players.sort(comparePlayers);
     const positionOrder = new Map<number, PlayerInfo[]>();
     for (const playerInfo of players) {
         const position = playerInfo.player.defaultPositionId
@@ -82,13 +93,6 @@ function rankPlayers(players: PlayerInfo[], scoringType: ScoringType) : Rankings
         positional: positionRankings
     };
 
-}
-
-function estimateCost(player: PlayerInfo, rankings: Rankings, draftAnalyses: DraftAnalysis[]) : number {
-    const overallRank = rankings.overall.get(player.player.id) as number;
-    const position = player.player.defaultPositionId;
-    const positionRank = rankings.positional.get(position)?.get(player.player.id) as number;
-    return Math.max(1, Math.ceil(combinePredictions(overallRank, position, positionRank, draftAnalyses)));
 }
 
 async function buildDraftHistory(leagueHistory: Map<number, LeagueInfo>) : Promise<Map<number, DraftedPlayer[]>> {
@@ -121,28 +125,4 @@ function analyzeDraft(draftedPlayers: DraftedPlayer[]) : DraftAnalysis {
         overall,
         positions
     };
-}
-
-function predictCost(overallRank: number, positionId: number, positionRank: number, analysis: DraftAnalysis) : number {
-    // const overallPrediction = analysis.overall.predict(overallRank)[1];
-    const positionName = slotCategoryIdToPositionMap[positionId];
-    const coeffs = analysis.positions.get(positionName);
-    if (!coeffs) {
-        console.log("No coefficients for position: ", positionName);
-        console.log("Have coefficients for: ", Array.from(analysis.positions.keys()));
-        return 0;
-    }
-    const positionPrediction = predictExponential(positionRank, analysis.positions.get(positionName) as ExponentialCoefficients);
-    // const combinedPrediction = positionPrediction ? (overallPrediction + positionPrediction) / 2 : overallPrediction;
-    // return combinedPrediction;
-    return positionPrediction || 0;
-}
-
-function predictExponential(x: number, coefficients: ExponentialCoefficients) : number {
-    return coefficients[0] * Math.exp(coefficients[1] * x);
-}
-
-function combinePredictions(overallRank: number, positionId: number, positionRank: number, analyses: DraftAnalysis[]) : number {
-    const predictions = analyses.map(analysis => predictCost(overallRank, positionId, positionRank, analysis));
-    return predictions.reduce((a, b) => a + b, 0) / predictions.length;
 }

@@ -3,10 +3,10 @@ import React, { useState, useEffect } from 'react';
 import MockRosterEntry from './MockRosterEntry';
 import './MockTable.css';
 import PlayerTable from '../drafts/[draftYear]/PlayerTable';
-import { DraftAnalysis, MockPlayer } from './types';
+import { DraftAnalysis, ExponentialCoefficients, MockPlayer } from './types';
 import SearchSettings, { SearchSettingsState } from './SearchSettings';
-import EstimationSettings from './EstimationSettings';
-import next from 'next';
+import EstimationSettings, { EstimationSettingsState } from './EstimationSettings';
+import { M_PLUS_1 } from 'next/font/google';
 
 interface RosterProps {
     auctionBudget: number;
@@ -26,6 +26,9 @@ const availablePlayerColumns: [(keyof MockPlayer), string][] = [
 ];
 
 const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, draftHistory, playerPositions }) => {
+    const [playerDb, setPlayerDb] = useState<MockPlayer[]>(players);
+    const [estimationSettings, setEstimationSettings] = useState<EstimationSettingsState>({ years: Array.from(draftHistory.keys()), weight: 50 });
+    const [searchSettings, setSearchSettings] = useState<SearchSettingsState>({ positions: playerPositions, playerCount: 150, minPrice: 1, maxPrice: auctionBudget });
     const [availablePlayers, setAvailablePlayers] = useState<MockPlayer[]>(players);
     const [budgetSpent, setBudgetSpent] = useState(0);
     const [selectedPlayers, setSelectedPlayers] = useState<MockPlayer[]>([]);
@@ -33,6 +36,21 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
 
     useEffect(() => { setBudgetSpent(selectedPlayers.reduce((s, p) => s + p.estimatedCost, 0)) }, [selectedPlayers]);
     useEffect(() => { setAvailablePlayers(players.filter(p => !selectedPlayers.includes(p))) }, [players, selectedPlayers]);
+
+    useEffect(() => {
+        const nextDb = playerDb.map(p => {
+            return { ...p, estimatedCost: predictCostWithSettings(p, estimationSettings, draftHistory) };
+        });
+        setPlayerDb(nextDb);
+    }, [estimationSettings]);
+
+    useEffect(() => {
+        const nextPlayers = playerDb.filter(p => searchSettings.positions.includes(p.defaultPosition) &&
+            p.estimatedCost >= searchSettings.minPrice &&
+            p.estimatedCost <= searchSettings.maxPrice &&
+            !selectedPlayers.includes(p));
+        setAvailablePlayers(nextPlayers.slice(0, searchSettings.playerCount));
+    }, [searchSettings, playerDb, selectedPlayers]);
 
     const onPlayerSelected = (player?:MockPlayer, prevPlayer?:MockPlayer) => {
         console.log('onPlayerSelected', selectedPlayers.length, player, prevPlayer);
@@ -47,11 +65,11 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
     };
 
     const onSettingsChanged = (settings: SearchSettingsState) => {
-        const nextPlayers = players.filter(p => settings.positions.includes(p.defaultPosition) &&
-            p.estimatedCost >= settings.minPrice &&
-            p.estimatedCost <= settings.maxPrice &&
-            !selectedPlayers.includes(p));
-        setAvailablePlayers(nextPlayers.slice(0, settings.playerCount));
+        setSearchSettings(settings);
+    }
+
+    const onEstimationSettingsChanged = (settings: EstimationSettingsState) => {
+        setEstimationSettings(settings);
     }
 
     return (
@@ -72,7 +90,7 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
                                 Array.from({ length: count }, (_, i) => (
                                     <MockRosterEntry
                                         key={`${position}-${i}`}
-                                        players={players}
+                                        players={availablePlayers}
                                         position={position}
                                         clickedPlayer={clickedPlayer}
                                         onPlayerSelected={onPlayerSelected}
@@ -92,13 +110,18 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
                         <SearchSettings
                             onSettingsChanged={onSettingsChanged}
                             positions={playerPositions}
-                            defaultPlayerCount={150}
-                            defaultMinPrice={1}
-                            defaultMaxPrice={auctionBudget} />
-                        <EstimationSettings years={Array.from(draftHistory.keys())}
-                            defaultWeight={50} />
+                            defaultPositions={searchSettings.positions}
+                            defaultPlayerCount={searchSettings.playerCount}
+                            defaultMinPrice={searchSettings.minPrice}
+                            defaultMaxPrice={searchSettings.maxPrice} />
+                        <EstimationSettings
+                            onEstimationSettingsChanged={onEstimationSettingsChanged}
+                            years={Array.from(draftHistory.keys())}
+                            defaultYears={estimationSettings.years}
+                            defaultWeight={estimationSettings.weight} />
                     </div>
-                    <PlayerTable players={availablePlayers}
+                    <PlayerTable
+                        players={availablePlayers}
                         columns={availablePlayerColumns}
                         onPlayerClick={onPlayerClick}
                         defaultSortColumn='estimatedCost'
@@ -110,3 +133,34 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
 };
 
 export default MockTable;
+
+function predictCostWithSettings(player: MockPlayer, settings: EstimationSettingsState, draftHistory: Map<number, DraftAnalysis>) {
+    const estimates = [];
+    for (const year of settings.years) {
+        const yearCoeffs = draftHistory.get(year)!;
+        const yearPrediction = weightedPrediction(player, yearCoeffs, settings.weight);
+        estimates.push(yearPrediction);
+    }
+    if (estimates.length === 0) return 1;
+    const prediction = estimates.reduce((a, b) => a + b, 0) / estimates.length;
+    return Math.max(1, Math.ceil(prediction));
+}
+
+function weightedPrediction(player: MockPlayer, analysis: DraftAnalysis, weight: number) : number {
+    const [overallPrediction, positionPrediction] = costPredictions(player, analysis);
+    const positionWeight = weight / 100;
+    const overallWeight = 1 - positionWeight;
+    return overallWeight * overallPrediction + positionWeight * positionPrediction;
+}
+
+function costPredictions(player: MockPlayer, analysis: DraftAnalysis) : [number, number] {
+    const positionName = player.defaultPosition;
+    const overallPrediction = predictExponential(player.overallRank, analysis.overall);
+    const coeffs = analysis.positions.get(positionName) as ExponentialCoefficients;
+    const positionPrediction = predictExponential(player.positionRank, coeffs);
+    return [overallPrediction, positionPrediction];
+}
+
+function predictExponential(x: number, coefficients: ExponentialCoefficients) : number {
+    return coefficients[0] * Math.exp(coefficients[1] * x);
+}

@@ -17,7 +17,7 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ players, position, on
 
     useEffect(() => {
         console.log('checking for player click!', hasFocus, clickedPlayer);
-        if (hasFocus && clickedPlayer !== selectedPlayer && clickedPlayer?.defaultPosition === position) {
+        if (hasFocus && clickedPlayer !== selectedPlayer && clickedPlayer?.positions.includes(position)) {
             updateSelectedPlayer(clickedPlayer);
         }
     }, [hasFocus, clickedPlayer]);
@@ -79,7 +79,7 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ players, position, on
                                 onClick={() => handleSuggestionClick(suggestion)}
                                 style={{ cursor: 'pointer' }}
                             >
-                                {suggestion.name}
+                                {suggestion.name} ({suggestion.estimatedCost})
                             </li>
                         ))}
                     </ul>
