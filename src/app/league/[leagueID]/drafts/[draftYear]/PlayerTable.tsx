@@ -9,6 +9,7 @@ export interface PlayerTableProps<T extends object> {
     columns: [(keyof T), string][];
     defaultSortColumn?: keyof T;
     defaultSortDirection?: 'asc' | 'desc';
+    onPlayerClick?: (player: PlayerData<T>) => void;
 }
 
 
@@ -16,7 +17,8 @@ const PlayerTable = <T extends object,>({
     players,
     columns,
     defaultSortColumn = columns[0][0],
-    defaultSortDirection = 'desc'
+    defaultSortDirection = 'desc',
+    onPlayerClick,
 }: PlayerTableProps<T>) => {
     type SortColumn = keyof T;
     const [sortColumn, setSortColumn] = useState<SortColumn>(defaultSortColumn);
@@ -61,7 +63,9 @@ const PlayerTable = <T extends object,>({
             </thead>
             <tbody>
                 {sortedData.map((item) => (
-                    <tr key={item.id}>
+                    <tr key={item.id}
+                        className={onPlayerClick ? 'clickable' : ''}
+                        onClick={() => onPlayerClick && onPlayerClick(item)}>
                         {columns.map(([column, _]) => (
                             <td key={`${column.toString()} ${item.id}`}><div >{(item[column] as object).toString()}</div></td>))}
                     </tr>

@@ -1,5 +1,5 @@
 import PlayerTable from './PlayerTable';
-import { fetchDraftInfo, fetchAllPlayerInfo, fetchTeamsAtWeek, slotCategoryIdToPositionMap } from '@/espn/league';
+import { fetchDraftInfo, fetchAllPlayerInfo, fetchTeamsAtWeek, slotCategoryIdToPositionMap, mergeDraftAndPlayerInfo, DraftedPlayer } from '@/espn/league';
 import PlayerScatterChart from './PlayerScatterChart';
 
 export type TableData = {
@@ -60,35 +60,13 @@ const Page = async ({ params }: Readonly<{ params: { leagueID: string, draftYear
 
 export default Page;
 
-type DraftedPlayer = DraftPick & PlayerInfo["player"] & { draftedBy: Team };
-
-function mergeDraftAndPlayerInfo(draftData: DraftPick[], playerData: PlayerInfo[], teams: Team[]): DraftedPlayer[] {
-    return draftData.map((pick) => {
-        const player = playerData.find((info: PlayerInfo) => info.player.id === pick.playerId);
-        const team = teams.find((team: Team) => team.id === pick.teamId);
-        if (!player) {
-            console.error('Player not found for pick:', pick);
-            throw new Error('Player not found for pick');
-        }
-        if (!team) {
-            console.error('Team not found for pick:', pick);
-            throw new Error('Team not found for pick');
-        }
-        return {
-            ...pick,
-            ...player.player,
-            draftedBy: team
-        };
-    });
-}
-
 function makeTableRow(data: DraftedPlayer) : TableData {
     return {
         id: data.id,
         name: data.fullName,
         auctionPrice: data.bidAmount,
         numberDrafted: data.overallPickNumber,
-        teamDrafted: data.draftedBy.name,
+        teamDrafted: typeof data.draftedBy === 'number' ? '' : data.draftedBy.name,
         position: slotCategoryIdToPositionMap[data.defaultPositionId],
     }
 }

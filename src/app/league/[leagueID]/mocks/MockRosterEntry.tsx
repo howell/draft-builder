@@ -1,28 +1,45 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import './MockRosterEntry.css';
-
-export interface MockPlayer {
-    id: number;
-    name: string;
-    defaultPosition: string;
-    positions: string[];
-    suggestedCost: number,
-    estimatedCost: number;
-    overallRank: number;
-    positionRank: number;
-}
+import { MockPlayer } from './types';
 
 export interface MockRosterEntryProps {
     players: MockPlayer[];
     position: string;
+    onPlayerSelected: (player?: MockPlayer, prevPlayer?: MockPlayer) => void;
+    clickedPlayer: MockPlayer | undefined;
 }
 
-const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ players, position}) => {
+const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ players, position, onPlayerSelected, clickedPlayer }) => {
     const [inputValue, setInputValue] = useState('');
     const [suggestions, setSuggestions] = useState<MockPlayer[]>([]);
-    const [selectedPlayer, setSelectedPlayer] = useState<MockPlayer | null>(null);
+    const [selectedPlayer, setSelectedPlayer] = useState<MockPlayer | undefined>(undefined);
+    const [hasFocus, setHasFocus] = useState<boolean>(false);
+
+    useEffect(() => {
+        console.log('checking for player click!', hasFocus, clickedPlayer);
+        if (hasFocus && clickedPlayer !== selectedPlayer && clickedPlayer?.defaultPosition === position) {
+            updateSelectedPlayer(clickedPlayer);
+        }
+    }, [hasFocus, clickedPlayer]);
+
+    const onFocus = () => {
+        setHasFocus(true);
+    }
+    
+    const onBlur = () => {
+        setTimeout(() => setSuggestions([]), 100);
+        setTimeout(() => setHasFocus(false), 100);
+    }
+
+
+    const updateSelectedPlayer = (player?: MockPlayer) => {
+        setInputValue(player ? player.name : '');
+        onPlayerSelected(player, selectedPlayer);
+        setSelectedPlayer(player);
+    }
 
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        updateSelectedPlayer(undefined);
         const value = event.target.value;
         setInputValue(value);
 
@@ -37,7 +54,7 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ players, position}) =
 
     const handleSuggestionClick = (suggestion: MockPlayer) => {
         setInputValue(suggestion.name);
-        setSelectedPlayer(suggestion);
+        updateSelectedPlayer(suggestion);
         setSuggestions([]);
     };
 
@@ -48,8 +65,9 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ players, position}) =
                 <input
                     type="text"
                     value={inputValue}
+                    onFocus={onFocus}
                     onChange={handleInputChange}
-                    onBlur={() => setTimeout(() => setSuggestions([]), 100)}
+                    onBlur={onBlur}
                     placeholder="Search for a player..."
                 />
 
@@ -67,7 +85,7 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ players, position}) =
                     </ul>
                 )}
             </td>
-            <td>0</td>
+            <td>{selectedPlayer ? selectedPlayer.estimatedCost : 0}</td>
         </tr>
     );
 }

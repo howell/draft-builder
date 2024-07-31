@@ -61,13 +61,13 @@ function buildDraftRoute(leagueID: number, season: number, scoringPeriodId = 0) 
      );
 }
 
-export async function fetchAllPlayerInfo(leagueID: number, season: number, scoringPeriodId = 0): Promise<number | PlayersInfo> {
+export async function fetchAllPlayerInfo(leagueID: number, season: number, scoringPeriodId = 0, maxPlayers=1000): Promise<number | PlayersInfo> {
     const playerResponse = await fetch(buildPlayerRoute(leagueID, season, scoringPeriodId), {
         headers: {
             Cookie: `espn_s2=${ESPN_S2}; SWID=${ESPN_SWID}`,
             'x-fantasy-filter': JSON.stringify({
                 players: {
-                    limit: 3000,
+                    limit: maxPlayers,
                     sortPercOwned: {
                         sortAsc: false,
                         sortPriority: 1
@@ -144,4 +144,29 @@ export function leagueLineupSettings(league: LeagueInfo): Map<string, number> {
             slotCounts[slot],
         ]);
     return new Map(positionCounts);
+}
+
+export type DraftedPlayer = DraftPick & PlayerInfo["player"] & { draftedBy: Team | number };
+
+export function mergeDraftAndPlayerInfo(draftData: DraftPick[], playerData: PlayerInfo[], teams: Team[] = []): DraftedPlayer[] {
+    return draftData.map((pick) => {
+        const player = playerData.find((info: PlayerInfo) => info.player.id === pick.playerId);
+        const team = teams.find((team: Team) => team.id === pick.teamId);
+        if (!player) {
+            console.error('Player not found for pick:', pick);
+            throw new Error('Player not found for pick');
+        }
+        if (teams.length > 0 && !team) {
+            console.error('Team not found for pick:', pick);
+            throw new Error('Team not found for pick');
+        }
+        // if (pick.lineupSlotId !== player.player.defaultPositionId) {
+        //     console.log('Position mismatch:', JSON.stringify(pick.lineupSlotId), JSON.stringify([player.player.fullName, player.player.defaultPositionId]));
+        // }
+        return {
+            ...pick,
+            ...player.player,
+            draftedBy: team || pick.teamId
+        };
+    });
 }

@@ -1,13 +1,19 @@
 'use client'
-import React from 'react';
-import MockRosterEntry, { MockPlayer } from './MockRosterEntry';
+import React, { useState, useEffect } from 'react';
+import MockRosterEntry from './MockRosterEntry';
 import './MockTable.css';
 import PlayerTable from '../drafts/[draftYear]/PlayerTable';
+import { DraftAnalysis, MockPlayer } from './types';
+import SearchSettings from './SearchSettings';
+import EstimationSettings from './EstimationSettings';
+import next from 'next';
 
 interface RosterProps {
     auctionBudget: number;
     positions: Map<string, number>;
     players: MockPlayer[];
+    draftHistory: Map<number, DraftAnalysis>;
+    playerPositions: string[];
 }
 
 const availablePlayerColumns: [(keyof MockPlayer), string][] = [
@@ -19,12 +25,32 @@ const availablePlayerColumns: [(keyof MockPlayer), string][] = [
     ['estimatedCost', 'Estimated Cost'],
 ];
 
-const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players }) => {
+const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, draftHistory, playerPositions }) => {
+    const [availablePlayers, setAvailablePlayers] = useState<MockPlayer[]>(players);
+    const [budgetSpent, setBudgetSpent] = useState(0);
+    const [selectedPlayers, setSelectedPlayers] = useState<MockPlayer[]>([]);
+    const [clickedPlayer, setClickedPlayer] = useState<MockPlayer | undefined>(undefined);
+
+    useEffect(() => { setBudgetSpent(selectedPlayers.reduce((s, p) => s + p.estimatedCost, 0)) }, [selectedPlayers]);
+    useEffect(() => { setAvailablePlayers(players.filter(p => !selectedPlayers.includes(p))) }, [players, selectedPlayers]);
+
+    const onPlayerSelected = (player?:MockPlayer, prevPlayer?:MockPlayer) => {
+        console.log('onPlayerSelected', selectedPlayers.length, player, prevPlayer);
+        const nextPlayers = selectedPlayers.filter(p => p !== prevPlayer && p !== player);
+        if (player) nextPlayers.push(player);
+        setSelectedPlayers(nextPlayers);
+    };
+
+    const onPlayerClick = (player:MockPlayer) => {
+        setClickedPlayer(player);
+        setTimeout(() => setClickedPlayer(undefined), 100);
+    };
+
     return (
-        <div className='MockTable'>
+        <div className='MockTable horizontal-container'>
             <div className="tables-container">
                 <div className="roster-container">
-                    <h2>Your Roster</h2>
+                    <h1>Your Roster</h1>
                     <table>
                         <thead>
                             <tr>
@@ -40,6 +66,8 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players })
                                         key={`${position}-${i}`}
                                         players={players}
                                         position={position}
+                                        clickedPlayer={clickedPlayer}
+                                        onPlayerSelected={onPlayerSelected}
                                     />
                                 ))
                             )}
@@ -47,12 +75,24 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players })
                     </table>
                     <div>
                         <p>Budget: {auctionBudget} </p>
-                        <p>Remaining: {auctionBudget} </p>
+                        <p>Remaining: {auctionBudget - budgetSpent} </p>
                     </div>
                 </div>
                 <div className='available-players-container'>
-                    <h2>Available Players</h2>
-                    <PlayerTable players={players} columns={availablePlayerColumns} defaultSortColumn='estimatedCost' defaultSortDirection='desc' />
+                    <h1>Available Players</h1>
+                    <div className='horizontal-container settings-container'>
+                        <SearchSettings positions={playerPositions}
+                            defaultPlayerCount={150}
+                            defaultMinPrice={1}
+                            defaultMaxPrice={auctionBudget} />
+                        <EstimationSettings years={Array.from(draftHistory.keys())}
+                            defaultWeight={50} />
+                    </div>
+                    <PlayerTable players={availablePlayers}
+                        columns={availablePlayerColumns}
+                        onPlayerClick={onPlayerClick}
+                        defaultSortColumn='estimatedCost'
+                        defaultSortDirection='desc' />
                 </div>
             </div>
         </div>

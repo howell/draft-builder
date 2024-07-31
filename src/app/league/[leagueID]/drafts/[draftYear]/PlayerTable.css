@@ -19,6 +19,10 @@
     cursor: pointer;
 }
 
+.clickable {
+    cursor: pointer;
+}
+
 .table-container tr:nth-child(even) {
     background-color: #9b939377;
 }
