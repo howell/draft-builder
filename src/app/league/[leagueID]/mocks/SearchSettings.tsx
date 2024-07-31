@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 export interface SearchSettingsProps {
     positions: string[];
@@ -6,7 +6,15 @@ export interface SearchSettingsProps {
     defaultPlayerCount: number;
     defaultMinPrice: number;
     defaultMaxPrice: number;
+    onSettingsChanged?: (settings: SearchSettingsState) => void;
 }
+
+export type SearchSettingsState = {
+    positions: string[];
+    playerCount: number;
+    minPrice: number;
+    maxPrice: number;
+};
 
 const SearchSettings: React.FC<SearchSettingsProps> = ({
     positions,
@@ -14,6 +22,7 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
     defaultPlayerCount,
     defaultMinPrice,
     defaultMaxPrice,
+    onSettingsChanged = () => { },
 }) => {
     const [selectedPositions, setSelectedPositions] = useState<string[]>(defaultPositions);
     const [playerCount, setPlayerCount] = useState<number>(defaultPlayerCount);
@@ -39,6 +48,15 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
             setSelectedPositions([...selectedPositions, position]);
         }
     };
+
+    useEffect(() => {
+        onSettingsChanged({
+            positions: selectedPositions,
+            playerCount: playerCount,
+            minPrice: minPrice,
+            maxPrice: maxPrice,
+        });
+    }, [selectedPositions, playerCount, minPrice, maxPrice, onSettingsChanged]);
 
     return (
         <div>

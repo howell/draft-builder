@@ -4,7 +4,7 @@ import MockRosterEntry from './MockRosterEntry';
 import './MockTable.css';
 import PlayerTable from '../drafts/[draftYear]/PlayerTable';
 import { DraftAnalysis, MockPlayer } from './types';
-import SearchSettings from './SearchSettings';
+import SearchSettings, { SearchSettingsState } from './SearchSettings';
 import EstimationSettings from './EstimationSettings';
 import next from 'next';
 
@@ -46,6 +46,14 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
         setTimeout(() => setClickedPlayer(undefined), 100);
     };
 
+    const onSettingsChanged = (settings: SearchSettingsState) => {
+        const nextPlayers = players.filter(p => settings.positions.includes(p.defaultPosition) &&
+            p.estimatedCost >= settings.minPrice &&
+            p.estimatedCost <= settings.maxPrice &&
+            !selectedPlayers.includes(p));
+        setAvailablePlayers(nextPlayers.slice(0, settings.playerCount));
+    }
+
     return (
         <div className='MockTable horizontal-container'>
             <div className="tables-container">
@@ -81,7 +89,9 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
                 <div className='available-players-container'>
                     <h1>Available Players</h1>
                     <div className='horizontal-container settings-container'>
-                        <SearchSettings positions={playerPositions}
+                        <SearchSettings
+                            onSettingsChanged={onSettingsChanged}
+                            positions={playerPositions}
                             defaultPlayerCount={150}
                             defaultMinPrice={1}
                             defaultMaxPrice={auctionBudget} />
