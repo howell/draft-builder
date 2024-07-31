@@ -27,7 +27,7 @@ const availablePlayerColumns: [(keyof MockPlayer), string][] = [
 const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, draftHistory, playerPositions }) => {
     const [playerDb, setPlayerDb] = useState<MockPlayer[]>(players);
     const [estimationSettings, setEstimationSettings] = useState<EstimationSettingsState>({ years: Array.from(draftHistory.keys()), weight: 50 });
-    const [searchSettings, setSearchSettings] = useState<SearchSettingsState>({ positions: playerPositions, playerCount: 150, minPrice: 1, maxPrice: auctionBudget, showOnlyAvailable: true });
+    const [searchSettings, setSearchSettings] = useState<SearchSettingsState>({ positions: playerPositions, playerCount: 200, minPrice: 1, maxPrice: auctionBudget, showOnlyAvailable: true });
     const [availablePlayers, setAvailablePlayers] = useState<MockPlayer[]>(players);
     const [budgetSpent, setBudgetSpent] = useState(0);
     const [selectedPlayers, setSelectedPlayers] = useState<MockPlayer[]>([]);
