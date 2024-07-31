@@ -37,7 +37,6 @@ const EstimationSettings: React.FC<EstimationSettingsProps> = ({
 
     return (
         <div>
-            <h2>Estimation Settings</h2>
             <div>
                 <h3>Years</h3>
                 {years.map((year) => (

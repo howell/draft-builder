@@ -25,15 +25,47 @@
 .tables-container {
     display: flex;
     justify-content: space-between;
+    padding-left: 2%;
     margin-left: 10%;
+    margin-right: 10%;
+    gap: 0px;
     /* gap: 2%; */
+}
+
+.clickable-heading {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    /* justify-content: space-between; */
+}
+
+.clickable-heading i {
+    margin-left: 4px;
 }
 
 .roster-table-container,
 .available-players-container {
     flex: 1; /* Ensures both containers take equal space */
+    min-width: 35%;
+    max-width: 50%; /* Optional: Limits the width of the available players table */
 }
 
 .available-players-container {
     max-width: 50%; /* Optional: Limits the width of the available players table */
+}
+
+.settings-container {
+    display: flex;
+    justify-content: space-between;
+}
+
+.search-settings, .estimation-settings {
+    flex: 1;
+    min-width: 45%; /* Adjust as needed */
+    max-width: 45%; /* Adjust as needed */
+}
+
+.hidden {
+    visibility: hidden;
+    height: 0;
 }

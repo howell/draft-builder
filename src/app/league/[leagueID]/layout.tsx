@@ -24,7 +24,9 @@ const LeagueLayout = async ({ children, params } : { children: React.ReactNode, 
 
     return (
         <div>
-            <Sidebar leagueID={leagueID} years={prevAuctions} />
+            <Sidebar leagueID={leagueID}
+                years={prevAuctions}
+                leagueName={leagueHistory.get(DEFAULT_YEAR)!.settings.name} />
             <main>{children}</main>
         </div>
     );

@@ -33,6 +33,11 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
     const [budgetSpent, setBudgetSpent] = useState(0);
     const [selectedPlayers, setSelectedPlayers] = useState<MockPlayer[]>([]);
     const [clickedPlayer, setClickedPlayer] = useState<MockPlayer | undefined>(undefined);
+    const [showSearchSettings, setShowSearchSettings] = useState(true);
+    const [showEstimationSettings, setShowEstimationSettings] = useState(true);
+
+    const toggleSearchSettings = () => setShowSearchSettings(!showSearchSettings);
+    const toggleEstimationSettings = () => setShowEstimationSettings(!showEstimationSettings);
 
     useEffect(() => { setBudgetSpent(selectedPlayers.reduce((s, p) => s + p.estimatedCost, 0)) }, [selectedPlayers]);
     useEffect(() => { setAvailablePlayers(players.filter(p => !selectedPlayers.includes(p))) }, [players, selectedPlayers]);
@@ -73,7 +78,7 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
     }
 
     return (
-        <div className='MockTable horizontal-container'>
+        <div className='MockTable'>
             <div className="tables-container">
                 <div className="roster-container">
                     <h1>Your Roster</h1>
@@ -107,18 +112,34 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
                 <div className='available-players-container'>
                     <h1>Available Players</h1>
                     <div className='horizontal-container settings-container'>
-                        <SearchSettings
-                            onSettingsChanged={onSettingsChanged}
-                            positions={playerPositions}
-                            defaultPositions={searchSettings.positions}
-                            defaultPlayerCount={searchSettings.playerCount}
-                            defaultMinPrice={searchSettings.minPrice}
-                            defaultMaxPrice={searchSettings.maxPrice} />
-                        <EstimationSettings
-                            onEstimationSettingsChanged={onEstimationSettingsChanged}
-                            years={Array.from(draftHistory.keys())}
-                            defaultYears={estimationSettings.years}
-                            defaultWeight={estimationSettings.weight} />
+                        <div className={`search-settings`}>
+                            <h3 className="clickable-heading" onClick={toggleSearchSettings}>
+                                Search Settings
+                                <i className={`fas ${showSearchSettings ? 'fa-chevron-down' : 'fa-chevron-up'}`} id="search-icon"></i>
+                            </h3>
+                            <div className={`${showSearchSettings ? '' : 'hidden'}`}>
+                                <SearchSettings
+                                    onSettingsChanged={onSettingsChanged}
+                                    positions={playerPositions}
+                                    defaultPositions={searchSettings.positions}
+                                    defaultPlayerCount={searchSettings.playerCount}
+                                    defaultMinPrice={searchSettings.minPrice}
+                                    defaultMaxPrice={searchSettings.maxPrice} />
+                            </div>
+                        </div>
+                        <div className={`estimation-settings`}>
+                            <h3 className="clickable-heading" onClick={toggleEstimationSettings}>
+                                Estimation Settings
+                                <i className={`fas ${showEstimationSettings ? 'fa-chevron-down' : 'fa-chevron-up'}`} id="search-icon"></i>
+                            </h3>
+                            <div className={`${showEstimationSettings ? '' : 'hidden'}`}>
+                                <EstimationSettings
+                                    onEstimationSettingsChanged={onEstimationSettingsChanged}
+                                    years={Array.from(draftHistory.keys())}
+                                    defaultYears={estimationSettings.years}
+                                    defaultWeight={estimationSettings.weight} />
+                            </div>
+                        </div>
                     </div>
                     <PlayerTable
                         players={availablePlayers}
@@ -146,14 +167,14 @@ function predictCostWithSettings(player: MockPlayer, settings: EstimationSetting
     return Math.max(1, Math.ceil(prediction));
 }
 
-function weightedPrediction(player: MockPlayer, analysis: DraftAnalysis, weight: number) : number {
+function weightedPrediction(player: MockPlayer, analysis: DraftAnalysis, weight: number): number {
     const [overallPrediction, positionPrediction] = costPredictions(player, analysis);
     const positionWeight = weight / 100;
     const overallWeight = 1 - positionWeight;
     return overallWeight * overallPrediction + positionWeight * positionPrediction;
 }
 
-function costPredictions(player: MockPlayer, analysis: DraftAnalysis) : [number, number] {
+function costPredictions(player: MockPlayer, analysis: DraftAnalysis): [number, number] {
     const positionName = player.defaultPosition;
     const overallPrediction = predictExponential(player.overallRank, analysis.overall);
     const coeffs = analysis.positions.get(positionName) as ExponentialCoefficients;
@@ -161,6 +182,6 @@ function costPredictions(player: MockPlayer, analysis: DraftAnalysis) : [number,
     return [overallPrediction, positionPrediction];
 }
 
-function predictExponential(x: number, coefficients: ExponentialCoefficients) : number {
+function predictExponential(x: number, coefficients: ExponentialCoefficients): number {
     return coefficients[0] * Math.exp(coefficients[1] * x);
 }

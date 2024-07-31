@@ -60,7 +60,6 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
 
     return (
         <div>
-            <h2>Search Settings</h2>
             <div>
                 <h3>Positions</h3>
                 {positions.map((position) => (

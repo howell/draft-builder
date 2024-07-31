@@ -8,10 +8,11 @@ import Link from 'next/link'
 interface SidebarProps {
     leagueID: number;
     years: number[];
+    leagueName: string;
 }
 
 
-const Sidebar: React.FC<SidebarProps> = ({leagueID, years}) => {
+const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName }) => {
 	const [isOpen, setIsOpen] = useState(true);
 	const [showDrafts, setShowDrafts] = useState(true);
     const currentYear = parseDraftYear(usePathname())
@@ -23,12 +24,13 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years}) => {
     return (
         <div className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
             <button onClick={toggleSidebar} className={styles.toggleButton}>
-                {isOpen ? '<<' : '>>'}
+                <i className={`fas ${isOpen ? 'fa-times' : 'fa-bars'}`} />
             </button>
             <div className={styles.content}>
-                <h2>Your League</h2>
+                <h2>{leagueName}</h2>
                 <span onClick={toggleDrafts} className={`${styles.draftButton}`}>
-                  Drafts { showDrafts ? 'v' : '^' }
+                  Drafts
+                  <i className={`fas ${showDrafts ? 'fa-chevron-down' : 'fa-chevron-up'} ${styles.showDraftsIcon}`} />
                 </span>
                 {showDrafts && (
                     <ul className={styles.yearList}>
@@ -39,9 +41,11 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years}) => {
                         ))}
                     </ul>
                 )}
-                <span className={styles.draftButton}>
-                    <Link href={`/league/${leagueID}/mocks`}>Mock!</Link>
-                </span>
+                <div>
+                    <span className={styles.draftButton}>
+                        <Link href={`/league/${leagueID}/mocks`}>Mock!</Link>
+                    </span>
+                </div>
             </div>
         </div>
     );

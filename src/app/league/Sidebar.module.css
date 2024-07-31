@@ -2,7 +2,7 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: 200px;
+    width: 140px;
     height: 100%;
     background-color: #333;
     color: white;
@@ -18,7 +18,7 @@
 
 .toggleButton {
     position: absolute;
-    right: 10px;
+    right: 0px;
     height: 24px;
     width: 24px;
     z-index: 1;
@@ -50,14 +50,25 @@
 }
 .content {
     position: absolute;
-    top: 0;
+    top: 30px;
     left: 0;
     right: 0;
     height: 100%;
+    padding-right: 5px;
     transition: transform 0.3s ease-in-out;
     background-color: rgb(46, 46, 46);
 }
 .activeYear {
     font-weight: bold;
     font-size: 1.2em;
+}
+.showDraftsIcon {
+    position: relative;
+    top: -2px;
+    margin-left: 4px;
+    font-size: 0.6em;
+}
+
+.h2 {
+    font-size: 48px;
 }
