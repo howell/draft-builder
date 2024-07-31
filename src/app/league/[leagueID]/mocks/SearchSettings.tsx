@@ -6,6 +6,7 @@ export interface SearchSettingsProps {
     defaultPlayerCount: number;
     defaultMinPrice: number;
     defaultMaxPrice: number;
+    showOnlyAvailable?: boolean;
     onSettingsChanged?: (settings: SearchSettingsState) => void;
 }
 
@@ -14,6 +15,7 @@ export type SearchSettingsState = {
     playerCount: number;
     minPrice: number;
     maxPrice: number;
+    showOnlyAvailable: boolean;
 };
 
 const SearchSettings: React.FC<SearchSettingsProps> = ({
@@ -22,12 +24,14 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
     defaultPlayerCount,
     defaultMinPrice,
     defaultMaxPrice,
+    showOnlyAvailable = true,
     onSettingsChanged = () => { },
 }) => {
     const [selectedPositions, setSelectedPositions] = useState<string[]>(defaultPositions);
     const [playerCount, setPlayerCount] = useState<number>(defaultPlayerCount);
     const [minPrice, setMinPrice] = useState<number>(defaultMinPrice);
     const [maxPrice, setMaxPrice] = useState<number>(defaultMaxPrice);
+    const [showingOnlyAvailable, setShowingOnlyAvailable] = useState<boolean>(showOnlyAvailable);
 
     const handlePlayerCountChange = (value: number) => {
         setPlayerCount(value);
@@ -49,14 +53,19 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
         }
     };
 
+    const handleShowingOnlyAvailableToggle = () => {
+        setShowingOnlyAvailable(!showingOnlyAvailable);
+    }
+
     useEffect(() => {
         onSettingsChanged({
             positions: selectedPositions,
             playerCount: playerCount,
             minPrice: minPrice,
             maxPrice: maxPrice,
+            showOnlyAvailable: showingOnlyAvailable,
         });
-    }, [selectedPositions, playerCount, minPrice, maxPrice]);
+    }, [selectedPositions, playerCount, minPrice, maxPrice, showingOnlyAvailable]);
 
     return (
         <div>
@@ -99,6 +108,16 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
                     value={maxPrice}
                     onChange={(e) => handleMaxPriceChange(Number(e.target.value))}
                 />
+            </div>
+            <div>
+                <label>
+                    Only Show Available Players
+                    <input
+                        type="checkbox"
+                        checked={showingOnlyAvailable}
+                        onChange={() => handleShowingOnlyAvailableToggle()}
+                    />
+                </label>
             </div>
         </div>
     );

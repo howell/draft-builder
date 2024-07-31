@@ -6,7 +6,6 @@ import PlayerTable from '../drafts/[draftYear]/PlayerTable';
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer } from './types';
 import SearchSettings, { SearchSettingsState } from './SearchSettings';
 import EstimationSettings, { EstimationSettingsState } from './EstimationSettings';
-import { M_PLUS_1 } from 'next/font/google';
 
 interface RosterProps {
     auctionBudget: number;
@@ -28,7 +27,7 @@ const availablePlayerColumns: [(keyof MockPlayer), string][] = [
 const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, draftHistory, playerPositions }) => {
     const [playerDb, setPlayerDb] = useState<MockPlayer[]>(players);
     const [estimationSettings, setEstimationSettings] = useState<EstimationSettingsState>({ years: Array.from(draftHistory.keys()), weight: 50 });
-    const [searchSettings, setSearchSettings] = useState<SearchSettingsState>({ positions: playerPositions, playerCount: 150, minPrice: 1, maxPrice: auctionBudget });
+    const [searchSettings, setSearchSettings] = useState<SearchSettingsState>({ positions: playerPositions, playerCount: 150, minPrice: 1, maxPrice: auctionBudget, showOnlyAvailable: true });
     const [availablePlayers, setAvailablePlayers] = useState<MockPlayer[]>(players);
     const [budgetSpent, setBudgetSpent] = useState(0);
     const [selectedPlayers, setSelectedPlayers] = useState<MockPlayer[]>([]);
@@ -50,15 +49,16 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
     }, [estimationSettings]);
 
     useEffect(() => {
-        const nextPlayers = playerDb.filter(p => searchSettings.positions.includes(p.defaultPosition) &&
+        const includePlayer = (p: MockPlayer) => (searchSettings.positions.includes(p.defaultPosition) &&
             p.estimatedCost >= searchSettings.minPrice &&
-            p.estimatedCost <= searchSettings.maxPrice &&
-            !selectedPlayers.includes(p));
+            p.estimatedCost <= searchSettings.maxPrice
+            && (searchSettings.showOnlyAvailable ? (!selectedPlayers.includes(p) && (p.estimatedCost <= auctionBudget - budgetSpent))
+            : true));
+        const nextPlayers = playerDb.filter(includePlayer);
         setAvailablePlayers(nextPlayers.slice(0, searchSettings.playerCount));
     }, [searchSettings, playerDb, selectedPlayers]);
 
     const onPlayerSelected = (player?:MockPlayer, prevPlayer?:MockPlayer) => {
-        console.log('onPlayerSelected', selectedPlayers.length, player, prevPlayer);
         const nextPlayers = selectedPlayers.filter(p => p !== prevPlayer && p !== player);
         if (player) nextPlayers.push(player);
         setSelectedPlayers(nextPlayers);
@@ -124,7 +124,8 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
                                     defaultPositions={searchSettings.positions}
                                     defaultPlayerCount={searchSettings.playerCount}
                                     defaultMinPrice={searchSettings.minPrice}
-                                    defaultMaxPrice={searchSettings.maxPrice} />
+                                    defaultMaxPrice={searchSettings.maxPrice}
+                                    showOnlyAvailable={searchSettings.showOnlyAvailable} />
                             </div>
                         </div>
                         <div className={`estimation-settings`}>

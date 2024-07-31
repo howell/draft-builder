@@ -16,7 +16,6 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ players, position, on
     const [hasFocus, setHasFocus] = useState<boolean>(false);
 
     useEffect(() => {
-        console.log('checking for player click!', hasFocus, clickedPlayer);
         if (hasFocus && clickedPlayer !== selectedPlayer && clickedPlayer?.positions.includes(position)) {
             updateSelectedPlayer(clickedPlayer);
         }
