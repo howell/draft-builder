@@ -36,6 +36,7 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName }) => {
             </button>
             <div className={styles.content}>
                 <h2>{leagueName}</h2>
+                <p/>
                 <span onClick={toggleDrafts} className={`${styles.draftButton}`}>
                   Drafts
                   <i className={`fas ${showDrafts ? 'fa-chevron-down' : 'fa-chevron-up'} ${styles.showDraftsIcon}`} />
@@ -49,16 +50,15 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName }) => {
                         ))}
                     </ul>
                 )}
+                <p/>
                 <span onClick={toggleMocks} className={`${styles.draftButton}`}>
                     Mocks
-                    <i className={`fas ${showDrafts ? 'fa-chevron-down' : 'fa-chevron-up'} ${styles.showDraftsIcon}`} />
+                    <i className={`fas ${showMocks ? 'fa-chevron-down' : 'fa-chevron-up'} ${styles.showDraftsIcon}`} />
                 </span>
                 {showMocks &&
                     <ul className={styles.mockList}>
                         <li>
-                            <span className={styles.draftButton}>
-                                <Link href={`/league/${leagueID}/mocks`}>New</Link>
-                            </span>
+                            <Link href={`/league/${leagueID}/mocks`}>New</Link>
                         </li>
                         {savedDraftNames.map((draftName) => (
                             <li key={draftName} className={draftName === currentMock ? styles.activeMock : ''}>

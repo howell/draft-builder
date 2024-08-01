@@ -57,6 +57,8 @@
     padding-right: 5px;
     transition: transform 0.3s ease-in-out;
     background-color: rgb(46, 46, 46);
+    margin-top: 5px;
+    margin-left: 5px;
 }
 .activeYear {
     font-weight: bold;

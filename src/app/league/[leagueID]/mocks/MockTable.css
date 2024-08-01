@@ -88,8 +88,7 @@
 
 .roster-name-input {
     width: 200px;
-    height: 30px;
-    padding: 8px;
+    padding: 8px 16px;
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 14px;
@@ -108,4 +107,24 @@
 
 .save-roster-button:hover {
     background-color: #0056b3;
+}
+
+.delete-roster-button {
+    background-color: red;
+    color: white;
+    border: none;
+    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+.delete-roster-button i {
+    margin-right: 5px;
+}
+
+.save-roster-button:hover {
+    background-color: white;
 }

@@ -38,3 +38,10 @@ export function saveSelectedRoster(leagueID: number, rosterName: string, selecti
     };
     localStorage.setItem(leagueID.toString(), JSON.stringify(withRoster));
 }
+
+export function deleteRoster(leagueID: number, rosterName: string) {
+    const stored = loadSavedLeagueInfo(leagueID);
+    const drafts = stored[leagueID].drafts;
+    delete drafts[rosterName];
+    localStorage.setItem(leagueID.toString(), JSON.stringify(stored));
+}

@@ -1,10 +1,11 @@
 'use client'
+import { redirect } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import MockRosterEntry from './MockRosterEntry';
 import './MockTable.css';
 import PlayerTable from '../drafts/[draftYear]/PlayerTable';
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer, RosterSlot, RosterSelections } from '@/app/types';
-import { loadRosterByName, saveSelectedRoster, IN_PROGRESS_SELECTIONS_KEY } from '@/app/localStorage';
+import { loadRosterByName, saveSelectedRoster, deleteRoster, IN_PROGRESS_SELECTIONS_KEY } from '@/app/localStorage';
 import SearchSettings, { SearchSettingsState } from './SearchSettings';
 import EstimationSettings, { EstimationSettingsState } from './EstimationSettings';
 
@@ -102,6 +103,13 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
         alert('Roster selections saved!');
     };
 
+    const deleteRosterSelections = () => {
+        deleteRoster(leagueId, rosterName);
+        resetRoster();
+        setRosterName('')
+        alert(`Deleted ${rosterName}`)
+    };
+
     return (
         <div className='MockTable'>
             <div className="tables-container">
@@ -141,7 +149,8 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
                         <button className="reset-button" onClick={resetRoster}>Reset</button>
                     </div>
                     <div>
-                        <button className="save-roster-button" onClick={saveRosterSelections}>Save Roster Selections</button>
+                        <button className="save-roster-button" onClick={saveRosterSelections}>Save Roster</button>
+                        <button className="delete-roster-button" onClick={deleteRosterSelections}> <i className="fas fa-trash"></i> </button>
                         <input
                             className="roster-name-input"
                             type="text"
