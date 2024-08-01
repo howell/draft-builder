@@ -24,6 +24,16 @@ const availablePlayerColumns: [(keyof MockPlayer), string][] = [
     ['estimatedCost', 'Estimated Cost'],
 ];
 
+const IN_PROGRESS_SELECTIONS_KEY = '##IN_PROGRESS_SELECTIONS##';
+
+function loadInitialRosterSelections(): { [key: string]: MockPlayer | undefined } {
+    const savedRosterSelections = localStorage.getItem(IN_PROGRESS_SELECTIONS_KEY);
+    if (savedRosterSelections) {
+        return JSON.parse(savedRosterSelections);
+    }
+    return {};
+}
+
 const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, draftHistory, playerPositions }) => {
     const [playerDb, setPlayerDb] = useState<MockPlayer[]>(players);
     const [estimationSettings, setEstimationSettings] = useState<EstimationSettingsState>({ years: Array.from(draftHistory.keys()), weight: 50 });
@@ -34,7 +44,12 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
     const [clickedPlayer, setClickedPlayer] = useState<MockPlayer | undefined>(undefined);
     const [showSearchSettings, setShowSearchSettings] = useState(true);
     const [showEstimationSettings, setShowEstimationSettings] = useState(true);
-    const [rosterSelections, setRosterSelections] = useState<{ [key: string]: MockPlayer | undefined }>({});
+    const [rosterSelections, setRosterSelections] = useState<{ [key: string]: MockPlayer | undefined }>(loadInitialRosterSelections());
+
+    useEffect(() => {
+        localStorage.setItem(IN_PROGRESS_SELECTIONS_KEY, JSON.stringify(rosterSelections));
+    }, [rosterSelections]);
+
 
     const toggleSearchSettings = () => setShowSearchSettings(!showSearchSettings);
     const toggleEstimationSettings = () => setShowEstimationSettings(!showEstimationSettings);
