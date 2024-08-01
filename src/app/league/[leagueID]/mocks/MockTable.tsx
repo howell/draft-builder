@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import MockRosterEntry from './MockRosterEntry';
 import './MockTable.css';
 import PlayerTable from '../drafts/[draftYear]/PlayerTable';
-import { DraftAnalysis, ExponentialCoefficients, MockPlayer } from './types';
+import { DraftAnalysis, ExponentialCoefficients, MockPlayer, RosterSlot } from './types';
 import SearchSettings, { SearchSettingsState } from './SearchSettings';
 import EstimationSettings, { EstimationSettingsState } from './EstimationSettings';
 
@@ -34,6 +34,7 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
     const [clickedPlayer, setClickedPlayer] = useState<MockPlayer | undefined>(undefined);
     const [showSearchSettings, setShowSearchSettings] = useState(true);
     const [showEstimationSettings, setShowEstimationSettings] = useState(true);
+    const [rosterSelections, setRosterSelections] = useState<Map<RosterSlot, MockPlayer | undefined>>(new Map());
 
     const toggleSearchSettings = () => setShowSearchSettings(!showSearchSettings);
     const toggleEstimationSettings = () => setShowEstimationSettings(!showEstimationSettings);
@@ -58,10 +59,10 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
         setAvailablePlayers(nextPlayers.slice(0, searchSettings.playerCount));
     }, [searchSettings, playerDb, selectedPlayers]);
 
-    const onPlayerSelected = (player?:MockPlayer, prevPlayer?:MockPlayer) => {
-        const nextPlayers = selectedPlayers.filter(p => p !== prevPlayer && p !== player);
-        if (player) nextPlayers.push(player);
-        setSelectedPlayers(nextPlayers);
+    const onPlayerSelected = (rosterSlot: RosterSlot, player?: MockPlayer) => {
+        setRosterSelections(rosterSelections.set(rosterSlot, player));
+        const nextSelected = Array.from(rosterSelections.values()).filter(p => p !== undefined) as MockPlayer[];
+        setSelectedPlayers(nextSelected);
     };
 
     const onPlayerClick = (player:MockPlayer) => {
@@ -94,6 +95,8 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
                             {Array.from(positions.entries()).flatMap(([position, count]) =>
                                 Array.from({ length: count }, (_, i) => (
                                     <MockRosterEntry
+                                        rosterSlot={{ position, index: i }}
+                                        initialPlayer={rosterSelections.get({ position, index: i })}
                                         key={`${position}-${i}`}
                                         players={availablePlayers}
                                         position={position}

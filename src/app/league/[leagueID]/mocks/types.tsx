@@ -22,3 +22,8 @@ export type MockPlayer = {
     overallRank: number;
     positionRank: number;
 }
+
+export type RosterSlot = {
+    position: string;
+    index: number;
+};
