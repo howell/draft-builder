@@ -69,3 +69,19 @@
     visibility: hidden;
     height: 0;
 }
+
+.reset-button {
+    background-color: #ffffff;
+    color: #333333;
+    border: 1px solid #333333;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.reset-button:hover {
+    background-color: #333333;
+    color: #ffffff;
+}

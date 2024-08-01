@@ -34,7 +34,7 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
     const [clickedPlayer, setClickedPlayer] = useState<MockPlayer | undefined>(undefined);
     const [showSearchSettings, setShowSearchSettings] = useState(true);
     const [showEstimationSettings, setShowEstimationSettings] = useState(true);
-    const [rosterSelections, setRosterSelections] = useState<Map<RosterSlot, MockPlayer | undefined>>(new Map());
+    const [rosterSelections, setRosterSelections] = useState<{ [key: string]: MockPlayer | undefined }>({});
 
     const toggleSearchSettings = () => setShowSearchSettings(!showSearchSettings);
     const toggleEstimationSettings = () => setShowEstimationSettings(!showEstimationSettings);
@@ -60,8 +60,13 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
     }, [searchSettings, playerDb, selectedPlayers]);
 
     const onPlayerSelected = (rosterSlot: RosterSlot, player?: MockPlayer) => {
-        setRosterSelections(rosterSelections.set(rosterSlot, player));
-        const nextSelected = Array.from(rosterSelections.values()).filter(p => p !== undefined) as MockPlayer[];
+        const serializedSlot = serializeRosterSlot(rosterSlot);
+        const nextSelections = {
+            ...rosterSelections,
+            [serializedSlot]: player
+        }
+        setRosterSelections(nextSelections);
+        const nextSelected = Object.values(nextSelections).filter(p => p !== undefined) as MockPlayer[];
         setSelectedPlayers(nextSelected);
     };
 
@@ -76,6 +81,11 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
 
     const onEstimationSettingsChanged = (settings: EstimationSettingsState) => {
         setEstimationSettings(settings);
+    }
+
+    const resetRoster = () => {
+        setRosterSelections({});
+        setSelectedPlayers([]);
     }
 
     return (
@@ -93,17 +103,19 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
                         </thead>
                         <tbody>
                             {Array.from(positions.entries()).flatMap(([position, count]) =>
-                                Array.from({ length: count }, (_, i) => (
-                                    <MockRosterEntry
+                                Array.from({ length: count }, (_, i) => {
+                                    const rosterSlot = { position, index: i };
+                                    const slotName = serializeRosterSlot(rosterSlot);
+                                    return <MockRosterEntry
                                         rosterSlot={{ position, index: i }}
-                                        initialPlayer={rosterSelections.get({ position, index: i })}
-                                        key={`${position}-${i}`}
+                                        selectedPlayer={rosterSelections[slotName]}
+                                        key={slotName}
                                         players={availablePlayers}
                                         position={position}
                                         clickedPlayer={clickedPlayer}
                                         onPlayerSelected={onPlayerSelected}
                                     />
-                                ))
+                                })
                             )}
                         </tbody>
                     </table>
@@ -111,6 +123,7 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
                         <p>Budget: {auctionBudget} </p>
                         <p>Remaining: {auctionBudget - budgetSpent} </p>
                     </div>
+                    <button className="reset-button" onClick={resetRoster}>Reset</button>
                 </div>
                 <div className='available-players-container'>
                     <h1>Available Players</h1>
@@ -189,3 +202,7 @@ function costPredictions(player: MockPlayer, analysis: DraftAnalysis): [number, 
 function predictExponential(x: number, coefficients: ExponentialCoefficients): number {
     return coefficients[0] * Math.exp(coefficients[1] * x);
 }
+
+const serializeRosterSlot = (slot: RosterSlot): string => {
+    return JSON.stringify(slot);
+};

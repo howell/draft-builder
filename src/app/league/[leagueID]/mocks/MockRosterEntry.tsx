@@ -3,7 +3,7 @@ import './MockRosterEntry.css';
 import { MockPlayer, RosterSlot } from './types';
 
 export interface MockRosterEntryProps {
-    initialPlayer?: MockPlayer;
+    selectedPlayer?: MockPlayer;
     rosterSlot: RosterSlot;
     players: MockPlayer[];
     position: string;
@@ -11,11 +11,14 @@ export interface MockRosterEntryProps {
     clickedPlayer: MockPlayer | undefined;
 }
 
-const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ initialPlayer = undefined, rosterSlot, players, position, onPlayerSelected, clickedPlayer }) => {
-    const [selectedPlayer, setSelectedPlayer] = useState<MockPlayer | undefined>(initialPlayer);
+const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = undefined, rosterSlot, players, position, onPlayerSelected, clickedPlayer }) => {
     const [inputValue, setInputValue] = useState(selectedPlayer ? selectedPlayer.name : '');
     const [suggestions, setSuggestions] = useState<MockPlayer[]>([]);
     const [hasFocus, setHasFocus] = useState<boolean>(false);
+
+    useEffect(() => {
+        setInputValue(selectedPlayer ? selectedPlayer.name : '');
+    }, [selectedPlayer]);
 
     useEffect(() => {
         if (hasFocus && clickedPlayer !== selectedPlayer && clickedPlayer?.positions.includes(position)) {
@@ -36,7 +39,6 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ initialPlayer = undef
     const updateSelectedPlayer = (player?: MockPlayer) => {
         setInputValue(player ? player.name : '');
         onPlayerSelected(rosterSlot, player);
-        setSelectedPlayer(player);
     }
 
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
