@@ -3,11 +3,14 @@ import React, { useState, useEffect } from 'react';
 import MockRosterEntry from './MockRosterEntry';
 import './MockTable.css';
 import PlayerTable from '../drafts/[draftYear]/PlayerTable';
-import { DraftAnalysis, ExponentialCoefficients, MockPlayer, RosterSlot } from './types';
+import { DraftAnalysis, ExponentialCoefficients, MockPlayer, RosterSlot, RosterSelections } from '@/app/types';
+import { loadRosterByName, saveSelectedRoster, IN_PROGRESS_SELECTIONS_KEY } from '@/app/localStorage';
 import SearchSettings, { SearchSettingsState } from './SearchSettings';
 import EstimationSettings, { EstimationSettingsState } from './EstimationSettings';
 
 interface RosterProps {
+    leagueId: number;
+    draftName?: string;
     auctionBudget: number;
     positions: Map<string, number>;
     players: MockPlayer[];
@@ -24,17 +27,7 @@ const availablePlayerColumns: [(keyof MockPlayer), string][] = [
     ['estimatedCost', 'Estimated Cost'],
 ];
 
-const IN_PROGRESS_SELECTIONS_KEY = '##IN_PROGRESS_SELECTIONS##';
-
-function loadInitialRosterSelections(): { [key: string]: MockPlayer | undefined } {
-    const savedRosterSelections = localStorage.getItem(IN_PROGRESS_SELECTIONS_KEY);
-    if (savedRosterSelections) {
-        return JSON.parse(savedRosterSelections);
-    }
-    return {};
-}
-
-const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, draftHistory, playerPositions }) => {
+const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auctionBudget, players, draftHistory, playerPositions }) => {
     const [playerDb, setPlayerDb] = useState<MockPlayer[]>(players);
     const [estimationSettings, setEstimationSettings] = useState<EstimationSettingsState>({ years: Array.from(draftHistory.keys()), weight: 50 });
     const [searchSettings, setSearchSettings] = useState<SearchSettingsState>({ positions: playerPositions, playerCount: 200, minPrice: 1, maxPrice: auctionBudget, showOnlyAvailable: true });
@@ -44,10 +37,11 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
     const [clickedPlayer, setClickedPlayer] = useState<MockPlayer | undefined>(undefined);
     const [showSearchSettings, setShowSearchSettings] = useState(true);
     const [showEstimationSettings, setShowEstimationSettings] = useState(true);
-    const [rosterSelections, setRosterSelections] = useState<{ [key: string]: MockPlayer | undefined }>(loadInitialRosterSelections());
+    const [rosterSelections, setRosterSelections] = useState<{ [key: string]: MockPlayer | undefined }>(loadInitialRosterSelections(leagueId, draftName));
+    const [rosterName, setRosterName] = useState<string>(draftName || '');
 
     useEffect(() => {
-        localStorage.setItem(IN_PROGRESS_SELECTIONS_KEY, JSON.stringify(rosterSelections));
+        saveSelectedRoster(leagueId, IN_PROGRESS_SELECTIONS_KEY, rosterSelections);
     }, [rosterSelections]);
 
 
@@ -103,6 +97,11 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
         setSelectedPlayers([]);
     }
 
+    const saveRosterSelections = () => {
+        saveSelectedRoster(leagueId, rosterName, rosterSelections);
+        alert('Roster selections saved!');
+    };
+
     return (
         <div className='MockTable'>
             <div className="tables-container">
@@ -138,7 +137,19 @@ const MockTable: React.FC<RosterProps> = ({ positions, auctionBudget, players, d
                         <p>Budget: {auctionBudget} </p>
                         <p>Remaining: {auctionBudget - budgetSpent} </p>
                     </div>
-                    <button className="reset-button" onClick={resetRoster}>Reset</button>
+                    <div>
+                        <button className="reset-button" onClick={resetRoster}>Reset</button>
+                    </div>
+                    <div>
+                        <button className="save-roster-button" onClick={saveRosterSelections}>Save Roster Selections</button>
+                        <input
+                            className="roster-name-input"
+                            type="text"
+                            value={rosterName}
+                            onChange={(e) => setRosterName(e.target.value)}
+                            placeholder="Enter roster name"
+                        />
+                    </div>
                 </div>
                 <div className='available-players-container'>
                     <h1>Available Players</h1>
@@ -221,3 +232,8 @@ function predictExponential(x: number, coefficients: ExponentialCoefficients): n
 const serializeRosterSlot = (slot: RosterSlot): string => {
     return JSON.stringify(slot);
 };
+
+function loadInitialRosterSelections(leagueID: number, draftName: string | undefined): RosterSelections {
+    const name = draftName === '' ? IN_PROGRESS_SELECTIONS_KEY : (draftName || IN_PROGRESS_SELECTIONS_KEY);
+    return loadRosterByName(leagueID, name);
+}

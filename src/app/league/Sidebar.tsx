@@ -4,6 +4,7 @@ import { useState } from 'react';
 import styles from './Sidebar.module.css';
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { IN_PROGRESS_SELECTIONS_KEY, loadSavedLeagueInfo } from '@/app/localStorage';
 
 interface SidebarProps {
     leagueID: number;
@@ -15,9 +16,16 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName }) => {
 	const [isOpen, setIsOpen] = useState(true);
 	const [showDrafts, setShowDrafts] = useState(true);
+	const [showMocks, setShowMocks] = useState(true);
     const currentYear = parseDraftYear(usePathname())
+    const currentMock = parseMockName(usePathname())
 	const toggleSidebar = () => { setIsOpen(!isOpen); };
     const toggleDrafts = () => { setShowDrafts(!showDrafts); };
+    const toggleMocks = () => { setShowMocks(!showMocks); };
+
+    const locallyStored = loadSavedLeagueInfo(leagueID);
+    const savedDrafts = locallyStored[leagueID].drafts;
+    const savedDraftNames = Object.keys(savedDrafts).filter((draftName) => draftName !== IN_PROGRESS_SELECTIONS_KEY);
 
     years.sort((a, b) => b - a);
 
@@ -41,11 +49,23 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName }) => {
                         ))}
                     </ul>
                 )}
-                <div>
-                    <span className={styles.draftButton}>
-                        <Link href={`/league/${leagueID}/mocks`}>Mock!</Link>
-                    </span>
-                </div>
+                <span onClick={toggleMocks} className={`${styles.draftButton}`}>
+                    Mocks
+                    <i className={`fas ${showDrafts ? 'fa-chevron-down' : 'fa-chevron-up'} ${styles.showDraftsIcon}`} />
+                </span>
+                {showMocks &&
+                    <ul className={styles.mockList}>
+                        <li>
+                            <span className={styles.draftButton}>
+                                <Link href={`/league/${leagueID}/mocks`}>New</Link>
+                            </span>
+                        </li>
+                        {savedDraftNames.map((draftName) => (
+                            <li key={draftName} className={draftName === currentMock ? styles.activeMock : ''}>
+                                <Link href={`/league/${leagueID}/mocks?draftName=${draftName}`} >{draftName}</Link>
+                            </li>
+                        ))}
+                    </ul>}
             </div>
         </div>
     );
@@ -57,4 +77,10 @@ function parseDraftYear(pathname: string): number {
     const pathSegments = pathname.split('/')
     const draftIdx = pathSegments.indexOf('drafts')
     return draftIdx !== -1 ? parseInt(pathSegments[draftIdx + 1]) : 0;
+}
+
+function parseMockName(pathname: string): string {
+    const pathSegments = pathname.split('/')
+    const draftIdx = pathSegments.indexOf('mocks')
+    return draftIdx !== -1 ? pathSegments[draftIdx + 1] : '';
 }

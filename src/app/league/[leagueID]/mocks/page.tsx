@@ -2,11 +2,11 @@ import { fetchLeagueHistory, leagueLineupSettings, fetchAllPlayerInfo, fetchDraf
 import { redirect } from 'next/navigation';
 import MockTable from './MockTable';
 import * as regression from 'regression'
-import { DraftAnalysis, ExponentialCoefficients, MockPlayer, Rankings } from './types';
+import { DraftAnalysis, ExponentialCoefficients, MockPlayer, Rankings } from '@/app/types';
 
 const DEFAULT_YEAR = 2024;
 
-export default async function MockPage({ params }: Readonly<{ params: { leagueID: string } }>) {
+export default async function MockPage({ params, searchParams }: Readonly<{ params: { leagueID: string }, searchParams: { draftName?: string } }>) {
     const leagueID = parseInt(params.leagueID);
     const playerResponse = fetchAllPlayerInfo(leagueID, DEFAULT_YEAR);
     const leagueHistory = await fetchLeagueHistory(leagueID, DEFAULT_YEAR);
@@ -31,7 +31,9 @@ export default async function MockPage({ params }: Readonly<{ params: { leagueID
     //console.log("ranking info", playerData.players[2].player.fullName, playerData.players[2].draftAuctionValue, playerData.players[2].ratings, playerData.players[2].player)
     const auctionBudget = latestInfo.settings.draftSettings.auctionBudget;
     const lineupSettings = leagueLineupSettings(latestInfo);
-    return <MockTable auctionBudget={auctionBudget}
+    return <MockTable leagueId={leagueID}
+                      draftName={searchParams.draftName}
+                      auctionBudget={auctionBudget}
                       positions={lineupSettings}
                       players={playerDb}
                       playerPositions={positions}

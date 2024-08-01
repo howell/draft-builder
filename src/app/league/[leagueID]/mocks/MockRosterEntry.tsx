@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import './MockRosterEntry.css';
-import { MockPlayer, RosterSlot } from './types';
+import { MockPlayer, RosterSlot } from '@/app/types';
 
 export interface MockRosterEntryProps {
     selectedPlayer?: MockPlayer;

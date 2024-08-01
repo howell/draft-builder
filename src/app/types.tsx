@@ -27,3 +27,11 @@ export type RosterSlot = {
     position: string;
     index: number;
 };
+
+export type RosterSelections = {
+    [key: string]: MockPlayer | undefined;
+}
+
+export type StoredData = {
+    [leagueId: number] : { drafts: { [draftName: string]: RosterSelections } }
+}

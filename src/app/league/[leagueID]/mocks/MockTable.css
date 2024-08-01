@@ -85,3 +85,27 @@
     background-color: #333333;
     color: #ffffff;
 }
+
+.roster-name-input {
+    width: 200px;
+    height: 30px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.save-roster-button {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.save-roster-button:hover {
+    background-color: #0056b3;
+}
