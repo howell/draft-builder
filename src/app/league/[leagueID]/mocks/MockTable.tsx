@@ -38,8 +38,10 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
     const [clickedPlayer, setClickedPlayer] = useState<MockPlayer | undefined>(undefined);
     const [showSearchSettings, setShowSearchSettings] = useState(true);
     const [showEstimationSettings, setShowEstimationSettings] = useState(true);
-    const [rosterSelections, setRosterSelections] = useState<{ [key: string]: MockPlayer | undefined }>(loadInitialRosterSelections(leagueId, draftName));
+    const [rosterSelections, setRosterSelections] = useState<RosterSelections>(loadInitialRosterSelections(leagueId, draftName));
     const [rosterName, setRosterName] = useState<string>(draftName || '');
+
+    const rosterSpots = Array.from(positions.entries()).flatMap(([_name, count]) => count).reduce((x, y) => x + y, 0);
 
     useEffect(() => {
         saveSelectedRoster(leagueId, IN_PROGRESS_SELECTIONS_KEY, rosterSelections);
@@ -49,7 +51,10 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
     const toggleSearchSettings = () => setShowSearchSettings(!showSearchSettings);
     const toggleEstimationSettings = () => setShowEstimationSettings(!showEstimationSettings);
 
-    useEffect(() => { setBudgetSpent(selectedPlayers.reduce((s, p) => s + p.estimatedCost, 0)) }, [selectedPlayers]);
+    useEffect(() => { setBudgetSpent(rosterSpots - selectedPlayers.length +
+        selectedPlayers.reduce((s, p) => s + p.estimatedCost, 0))
+    },
+        [selectedPlayers]);
     useEffect(() => { setAvailablePlayers(players.filter(p => !selectedPlayers.includes(p))) }, [players, selectedPlayers]);
 
     useEffect(() => {

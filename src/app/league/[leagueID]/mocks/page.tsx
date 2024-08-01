@@ -31,6 +31,7 @@ export default async function MockPage({ params, searchParams }: Readonly<{ para
     //console.log("ranking info", playerData.players[2].player.fullName, playerData.players[2].draftAuctionValue, playerData.players[2].ratings, playerData.players[2].player)
     const auctionBudget = latestInfo.settings.draftSettings.auctionBudget;
     const lineupSettings = leagueLineupSettings(latestInfo);
+    lineupSettings.delete('IR')
     return <MockTable leagueId={leagueID}
                       draftName={searchParams.draftName}
                       auctionBudget={auctionBudget}

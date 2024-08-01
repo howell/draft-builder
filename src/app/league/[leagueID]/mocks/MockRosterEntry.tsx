@@ -88,7 +88,7 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
                     </ul>
                 )}
             </td>
-            <td>{selectedPlayer ? selectedPlayer.estimatedCost : 0}</td>
+            <td>{selectedPlayer ? selectedPlayer.estimatedCost : 1}</td>
         </tr>
     );
 }
