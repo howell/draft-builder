@@ -1,5 +1,4 @@
 'use client'
-import { redirect } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import MockRosterEntry from './MockRosterEntry';
 import './MockTable.css';
@@ -40,6 +39,7 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
     const [showEstimationSettings, setShowEstimationSettings] = useState(true);
     const [rosterSelections, setRosterSelections] = useState<RosterSelections>(loadInitialRosterSelections(leagueId, draftName));
     const [rosterName, setRosterName] = useState<string>(draftName || '');
+    const [costAdjustments, setCostAdjustments] = useState<Map<string, number>>(new Map())
 
     const rosterSpots = Array.from(positions.entries()).flatMap(([_name, count]) => count).reduce((x, y) => x + y, 0);
 
@@ -51,10 +51,7 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
     const toggleSearchSettings = () => setShowSearchSettings(!showSearchSettings);
     const toggleEstimationSettings = () => setShowEstimationSettings(!showEstimationSettings);
 
-    useEffect(() => { setBudgetSpent(rosterSpots - selectedPlayers.length +
-        selectedPlayers.reduce((s, p) => s + p.estimatedCost, 0))
-    },
-        [selectedPlayers]);
+    useEffect(() => { setBudgetSpent(calculateAmountSpent(rosterSpots, selectedPlayers, costAdjustments)) }, [selectedPlayers, costAdjustments]);
     useEffect(() => { setAvailablePlayers(players.filter(p => !selectedPlayers.includes(p))) }, [players, selectedPlayers]);
 
     useEffect(() => {
@@ -83,6 +80,11 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
         setRosterSelections(nextSelections);
         const nextSelected = Object.values(nextSelections).filter(p => p !== undefined) as MockPlayer[];
         setSelectedPlayers(nextSelected);
+        if (player !== rosterSelections[serializedSlot]) {
+            const nextCostAdjustments = new Map(costAdjustments);
+            nextCostAdjustments.delete(serializedSlot);
+            setCostAdjustments(nextCostAdjustments);
+        }
     };
 
     const onPlayerClick = (player:MockPlayer) => {
@@ -115,6 +117,13 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
         alert(`Deleted ${rosterName}`)
     };
 
+    const onCostAdjusted = (rosterSlot: RosterSlot, delta: number) => {
+        const serializedSlot = serializeRosterSlot(rosterSlot);
+        const nextAdjustments = new Map(costAdjustments);
+        nextAdjustments.set(serializedSlot, delta + (costAdjustments.get(serializedSlot) || 0))
+        setCostAdjustments(nextAdjustments);
+    }
+
     return (
         <div className='MockTable'>
             <div className="tables-container">
@@ -140,6 +149,8 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
                                         players={availablePlayers}
                                         position={position}
                                         clickedPlayer={clickedPlayer}
+                                        costAdjustment={costAdjustments.get(slotName)}
+                                        onCostAdjusted={onCostAdjusted}
                                         onPlayerSelected={onPlayerSelected}
                                     />
                                 })
@@ -251,3 +262,33 @@ function loadInitialRosterSelections(leagueID: number, draftName: string | undef
     const name = draftName === '' ? IN_PROGRESS_SELECTIONS_KEY : (draftName || IN_PROGRESS_SELECTIONS_KEY);
     return loadRosterByName(leagueID, name);
 }
+
+function calculateAmountSpent(rosterSpots: number, selectedPlayers: MockPlayer[], adjustments: Map<string, number>): number {
+    const unSelectedCost = rosterSpots - selectedPlayers.length;
+    const selectionsCost = sum(selectedPlayers, 'estimatedCost');
+    const costAdjustments = sum(Array.from(adjustments.values()));
+    return unSelectedCost + selectionsCost + costAdjustments;
+}
+
+type HasNumberProperty<T, K extends keyof T> = T[K] extends number ? T : never;
+
+function sum<T extends object, K extends keyof T>(values: HasNumberProperty<T,K>[], key: K): number;
+function sum<T extends number>(values: T[]): number;
+function sum<T extends object, K extends keyof T>(values: (HasNumberProperty<T,K>[] | T[]), key?: K): number {
+    if (key) {
+        return values.reduce((a, b) => a + (b[key] as number), 0);
+    } else {
+        return values.reduce((a, b) => a as number + (b as number), 0);
+    }
+}
+
+// function sum<T extends object | number, K extends keyof T>(values: T[], key?: K): number {
+//     if (key) {
+//         return values.reduce((a, b) => a + b[key], 0);
+//     } else {
+//         return values.reduce((a, b) => a + b, 0);
+//     }
+// }
+// function sum<T extends object | number>(values: T[], key: keyof[T] | undefined = undefined ): number {
+//     return values.reduce((a, b) => a + b, 0);
+// }

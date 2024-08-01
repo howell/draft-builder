@@ -7,11 +7,13 @@ export interface MockRosterEntryProps {
     rosterSlot: RosterSlot;
     players: MockPlayer[];
     position: string;
+    costAdjustment?: number,
     onPlayerSelected: (rosterSlot: RosterSlot, player?: MockPlayer) => void;
+    onCostAdjusted: (RosterSlot: RosterSlot, delta: number) => void;
     clickedPlayer: MockPlayer | undefined;
 }
 
-const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = undefined, rosterSlot, players, position, onPlayerSelected, clickedPlayer }) => {
+const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = undefined, rosterSlot, players, position, costAdjustment = 0, onPlayerSelected, onCostAdjusted, clickedPlayer }) => {
     const [inputValue, setInputValue] = useState(selectedPlayer ? selectedPlayer.name : '');
     const [suggestions, setSuggestions] = useState<MockPlayer[]>([]);
     const [hasFocus, setHasFocus] = useState<boolean>(false);
@@ -88,7 +90,15 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
                     </ul>
                 )}
             </td>
-            <td>{selectedPlayer ? selectedPlayer.estimatedCost : 1}</td>
+            <td>
+                <div className="player-cost">
+                    {costAdjustment + (selectedPlayer ? selectedPlayer.estimatedCost : 1)}
+                    <div className="cost-buttons">
+                        <button onClick={() => onCostAdjusted(rosterSlot, 1)}>+</button>
+                        <button onClick={() => onCostAdjusted(rosterSlot, -1)}>-</button>
+                    </div>
+                </div>
+            </td>
         </tr>
     );
 }

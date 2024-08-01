@@ -3,3 +3,30 @@
     z-index: 1;
     background-color: white;
 }
+
+.cost-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-left: 10px;
+}
+
+.cost-buttons button {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    padding-left: 1px;
+    padding-right: 1px;
+    margin-left: -10px;
+    cursor: pointer;
+    font-size: 8px;
+}
+
+.cost-buttons button:hover {
+    background-color: #e0e0e0;
+}
+
+.player-cost {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
