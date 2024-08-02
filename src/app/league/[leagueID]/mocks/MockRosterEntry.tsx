@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, KeyboardEvent } from 'react';
 import './MockRosterEntry.css';
 import { MockPlayer, RosterSlot } from '@/app/types';
 
@@ -17,6 +17,7 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
     const [inputValue, setInputValue] = useState(selectedPlayer ? selectedPlayer.name : '');
     const [suggestions, setSuggestions] = useState<MockPlayer[]>([]);
     const [hasFocus, setHasFocus] = useState<boolean>(false);
+    const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
     useEffect(() => {
         setInputValue(selectedPlayer ? selectedPlayer.name : '');
@@ -43,6 +44,31 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
         onPlayerSelected(rosterSlot, player);
     }
 
+    const handleSuggestionClick = (suggestion: MockPlayer) => {
+        setInputValue(suggestion.name);
+        updateSelectedPlayer(suggestion);
+        setSuggestions([]);
+    };
+
+    useEffect(() => {
+        const handleKeyDown = (event: globalThis.KeyboardEvent) => {
+            if (suggestions.length > 0) {
+                if (event.key === 'ArrowDown') {
+                    setHighlightedIndex((prevIndex) => (prevIndex + 1) % suggestions.length);
+                } else if (event.key === 'ArrowUp') {
+                    setHighlightedIndex((prevIndex) => (prevIndex - 1 + suggestions.length) % suggestions.length);
+                } else if (event.key === 'Enter' && highlightedIndex >= 0) {
+                    handleSuggestionClick(suggestions[highlightedIndex]);
+                }
+            }
+        };
+    
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [suggestions, highlightedIndex, handleSuggestionClick]);
+
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         updateSelectedPlayer(undefined);
         const value = event.target.value;
@@ -55,12 +81,6 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
         );
 
         setSuggestions(filteredSuggestions.slice(0, 5));
-    };
-
-    const handleSuggestionClick = (suggestion: MockPlayer) => {
-        setInputValue(suggestion.name);
-        updateSelectedPlayer(suggestion);
-        setSuggestions([]);
     };
 
     return (
@@ -81,6 +101,7 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
                     <ul className="suggestions-list">
                         {suggestions.map((suggestion) => (
                             <li
+                                className={suggestion === suggestions[highlightedIndex] ? 'highlighted' : ''}
                                 key={suggestion.id}
                                 onClick={() => handleSuggestionClick(suggestion)}
                                 style={{ cursor: 'pointer' }}

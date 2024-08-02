@@ -40,3 +40,11 @@
     justify-content: left;
     align-items: left;
 }
+
+.suggestions-list li {
+    cursor: pointer;
+    background-color: 'transparent';
+}
+.highlighted {
+    background-color: #ddd;
+}
