@@ -33,6 +33,13 @@ export type RosterSelections = {
     [key: string]: CostEstimatedPlayer | undefined;
 }
 
+export const CURRENT_SCHEMA_VERSION = 1;
+
 export type StoredData = {
-    [leagueId: number] : { drafts: { [draftName: string]: RosterSelections } }
+    schemaVersion: number;
+    [leagueId: number] : StoredLeagueData
+}
+
+export type StoredLeagueData = {
+    drafts: { [draftName: string]: RosterSelections }
 }

@@ -12,6 +12,7 @@ interface SidebarProps {
     leagueName: string;
 }
 
+const NEW_MOCK_NAME = '##New##';
 
 const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName }) => {
 	const [isOpen, setIsOpen] = useState(true);
@@ -25,7 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName }) => {
     const toggleMocks = () => { setShowMocks(!showMocks); };
 
     const locallyStored = loadSavedLeagueInfo(leagueID);
-    const savedDrafts = locallyStored[leagueID].drafts;
+    const savedDrafts = locallyStored.drafts;
 
     useEffect(() => {
         const loadedDraftNames = Object.keys(savedDrafts).filter((draftName) => draftName !== IN_PROGRESS_SELECTIONS_KEY);
@@ -62,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName }) => {
                 </span>
                 {showMocks &&
                     <ul className={styles.mockList}>
-                        <li>
+                        <li key="newMock" className={currentMock === NEW_MOCK_NAME ? styles.activeMock : ''}>
                             <Link href={`/league/${leagueID}/mocks`}>New</Link>
                         </li>
                         {savedDraftNames.map((draftName) => (
@@ -92,6 +93,6 @@ function parseMockName(pathname: string): string {
     } else if (draftIdx + 1 < pathSegments.length) {
         return decodeURIComponent(pathSegments[draftIdx + 1])
     } else {
-        return 'New';
+        return NEW_MOCK_NAME;
     }
 }
