@@ -9,33 +9,22 @@ export interface MockRosterEntryProps {
     position: string;
     costAdjustment?: number,
     onPlayerSelected: (rosterSlot: RosterSlot, player?: CostEstimatedPlayer) => void;
-    onCostAdjusted: (RosterSlot: RosterSlot, delta: number) => void;
-    clickedPlayer: CostEstimatedPlayer | undefined;
+    onCostAdjusted: (rosterSlot: RosterSlot, delta: number) => void;
+    onFocus: (rosterSlot: RosterSlot, focused: boolean) => void;
 }
 
-const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = undefined, rosterSlot, players, position, costAdjustment = 0, onPlayerSelected, onCostAdjusted, clickedPlayer }) => {
+const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = undefined, rosterSlot, players, position, costAdjustment = 0, onPlayerSelected, onCostAdjusted, onFocus }) => {
     const [inputValue, setInputValue] = useState(selectedPlayer ? selectedPlayer.name : '');
     const [suggestions, setSuggestions] = useState<CostEstimatedPlayer[]>([]);
-    const [hasFocus, setHasFocus] = useState<boolean>(false);
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
     useEffect(() => {
         setInputValue(selectedPlayer ? selectedPlayer.name : '');
     }, [selectedPlayer]);
 
-    useEffect(() => {
-        if (hasFocus && clickedPlayer !== selectedPlayer && clickedPlayer?.positions.includes(position)) {
-            updateSelectedPlayer(clickedPlayer);
-        }
-    }, [hasFocus, clickedPlayer]);
-
-    const onFocus = () => {
-        setHasFocus(true);
-    }
-    
     const onBlur = () => {
         setTimeout(() => setSuggestions([]), 100);
-        setTimeout(() => setHasFocus(false), 100);
+        setTimeout(() => onFocus(rosterSlot, false), 100);
     }
 
 
@@ -91,7 +80,7 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
                     className='player-name night-mode-text'
                     type="text"
                     value={inputValue}
-                    onFocus={onFocus}
+                    onFocus={() => onFocus(rosterSlot, true)}
                     onChange={handleInputChange}
                     onBlur={onBlur}
                     placeholder="Search for a player..."

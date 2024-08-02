@@ -42,7 +42,6 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
     const [availablePlayers, setAvailablePlayers] = useState<CostEstimatedPlayer[]>([]);
     const [budgetSpent, setBudgetSpent] = useState(0);
     const [selectedPlayers, setSelectedPlayers] = useState<MockPlayer[]>([]);
-    const [clickedPlayer, setClickedPlayer] = useState<CostEstimatedPlayer | undefined>(undefined);
     const [showSearchSettings, setShowSearchSettings] = useState(true);
     const [showEstimationSettings, setShowEstimationSettings] = useState(true);
     const [rosterSelections, setRosterSelections] = useState<RosterSelections>({});
@@ -50,8 +49,10 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
     const [costAdjustments, setCostAdjustments] = useState<Map<string, number>>(new Map())
     const [costPredictor, setCostPredictor] = useState<CostPredictor>(defaultCostPredictor);
     const [finishedLoading, setFinishedLoading] = useState(false);
+    const [lastFocusedRosterSlot, setLastFocusedRosterSlot] = useState<RosterSlot | undefined>(undefined);
 
-    const rosterSpots = Array.from(positions.entries()).flatMap(([_name, count]) => count).reduce((x, y) => x + y, 0);
+    const rosterSlots = Array.from(positions.entries()).flatMap(([name, count]) => Array.from({ length: count }, (_, i) => ({ position: name, index: i })));
+    const rosterSpots = rosterSlots.length;
 
     useEffect(() => { 
         const loadedRoster = loadInitialRosterSelections(leagueId, draftName);
@@ -92,16 +93,12 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
     }, [finishedLoading, costPredictor]);
 
     useEffect(() => {
-        const includePlayer = (p: MockPlayer) => (searchSettings.positions.includes(p.defaultPosition) &&
-            costPredictor.predict(p) >= searchSettings.minPrice &&
-            costPredictor.predict(p) <= searchSettings.maxPrice
-            && (searchSettings.showOnlyAvailable ? (!selectedPlayers.includes(p) && (costPredictor.predict(p) <= auctionBudget - budgetSpent))
-            : true));
+        const includePlayer = (p: MockPlayer) => playerAvailable(p, searchSettings, costPredictor, selectedPlayers, auctionBudget, budgetSpent);
         const nextPlayers = playerDb.filter(includePlayer)
             .slice(0, searchSettings.playerCount)
             .map(p => ({ ...p, estimatedCost: costPredictor.predict(p) }));
         setAvailablePlayers(nextPlayers);
-    }, [costPredictor, searchSettings, playerDb, selectedPlayers]);
+    }, [costPredictor, searchSettings, playerDb, selectedPlayers, budgetSpent]);
 
     const onPlayerSelected = (rosterSlot: RosterSlot, player?: CostEstimatedPlayer) => {
         const serializedSlot = serializeRosterSlot(rosterSlot);
@@ -123,9 +120,23 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
     }, [rosterSelections]);
 
     const onPlayerClick = (player:CostEstimatedPlayer) => {
-        setClickedPlayer(player);
-        setTimeout(() => setClickedPlayer(undefined), 100);
+        if (lastFocusedRosterSlot && player.positions.includes(lastFocusedRosterSlot.position)) {
+            onPlayerSelected(lastFocusedRosterSlot, player);
+            return;
+        }
+        const eligibleSlots = rosterSlots.filter(slot => player.positions.includes(slot.position));
+        for (const slot of eligibleSlots) {
+            const slotName = serializeRosterSlot(slot);
+            if (!rosterSelections[slotName]) {
+                onPlayerSelected(slot, player);
+                return;
+            }
+        }
     };
+
+    const onRosterSlotFocus = (slot: RosterSlot, focused: boolean) => {
+        setLastFocusedRosterSlot(focused ? slot : undefined);
+    }
 
     const onSettingsChanged = (settings: SearchSettingsState) => {
         setSearchSettings(settings);
@@ -182,10 +193,10 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
                                         key={slotName}
                                         players={availablePlayers}
                                         position={position}
-                                        clickedPlayer={clickedPlayer}
                                         costAdjustment={costAdjustments.get(slotName)}
                                         onCostAdjusted={onCostAdjusted}
                                         onPlayerSelected={onPlayerSelected}
+                                        onFocus={onRosterSlotFocus}
                                     />
                                 })
                             )}
@@ -257,6 +268,19 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
 
 export default MockTable;
 
+function playerAvailable(p: MockPlayer, searchSettings: SearchSettingsState, costPredictor: CostPredictor, selectedPlayers: MockPlayer[], auctionBudget: number, budgetSpent: number): boolean {
+    const cost = costPredictor.predict(p)
+    let playerAvailable = true;
+    if (searchSettings.showOnlyAvailable) {
+        const playerSelected = selectedPlayers.find(sp => sp.id === p.id);
+        playerAvailable = !playerSelected && (costPredictor.predict(p) <= auctionBudget - budgetSpent)
+    }
+    return playerAvailable &&
+        searchSettings.positions.includes(p.defaultPosition) &&
+        cost >= searchSettings.minPrice &&
+        cost <= searchSettings.maxPrice;
+} 
+
 function predictCostWithSettings(player: MockPlayer, settings: EstimationSettingsState, draftHistory: Map<number, DraftAnalysis>) {
     const estimates = [];
     for (const year of settings.years) {
@@ -288,7 +312,7 @@ function predictExponential(x: number, coefficients: ExponentialCoefficients): n
     return coefficients[0] * Math.exp(coefficients[1] * x);
 }
 
-const serializeRosterSlot = (slot: RosterSlot): string => {
+function serializeRosterSlot(slot: RosterSlot): string {
     return JSON.stringify(slot);
 };
 
