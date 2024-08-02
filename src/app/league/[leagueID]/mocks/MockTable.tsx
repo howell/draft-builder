@@ -61,7 +61,9 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
     }, []);
 
     useEffect(() => {
-        saveSelectedRoster(leagueId, IN_PROGRESS_SELECTIONS_KEY, rosterSelections);
+        if (finishedLoading) {
+            saveSelectedRoster(leagueId, IN_PROGRESS_SELECTIONS_KEY, rosterSelections);
+        }
     }, [rosterSelections]);
 
 
