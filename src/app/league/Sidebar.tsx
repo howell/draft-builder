@@ -25,12 +25,20 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName }) => {
     const toggleDrafts = () => { setShowDrafts(!showDrafts); };
     const toggleMocks = () => { setShowMocks(!showMocks); };
 
-    const locallyStored = loadSavedLeagueInfo(leagueID);
-    const savedDrafts = locallyStored.drafts;
+
+    const updateSavedDraftNames = () => {
+        const locallyStored = loadSavedLeagueInfo(leagueID);
+        const savedDrafts = locallyStored.drafts;
+        const loadedDraftNames = Object.keys(savedDrafts).filter((draftName) => draftName !== IN_PROGRESS_SELECTIONS_KEY).sort();
+        if (!arraysEqual(savedDraftNames, loadedDraftNames)) {
+            setSavedDraftNames(loadedDraftNames);
+        }
+    }
 
     useEffect(() => {
-        const loadedDraftNames = Object.keys(savedDrafts).filter((draftName) => draftName !== IN_PROGRESS_SELECTIONS_KEY);
-        setSavedDraftNames(loadedDraftNames);
+        updateSavedDraftNames();
+        const interval = setInterval(updateSavedDraftNames, 1000);
+        return () => clearInterval(interval);
     }, []);
 
     years.sort((a, b) => b - a);
@@ -95,4 +103,15 @@ function parseMockName(pathname: string): string {
     } else {
         return NEW_MOCK_NAME;
     }
+}
+function arraysEqual(savedDraftNames: string[], loadedDraftNames: string[]): boolean {
+    if (savedDraftNames.length !== loadedDraftNames.length) {
+        return false;
+    }
+    for (let i = 0; i < savedDraftNames.length; i++) {
+        if (savedDraftNames[i] !== loadedDraftNames[i]) {
+            return false;
+        }
+    }
+    return true;
 }
