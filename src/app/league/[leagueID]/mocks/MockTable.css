@@ -146,4 +146,11 @@
         color: #fff; /* Light text color for dark mode */
         background-color: #333; /* Dark background color for dark mode */
     }
+    .highlighted {
+        background-color: #ddd;
+    }
+}
+
+.highlighted {
+    background-color: #a7a6ad;
 }
