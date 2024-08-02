@@ -106,7 +106,7 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
                                 onClick={() => handleSuggestionClick(suggestion)}
                                 style={{ cursor: 'pointer' }}
                             >
-                                {suggestion.name} ({suggestion.estimatedCost})
+                                {suggestion.name}, {suggestion.defaultPosition} ({suggestion.estimatedCost})
                             </li>
                         ))}
                     </ul>
@@ -119,6 +119,7 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
                         <button onClick={() => onCostAdjusted(rosterSlot, -1)}>-</button>
                     </div>
                     {costAdjustment + (selectedPlayer ? selectedPlayer.estimatedCost : 1)}
+                    {costAdjustment !== 0 && <span className="cost-adjustment">({costAdjustment})</span>}
                 </div>
             </td>
         </tr>
