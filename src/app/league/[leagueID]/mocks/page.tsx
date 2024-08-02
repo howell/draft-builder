@@ -62,8 +62,20 @@ function rankPlayers(players: PlayerInfo[], scoringType: ScoringType) : Rankings
         if (aCost !== bCost) {
             return bCost - aCost;
         }
-        const aRank = b.player.draftRanksByRankType[scoringType];
-        const bRank = a.player.draftRanksByRankType[scoringType];
+        if (!a.player.draftRanksByRankType || !a.player.draftRanksByRankType[scoringType]) {
+            return 1;
+        }
+        if (!b.player.draftRanksByRankType || !b.player.draftRanksByRankType[scoringType]) {
+            return -1;
+        }
+        let aRank: (RankInfo | number) = b.player.draftRanksByRankType[scoringType];
+        if (typeof aRank !== 'number') {
+            aRank = aRank.rank;
+        }
+        let bRank: (RankInfo | number) = a.player.draftRanksByRankType[scoringType];
+        if (typeof bRank !== 'number') {
+            bRank = bRank.rank;
+        }
         return bRank - aRank;
 
     } 

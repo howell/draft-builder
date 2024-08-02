@@ -3,8 +3,10 @@ import { RosterSelections, StoredData } from './types';
 
 export const IN_PROGRESS_SELECTIONS_KEY = '##IN_PROGRESS_SELECTIONS##';
 
+const isClient = typeof window !== 'undefined';
+
 export function loadSavedLeagueInfo(leagueID: number): StoredData {
-    const stored = localStorage.getItem(leagueID.toString());
+    const stored = isClient && localStorage.getItem(leagueID.toString());
     if (stored) {
         const leagueData = JSON.parse(stored);
         if (leagueData && leagueData[leagueID]) {
@@ -26,6 +28,7 @@ export function loadRosterByName(leagueID: number, rosterName: string): RosterSe
 
 
 export function saveSelectedRoster(leagueID: number, rosterName: string, selections: RosterSelections) {
+    if (!isClient) return;
     const stored = loadSavedLeagueInfo(leagueID);
     const withRoster = {
         ...stored,
@@ -40,6 +43,7 @@ export function saveSelectedRoster(leagueID: number, rosterName: string, selecti
 }
 
 export function deleteRoster(leagueID: number, rosterName: string) {
+    if (!isClient) return;
     const stored = loadSavedLeagueInfo(leagueID);
     const drafts = stored[leagueID].drafts;
     delete drafts[rosterName];
