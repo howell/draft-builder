@@ -164,9 +164,6 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
                         <p>Remaining: {auctionBudget - budgetSpent} </p>
                     </div>
                     <div>
-                        <button className="reset-button" onClick={resetRoster}>Reset</button>
-                    </div>
-                    <div>
                         <button className="save-roster-button" onClick={saveRosterSelections}>Save Roster</button>
                         <button className="delete-roster-button" onClick={deleteRosterSelections}> <i className="fas fa-trash"></i> </button>
                         <input
@@ -176,6 +173,9 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
                             onChange={(e) => setRosterName(e.target.value)}
                             placeholder="Enter roster name"
                         />
+                    </div>
+                    <div>
+                        <button className="reset-button" onClick={resetRoster}>Reset</button>
                     </div>
                 </div>
                 <div className='available-players-container'>
