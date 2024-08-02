@@ -1,6 +1,8 @@
 import PlayerTable from './PlayerTable';
 import { fetchDraftInfo, fetchAllPlayerInfo, fetchTeamsAtWeek, slotCategoryIdToPositionMap, mergeDraftAndPlayerInfo, DraftedPlayer } from '@/espn/league';
-import PlayerScatterChart from './PlayerScatterChart';
+// Dynamically import PlayerScatterChart with no SSR
+import dynamic from 'next/dynamic';
+const PlayerScatterChart = dynamic(() => import('./PlayerScatterChart'), { ssr: false });
 
 export type TableData = {
     id: any;
@@ -51,9 +53,6 @@ const Page = async ({ params }: Readonly<{ params: { leagueID: string, draftYear
             <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>Your {draftYear} Draft Recap!</h1>
             <PlayerTable players={tableData} columns={tableColumns} defaultSortColumn='auctionPrice'/>
             <PlayerScatterChart data={tableData} />
-            <div>
-                {JSON.stringify(teamsData.members[0], null, 2)}
-            </div>
         </div>
     );
 };
