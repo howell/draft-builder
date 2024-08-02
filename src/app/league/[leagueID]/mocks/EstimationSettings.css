@@ -44,3 +44,17 @@ input[type="range"]::-moz-range-thumb {
         background: #fff; /* Light thumb color for dark mode */
     }
 }
+
+.year-label-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center; /* Align items vertically in the center */
+}
+
+.year-label {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap; /* Prevent line breaks within the label */
+    margin-right: 10px;
+    min-width: 60px;
+}

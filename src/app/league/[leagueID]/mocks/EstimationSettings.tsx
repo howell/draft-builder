@@ -39,20 +39,22 @@ const EstimationSettings: React.FC<EstimationSettingsProps> = ({
     return (
         <div>
             <div>
-                <h3>Years</h3>
-                {years.map((year) => (
-                    <label key={year}>
-                        <input
-                            type="checkbox"
-                            checked={selectedYears.includes(year)}
-                            onChange={() => handleYearToggle(year)}
-                        />
-                        {year}
-                    </label>
-                ))}
+                <h3>Include Years:</h3>
+                <div className='year-label-container'>
+                    {years.map((year) => (
+                        <label key={year} className="year-label">
+                            <input
+                                type="checkbox"
+                                checked={selectedYears.includes(year)}
+                                onChange={() => handleYearToggle(year)}
+                            />
+                            {year}
+                        </label>
+                    ))}
+                </div>
             </div>
             <div>
-                <h3>Rank Weight</h3>
+                <h3>Rank Weight:</h3>
                 <div className='horizontal-container weight-container'>
                     Overall
                     <input

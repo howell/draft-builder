@@ -2,7 +2,7 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: 140px;
+    width: 160px;
     height: 100%;
     background-color: #333;
     color: white;
@@ -26,6 +26,7 @@
     color: rgb(232, 8, 8);
     border: none;
 }
+
 .draftButton {
     position: float;
     top: 10px;
@@ -71,6 +72,9 @@
     font-size: 0.6em;
 }
 
-.h2 {
-    font-size: 48px;
+.leagueHeading {
+    max-width: 120px;
+    font-size: 1.8em;
+    margin-right: 36px;
+    /* padding-right: 20px; */
 }

@@ -40,7 +40,7 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName }) => {
                 <i className={`fas ${isOpen ? 'fa-times' : 'fa-bars'}`} />
             </button>
             <div className={styles.content}>
-                <h2>{leagueName}</h2>
+                <h2 className={styles.leagueHeading}>{leagueName}</h2>
                 <p/>
                 <span onClick={toggleDrafts} className={`${styles.draftButton}`}>
                   Drafts
