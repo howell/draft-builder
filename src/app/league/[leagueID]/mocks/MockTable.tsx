@@ -3,10 +3,10 @@ import React, { useState, useEffect } from 'react';
 import MockRosterEntry from './MockRosterEntry';
 import './MockTable.css';
 import PlayerTable from '../drafts/[draftYear]/PlayerTable';
-import { DraftAnalysis, ExponentialCoefficients, MockPlayer, CostEstimatedPlayer, RosterSlot, RosterSelections } from '@/app/types';
-import { loadRosterByName, saveSelectedRoster, deleteRoster, IN_PROGRESS_SELECTIONS_KEY } from '@/app/localStorage';
-import SearchSettings, { SearchSettingsState } from './SearchSettings';
-import EstimationSettings, { EstimationSettingsState } from './EstimationSettings';
+import { DraftAnalysis, ExponentialCoefficients, MockPlayer, CostEstimatedPlayer, RosterSlot, RosterSelections, SearchSettingsState, EstimationSettingsState, StoredDraftData  } from '@/app/types';
+import { loadDraftByName, saveSelectedRoster, deleteRoster, IN_PROGRESS_SELECTIONS_KEY } from '@/app/localStorage';
+import SearchSettings from './SearchSettings';
+import EstimationSettings from './EstimationSettings';
 
 interface RosterProps {
     leagueId: number;
@@ -55,16 +55,20 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
     const rosterSpots = rosterSlots.length;
 
     useEffect(() => { 
-        const loadedRoster = loadInitialRosterSelections(leagueId, draftName);
-        setRosterSelections(loadedRoster);
+        const loadedDraft = loadStoredDraftData(leagueId, draftName);
+        if (loadedDraft && loadedDraft.rosterSelections && loadedDraft.estimationSettings && loadedDraft.searchSettings) {
+            setRosterSelections(loadedDraft.rosterSelections);
+            setEstimationSettings(loadedDraft.estimationSettings);
+            setSearchSettings(loadedDraft.searchSettings);
+        }
         setFinishedLoading(true);
     }, []);
 
     useEffect(() => {
         if (finishedLoading) {
-            saveSelectedRoster(leagueId, IN_PROGRESS_SELECTIONS_KEY, rosterSelections);
+            saveSelectedRoster(leagueId, IN_PROGRESS_SELECTIONS_KEY, rosterSelections, estimationSettings, searchSettings);
         }
-    }, [rosterSelections]);
+    }, [rosterSelections, estimationSettings, searchSettings]);
 
 
     const toggleSearchSettings = () => setShowSearchSettings(!showSearchSettings);
@@ -141,11 +145,15 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
     }
 
     const onSettingsChanged = (settings: SearchSettingsState) => {
-        setSearchSettings(settings);
+        if (finishedLoading) {
+            setSearchSettings(settings);
+        }
     }
 
     const onEstimationSettingsChanged = (settings: EstimationSettingsState) => {
-        setEstimationSettings(settings);
+        if (finishedLoading) {
+            setEstimationSettings(settings);
+        }
     }
 
     const resetRoster = () => {
@@ -153,7 +161,7 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
     }
 
     const saveRosterSelections = () => {
-        saveSelectedRoster(leagueId, rosterName, rosterSelections);
+        saveSelectedRoster(leagueId, rosterName, rosterSelections, estimationSettings, searchSettings);
         alert('Roster selections saved!');
     };
 
@@ -235,11 +243,7 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
                                 <SearchSettings
                                     onSettingsChanged={onSettingsChanged}
                                     positions={playerPositions}
-                                    defaultPositions={searchSettings.positions}
-                                    defaultPlayerCount={searchSettings.playerCount}
-                                    defaultMinPrice={searchSettings.minPrice}
-                                    defaultMaxPrice={searchSettings.maxPrice}
-                                    showOnlyAvailable={searchSettings.showOnlyAvailable} />
+                                    currentSettings={searchSettings} />
                             </div>
                         </div>
                         <div className={`estimation-settings`}>
@@ -251,8 +255,7 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
                                 <EstimationSettings
                                     onEstimationSettingsChanged={onEstimationSettingsChanged}
                                     years={Array.from(draftHistory.keys())}
-                                    defaultYears={estimationSettings.years}
-                                    defaultWeight={estimationSettings.weight} />
+                                    currentSettings={estimationSettings} />
                             </div>
                         </div>
                     </div>
@@ -318,9 +321,9 @@ function serializeRosterSlot(slot: RosterSlot): string {
     return JSON.stringify(slot);
 };
 
-function loadInitialRosterSelections(leagueID: number, draftName: string | undefined): RosterSelections {
+function loadStoredDraftData(leagueID: number, draftName: string | undefined): StoredDraftData | undefined {
     const name = draftName === '' ? IN_PROGRESS_SELECTIONS_KEY : (draftName || IN_PROGRESS_SELECTIONS_KEY);
-    return loadRosterByName(leagueID, name);
+    return loadDraftByName(leagueID, name);
 }
 
 function calculateAmountSpent(costEstimator: (player: MockPlayer) => number, rosterSpots: number, selectedPlayers: MockPlayer[], adjustments: Map<string, number>): number {

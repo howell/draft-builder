@@ -1,5 +1,5 @@
 'use client'
-import { RosterSelections, StoredData, StoredLeagueData, CURRENT_SCHEMA_VERSION } from './types';
+import { RosterSelections, StoredData, StoredLeagueData, CURRENT_SCHEMA_VERSION, StoredDraftData, EstimationSettingsState, SearchSettingsState } from './types';
 
 export const IN_PROGRESS_SELECTIONS_KEY = '##IN_PROGRESS_SELECTIONS##';
 
@@ -7,7 +7,6 @@ const isClient = typeof window !== 'undefined';
 
 export function emptyData(leagueID: number): StoredLeagueData {
     return { drafts: {} };
-
 }
 
 export function loadSavedLeagueInfo(leagueID: number): StoredLeagueData {
@@ -47,23 +46,23 @@ export function saveLeagueInfo(leagueID: number, data: StoredLeagueData): void {
     return;
 }
 
-export function loadRosterByName(leagueID: number, rosterName: string): RosterSelections {
+export function loadDraftByName(leagueID: number, rosterName: string): StoredDraftData | undefined {
     const leagueData = loadSavedLeagueInfo(leagueID);
     const savedRosterSelections = leagueData.drafts[rosterName];
     if (savedRosterSelections) {
         return savedRosterSelections
     }
-    return {};
+    return undefined;
 }
 
 
-export function saveSelectedRoster(leagueID: number, rosterName: string, selections: RosterSelections) {
+export function saveSelectedRoster(leagueID: number, rosterName: string, rosterSelections: RosterSelections, estimationSettings: EstimationSettingsState, searchSettings: SearchSettingsState) {
     if (!isClient) return;
     const stored = loadSavedLeagueInfo(leagueID);
     const withRoster = {
         drafts: {
             ...stored.drafts,
-            [rosterName]: selections
+            [rosterName]: { rosterSelections, estimationSettings, searchSettings }
         }
     };
     saveLeagueInfo(leagueID, withRoster);

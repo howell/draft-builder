@@ -1,39 +1,38 @@
 import React, { useState, useEffect } from 'react';
+import { EstimationSettingsState } from '@/app/types';
 import './EstimationSettings.css';
 
 export interface EstimationSettingsProps {
     years: number[];
-    defaultYears?: number[];
-    defaultWeight?: number;
+    currentSettings: EstimationSettingsState;
     onEstimationSettingsChanged?: (settings: EstimationSettingsState) => void;
 }
 
-export type EstimationSettingsState = {
-    years: number[];
-    weight: number;
-};
-
 const EstimationSettings: React.FC<EstimationSettingsProps> = ({
     years,
-    defaultYears = years,
-    defaultWeight = 50,
+    currentSettings,
     onEstimationSettingsChanged = () => {},
 }) => {
-    const [selectedYears, setSelectedYears] = useState<number[]>(defaultYears);
-    const [weight, setWeight] = useState<number>(defaultWeight);
-
-    useEffect(() => { onEstimationSettingsChanged({ years: selectedYears, weight }); }, [selectedYears, weight]);
 
     const handleYearToggle = (year: number) => {
-        if (selectedYears.includes(year)) {
-            setSelectedYears(selectedYears.filter((y) => y !== year));
+        if (currentSettings.years.includes(year)) {
+            onEstimationSettingsChanged({
+                ...currentSettings,
+                years: currentSettings.years.filter((y) => y !== year),
+            });
         } else {
-            setSelectedYears([...selectedYears, year]);
+            onEstimationSettingsChanged({
+                ...currentSettings,
+                years: [...currentSettings.years, year],
+            });
         }
     };
 
     const handleWeightChange = (value: number) => {
-        setWeight(value);
+        onEstimationSettingsChanged({
+            ...currentSettings,
+            weight: value,
+        });
     };
 
     return (
@@ -45,7 +44,7 @@ const EstimationSettings: React.FC<EstimationSettingsProps> = ({
                         <label key={year} className="year-label">
                             <input
                                 type="checkbox"
-                                checked={selectedYears.includes(year)}
+                                checked={currentSettings.years.includes(year)}
                                 onChange={() => handleYearToggle(year)}
                             />
                             {year}
@@ -61,7 +60,7 @@ const EstimationSettings: React.FC<EstimationSettingsProps> = ({
                         type="range"
                         min={0}
                         max={100}
-                        value={weight}
+                        value={currentSettings.weight}
                         onChange={(e) => handleWeightChange(Number(e.target.value))}
                     />
                     Position

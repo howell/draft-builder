@@ -1,71 +1,59 @@
 import React, { useEffect, useState } from 'react';
+import { SearchSettingsState } from '@/app/types';
 
 export interface SearchSettingsProps {
     positions: string[];
-    defaultPositions?: string[];
-    defaultPlayerCount: number;
-    defaultMinPrice: number;
-    defaultMaxPrice: number;
-    showOnlyAvailable?: boolean;
+    currentSettings: SearchSettingsState;
     onSettingsChanged?: (settings: SearchSettingsState) => void;
 }
 
-export type SearchSettingsState = {
-    positions: string[];
-    playerCount: number;
-    minPrice: number;
-    maxPrice: number;
-    showOnlyAvailable: boolean;
-};
-
 const SearchSettings: React.FC<SearchSettingsProps> = ({
     positions,
-    defaultPositions = positions,
-    defaultPlayerCount,
-    defaultMinPrice,
-    defaultMaxPrice,
-    showOnlyAvailable = true,
+    currentSettings,
     onSettingsChanged = () => { },
 }) => {
-    const [selectedPositions, setSelectedPositions] = useState<string[]>(defaultPositions);
-    const [playerCount, setPlayerCount] = useState<number>(defaultPlayerCount);
-    const [minPrice, setMinPrice] = useState<number>(defaultMinPrice);
-    const [maxPrice, setMaxPrice] = useState<number>(defaultMaxPrice);
-    const [showingOnlyAvailable, setShowingOnlyAvailable] = useState<boolean>(showOnlyAvailable);
-
-    const handlePlayerCountChange = (value: number) => {
-        setPlayerCount(value);
-    };
-
-    const handleMinPriceChange = (value: number) => {
-        setMinPrice(value);
-    };
-
-    const handleMaxPriceChange = (value: number) => {
-        setMaxPrice(value);
-    };
 
     const handlePositionToggle = (position: string) => {
-        if (selectedPositions.includes(position)) {
-            setSelectedPositions(selectedPositions.filter((p) => p !== position));
+        if (currentSettings.positions.includes(position)) {
+            onSettingsChanged({
+                ...currentSettings,
+                positions: currentSettings.positions.filter((p) => p !== position),
+            });
         } else {
-            setSelectedPositions([...selectedPositions, position]);
+            onSettingsChanged({
+                ...currentSettings,
+                positions: [...currentSettings.positions, position],
+            });
         }
     };
 
     const handleShowingOnlyAvailableToggle = () => {
-        setShowingOnlyAvailable(!showingOnlyAvailable);
+        onSettingsChanged({
+            ...currentSettings,
+            showOnlyAvailable: !currentSettings.showOnlyAvailable,
+        });
     }
 
-    useEffect(() => {
+    const handlePlayerCountChange = (value: number) => {
         onSettingsChanged({
-            positions: selectedPositions,
-            playerCount: playerCount,
-            minPrice: minPrice,
-            maxPrice: maxPrice,
-            showOnlyAvailable: showingOnlyAvailable,
+            ...currentSettings,
+            playerCount: value,
         });
-    }, [selectedPositions, playerCount, minPrice, maxPrice, showingOnlyAvailable]);
+    }
+
+    const handleMinPriceChange = (value: number) => {
+        onSettingsChanged({
+            ...currentSettings,
+            minPrice: value,
+        });
+    }
+
+    const handleMaxPriceChange = (value: number) => {
+        onSettingsChanged({
+            ...currentSettings,
+            maxPrice: value,
+        });
+    }
 
     return (
         <div>
@@ -75,7 +63,7 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
                     <label key={position}>
                         <input
                             type="checkbox"
-                            checked={selectedPositions.includes(position)}
+                            checked={currentSettings.positions.includes(position)}
                             onChange={() => handlePositionToggle(position)}
                         />
                         {position}
@@ -88,7 +76,7 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
                     className='night-mode-text'
                     type="number"
                     min={0}
-                    value={playerCount}
+                    value={currentSettings.playerCount}
                     onChange={(e) => handlePlayerCountChange(Number(e.target.value))}
                 />
             </div>
@@ -98,7 +86,7 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
                     className='night-mode-text'
                     type="number"
                     min={0}
-                    value={minPrice}
+                    value={currentSettings.minPrice}
                     onChange={(e) => handleMinPriceChange(Number(e.target.value))}
                 />
             </div>
@@ -108,7 +96,7 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
                     className='night-mode-text'
                     type="number"
                     min={0}
-                    value={maxPrice}
+                    value={currentSettings.maxPrice}
                     onChange={(e) => handleMaxPriceChange(Number(e.target.value))}
                 />
             </div>
@@ -117,7 +105,7 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
                     Only Show Available Players
                     <input
                         type="checkbox"
-                        checked={showingOnlyAvailable}
+                        checked={currentSettings.showOnlyAvailable}
                         onChange={() => handleShowingOnlyAvailableToggle()}
                     />
                 </label>

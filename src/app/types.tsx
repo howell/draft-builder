@@ -33,7 +33,7 @@ export type RosterSelections = {
     [key: string]: CostEstimatedPlayer | undefined;
 }
 
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 export type StoredData = {
     schemaVersion: number;
@@ -41,5 +41,25 @@ export type StoredData = {
 }
 
 export type StoredLeagueData = {
-    drafts: { [draftName: string]: RosterSelections }
+    drafts: { [draftName: string]: StoredDraftData }
 }
+
+export type StoredDraftData = {
+    rosterSelections: RosterSelections;
+    estimationSettings: EstimationSettingsState;
+    searchSettings: SearchSettingsState;
+}
+
+export type SearchSettingsState = {
+    positions: string[];
+    playerCount: number;
+    minPrice: number;
+    maxPrice: number;
+    showOnlyAvailable: boolean;
+};
+
+export type EstimationSettingsState = {
+    years: number[];
+    weight: number;
+};
+
