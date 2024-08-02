@@ -1,0 +1,35 @@
+.league-id-header {
+    font-size: 1.3em;
+}
+
+.private-league-input {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.private-league-input input {
+    width: 90%;
+}
+
+.private-league-input label {
+    align-items: right;
+    min-width: 5em;
+
+}
+
+.margin-top-20 {
+    margin-top: 20px;
+  }
+
+  .private-league-content {
+    display: flex;
+    flex-direction: column;
+    /* justify-content: left; */
+    align-items: left;
+  }
+
+  .private-league-header {
+    font-size: 1.1em;
+  }
