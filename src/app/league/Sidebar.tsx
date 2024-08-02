@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import styles from './Sidebar.module.css';
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -17,6 +17,7 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName }) => {
 	const [isOpen, setIsOpen] = useState(true);
 	const [showDrafts, setShowDrafts] = useState(true);
 	const [showMocks, setShowMocks] = useState(true);
+    const [savedDraftNames, setSavedDraftNames] = useState<string[]>([]);
     const currentYear = parseDraftYear(usePathname())
     const currentMock = parseMockName(usePathname())
 	const toggleSidebar = () => { setIsOpen(!isOpen); };
@@ -25,7 +26,11 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName }) => {
 
     const locallyStored = loadSavedLeagueInfo(leagueID);
     const savedDrafts = locallyStored[leagueID].drafts;
-    const savedDraftNames = Object.keys(savedDrafts).filter((draftName) => draftName !== IN_PROGRESS_SELECTIONS_KEY);
+
+    useEffect(() => {
+        const loadedDraftNames = Object.keys(savedDrafts).filter((draftName) => draftName !== IN_PROGRESS_SELECTIONS_KEY);
+        setSavedDraftNames(loadedDraftNames);
+    }, []);
 
     years.sort((a, b) => b - a);
 

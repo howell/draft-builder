@@ -37,11 +37,13 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
     const [clickedPlayer, setClickedPlayer] = useState<MockPlayer | undefined>(undefined);
     const [showSearchSettings, setShowSearchSettings] = useState(true);
     const [showEstimationSettings, setShowEstimationSettings] = useState(true);
-    const [rosterSelections, setRosterSelections] = useState<RosterSelections>(loadInitialRosterSelections(leagueId, draftName));
+    const [rosterSelections, setRosterSelections] = useState<RosterSelections>({});
     const [rosterName, setRosterName] = useState<string>(draftName || '');
     const [costAdjustments, setCostAdjustments] = useState<Map<string, number>>(new Map())
 
     const rosterSpots = Array.from(positions.entries()).flatMap(([_name, count]) => count).reduce((x, y) => x + y, 0);
+
+    useEffect(() => { setRosterSelections(loadInitialRosterSelections(leagueId, draftName)) }, []);
 
     useEffect(() => {
         saveSelectedRoster(leagueId, IN_PROGRESS_SELECTIONS_KEY, rosterSelections);
@@ -281,14 +283,3 @@ function sum<T extends object, K extends keyof T>(values: (HasNumberProperty<T,K
         return values.reduce((a, b) => a as number + (b as number), 0);
     }
 }
-
-// function sum<T extends object | number, K extends keyof T>(values: T[], key?: K): number {
-//     if (key) {
-//         return values.reduce((a, b) => a + b[key], 0);
-//     } else {
-//         return values.reduce((a, b) => a + b, 0);
-//     }
-// }
-// function sum<T extends object | number>(values: T[], key: keyof[T] | undefined = undefined ): number {
-//     return values.reduce((a, b) => a + b, 0);
-// }
