@@ -50,7 +50,6 @@ function buildPlayerDb(players: PlayerInfo[], scoringType: ScoringType, draftAna
         defaultPosition: slotCategoryIdToPositionMap[player.player.defaultPositionId],
         positions: player.player.eligibleSlots.map(slot => slotCategoryIdToPositionMap[slot]),
         suggestedCost: (player.draftAuctionValue),
-        estimatedCost: 1,
         overallRank: 1 + (rankings.overall.get(player.player.id) as number),
         positionRank: 1 + (rankings.positional.get(player.player.defaultPositionId)?.get(player.player.id) as number)
     }));

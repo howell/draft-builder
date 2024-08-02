@@ -1,21 +1,21 @@
 import React, { useEffect, useState, useRef, KeyboardEvent } from 'react';
 import './MockRosterEntry.css';
-import { MockPlayer, RosterSlot } from '@/app/types';
+import { RosterSlot, CostEstimatedPlayer  } from '@/app/types';
 
 export interface MockRosterEntryProps {
-    selectedPlayer?: MockPlayer;
+    selectedPlayer?: CostEstimatedPlayer;
     rosterSlot: RosterSlot;
-    players: MockPlayer[];
+    players: CostEstimatedPlayer[];
     position: string;
     costAdjustment?: number,
-    onPlayerSelected: (rosterSlot: RosterSlot, player?: MockPlayer) => void;
+    onPlayerSelected: (rosterSlot: RosterSlot, player?: CostEstimatedPlayer) => void;
     onCostAdjusted: (RosterSlot: RosterSlot, delta: number) => void;
-    clickedPlayer: MockPlayer | undefined;
+    clickedPlayer: CostEstimatedPlayer | undefined;
 }
 
 const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = undefined, rosterSlot, players, position, costAdjustment = 0, onPlayerSelected, onCostAdjusted, clickedPlayer }) => {
     const [inputValue, setInputValue] = useState(selectedPlayer ? selectedPlayer.name : '');
-    const [suggestions, setSuggestions] = useState<MockPlayer[]>([]);
+    const [suggestions, setSuggestions] = useState<CostEstimatedPlayer[]>([]);
     const [hasFocus, setHasFocus] = useState<boolean>(false);
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
@@ -39,12 +39,12 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
     }
 
 
-    const updateSelectedPlayer = (player?: MockPlayer) => {
+    const updateSelectedPlayer = (player?: CostEstimatedPlayer) => {
         setInputValue(player ? player.name : '');
         onPlayerSelected(rosterSlot, player);
     }
 
-    const handleSuggestionClick = (suggestion: MockPlayer) => {
+    const handleSuggestionClick = (suggestion: CostEstimatedPlayer) => {
         setInputValue(suggestion.name);
         updateSelectedPlayer(suggestion);
         setSuggestions([]);

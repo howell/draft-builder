@@ -18,10 +18,11 @@ export type MockPlayer = {
     defaultPosition: string;
     positions: string[];
     suggestedCost: number,
-    estimatedCost: number;
     overallRank: number;
     positionRank: number;
 }
+
+export type CostEstimatedPlayer = MockPlayer & { estimatedCost: number };
 
 export type RosterSlot = {
     position: string;
@@ -29,7 +30,7 @@ export type RosterSlot = {
 };
 
 export type RosterSelections = {
-    [key: string]: MockPlayer | undefined;
+    [key: string]: CostEstimatedPlayer | undefined;
 }
 
 export type StoredData = {
