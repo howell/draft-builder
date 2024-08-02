@@ -4,6 +4,13 @@
     background-color: white;
 }
 
+.player-name {
+    display: flex;
+    justify-content: left;
+    align-items: left;
+    height: 28px;
+}
+
 .cost-buttons {
     display: flex;
     flex-direction: column;
@@ -14,11 +21,14 @@
 .cost-buttons button {
     background-color: #f0f0f0;
     border: 1px solid #ccc;
-    padding-left: 1px;
-    padding-right: 1px;
+    width: 13px;
+    height: 14px;
+    display: flex; /* Use flexbox for centering */
+    justify-content: center; /* Center horizontally */
+    align-items: center; /* Center vertically */
     margin-left: -10px;
     cursor: pointer;
-    font-size: 8px;
+    font-size: 10px;
 }
 
 .cost-buttons button:hover {
@@ -27,6 +37,6 @@
 
 .player-cost {
     display: flex;
-    justify-content: center;
-    align-items: center;
+    justify-content: left;
+    align-items: left;
 }

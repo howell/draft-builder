@@ -68,6 +68,7 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
             <td>{position}</td>
             <td>
                 <input
+                    className='player-name'
                     type="text"
                     value={inputValue}
                     onFocus={onFocus}
@@ -92,11 +93,11 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
             </td>
             <td>
                 <div className="player-cost">
-                    {costAdjustment + (selectedPlayer ? selectedPlayer.estimatedCost : 1)}
                     <div className="cost-buttons">
                         <button onClick={() => onCostAdjusted(rosterSlot, 1)}>+</button>
                         <button onClick={() => onCostAdjusted(rosterSlot, -1)}>-</button>
                     </div>
+                    {costAdjustment + (selectedPlayer ? selectedPlayer.estimatedCost : 1)}
                 </div>
             </td>
         </tr>
