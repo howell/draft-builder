@@ -60,7 +60,7 @@
     margin-top: 5px;
     margin-left: 5px;
 }
-.activeYear {
+.activeYear, .activeMock {
     font-weight: bold;
     font-size: 1.2em;
 }

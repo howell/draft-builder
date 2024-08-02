@@ -67,7 +67,7 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName }) => {
                         </li>
                         {savedDraftNames.map((draftName) => (
                             <li key={draftName} className={draftName === currentMock ? styles.activeMock : ''}>
-                                <Link href={`/league/${leagueID}/mocks?draftName=${draftName}`} >{draftName}</Link>
+                                <Link href={`/league/${leagueID}/mocks/${draftName}`} >{draftName}</Link>
                             </li>
                         ))}
                     </ul>}
@@ -87,5 +87,11 @@ function parseDraftYear(pathname: string): number {
 function parseMockName(pathname: string): string {
     const pathSegments = pathname.split('/')
     const draftIdx = pathSegments.indexOf('mocks')
-    return draftIdx !== -1 ? pathSegments[draftIdx + 1] : '';
+    if (draftIdx === -1) {
+        return '';
+    } else if (draftIdx + 1 < pathSegments.length) {
+        return decodeURIComponent(pathSegments[draftIdx + 1])
+    } else {
+        return 'New';
+    }
 }
