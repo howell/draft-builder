@@ -85,6 +85,7 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
             <div>
                 <h3>Player Count</h3>
                 <input
+                    className='night-mode-text'
                     type="number"
                     min={0}
                     value={playerCount}
@@ -94,6 +95,7 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
             <div>
                 <h3>Minimum Price</h3>
                 <input
+                    className='night-mode-text'
                     type="number"
                     min={0}
                     value={minPrice}
@@ -103,6 +105,7 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
             <div>
                 <h3>Maximum Price</h3>
                 <input
+                    className='night-mode-text'
                     type="number"
                     min={0}
                     value={maxPrice}

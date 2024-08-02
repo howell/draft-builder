@@ -128,3 +128,22 @@
 .save-roster-button:hover {
     background-color: white;
 }
+
+.weight-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.night-mode-text {
+    color: #000; /* Default text color */
+    background-color: #fff; /* Default background color */
+}
+
+/* Styles for roster-name input in night mode */
+@media (prefers-color-scheme: dark) {
+    .night-mode-text {
+        color: #fff; /* Light text color for dark mode */
+        background-color: #333; /* Dark background color for dark mode */
+    }
+}

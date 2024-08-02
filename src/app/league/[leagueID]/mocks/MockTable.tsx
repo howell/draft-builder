@@ -199,7 +199,7 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
                         <button className="save-roster-button" onClick={saveRosterSelections}>Save Roster</button>
                         <button className="delete-roster-button" onClick={deleteRosterSelections}> <i className="fas fa-trash"></i> </button>
                         <input
-                            className="roster-name-input"
+                            className="night-mode-text roster-name-input"
                             type="text"
                             value={rosterName}
                             onChange={(e) => setRosterName(e.target.value)}

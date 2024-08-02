@@ -1,0 +1,41 @@
+/* Default styles for input range slider */
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 8px;
+    background: #ddd; /* Default track color */
+    outline: none;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #4CAF50; /* Default thumb color */
+    cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #4CAF50; /* Default thumb color */
+    cursor: pointer;
+}
+
+/* Styles for input range slider in night mode */
+@media (prefers-color-scheme: dark) {
+    input[type="range"] {
+        background: #555; /* Dark track color */
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+        background: #fff; /* Light thumb color for dark mode */
+    }
+
+    input[type="range"]::-moz-range-thumb {
+        background: #fff; /* Light thumb color for dark mode */
+    }
+}

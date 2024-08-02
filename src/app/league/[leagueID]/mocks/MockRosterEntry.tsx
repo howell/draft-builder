@@ -88,7 +88,7 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
             <td>{position}</td>
             <td>
                 <input
-                    className='player-name'
+                    className='player-name night-mode-text'
                     type="text"
                     value={inputValue}
                     onFocus={onFocus}
@@ -101,7 +101,7 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
                     <ul className="suggestions-list">
                         {suggestions.map((suggestion) => (
                             <li
-                                className={suggestion === suggestions[highlightedIndex] ? 'highlighted' : ''}
+                                className={`night-mode-text ${suggestion === suggestions[highlightedIndex] ? 'highlighted' : ''}`}
                                 key={suggestion.id}
                                 onClick={() => handleSuggestionClick(suggestion)}
                                 style={{ cursor: 'pointer' }}

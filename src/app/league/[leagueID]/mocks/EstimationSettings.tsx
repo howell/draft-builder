@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './EstimationSettings.css';
 
 export interface EstimationSettingsProps {
     years: number[];
@@ -51,16 +52,18 @@ const EstimationSettings: React.FC<EstimationSettingsProps> = ({
                 ))}
             </div>
             <div>
-                <h3>Weight</h3>
-                Overall Rank
-                <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    value={weight}
-                    onChange={(e) => handleWeightChange(Number(e.target.value))}
-                />
-                Position Rank
+                <h3>Rank Weight</h3>
+                <div className='horizontal-container weight-container'>
+                    Overall
+                    <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={weight}
+                        onChange={(e) => handleWeightChange(Number(e.target.value))}
+                    />
+                    Position
+                </div>
             </div>
         </div>
     );
