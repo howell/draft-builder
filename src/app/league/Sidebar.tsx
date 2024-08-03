@@ -76,7 +76,7 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName }) => {
                         </li>
                         {savedDraftNames.map((draftName) => (
                             <li key={draftName} className={draftName === currentMock ? styles.activeMock : ''}>
-                                <Link href={`/league/${leagueID}/mocks/${draftName}`} >{draftName}</Link>
+                                <Link href={`/league/${leagueID}/mocks/${encodeURIComponent(draftName)}`} >{draftName}</Link>
                             </li>
                         ))}
                     </ul>}
