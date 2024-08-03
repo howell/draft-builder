@@ -59,7 +59,7 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName }) => {
                     <ul className={styles.yearList}>
                         {years.map((year) => (
                             <li key={year} className={year === currentYear ? styles.activeYear : ''}>
-                                <a href={`/league/${leagueID}/drafts/${year}`}>{year}</a>
+                                <Link href={`/league/${leagueID}/drafts/${year}`}>{year}</Link>
                             </li>
                         ))}
                     </ul>
