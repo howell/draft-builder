@@ -1,12 +1,13 @@
 import { redirect } from 'next/navigation';
 import Sidebar from '../Sidebar';
-import { fetchLeagueHistory, fetchLeagueInfo } from '@/espn/league';
+import { fetchLeagueHistory, loadAuthCookies } from '@/espn/league';
 
 const DEFAULT_YEAR = 2023;
 
 const LeagueLayout = async ({ children, params } : { children: React.ReactNode, params: {leagueID: string, draftYear?: string } }) => {
     const leagueID = parseInt(params.leagueID);
-    const leagueHistory = await fetchLeagueHistory(leagueID, DEFAULT_YEAR);
+    const auth = loadAuthCookies();
+    const leagueHistory = await fetchLeagueHistory(leagueID, DEFAULT_YEAR, auth);
     if (leagueHistory.size === 0) {
         redirect('/');
     }

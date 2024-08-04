@@ -2,6 +2,7 @@
 import { useRouter } from 'next/navigation'
 import { useState } from "react";
 import CollapsibleComponent from './Collapsible';
+import Cookies from 'js-cookie';
 import './page.css'
 
 export default function Home() {
@@ -10,10 +11,8 @@ export default function Home() {
   const [espnS2, setEspnS2] = useState("");
   const router = useRouter();
 
-  const handleSubmit = () => {
-    // event.preventDefault();
+  const handleSubmit = async () => {
 
-    // Perform validation here
     if (leagueID.trim() === "") {
       alert("Please enter your league ID");
       return;
@@ -29,13 +28,36 @@ export default function Home() {
       return;
     }
 
-    // If all inputs are valid, proceed with form submission
-    router.push(`/league/${leagueID}?swid=${swid}&espn_s2=${espnS2}`);
+    const data = {
+      leagueID,
+      swid,
+      espnS2
+    };
 
-    // Reset the form inputs
-    setLeagueID("");
-    setSwid("");
-    setEspnS2("");
+    try {
+      const response = await fetch('/league', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+
+      const result = await response.json();
+      if (result?.status !== 'ok') {
+        alert(`Failed to find league: ${result.error}`);
+      } else {
+        if (swid.trim() !== "" && espnS2.trim() !== "") {
+          Cookies.set('swid', swid);
+          Cookies.set('espn_s2', espnS2);
+        }
+        router.push(`/league/${encodeURIComponent(leagueID)}`);
+      }
+
+      // Redirect to the league page
+    } catch (error) {
+        alert(`Failure submitting form ${error}`);
+    }
   };
 
   return (

@@ -1,5 +1,5 @@
 
-import { fetchLeagueHistory, leagueLineupSettings, fetchAllPlayerInfo, fetchDraftInfo, slotCategoryIdToPositionMap, mergeDraftAndPlayerInfo, DraftedPlayer } from '@/espn/league';
+import { fetchLeagueHistory, leagueLineupSettings, fetchAllPlayerInfo, fetchDraftInfo, slotCategoryIdToPositionMap, mergeDraftAndPlayerInfo, DraftedPlayer, loadAuthCookies, EspnAuth } from '@/espn/league';
 import { redirect } from 'next/navigation';
 import MockTable from './MockTable';
 import * as regression from 'regression'
@@ -9,8 +9,9 @@ const DEFAULT_YEAR = 2024;
 
 export default async function MockDraft(leagueId: string, draftName?: string) {
     const leagueID = parseInt(leagueId);
-    const playerResponse = fetchAllPlayerInfo(leagueID, DEFAULT_YEAR);
-    const leagueHistory = await fetchLeagueHistory(leagueID, DEFAULT_YEAR);
+    const auth = loadAuthCookies();
+    const playerResponse = fetchAllPlayerInfo(leagueID, DEFAULT_YEAR, 0, 1000, auth);
+    const leagueHistory = await fetchLeagueHistory(leagueID, DEFAULT_YEAR, auth);
     const latestInfo = leagueHistory.get(DEFAULT_YEAR)
     if (leagueHistory.size === 0 || !latestInfo) {
         redirect('/');
@@ -21,15 +22,12 @@ export default async function MockDraft(leagueId: string, draftName?: string) {
     if (typeof playerData === 'number') {
         return <h1>Error fetching player data: {playerData}</h1>;
     }
-    const draftAnalyses = await buildDraftHistory(leagueHistory)
+    const draftAnalyses = await buildDraftHistory(leagueHistory, auth)
         .then(drafts => new Map(Array.from(drafts.entries()).map(([season, draftedPlayers]) => [season, analyzeDraft(draftedPlayers)] as [number, DraftAnalysis])));
-    // console.log("Analyses: ", draftAnalyses)
     const scoringType = latestInfo.settings.scoringSettings.scoringType;
     const playerDb = buildPlayerDb(playerData.players, scoringType, Array.from(draftAnalyses.values()));
     const positions = Array.from(new Set(playerDb.map(player => player.defaultPosition)));
 
-    // console.log(JSON.stringify(playerData.players[0], null, 2))
-    //console.log("ranking info", playerData.players[2].player.fullName, playerData.players[2].draftAuctionValue, playerData.players[2].ratings, playerData.players[2].player)
     const auctionBudget = latestInfo.settings.draftSettings.auctionBudget;
     const lineupSettings = leagueLineupSettings(latestInfo);
     lineupSettings.delete('IR')
@@ -110,10 +108,10 @@ function rankPlayers(players: PlayerInfo[], scoringType: ScoringType) : Rankings
 
 }
 
-async function buildDraftHistory(leagueHistory: Map<number, LeagueInfo>) : Promise<Map<number, DraftedPlayer[]>> {
+async function buildDraftHistory(leagueHistory: Map<number, LeagueInfo>, auth: EspnAuth | undefined) : Promise<Map<number, DraftedPlayer[]>> {
     const years = Array.from(leagueHistory.entries())
         .filter(([year, info]) => info.settings.draftSettings.type === 'AUCTION' && info.draftDetail.drafted) as [number, LeagueInfo][];
-    const requests = years.map(([year, info]) => Promise.all([fetchDraftInfo(info.id, year), fetchAllPlayerInfo(info.id, year)]));
+    const requests = years.map(([year, info]) => Promise.all([fetchDraftInfo(info.id, year, auth), fetchAllPlayerInfo(info.id, year, 0, 1000, auth)]));
     const responses = await Promise.all(requests);
     const successes = responses.filter(([draftResponse, playerResponse]) => typeof draftResponse !== 'number' && typeof playerResponse !== 'number') as [DraftInfo, PlayersInfo][];
     return new Map(successes.map(([draftResponse, playerResponse]) => [draftResponse.seasonId, mergeDraftAndPlayerInfo(draftResponse.draftDetail.picks, playerResponse.players)]));

@@ -1,12 +1,13 @@
 'use server'
-import { fetchLeagueInfo, leagueLineupSettings } from '@/espn/league';
+import { loadAuthCookies, fetchLeagueInfo, leagueLineupSettings } from '@/espn/league';
 import { redirect } from 'next/navigation';
 
-const DEFAULT_YEAR = 2023;
+const DEFAULT_YEAR = 2024;
+
 
 export default async function LeaguePage({ params }: Readonly<{ params: { leagueID: string } }>) {
     const leagueID = parseInt(params.leagueID);
-    const leagueInfo = await fetchLeagueInfo(leagueID, DEFAULT_YEAR);
+    const leagueInfo = await fetchLeagueInfo(leagueID, DEFAULT_YEAR, loadAuthCookies());
     if (typeof leagueInfo === 'number') {
         redirect('/');
     }

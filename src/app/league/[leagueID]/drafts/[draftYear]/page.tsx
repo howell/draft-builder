@@ -1,5 +1,5 @@
 import PlayerTable from './PlayerTable';
-import { fetchDraftInfo, fetchAllPlayerInfo, fetchTeamsAtWeek, slotCategoryIdToPositionMap, mergeDraftAndPlayerInfo, DraftedPlayer } from '@/espn/league';
+import { loadAuthCookies, fetchDraftInfo, fetchAllPlayerInfo, fetchTeamsAtWeek, slotCategoryIdToPositionMap, mergeDraftAndPlayerInfo, DraftedPlayer } from '@/espn/league';
 // Dynamically import PlayerScatterChart with no SSR
 import dynamic from 'next/dynamic';
 const PlayerScatterChart = dynamic(() => import('./PlayerScatterChart'), { ssr: false });
@@ -17,11 +17,12 @@ export type TableData = {
 const Page = async ({ params }: Readonly<{ params: { leagueID: string, draftYear: string} }>) => {
     const leagueID = parseInt(params.leagueID);
     const draftYear = parseInt(params.draftYear);
+    const auth = loadAuthCookies();
 
-    const playerResponse = fetchAllPlayerInfo(leagueID, draftYear);
-    const teamsResponse = fetchTeamsAtWeek(leagueID, draftYear, 0);
+    const playerResponse = fetchAllPlayerInfo(leagueID, draftYear, 0, 1000, auth);
+    const teamsResponse = fetchTeamsAtWeek(leagueID, draftYear, 0, auth);
 
-    const response = await fetchDraftInfo(leagueID, draftYear);
+    const response = await fetchDraftInfo(leagueID, draftYear, auth);
     if (typeof response === 'number') {
         console.error('Error fetching draft data:', response);
         return <h1>Error fetching draft data: {response}</h1>;

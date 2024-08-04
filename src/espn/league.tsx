@@ -1,16 +1,29 @@
 import axios from "axios";
 import { buildRoute } from "./api";
+import { cookies } from 'next/headers';
 
 
-const ESPN_S2 = process.env.ESPN_S2
-const ESPN_SWID = process.env.ESPN_SWID
+export type EspnAuth = {
+    espnS2: string,
+    swid: string
+}
 
+export function loadAuthCookies() : EspnAuth | undefined {
+    const cooks = cookies();
+    const swid = cooks.get('swid');
+    const espnS2 = cooks.get('espn_s2');
+    return swid && espnS2 ? { swid: swid.value, espnS2: espnS2.value } : undefined;
+}
 
-export async function fetchLeagueInfo(leagueID: number, season: number): Promise<number | LeagueInfo> {
+export function authCookies(auth?: EspnAuth): string {
+    return `espn_s2=${auth?.espnS2 || ''}; SWID=${auth?.swid || ''}`;
+}
+
+export async function fetchLeagueInfo(leagueID: number, season: number, auth?: EspnAuth): Promise<number | LeagueInfo> {
     try {
         const leagueResponse = await axios.get(buildLeagueInfoRoute(leagueID, season), {
             headers: {
-                Cookie: `espn_s2=${ESPN_S2}; SWID=${ESPN_SWID}`
+                Cookie: authCookies(auth)
             }
         });
         return leagueResponse.data;
@@ -26,16 +39,16 @@ function buildLeagueInfoRoute(leagueID: number, seasonID: number) {
     return buildRoute(`${seasonID}/segments/0/leagues/${leagueID}`, '?view=mSettings');
 }
 
-export async function fetchLeagueHistory(leagueID: number, latestYear: number): Promise<Map<number, LeagueInfo>> {
+export async function fetchLeagueHistory(leagueID: number, latestYear: number, auth?: EspnAuth): Promise<Map<number, LeagueInfo>> {
     const map = new Map<number, LeagueInfo>();
-    const latestInfo = await fetchLeagueInfo(leagueID, latestYear);
+    const latestInfo = await fetchLeagueInfo(leagueID, latestYear, auth);
     if (typeof latestInfo === 'number') {
         return map;
     }
     map.set(latestYear, latestInfo);
 
     const historyResponse = await Promise.all(latestInfo.status.previousSeasons.map(async (season) => {
-        const leagueResponse = await fetchLeagueInfo(leagueID, season);
+        const leagueResponse = await fetchLeagueInfo(leagueID, season, auth);
         return { season, leagueResponse };
     }));
 
@@ -48,11 +61,11 @@ export async function fetchLeagueHistory(leagueID: number, latestYear: number): 
     return map;
 }
 
-export async function fetchDraftInfo(leagueID: number, season: number): Promise<number | DraftInfo> {
+export async function fetchDraftInfo(leagueID: number, season: number, auth?: EspnAuth): Promise<number | DraftInfo> {
     try {
         const draftResponse = await axios.get(buildDraftRoute(leagueID, season), {
             headers: {
-                Cookie: `espn_s2=${ESPN_S2}; SWID=${ESPN_SWID}`
+                Cookie: authCookies(auth)
             }
         });
         return draftResponse.data;
@@ -70,11 +83,11 @@ function buildDraftRoute(leagueID: number, season: number, scoringPeriodId = 0) 
     );
 }
 
-export async function fetchAllPlayerInfo(leagueID: number, season: number, scoringPeriodId = 0, maxPlayers = 1000): Promise<number | PlayersInfo> {
+export async function fetchAllPlayerInfo(leagueID: number, season: number, scoringPeriodId = 0, maxPlayers = 1000, auth?: EspnAuth): Promise<number | PlayersInfo> {
     try {
         const playerResponse = await axios.get(buildPlayerRoute(leagueID, season, scoringPeriodId), {
             headers: {
-                Cookie: `espn_s2=${ESPN_S2}; SWID=${ESPN_SWID}`,
+                Cookie: authCookies(auth),
                 'x-fantasy-filter': JSON.stringify({
                     players: {
                         limit: maxPlayers,
@@ -102,11 +115,11 @@ function buildPlayerRoute(leagueID: number, season: number, scoringPeriodId = 0)
     );
 }
 
-export async function fetchTeamsAtWeek(leagueID: number, season: number, scoringPeriodId: number): Promise<number | TeamInfo> {
+export async function fetchTeamsAtWeek(leagueID: number, season: number, scoringPeriodId: number, auth?: EspnAuth): Promise<number | TeamInfo> {
     try {
         const teamsResponse = await axios.get(buildTeamsRoute(leagueID, season, scoringPeriodId), {
             headers: {
-                Cookie: `espn_s2=${ESPN_S2}; SWID=${ESPN_SWID}`
+                Cookie: authCookies(auth),
             }
         });
         return teamsResponse.data;
@@ -178,9 +191,6 @@ export function mergeDraftAndPlayerInfo(draftData: DraftPick[], playerData: Play
             console.error('Team not found for pick:', pick);
             throw new Error('Team not found for pick');
         }
-        // if (pick.lineupSlotId !== player.player.defaultPositionId) {
-        //     console.log('Position mismatch:', JSON.stringify(pick.lineupSlotId), JSON.stringify([player.player.fullName, player.player.defaultPositionId]));
-        // }
         return {
             ...pick,
             ...player.player,
