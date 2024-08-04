@@ -3,8 +3,11 @@
 .table-container {
     margin: 20px auto;
     border-collapse: collapse;
-    width: auto;
+    width: fit-content;
     font-family: Arial, sans-serif;
+    /* display: block; */
+    max-height: 90vh; /* Limit the height to the viewport height */
+    overflow-y: auto;  /* Enable vertical scrolling */
 }
 
 .table-container th, .table-container td {
@@ -17,6 +20,9 @@
     background-color: #f2f2f2;
     color: #333;
     cursor: pointer;
+    position: sticky; /* Make the header sticky */
+    top: -5px;           /* Stick to the top of the container and hide the border between the header and the first row */
+    z-index: 1;       /* Ensure the header is above the table rows */
 }
 
 .clickable {

@@ -54,7 +54,8 @@ const PlayerTable = <T extends object,>({
     };
 
     return (
-        <table className="table-container">
+        <div className="table-container">
+        <table >
             <thead>
                 <tr>
                     {columns.map(([column, name]) => (
@@ -72,6 +73,7 @@ const PlayerTable = <T extends object,>({
                 ))}
             </tbody>
         </table>
+        </div>
     );
 };
 
