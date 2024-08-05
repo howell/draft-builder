@@ -1,4 +1,4 @@
-export type Platform = 'espn' | 'yahoo' | 'sleeper';
+import { Platform } from '@/app/api/interface';
 
 export type FindLeagueRequest = {
     platform: Platform;
@@ -9,6 +9,6 @@ export type FindLeagueRequest = {
     };
 }
 
-export type FindLeagueResposne = {
+export type FindLeagueResponse = {
     status: 'ok' | string;
 }

@@ -4,7 +4,7 @@ import { useState } from "react";
 import CollapsibleComponent from './Collapsible';
 import Cookies from 'js-cookie';
 import './page.css'
-import { FindLeagueRequest } from '@/app/api/find-league/interface';
+import { FindLeagueRequest, FindLeagueResponse } from '@/app/api/find-league/interface';
 
 export default function Home() {
   const [leagueID, setLeagueID] = useState("");
@@ -52,9 +52,9 @@ export default function Home() {
         body: JSON.stringify(request)
       });
 
-      const result = await response.json();
+      const result: FindLeagueResponse = await response.json();
       if (result?.status !== 'ok') {
-        alert(`Failed to find league: ${result.error}`);
+        alert(`Failed to find league: ${result.status}`);
       } else {
         if (swid.trim() !== "" && espnS2.trim() !== "") {
           Cookies.set('swid', swid);
