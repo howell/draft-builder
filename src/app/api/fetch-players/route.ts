@@ -1,5 +1,5 @@
 'use server'
-import { fetchAllPlayerInfo, fetchDraftInfo } from '@/espn/league';
+import { fetchAllPlayerInfo } from '@/espn/league';
 import { NextRequest } from 'next/server';
 import { FetchPlayersRequest, FetchPlayersResponse } from './interface';
 import { makeResponse, retrieveEspnAuthCookies } from '@/app/api/utils';
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     const scoringPeriodId = body.scoringPeriodId;
     const maxPlayers = body.maxPlayers;
     const auth = retrieveEspnAuthCookies(req);
-    if (!leagueID || !season || !scoringPeriodId || !maxPlayers) {
+    if (typeof(leagueID) !== 'number' || typeof(season) !== 'number' || typeof(scoringPeriodId) !== 'number' || typeof(maxPlayers) !== 'number') {
         return makeResponse<FetchPlayersResponse>({ status: 'Missing required fields' }, 400);
     }
     const playersInfo = await fetchAllPlayerInfo(leagueID, season, scoringPeriodId, maxPlayers, auth);

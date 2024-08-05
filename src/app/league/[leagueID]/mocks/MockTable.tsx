@@ -8,7 +8,7 @@ import { loadDraftByName, saveSelectedRoster, deleteRoster, IN_PROGRESS_SELECTIO
 import SearchSettings from './SearchSettings';
 import EstimationSettings from './EstimationSettings';
 
-interface RosterProps {
+export interface MockTableProps {
     leagueId: number;
     draftName?: string;
     auctionBudget: number;
@@ -35,7 +35,7 @@ const defaultCostPredictor: CostPredictor = {
     predict: (player: MockPlayer) => 1
 };
 
-const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auctionBudget, players, draftHistory, playerPositions }) => {
+const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, auctionBudget, players, draftHistory, playerPositions }) => {
     const [playerDb, setPlayerDb] = useState<MockPlayer[]>(players);
     const [estimationSettings, setEstimationSettings] = useState<EstimationSettingsState>({ years: Array.from(draftHistory.keys()), weight: 50 });
     const [searchSettings, setSearchSettings] = useState<SearchSettingsState>({ positions: playerPositions, playerCount: 200, minPrice: 1, maxPrice: auctionBudget, showOnlyAvailable: true });

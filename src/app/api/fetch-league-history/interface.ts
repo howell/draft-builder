@@ -6,7 +6,11 @@ export type FetchLeagueHistoryRequest = {
     startSeason: number;
 }
 
+export type LeagueInfoHistory = {
+    [ key: number ]: LeagueInfo;
+}
+
 export type FetchLeagueHistoryResponse = {
     status: 'ok' | string;
-    data?: { [key: number]: LeagueInfo; };
+    data?: LeagueInfoHistory;
 }

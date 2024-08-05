@@ -1,46 +1,99 @@
-
-import { fetchLeagueHistory, leagueLineupSettings, fetchAllPlayerInfo, fetchDraftInfo, slotCategoryIdToPositionMap, mergeDraftAndPlayerInfo, DraftedPlayer, loadAuthCookies, EspnAuth } from '@/espn/league';
-import { redirect } from 'next/navigation';
-import MockTable from './MockTable';
+'use client';
+import { leagueLineupSettings, slotCategoryIdToPositionMap, mergeDraftAndPlayerInfo, DraftedPlayer } from '@/espn/league';
+import MockTable, { MockTableProps } from './MockTable';
 import * as regression from 'regression'
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer, Rankings } from '@/app/types';
+import React, { useState, useEffect } from 'react';
+import ApiClient from '@/app/api/ApiClient';
 
 const DEFAULT_YEAR = 2024;
 
-export default async function MockDraft(leagueId: string, draftName?: string) {
-    const leagueID = parseInt(leagueId);
-    const auth = loadAuthCookies();
-    const playerResponse = fetchAllPlayerInfo(leagueID, DEFAULT_YEAR, 0, 1000, auth);
-    const leagueHistory = await fetchLeagueHistory(leagueID, DEFAULT_YEAR, auth);
-    const latestInfo = leagueHistory.get(DEFAULT_YEAR)
-    if (leagueHistory.size === 0 || !latestInfo) {
-        redirect('/');
-    }
-
-
-    const playerData = await playerResponse;
-    if (typeof playerData === 'number') {
-        return <h1>Error fetching player data: {playerData}</h1>;
-    }
-    const draftAnalyses = await buildDraftHistory(leagueHistory, auth)
-        .then(drafts => new Map(Array.from(drafts.entries()).map(([season, draftedPlayers]) => [season, analyzeDraft(draftedPlayers)] as [number, DraftAnalysis])));
-    const scoringType = latestInfo.settings.scoringSettings.scoringType;
-    const playerDb = buildPlayerDb(playerData.players, scoringType, Array.from(draftAnalyses.values()));
-    const positions = Array.from(new Set(playerDb.map(player => player.defaultPosition)));
-
-    const auctionBudget = latestInfo.settings.draftSettings.auctionBudget;
-    const lineupSettings = leagueLineupSettings(latestInfo);
-    lineupSettings.delete('IR')
-    return <MockTable leagueId={leagueID}
-                      draftName={draftName}
-                      auctionBudget={auctionBudget}
-                      positions={lineupSettings}
-                      players={playerDb}
-                      playerPositions={positions}
-                      draftHistory={draftAnalyses} />
+export type MockDraftProps = {
+    leagueId: string;
+    draftName?: string;
 }
 
-function buildPlayerDb(players: PlayerInfo[], scoringType: ScoringType, draftAnalyses: DraftAnalysis[]) : MockPlayer[] {
+const MockDraft: React.FC<MockDraftProps> = ({ leagueId, draftName }) => {
+    const leagueID = parseInt(leagueId);
+
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [tableData, setTableData] = useState<MockTableProps | null>(null);
+
+    useEffect(() => {
+        fetchData(leagueID, DEFAULT_YEAR, setTableData, setError, setLoading);
+    }, []);
+
+    if (error) {
+        return <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>{error}</h1>;
+    } else if (loading || !tableData) {
+        return <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>Loading...</h1>;
+    }
+    return <MockTable leagueId={leagueID}
+        draftName={draftName}
+        auctionBudget={tableData.auctionBudget}
+        positions={tableData.positions}
+        players={tableData.players}
+        playerPositions={tableData.playerPositions}
+        draftHistory={tableData.draftHistory} />
+};
+
+export default MockDraft;
+
+async function fetchData(leagueID: number, draftYear: number, setTableData: (data: MockTableProps) => void, setError: (error: string) => void, setLoading: (loading: boolean) => void) {
+    try {
+        const client = new ApiClient('espn', leagueID);
+        const playerResponse = client.fetchPlayers(DEFAULT_YEAR);
+        const leagueHistoryResponse = client.fetchLeagueHistory(DEFAULT_YEAR);
+
+        const leagueHistory = await leagueHistoryResponse;
+        if (typeof leagueHistory === 'string') {
+            setError(`Failed to load league history: ${leagueHistory}`);
+            return;
+        }
+        if (Object.keys(leagueHistory.data!).length === 0) {
+            setError('No league history found');
+            return;
+        }
+        const draftHistory = await client.buildDraftHistory(leagueHistory.data!);
+        if (typeof draftHistory === 'string') {
+            setError(`Failed to load draft history: ${draftHistory}`);
+            return;
+        }
+        const draftAnalyses = new Map(Array.from(draftHistory.entries()).map(([draftInfo, players]) =>
+            [draftInfo.seasonId, analyzeDraft(mergeDraftAndPlayerInfo(draftInfo.draftDetail.picks, players))] as [number, DraftAnalysis]));
+
+        const latestInfo = leagueHistory.data![DEFAULT_YEAR]!;
+        const playerData = await playerResponse;
+        if (typeof playerData === 'string') {
+            setError(`Failed to load players: ${playerData}`);
+            return;
+        }
+
+        const scoringType = latestInfo.settings.scoringSettings.scoringType;
+        const playerDb = buildPlayerDb(playerData.data!.players, scoringType, Array.from(draftAnalyses.values()));
+        const positions = Array.from(new Set(playerDb.map(player => player.defaultPosition)));
+
+        const auctionBudget = latestInfo.settings.draftSettings.auctionBudget;
+        const lineupSettings = leagueLineupSettings(latestInfo);
+        lineupSettings.delete('IR');
+        setTableData({
+            leagueId: leagueID,
+            auctionBudget,
+            positions: lineupSettings,
+            players: playerDb,
+            playerPositions: positions,
+            draftHistory: draftAnalyses
+        });
+    } catch (error) {
+        setError(`Failed to load data: ${error}`);
+    }
+    finally {
+        setLoading(false);
+    }
+}
+
+function buildPlayerDb(players: PlayerInfo[], scoringType: ScoringType, draftAnalyses: DraftAnalysis[]): MockPlayer[] {
     const rankings = rankPlayers(players, scoringType);
     return players.map(player => ({
         id: player.player.id,
@@ -53,7 +106,7 @@ function buildPlayerDb(players: PlayerInfo[], scoringType: ScoringType, draftAna
     }));
 }
 
-function rankPlayers(players: PlayerInfo[], scoringType: ScoringType) : Rankings  {
+function rankPlayers(players: PlayerInfo[], scoringType: ScoringType): Rankings {
     const comparePlayers = (a: PlayerInfo, b: PlayerInfo) => {
         const aCost = a.draftAuctionValue;
         const bCost = b.draftAuctionValue;
@@ -76,7 +129,7 @@ function rankPlayers(players: PlayerInfo[], scoringType: ScoringType) : Rankings
         }
         return bRank - aRank;
 
-    } 
+    }
     players.sort(comparePlayers);
     const positionOrder = new Map<number, PlayerInfo[]>();
     for (const playerInfo of players) {
@@ -108,16 +161,7 @@ function rankPlayers(players: PlayerInfo[], scoringType: ScoringType) : Rankings
 
 }
 
-async function buildDraftHistory(leagueHistory: Map<number, LeagueInfo>, auth: EspnAuth | undefined) : Promise<Map<number, DraftedPlayer[]>> {
-    const years = Array.from(leagueHistory.entries())
-        .filter(([year, info]) => info.settings.draftSettings.type === 'AUCTION' && info.draftDetail.drafted) as [number, LeagueInfo][];
-    const requests = years.map(([year, info]) => Promise.all([fetchDraftInfo(info.id, year, auth), fetchAllPlayerInfo(info.id, year, 0, 1000, auth)]));
-    const responses = await Promise.all(requests);
-    const successes = responses.filter(([draftResponse, playerResponse]) => typeof draftResponse !== 'number' && typeof playerResponse !== 'number') as [DraftInfo, PlayersInfo][];
-    return new Map(successes.map(([draftResponse, playerResponse]) => [draftResponse.seasonId, mergeDraftAndPlayerInfo(draftResponse.draftDetail.picks, playerResponse.players)]));
-}
-
-function analyzeDraft(draftedPlayers: DraftedPlayer[]) : DraftAnalysis {
+function analyzeDraft(draftedPlayers: DraftedPlayer[]): DraftAnalysis {
     const sortedPicks = draftedPlayers.sort((a, b) => b.bidAmount - a.bidAmount);
     const data = sortedPicks.map((pick, index) => [index, pick.bidAmount] as [number, number]);
     const overall = regression.exponential(data).equation as [number, number];

@@ -1,7 +1,15 @@
+"use client";
 import PlayerTable from './PlayerTable';
-import { loadAuthCookies, fetchDraftInfo, fetchAllPlayerInfo, fetchTeamsAtWeek, slotCategoryIdToPositionMap, mergeDraftAndPlayerInfo, DraftedPlayer } from '@/espn/league';
+import { fetchDraftInfo, fetchAllPlayerInfo, fetchTeamsAtWeek, slotCategoryIdToPositionMap, mergeDraftAndPlayerInfo, DraftedPlayer } from '@/espn/league';
+import React, { useState, useEffect } from 'react';
 // Dynamically import PlayerScatterChart with no SSR
 import dynamic from 'next/dynamic';
+import { FetchDraftRequest, FetchDraftResponse } from '@/app/api/fetch-draft/interface';
+import { FETCH_DRAFT_ENDPOINT, FETCH_PLAYERS_ENDPOINT } from '@/app/api/interface';
+import { makeApiRequest } from '@/app/api/utils';
+import { FetchPlayersRequest, FetchPlayersResponse } from '@/app/api/fetch-players/interface';
+import { FetchLeagueTeamsRequest, FetchLeagueTeamsResponse } from '@/app/api/fetch-league-teams/interface';
+import ApiClient from '@/app/api/ApiClient';
 const PlayerScatterChart = dynamic(() => import('./PlayerScatterChart'), { ssr: false });
 
 export type TableData = {
@@ -14,34 +22,61 @@ export type TableData = {
 };
 
 
-const Page = async ({ params }: Readonly<{ params: { leagueID: string, draftYear: string} }>) => {
+const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: string} }>) => {
     const leagueID = parseInt(params.leagueID);
     const draftYear = parseInt(params.draftYear);
-    const auth = loadAuthCookies();
 
-    const playerResponse = fetchAllPlayerInfo(leagueID, draftYear, 0, 1000, auth);
-    const teamsResponse = fetchTeamsAtWeek(leagueID, draftYear, 0, auth);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [tableData, setTableData] = useState<TableData[]>([]);
 
-    const response = await fetchDraftInfo(leagueID, draftYear, auth);
-    if (typeof response === 'number') {
-        console.error('Error fetching draft data:', response);
-        return <h1>Error fetching draft data: {response}</h1>;
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const client = new ApiClient('espn', leagueID);
+                const playerResponse = client.fetchPlayers(draftYear);
+                const draftResponse = client.fetchDraft(draftYear);
+                const teamsResponse = client.fetchLeagueTeams(draftYear, 0);
+
+                const draftData = await draftResponse;
+                if (typeof draftData === 'string') {
+                    setError(`Failed to load draft: ${draftData}`);
+                    return;
+                }
+
+                const teamsData = await teamsResponse;
+                if (typeof teamsData === 'string') {
+                    setError(`Failed to load teams: ${teamsData}`);
+                    return;
+                }
+
+                const playerData = await playerResponse;
+                if (typeof playerData === 'string') {
+                    setError(`Failed to load players: ${playerData}`);
+                    return;
+                }
+
+                const resultData = mergeDraftAndPlayerInfo(draftData.data!.draftDetail.picks, playerData.data!.players, teamsData.data!.teams);
+                const tableData = resultData.map(makeTableRow);
+                setTableData(tableData);
+            } catch (error: any) {
+                setError(error.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [leagueID, draftYear]);
+
+    if (loading) {
+        return <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>Loading...</h1>;
     }
 
-    const playerData = await playerResponse;
-    if (typeof playerData === 'number') {
-        console.error('Error fetching player data:', playerData);
-        return <h1>Error fetching player data: {playerData}</h1>;
+    if (error) {
+        return <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>{error}</h1>;
     }
 
-    const teamsData = await teamsResponse;
-    if (typeof teamsData === 'number') {
-        console.error('Error fetching team data:', teamsData);
-        return <h1>Error fetching team data: {teamsData}</h1>;
-    }
-
-    const draftData = mergeDraftAndPlayerInfo(response.draftDetail.picks, playerData.players, teamsData.teams)
-    const tableData = draftData.map(makeTableRow);
     const tableColumns: [keyof(TableData), string][] = [['numberDrafted', 'Nominated'],
                                                         ['auctionPrice', 'Price'],
                                                         ['name', 'Name'],

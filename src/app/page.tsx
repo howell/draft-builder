@@ -7,6 +7,7 @@ import './page.css'
 import { FindLeagueRequest, FindLeagueResponse } from '@/app/api/find-league/interface';
 import { makeApiRequest } from './api/utils';
 import { FIND_LEAGUE_ENDPOINT } from './api/interface';
+import ApiClient from './api/ApiClient';
 
 export default function Home() {
   const [leagueID, setLeagueID] = useState("");
@@ -45,7 +46,9 @@ export default function Home() {
       }
     };
 
-    const result = await makeApiRequest<FindLeagueRequest, FindLeagueResponse>(FIND_LEAGUE_ENDPOINT, 'POST', request);
+    const client = new ApiClient('espn', parseInt(leagueID));
+    const result = await client.findLeague({ swid, espnS2 });
+
     if (typeof result === 'string') {
       alert(`Failed to find league: ${result}`);
       return;

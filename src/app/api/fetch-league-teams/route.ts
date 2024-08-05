@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const season = body.season;
     const scoringPeriodId = body.scoringPeriodId;
     const auth = retrieveEspnAuthCookies(req);
-    if (!leagueID || !season || !scoringPeriodId) {
+    if (typeof(leagueID) !== 'number' || typeof(season) !== 'number' || typeof(scoringPeriodId) !== 'number') {
         return makeResponse<FetchLeagueTeamsResponse>({ status: 'Missing required fields' }, 400);
     }
     const teams = await fetchTeamsAtWeek(leagueID, season, scoringPeriodId, auth);
