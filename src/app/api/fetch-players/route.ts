@@ -4,7 +4,7 @@ import { NextRequest } from 'next/server';
 import { FetchPlayersRequest, FetchPlayersResponse } from './interface';
 import { makeResponse, retrieveEspnAuthCookies } from '@/app/api/utils';
 
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
     const body: FetchPlayersRequest = await req.json();
     if (body.platform !== 'espn') {
         return makeResponse<FetchPlayersResponse>({ status: 'Unsupported platform' }, 400);
