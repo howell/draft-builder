@@ -4,6 +4,7 @@ import { useState } from "react";
 import CollapsibleComponent from './Collapsible';
 import Cookies from 'js-cookie';
 import './page.css'
+import { FindLeagueRequest } from '@/app/api/find-league/interface';
 
 export default function Home() {
   const [leagueID, setLeagueID] = useState("");
@@ -18,6 +19,11 @@ export default function Home() {
       return;
     }
 
+    if (isNaN(parseInt(leagueID))) {
+      alert("League ID must be a number");
+      return;
+    }
+
     if (swid.trim() === "" && espnS2.trim() !== "") {
       alert("Please enter your SWID");
       return;
@@ -28,19 +34,22 @@ export default function Home() {
       return;
     }
 
-    const data = {
-      leagueID,
-      swid,
-      espnS2
+    const request: FindLeagueRequest = {
+      platform: 'espn',
+      leagueID: parseInt(leagueID),
+      options: {
+        swid,
+        espnS2
+      }
     };
 
     try {
-      const response = await fetch('/league', {
+      const response = await fetch('/api/find-league', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(request)
       });
 
       const result = await response.json();
