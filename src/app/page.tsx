@@ -6,6 +6,7 @@ import Cookies from 'js-cookie';
 import './page.css'
 import { FindLeagueRequest, FindLeagueResponse } from '@/app/api/find-league/interface';
 import { makeApiRequest } from './api/utils';
+import { FIND_LEAGUE_ENDPOINT } from './api/interface';
 
 export default function Home() {
   const [leagueID, setLeagueID] = useState("");
@@ -44,7 +45,7 @@ export default function Home() {
       }
     };
 
-    const result = await makeApiRequest<FindLeagueRequest, FindLeagueResponse>('/api/find-league', 'POST', request);
+    const result = await makeApiRequest<FindLeagueRequest, FindLeagueResponse>(FIND_LEAGUE_ENDPOINT, 'POST', request);
     if (typeof result === 'string') {
       alert(`Failed to find league: ${result}`);
       return;
