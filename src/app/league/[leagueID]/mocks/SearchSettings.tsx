@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { SearchSettingsState } from '@/app/types';
+import './SearchSettings.css';
 
 export interface SearchSettingsProps {
     positions: string[];
@@ -60,20 +61,23 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
             <div>
                 <h3>Positions</h3>
                 {positions.map((position) => (
-                    <label key={position}>
-                        <input
-                            type="checkbox"
-                            checked={currentSettings.positions.includes(position)}
-                            onChange={() => handlePositionToggle(position)}
-                        />
-                        {position}
-                    </label>
+                    <div className='search-position-label-container'>
+                        <label key={position} className='search-position-label'>
+                            <input
+                                className='search-position-checkbox'
+                                type="checkbox"
+                                checked={currentSettings.positions.includes(position)}
+                                onChange={() => handlePositionToggle(position)}
+                            />
+                            {position}
+                        </label>
+                    </div>
                 ))}
             </div>
             <div>
                 <h3>Player Count</h3>
                 <input
-                    className='night-mode-text'
+                    className='search-number night-mode-text'
                     type="number"
                     min={0}
                     value={currentSettings.playerCount}
@@ -83,7 +87,7 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
             <div>
                 <h3>Minimum Price</h3>
                 <input
-                    className='night-mode-text'
+                    className='search-number night-mode-text'
                     type="number"
                     min={0}
                     value={currentSettings.minPrice}
@@ -93,7 +97,7 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
             <div>
                 <h3>Maximum Price</h3>
                 <input
-                    className='night-mode-text'
+                    className='search-number night-mode-text'
                     type="number"
                     min={0}
                     value={currentSettings.maxPrice}
@@ -101,13 +105,13 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
                 />
             </div>
             <div>
-                <label>
-                    Only Show Available Players
+                <label className='search-position-label'>
                     <input
                         type="checkbox"
                         checked={currentSettings.showOnlyAvailable}
                         onChange={() => handleShowingOnlyAvailableToggle()}
                     />
+                    Only Show Available Players
                 </label>
             </div>
         </div>

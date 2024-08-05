@@ -1,6 +1,6 @@
 /* Default styles for input range slider */
 input[type="range"] {
-    width: 100%;
+    width: auto;
     height: 8px;
     border-radius: 1px;
     border-color: black;
@@ -8,26 +8,6 @@ input[type="range"] {
     outline: none;
     opacity: 0.7;
     transition: opacity 0.2s;
-}
-
-input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 1px;
-    border-color: black;
-    background: #c5cec5; /* Default thumb color */
-    cursor: pointer;
-}
-
-input[type="range"]::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    border-radius: 1px;
-    border-color: black;
-    background: #c5cec5; /* Default thumb color */
-    cursor: pointer;
 }
 
 /* Styles for input range slider in night mode */
@@ -49,6 +29,8 @@ input[type="range"]::-moz-range-thumb {
     display: flex;
     flex-wrap: wrap;
     align-items: center; /* Align items vertically in the center */
+    min-width: min-content;
+    max-width: 70%;
 }
 
 .year-label {
@@ -56,5 +38,5 @@ input[type="range"]::-moz-range-thumb {
     align-items: center;
     white-space: nowrap; /* Prevent line breaks within the label */
     margin-right: 10px;
-    min-width: 60px;
+    min-width: fit-content;
 }

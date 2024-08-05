@@ -1,0 +1,23 @@
+.search-number {
+    width: 3em;
+    max-width: 50%;
+}
+
+input[type="checkbox"] {
+    margin-right: 2px;
+}
+
+.search-position-label-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center; /* Align items vertically in the center */
+    min-width: min-content;
+    max-width: 90%;
+}
+
+.search-position-label {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap; /* Prevent line breaks within the label */
+    min-width: fit-content;
+}

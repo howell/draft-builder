@@ -233,7 +233,7 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
                 </div>
                 <div className='available-players-container'>
                     <h1>Available Players</h1>
-                    <div className='horizontal-container settings-container'>
+                    <div className='settings-container'>
                         <div className={`search-settings`}>
                             <h3 className="clickable-heading" onClick={toggleSearchSettings}>
                                 Search Settings
@@ -259,12 +259,14 @@ const MockTable: React.FC<RosterProps> = ({ leagueId, draftName, positions, auct
                             </div>
                         </div>
                     </div>
+                    <div className="mock-player-table-container">
                     <PlayerTable
                         players={availablePlayers}
                         columns={availablePlayerColumns}
                         onPlayerClick={onPlayerClick}
                         defaultSortColumn='estimatedCost'
                         defaultSortDirection='desc' />
+                    </div>
                 </div>
             </div>
         </div>
