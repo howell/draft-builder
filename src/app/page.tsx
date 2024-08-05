@@ -5,6 +5,7 @@ import CollapsibleComponent from './Collapsible';
 import Cookies from 'js-cookie';
 import './page.css'
 import { FindLeagueRequest, FindLeagueResponse } from '@/app/api/find-league/interface';
+import { makeApiRequest } from './api/utils';
 
 export default function Home() {
   const [leagueID, setLeagueID] = useState("");
@@ -43,30 +44,21 @@ export default function Home() {
       }
     };
 
-    try {
-      const response = await fetch('/api/find-league', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(request)
-      });
-
-      const result: FindLeagueResponse = await response.json();
-      if (result?.status !== 'ok') {
-        alert(`Failed to find league: ${result.status}`);
-      } else {
-        if (swid.trim() !== "" && espnS2.trim() !== "") {
-          Cookies.set('swid', swid);
-          Cookies.set('espn_s2', espnS2);
-        }
-        router.push(`/league/${encodeURIComponent(leagueID)}`);
-      }
-
-      // Redirect to the league page
-    } catch (error) {
-        alert(`Failure submitting form ${error}`);
+    const result = await makeApiRequest<FindLeagueRequest, FindLeagueResponse>('/api/find-league', 'POST', request);
+    if (typeof result === 'string') {
+      alert(`Failed to find league: ${result}`);
+      return;
     }
+    if (result?.status !== 'ok') {
+      alert(`Error finding league: ${result.status}`);
+      return;
+    }
+
+    if (swid.trim() !== "" && espnS2.trim() !== "") {
+      Cookies.set('swid', swid);
+      Cookies.set('espn_s2', espnS2);
+    }
+    router.push(`/league/${encodeURIComponent(leagueID)}`);
   };
 
   return (
