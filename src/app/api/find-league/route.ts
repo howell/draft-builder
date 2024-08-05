@@ -17,7 +17,8 @@ export async function POST(req: NextRequest) {
     const auth = swid && espn_s2 ? { swid: swid, espnS2: espn_s2 } : undefined;
     const leagueInfo = await fetchLeagueInfo(leagueID, DEFAULT_YEAR, auth);
     if (typeof leagueInfo === 'number') {
-        return makeResponse<FindLeagueResponse>({ status: 'Failed to fetch league info' }, 404); } else {
+        return makeResponse<FindLeagueResponse>({ status: 'Failed to fetch league info' }, 404);
+    } else {
         return makeResponse<FindLeagueResponse>({ status: 'ok' }, 200);
     }
 }
