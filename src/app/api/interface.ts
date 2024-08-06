@@ -1,6 +1,8 @@
-import exp from "constants";
-
 export type Platform = 'espn' | 'yahoo' | 'sleeper';
+
+export function isPlatform(str: any): str is Platform {
+    return ['espn', 'yahoo', 'sleeper'].includes(str);
+}
 
 export const FETCH_DRAFT_ENDPOINT = '/api/fetch-draft';
 export const FIND_LEAGUE_ENDPOINT = '/api/find-league';

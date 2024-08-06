@@ -7,7 +7,6 @@ import { FetchPlayersResponse, FetchPlayersRequest } from "./fetch-players/inter
 import { FindLeagueRequest, FindLeagueResponse } from "./find-league/interface";
 import { FETCH_DRAFT_ENDPOINT, FETCH_LEAGUE_ENDPOINT, FETCH_LEAGUE_HISTORY_ENDPOINT, FETCH_LEAGUE_TEAMS_ENDPOINT, FETCH_PLAYERS_ENDPOINT, Platform } from "./interface";
 import { makeApiRequest } from "./utils";
-import { DraftAnalysis } from "../types";
 
 export default class ApiClient {
     private platformName: Platform;
@@ -22,7 +21,8 @@ export default class ApiClient {
         const req: FindLeagueRequest = {
             platform: this.platformName,
             leagueID: this.leagueId,
-            options: { swid: auth?.swid, espnS2: auth?.espnS2 }
+            swid: auth?.swid,
+            espnS2: auth?.espnS2
         };
         return makeApiRequest<FindLeagueRequest, FindLeagueResponse>(FETCH_LEAGUE_ENDPOINT, 'POST', req);
     }

@@ -2,9 +2,14 @@ import { EspnAuth } from '@/espn/league';
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 
-export async function makeApiRequest<T, U>(url: string, method: string, body: T, headers?: Record<string, string>): Promise<U | string> {
+export async function makeApiRequest<T, U>(endpoint: string, method: string, body: T, headers?: Record<string, string>): Promise<U | string> {
     try {
-        const response = await axios.post(url, JSON.stringify(body), {
+        const searchParams = new URLSearchParams();
+        for (const key in body) {
+            searchParams.append(key, JSON.stringify(body[key]));
+        }
+        const url = `${endpoint}?${searchParams.toString()}`;
+        const response = await axios.get(url, {
             headers: {
                 'Content-Type': 'application/json',
                 ...headers
@@ -30,4 +35,8 @@ export function retrieveEspnAuthCookies(req: NextRequest): EspnAuth | undefined 
         return { swid: swid.value, espnS2: espnS2.value };
     }
     return undefined;
+}
+
+export function decodeSearchParams<T>(params: URLSearchParams, key: string, defaultValue?: T) : T {
+    return params.has(key) ? JSON.parse(params.get(key)! ?? '') : defaultValue;
 }

@@ -2,10 +2,17 @@
 import { fetchLeagueInfo } from '@/espn/league';
 import { NextRequest } from 'next/server';
 import { FetchLeagueRequest, FetchLeagueResponse } from './interface';
-import { makeResponse, retrieveEspnAuthCookies } from '@/app/api/utils';
+import { decodeSearchParams, makeResponse, retrieveEspnAuthCookies } from '@/app/api/utils';
+import { isPlatform } from '../interface';
 
-export async function POST(req: NextRequest) {
-    const body: FetchLeagueRequest = await req.json();
+export async function GET(req: NextRequest) {
+    const searchParams = req.nextUrl.searchParams;
+    const body = decodeRequest(searchParams);
+
+    if (!body) {
+        return makeResponse<FetchLeagueResponse>({ status: 'Invalid request' }, 400);
+    }
+
     if (body.platform !== 'espn') {
         return makeResponse<FetchLeagueResponse>({ status: 'Unsupported platform' }, 400);
     }
@@ -17,5 +24,18 @@ export async function POST(req: NextRequest) {
         return makeResponse<FetchLeagueResponse>({ status: `Failed to fetch league info: ${leagueInfo}` }, 404);
      }
      return makeResponse<FetchLeagueResponse>({ status: 'ok', data: leagueInfo }, 200);
+}
 
+export function decodeRequest(searchParams: URLSearchParams): FetchLeagueRequest | undefined {
+    const platform = decodeSearchParams<string | undefined>(searchParams, 'platform');
+    const leagueID = parseInt(decodeSearchParams(searchParams, 'leagueID'));
+    const season = parseInt(decodeSearchParams(searchParams, 'season'));
+    if (!isPlatform(platform) || isNaN(leagueID) || isNaN(season)) {
+        return undefined;
+    }
+    return {
+        platform,
+        leagueID,
+        season
+    }
 }
