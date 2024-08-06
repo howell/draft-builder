@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
      return makeResponse<FetchLeagueResponse>({ status: 'ok', data: leagueInfo }, 200);
 }
 
-export function decodeRequest(searchParams: URLSearchParams): FetchLeagueRequest | undefined {
+function decodeRequest(searchParams: URLSearchParams): FetchLeagueRequest | undefined {
     const platform = decodeSearchParams<string | undefined>(searchParams, 'platform');
     const leagueID = parseInt(decodeSearchParams(searchParams, 'leagueID'));
     const season = parseInt(decodeSearchParams(searchParams, 'season'));
