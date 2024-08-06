@@ -5,8 +5,6 @@ import CollapsibleComponent from '@/ui/Collapsible';
 import Cookies from 'js-cookie';
 import './page.css'
 import { FindLeagueRequest, FindLeagueResponse } from '@/app/api/find-league/interface';
-import { makeApiRequest } from './api/utils';
-import { FIND_LEAGUE_ENDPOINT } from './api/interface';
 import ApiClient from './api/ApiClient';
 
 export default function Home() {
@@ -40,10 +38,8 @@ export default function Home() {
     const request: FindLeagueRequest = {
       platform: 'espn',
       leagueID: parseInt(leagueID),
-      options: {
-        swid,
-        espnS2
-      }
+      swid,
+      espnS2
     };
 
     const client = new ApiClient('espn', parseInt(leagueID));
