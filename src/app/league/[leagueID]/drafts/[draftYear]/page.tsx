@@ -1,14 +1,10 @@
 "use client";
 import PlayerTable from './PlayerTable';
-import { fetchDraftInfo, fetchAllPlayerInfo, fetchTeamsAtWeek, slotCategoryIdToPositionMap, mergeDraftAndPlayerInfo, DraftedPlayer } from '@/espn/league';
+import { mergeDraftAndPlayerInfo, DraftedPlayer } from "@/espn/utils";
+import { slotCategoryIdToPositionMap } from "@/espn/utils";
 import React, { useState, useEffect } from 'react';
 // Dynamically import PlayerScatterChart with no SSR
 import dynamic from 'next/dynamic';
-import { FetchDraftRequest, FetchDraftResponse } from '@/app/api/fetch-draft/interface';
-import { FETCH_DRAFT_ENDPOINT, FETCH_PLAYERS_ENDPOINT } from '@/app/api/interface';
-import { makeApiRequest } from '@/app/api/utils';
-import { FetchPlayersRequest, FetchPlayersResponse } from '@/app/api/fetch-players/interface';
-import { FetchLeagueTeamsRequest, FetchLeagueTeamsResponse } from '@/app/api/fetch-league-teams/interface';
 import ApiClient from '@/app/api/ApiClient';
 const PlayerScatterChart = dynamic(() => import('./PlayerScatterChart'), { ssr: false });
 

@@ -1,9 +1,6 @@
 'use client';
 import ApiClient from '@/app/api/ApiClient';
-import { FetchLeagueRequest, FetchLeagueResponse } from '@/app/api/fetch-league/interface';
-import { FETCH_LEAGUE_ENDPOINT } from '@/app/api/interface';
-import { makeApiRequest } from '@/app/api/utils';
-import { leagueLineupSettings } from '@/espn/league';
+import { leagueLineupSettings } from "@/espn/utils";
 import { useState, useEffect } from 'react';
 
 const DEFAULT_YEAR = 2024;
