@@ -38,7 +38,6 @@ function decodeRequest(searchParams: URLSearchParams): FetchLeagueHistoryRequest
     const startSeason = parseInt(decodeSearchParams(searchParams, 'startSeason'));
 
     if (!isPlatform(platform) || isNaN(leagueID) || isNaN(startSeason)) {
-        console.log('Failed to decode FetchLeagueHistoryRequest', platform, leagueID, startSeason);
         return undefined;
     }
     return {
