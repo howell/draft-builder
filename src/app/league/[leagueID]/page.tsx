@@ -1,6 +1,7 @@
 'use client';
 import ApiClient from '@/app/api/ApiClient';
 import { leagueLineupSettings } from "@/espn/utils";
+import LoadingScreen from '@/ui/LoadingScreen';
 import { useState, useEffect } from 'react';
 
 const DEFAULT_YEAR = 2024;
@@ -38,11 +39,7 @@ export default function LeaguePage({ params }: Readonly<{ params: { leagueID: st
             </div>);
     }
     if (loading) {
-        return (
-            <div className="flex min-h-screen flex-col items-center justify-between p-24">
-                <h1>Loading your league...</h1>
-            </div>);
-
+        return <LoadingScreen />;
     }
 
     return (

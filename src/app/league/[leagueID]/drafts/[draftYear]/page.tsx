@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 // Dynamically import PlayerScatterChart with no SSR
 import dynamic from 'next/dynamic';
 import ApiClient from '@/app/api/ApiClient';
+import LoadingScreen from '@/ui/LoadingScreen';
 const PlayerScatterChart = dynamic(() => import('./PlayerScatterChart'), { ssr: false });
 
 export type TableData = {
@@ -66,7 +67,7 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
     }, [leagueID, draftYear]);
 
     if (loading) {
-        return <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>Loading...</h1>;
+        return <LoadingScreen />;
     }
 
     if (error) {

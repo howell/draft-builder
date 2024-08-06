@@ -6,6 +6,7 @@ import * as regression from 'regression'
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer, Rankings } from '@/app/types';
 import React, { useState, useEffect } from 'react';
 import ApiClient from '@/app/api/ApiClient';
+import LoadingScreen from "@/ui/LoadingScreen";
 
 const DEFAULT_YEAR = 2024;
 
@@ -28,7 +29,7 @@ const MockDraft: React.FC<MockDraftProps> = ({ leagueId, draftName }) => {
     if (error) {
         return <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>{error}</h1>;
     } else if (loading || !tableData) {
-        return <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>Loading...</h1>;
+        return <LoadingScreen />;
     }
     return <MockTable leagueId={leagueID}
         draftName={draftName}
