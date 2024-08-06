@@ -1,7 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation'
 import { useState } from "react";
-import CollapsibleComponent from './Collapsible';
+import CollapsibleComponent from '@/ui/Collapsible';
 import Cookies from 'js-cookie';
 import './page.css'
 import { FindLeagueRequest, FindLeagueResponse } from '@/app/api/find-league/interface';
