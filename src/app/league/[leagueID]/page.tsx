@@ -54,7 +54,6 @@ export default function LeaguePage({ params }: Readonly<{ params: { leagueID: st
                             count > 0 ? <li key={position}>{position}: {count}</li> : null
                         ))}
                 </ul>
-                <pre>{JSON.stringify(leagueInfo, null, 2)}</pre>
             </div>
         </div>
     );
