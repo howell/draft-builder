@@ -3,7 +3,7 @@ import { fetchDraftInfo, fetchTeamsAtWeek } from '@/platforms/espn/league';
 import { NextRequest } from 'next/server';
 import { FetchLeagueTeamsRequest, FetchLeagueTeamsResponse } from './interface';
 import { decodeSearchParams, makeResponse, retrieveEspnAuthCookies } from '@/app/api/utils';
-import { isPlatform } from '../interface';
+import { isPlatform } from "@/platforms/common";
 
 export async function GET(req: NextRequest) {
     const body = decodeRequest(req.nextUrl.searchParams);

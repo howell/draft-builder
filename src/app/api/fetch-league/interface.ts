@@ -1,4 +1,4 @@
-import { Platform } from "@/app/api/interface";
+import { Platform } from "@/platforms/common";
 
 export type FetchLeagueRequest = {
     platform: Platform;

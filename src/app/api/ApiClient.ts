@@ -5,7 +5,8 @@ import { FetchLeagueTeamsResponse, FetchLeagueTeamsRequest } from "./fetch-leagu
 import { FetchLeagueResponse, FetchLeagueRequest } from "./fetch-league/interface";
 import { FetchPlayersResponse, FetchPlayersRequest } from "./fetch-players/interface";
 import { FindLeagueRequest, FindLeagueResponse } from "./find-league/interface";
-import { FETCH_DRAFT_ENDPOINT, FETCH_LEAGUE_ENDPOINT, FETCH_LEAGUE_HISTORY_ENDPOINT, FETCH_LEAGUE_TEAMS_ENDPOINT, FETCH_PLAYERS_ENDPOINT, FIND_LEAGUE_ENDPOINT, Platform } from "./interface";
+import { FETCH_DRAFT_ENDPOINT, FETCH_LEAGUE_ENDPOINT, FETCH_LEAGUE_HISTORY_ENDPOINT, FETCH_LEAGUE_TEAMS_ENDPOINT, FETCH_PLAYERS_ENDPOINT, FIND_LEAGUE_ENDPOINT } from "./interface";
+import { Platform } from "@/platforms/common";
 import { makeApiRequest } from "./utils";
 
 export default class ApiClient {

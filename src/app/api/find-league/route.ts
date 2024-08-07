@@ -3,7 +3,7 @@ import { fetchLeagueInfo } from '@/platforms/espn/league';
 import { NextRequest, NextResponse } from 'next/server';
 import { FindLeagueRequest, FindLeagueResponse } from './interface';
 import { decodeSearchParams, makeResponse } from '@/app/api/utils';
-import { isPlatform } from '../interface';
+import { isPlatform } from "@/platforms/common";
 import { CURRENT_SEASON } from '@/constants';
 
 export async function GET(req: NextRequest) {
