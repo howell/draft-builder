@@ -1,7 +1,7 @@
 'use client';
 import ApiClient from '@/app/api/ApiClient';
 import { compareLineupPositions, CURRENT_SEASON } from '@/constants';
-import { leagueLineupSettings } from "@/espn/utils";
+import { leagueLineupSettings } from "@/platforms/espn/utils";
 import ErrorScreen from '@/ui/ErrorScreen';
 import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
 import { useState, useEffect } from 'react';

@@ -1,5 +1,5 @@
 'use client';
-import { leagueLineupSettings, mergeDraftAndPlayerInfo, DraftedPlayer, slotName, positionName } from "@/espn/utils";
+import { leagueLineupSettings, mergeDraftAndPlayerInfo, DraftedPlayer, slotName, positionName } from "@/platforms/espn/utils";
 import MockTable, { MockTableProps } from './MockTable';
 import * as regression from 'regression'
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer, Rankings } from '@/app/types';

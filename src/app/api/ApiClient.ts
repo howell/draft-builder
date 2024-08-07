@@ -1,4 +1,4 @@
-import { EspnAuth } from "@/espn/league";
+import { EspnAuth } from "@/platforms/espn/league";
 import { FetchDraftResponse, FetchDraftRequest } from "./fetch-draft/interface";
 import { FetchLeagueHistoryRequest, FetchLeagueHistoryResponse, LeagueInfoHistory } from "./fetch-league-history/interface";
 import { FetchLeagueTeamsResponse, FetchLeagueTeamsRequest } from "./fetch-league-teams/interface";

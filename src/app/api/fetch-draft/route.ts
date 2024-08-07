@@ -1,5 +1,5 @@
 'use server'
-import { fetchDraftInfo } from '@/espn/league';
+import { fetchDraftInfo } from '@/platforms/espn/league';
 import { NextRequest } from 'next/server';
 import { FetchDraftRequest, FetchDraftResponse } from './interface';
 import { decodeSearchParams, makeResponse, retrieveEspnAuthCookies } from '@/app/api/utils';

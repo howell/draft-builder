@@ -1,4 +1,4 @@
-import { EspnAuth } from '@/espn/league';
+import { EspnAuth } from '@/platforms/espn/league';
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 

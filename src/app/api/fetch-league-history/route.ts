@@ -1,5 +1,5 @@
 'use server'
-import { fetchLeagueHistory } from '@/espn/league';
+import { fetchLeagueHistory } from '@/platforms/espn/league';
 import { NextRequest } from 'next/server';
 import { FetchLeagueHistoryRequest, FetchLeagueHistoryResponse } from './interface';
 import { decodeSearchParams, makeResponse, retrieveEspnAuthCookies } from '@/app/api/utils';

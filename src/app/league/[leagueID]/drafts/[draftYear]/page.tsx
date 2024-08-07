@@ -1,6 +1,6 @@
 "use client";
 import PlayerTable from './PlayerTable';
-import { mergeDraftAndPlayerInfo, DraftedPlayer, positionName } from "@/espn/utils";
+import { mergeDraftAndPlayerInfo, DraftedPlayer, positionName } from "@/platforms/espn/utils";
 import React, { useState, useEffect } from 'react';
 // Dynamically import PlayerScatterChart with no SSR
 import dynamic from 'next/dynamic';

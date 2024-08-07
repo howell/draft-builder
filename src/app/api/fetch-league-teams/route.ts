@@ -1,5 +1,5 @@
 'use server'
-import { fetchDraftInfo, fetchTeamsAtWeek } from '@/espn/league';
+import { fetchDraftInfo, fetchTeamsAtWeek } from '@/platforms/espn/league';
 import { NextRequest } from 'next/server';
 import { FetchLeagueTeamsRequest, FetchLeagueTeamsResponse } from './interface';
 import { decodeSearchParams, makeResponse, retrieveEspnAuthCookies } from '@/app/api/utils';

@@ -1,5 +1,5 @@
 'use server'
-import { fetchLeagueInfo } from '@/espn/league';
+import { fetchLeagueInfo } from '@/platforms/espn/league';
 import { NextRequest, NextResponse } from 'next/server';
 import { FindLeagueRequest, FindLeagueResponse } from './interface';
 import { decodeSearchParams, makeResponse } from '@/app/api/utils';
