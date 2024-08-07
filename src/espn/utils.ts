@@ -1,4 +1,17 @@
 
+export function slotName(slotId: number): string {
+    return slotCategoryIdToPositionMap[slotId];
+}
+
+export function positionName(slotId: number): string {
+    switch (slotId) {
+        case 1: return 'QB';
+        case 3: return 'WR';
+        case 4: return 'TE';
+        default: return slotCategoryIdToPositionMap[slotId];
+    }
+}
+
 // source: https://github.com/mkreiser/ESPN-Fantasy-Football-API/blob/e73cb6f52b3620a83302f24a4d26fc9d8303bbbe/src/constants.js#L7C1-L34C3
 export const slotCategoryIdToPositionMap: { [key: number]: string; } = {
     0: 'QB',
@@ -27,7 +40,9 @@ export const slotCategoryIdToPositionMap: { [key: number]: string; } = {
     23: 'RB/WR/TE',
     24: 'ER',
     25: 'Rookie'
-};export function leagueLineupSettings(league: LeagueInfo): Map<string, number> {
+};
+
+export function leagueLineupSettings(league: LeagueInfo): Map<string, number> {
     const slotCounts = league.settings.rosterSettings.lineupSlotCounts;
     const positionCounts: [string, number][] = Object.keys(slotCounts).map((slot: string) => [
         slotCategoryIdToPositionMap[parseInt(slot)],

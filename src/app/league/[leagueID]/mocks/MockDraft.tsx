@@ -1,6 +1,5 @@
 'use client';
-import { leagueLineupSettings, mergeDraftAndPlayerInfo, DraftedPlayer } from "@/espn/utils";
-import { slotCategoryIdToPositionMap } from "@/espn/utils";
+import { leagueLineupSettings, mergeDraftAndPlayerInfo, DraftedPlayer, slotName, positionName } from "@/espn/utils";
 import MockTable, { MockTableProps } from './MockTable';
 import * as regression from 'regression'
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer, Rankings } from '@/app/types';
@@ -119,8 +118,8 @@ function buildPlayerDb(players: PlayerInfo[], scoringType: ScoringType, draftAna
     return players.map(player => ({
         id: player.player.id,
         name: player.player.fullName,
-        defaultPosition: slotCategoryIdToPositionMap[player.player.defaultPositionId],
-        positions: player.player.eligibleSlots.map(slot => slotCategoryIdToPositionMap[slot]),
+        defaultPosition: positionName(player.player.defaultPositionId),
+        positions: player.player.eligibleSlots.map(slot => slotName(slot)),
         suggestedCost: (player.draftAuctionValue),
         overallRank: 1 + (rankings.overall.get(player.player.id) as number),
         positionRank: 1 + (rankings.positional.get(player.player.defaultPositionId)?.get(player.player.id) as number)
@@ -155,7 +154,6 @@ function rankPlayers(players: PlayerInfo[], scoringType: ScoringType): Rankings 
     const positionOrder = new Map<number, PlayerInfo[]>();
     for (const playerInfo of players) {
         const position = playerInfo.player.defaultPositionId
-        const positionName = slotCategoryIdToPositionMap[position];
         if (!positionOrder.has(position)) {
             const positionData = players.filter(p => p.player.defaultPositionId === position);
             positionOrder.set(position, positionData);
@@ -190,13 +188,13 @@ function analyzeDraft(draftedPlayers: DraftedPlayer[]): DraftAnalysis {
 
     for (const pick of sortedPicks) {
         const position = pick.defaultPositionId;
-        const positionName = slotCategoryIdToPositionMap[position];
-        if (!positions.has(positionName)) {
+        const posName = positionName(position);
+        if (!positions.has(posName)) {
             const positionData = sortedPicks
                 .filter(p => p.defaultPositionId === position)
                 .map((p, index) => [index, p.bidAmount] as [number, number]);
             const positionRegression = regression.exponential(positionData);
-            positions.set(positionName, positionRegression.equation as [number, number]);
+            positions.set(posName, positionRegression.equation as [number, number]);
         }
     }
     return {

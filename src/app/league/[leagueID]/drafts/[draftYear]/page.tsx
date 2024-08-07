@@ -1,7 +1,6 @@
 "use client";
 import PlayerTable from './PlayerTable';
-import { mergeDraftAndPlayerInfo, DraftedPlayer } from "@/espn/utils";
-import { slotCategoryIdToPositionMap } from "@/espn/utils";
+import { mergeDraftAndPlayerInfo, DraftedPlayer, positionName } from "@/espn/utils";
 import React, { useState, useEffect } from 'react';
 // Dynamically import PlayerScatterChart with no SSR
 import dynamic from 'next/dynamic';
@@ -109,6 +108,6 @@ function makeTableRow(data: DraftedPlayer) : TableData {
         auctionPrice: data.bidAmount,
         numberDrafted: data.overallPickNumber,
         teamDrafted: typeof data.draftedBy === 'number' ? '' : data.draftedBy.name,
-        position: slotCategoryIdToPositionMap[data.defaultPositionId],
+        position: positionName(data.defaultPositionId)
     }
 }
