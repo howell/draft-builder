@@ -7,10 +7,8 @@ import { DraftAnalysis, ExponentialCoefficients, MockPlayer, Rankings } from '@/
 import React, { useState, useEffect } from 'react';
 import ApiClient from '@/app/api/ApiClient';
 import LoadingScreen, { LoadingTasks } from "@/ui/LoadingScreen";
-import Error from "next/error";
 import ErrorScreen from "@/ui/ErrorScreen";
-
-const DEFAULT_YEAR = 2024;
+import { CURRENT_SEASON } from "@/constants";
 
 export type MockDraftProps = {
     leagueId: string;
@@ -26,7 +24,7 @@ const MockDraft: React.FC<MockDraftProps> = ({ leagueId, draftName }) => {
     const [tableData, setTableData] = useState<MockTableProps | null>(null);
 
     useEffect(() => {
-        fetchData(leagueID, DEFAULT_YEAR, setTableData, setError, setLoading, setLoadingTasks);
+        fetchData(leagueID, CURRENT_SEASON, setTableData, setError, setLoading, setLoadingTasks);
     }, []);
 
     if (error) {
@@ -53,8 +51,8 @@ async function fetchData(leagueID: number,
     setLoadingTasks: (tasks: LoadingTasks) => void) {
     try {
         const client = new ApiClient('espn', leagueID);
-        const playerResponse = client.fetchPlayers(DEFAULT_YEAR);
-        const leagueHistoryResponse = client.fetchLeagueHistory(DEFAULT_YEAR);
+        const playerResponse = client.fetchPlayers(CURRENT_SEASON);
+        const leagueHistoryResponse = client.fetchLeagueHistory(CURRENT_SEASON);
 
         let tasks: LoadingTasks = {
             'Fetching Players': playerResponse,
@@ -86,7 +84,7 @@ async function fetchData(leagueID: number,
         const draftAnalyses = new Map(Array.from(draftHistory.entries()).map(([draftInfo, players]) =>
             [draftInfo.seasonId, analyzeDraft(mergeDraftAndPlayerInfo(draftInfo.draftDetail.picks, players))] as [number, DraftAnalysis]));
 
-        const latestInfo = leagueHistory.data![DEFAULT_YEAR]!;
+        const latestInfo = leagueHistory.data![CURRENT_SEASON]!;
         const playerData = await playerResponse;
         if (typeof playerData === 'string') {
             setError(`Failed to load players: ${playerData}`);

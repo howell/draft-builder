@@ -1,12 +1,10 @@
 'use client';
 import ApiClient from '@/app/api/ApiClient';
+import { CURRENT_SEASON } from '@/constants';
 import { leagueLineupSettings } from "@/espn/utils";
 import ErrorScreen from '@/ui/ErrorScreen';
 import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
 import { useState, useEffect } from 'react';
-
-const DEFAULT_YEAR = 2024;
-
 
 export default function LeaguePage({ params }: Readonly<{ params: { leagueID: string } }>) {
     const leagueID = parseInt(params.leagueID);
@@ -19,7 +17,7 @@ export default function LeaguePage({ params }: Readonly<{ params: { leagueID: st
         const fetchData = async () => {
             try {
                 const client = new ApiClient('espn', leagueID);
-                const request = client.fetchLeague(DEFAULT_YEAR);
+                const request = client.fetchLeague(CURRENT_SEASON);
                 setLoadingTasks({ 'Fetching League': request });
                 const response = await request;
                 if (typeof response === 'string') {

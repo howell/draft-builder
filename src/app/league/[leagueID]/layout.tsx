@@ -3,8 +3,7 @@ import Sidebar from '../Sidebar';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import ApiClient from '@/app/api/ApiClient';
-
-const DEFAULT_YEAR = 2024;
+import { CURRENT_SEASON } from '@/constants';
 
 const LeagueLayout = ({ children, params } : { children: React.ReactNode, params: {leagueID: string, draftYear?: string } }) => {
     const leagueID = parseInt(params.leagueID);
@@ -16,7 +15,7 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
         const fetchData = async () => {
             try {
                 const client = new ApiClient('espn', leagueID);
-                const resp = await client.fetchLeagueHistory(DEFAULT_YEAR);
+                const resp = await client.fetchLeagueHistory(CURRENT_SEASON);
                 if (typeof resp === 'string') {
                     alert(`Failed to load league history: ${resp}`);
                     useRouter().push('/');
@@ -36,7 +35,7 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
                 }
 
                 setPrevAuctions(auctions);
-                setLeagueName(leagueHistory[DEFAULT_YEAR]!.settings.name);
+                setLeagueName(leagueHistory[CURRENT_SEASON]!.settings.name);
             } catch (error: any) {
                 alert(`Error while loading league history: ${error.message}`);
             } finally {

@@ -4,8 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { FindLeagueRequest, FindLeagueResponse } from './interface';
 import { decodeSearchParams, makeResponse } from '@/app/api/utils';
 import { isPlatform } from '../interface';
-
-const DEFAULT_YEAR = 2024
+import { CURRENT_SEASON } from '@/constants';
 
 export async function GET(req: NextRequest) {
     const body = decodeRequest(req.nextUrl.searchParams);
@@ -19,7 +18,7 @@ export async function GET(req: NextRequest) {
     const swid = body.swid && decodeURIComponent(body.swid);
     const espn_s2 = body.espnS2 && decodeURIComponent(body.espnS2);
     const auth = swid && espn_s2 ? { swid: swid, espnS2: espn_s2 } : undefined;
-    const leagueInfo = await fetchLeagueInfo(leagueID, DEFAULT_YEAR, auth);
+    const leagueInfo = await fetchLeagueInfo(leagueID, CURRENT_SEASON, auth);
     if (typeof leagueInfo === 'number') {
         return makeResponse<FindLeagueResponse>({ status: 'Failed to fetch league info' }, 404);
     } else {
