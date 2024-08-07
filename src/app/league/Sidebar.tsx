@@ -5,16 +5,21 @@ import styles from './Sidebar.module.css';
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { IN_PROGRESS_SELECTIONS_KEY, loadSavedLeagueInfo } from '@/app/localStorage';
+import { useRouter } from 'next/router';
 
 interface SidebarProps {
     leagueID: number;
     years: number[];
     leagueName: string;
+    availableLeagues?: number[];
 }
 
 const NEW_MOCK_NAME = '##New##';
 
-const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName }) => {
+const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName, availableLeagues = [] }) => {
+    availableLeagues = availableLeagues.filter((id) => id !== leagueID);
+    availableLeagues.sort();
+    availableLeagues.push(leagueID);
 	const [isOpen, setIsOpen] = useState(true);
 	const [showDrafts, setShowDrafts] = useState(true);
 	const [showMocks, setShowMocks] = useState(true);
@@ -43,14 +48,32 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName }) => {
 
     years.sort((a, b) => b - a);
 
+    const handleLeagueChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        const selected = parseInt(event.target.value);
+        if (selected !== leagueID) {
+            useRouter().push(`/league/${selected}`);
+        }
+    };
+
     return (
         <div className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
             <button onClick={toggleSidebar} className={styles.toggleButton}>
                 <i className={`fas ${isOpen ? 'fa-times' : 'fa-bars'}`} />
             </button>
+            {availableLeagues.length > 0 &&
+                    <div className={styles.dropdown}>
+                        <select id="league-select" value={leagueID} onChange={handleLeagueChange}>
+                            {availableLeagues.map((id) => (
+                                <option key={id} value={id}>
+                                    {id}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                }
             <div className={styles.content}>
                 <h2 className={styles.leagueHeading}><Link href={`/league/${leagueID}`}>{leagueName}</Link></h2>
-                <p/>
+                <p />
                 <span onClick={toggleDrafts} className={`${styles.draftButton}`}>
                   Drafts
                   <i className={`fas ${showDrafts ? 'fa-chevron-down' : 'fa-chevron-up'} ${styles.showDraftsIcon}`} />
