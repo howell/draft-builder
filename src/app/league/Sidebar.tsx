@@ -7,20 +7,20 @@ import Link from 'next/link'
 import { IN_PROGRESS_SELECTIONS_KEY, loadSavedLeagueInfo } from '@/app/localStorage';
 import { useRouter } from 'next/navigation';
 import DropdownMenu from '@/ui/DropdownMenu';
+import { PlatformLeague } from '@/platforms/common';
+import { activateLeague } from '../navigation';
 
 interface SidebarProps {
     leagueID: number;
     years: number[];
     leagueName: string;
-    availableLeagues?: number[];
+    availableLeagues?: PlatformLeague[];
 }
 
 const NEW_MOCK_NAME = '##New##';
 
 const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName, availableLeagues = [] }) => {
-    availableLeagues = availableLeagues.filter((id) => id !== leagueID);
-    availableLeagues.sort();
-    availableLeagues.push(leagueID);
+    availableLeagues.sort((a, b) => a.id - b.id);
 	const [isOpen, setIsOpen] = useState(true);
 	const [showDrafts, setShowDrafts] = useState(true);
 	const [showMocks, setShowMocks] = useState(true);
@@ -49,9 +49,9 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName, available
 
     years.sort((a, b) => b - a);
 
-    const handleLeagueChange = (selectedLeague: number) => {
-        if (selectedLeague !== leagueID) {
-            router.push(`/league/${selectedLeague}`);
+    const handleLeagueChange = (league: PlatformLeague) => {
+        if (league.id !== leagueID) {
+            activateLeague(league, router);
         }
     };
 
@@ -63,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName, available
             {availableLeagues.length > 0 &&
                 <div className={styles.dropdown}>
                     <DropdownMenu
-                        options={availableLeagues.map((id) => ({ name: id.toString(), value: id }))}
+                        options={availableLeagues.map((lg) => ({ name: lg.id.toString(), value: lg }))}
                         selectedOption={leagueID.toString()}
                         onSelect={(name, value) => handleLeagueChange(value)} />
                 </div>

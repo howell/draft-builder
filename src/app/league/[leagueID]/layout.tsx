@@ -51,7 +51,7 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
             <Sidebar leagueID={leagueID}
                 years={prevAuctions}
                 leagueName={leagueName}
-                availableLeagues={[]} />
+                availableLeagues={[{platform: 'espn', id: leagueID}]} />
             <main>{children}</main>
         </div>
     );

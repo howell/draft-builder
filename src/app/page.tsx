@@ -4,9 +4,10 @@ import { useState } from "react";
 import CollapsibleComponent from '@/ui/Collapsible';
 import Cookies from 'js-cookie';
 import './page.css'
-import { FindLeagueRequest, FindLeagueResponse } from '@/app/api/find-league/interface';
 import ApiClient from './api/ApiClient';
 import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
+import { EspnLeague } from '@/platforms/common';
+import { activateLeague } from './navigation';
 
 export default function Home() {
   const [leagueID, setLeagueID] = useState("");
@@ -31,18 +32,23 @@ export default function Home() {
         return;
       }
 
-      if (swid.trim() === "" && espnS2.trim() !== "") {
+      let providedSwid = swid.trim();
+      let providedEspnS2 = espnS2.trim();
+      if (providedSwid === "" && providedEspnS2 !== "") {
         alert("Please enter your SWID");
         return;
       }
 
-      if (espnS2.trim() === "" && swid.trim() !== "") {
+      if (providedEspnS2 === "" && providedSwid !== "") {
         alert("Please enter your ESPN_S2");
         return;
       }
 
+      const actualSwid = providedSwid === "" ? undefined : providedSwid;
+      const actualEspnS2 = providedEspnS2 === "" ? undefined : providedEspnS2;
+
       const client = new ApiClient('espn', parseInt(leagueID));
-      const request = client.findLeague({ swid, espnS2 });
+      const request = client.findLeague(actualSwid && actualEspnS2 ? { swid, espnS2 } : undefined);
       setLoadingTasks({ 'Finding League': request });
       const result = await request;
 
@@ -55,11 +61,9 @@ export default function Home() {
         return;
       }
 
-      if (swid.trim() !== "" && espnS2.trim() !== "") {
-        Cookies.set('swid', swid);
-        Cookies.set('espn_s2', espnS2);
-      }
-      router.push(`/league/${encodeURIComponent(leagueID)}`);
+      const league: EspnLeague = { platform: 'espn', id: parseInt(leagueID), swid: actualSwid, espnS2: actualEspnS2 };
+
+      activateLeague(league, router);
     } finally {
       setSubmissionInProgress(false);
     }

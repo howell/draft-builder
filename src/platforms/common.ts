@@ -6,11 +6,11 @@ export function isPlatform(str: any): str is Platform {
 
 export type PlatformLeague = {
     platform: Platform;
-    leagueID: number;
+    id: number;
 };
 
-export type EspnLeauge = PlatformLeague & {
+export type EspnLeague = PlatformLeague & {
     platform: 'espn';
-    swid: string;
-    espnS2: string;
+    swid?: string;
+    espnS2?: string;
 };
