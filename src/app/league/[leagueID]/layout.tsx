@@ -1,7 +1,7 @@
 'use client';
 import Sidebar from '../Sidebar';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import ApiClient from '@/app/api/ApiClient';
 import { CURRENT_SEASON } from '@/constants';
 
@@ -10,6 +10,7 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
 
     const [prevAuctions, setPrevAuctions] = useState<number[]>([]);
     const [leagueName, setLeagueName] = useState<string>('');
+    const router = useRouter();
 
     useEffect(() => {
         const fetchData = async () => {
@@ -18,7 +19,7 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
                 const resp = await client.fetchLeagueHistory(CURRENT_SEASON);
                 if (typeof resp === 'string') {
                     alert(`Failed to load league history: ${resp}`);
-                    useRouter().push('/');
+                    router.push('/');
                     return;
                 }
                 
@@ -49,7 +50,8 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
         <div>
             <Sidebar leagueID={leagueID}
                 years={prevAuctions}
-                leagueName={leagueName} />
+                leagueName={leagueName}
+                availableLeagues={[]} />
             <main>{children}</main>
         </div>
     );

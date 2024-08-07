@@ -1,0 +1,35 @@
+.dropdown {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.selected {
+  padding: 10px;
+  border: 1px solid #cccccc3d;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  border: 1px solid #ccc;
+  background-color: #302d2d;
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.options li {
+  padding: 10px;
+  cursor: pointer;
+}
+
+.options li:hover, .options li.highlighted {
+  background-color: #635858;
+}

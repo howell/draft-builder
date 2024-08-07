@@ -5,7 +5,8 @@ import styles from './Sidebar.module.css';
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { IN_PROGRESS_SELECTIONS_KEY, loadSavedLeagueInfo } from '@/app/localStorage';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
+import DropdownMenu from '@/ui/DropdownMenu';
 
 interface SidebarProps {
     leagueID: number;
@@ -29,7 +30,7 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName, available
 	const toggleSidebar = () => { setIsOpen(!isOpen); };
     const toggleDrafts = () => { setShowDrafts(!showDrafts); };
     const toggleMocks = () => { setShowMocks(!showMocks); };
-
+    const router = useRouter();
 
     const updateSavedDraftNames = () => {
         const locallyStored = loadSavedLeagueInfo(leagueID);
@@ -48,10 +49,9 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName, available
 
     years.sort((a, b) => b - a);
 
-    const handleLeagueChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        const selected = parseInt(event.target.value);
-        if (selected !== leagueID) {
-            useRouter().push(`/league/${selected}`);
+    const handleLeagueChange = (selectedLeague: number) => {
+        if (selectedLeague !== leagueID) {
+            router.push(`/league/${selectedLeague}`);
         }
     };
 
@@ -61,15 +61,12 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName, available
                 <i className={`fas ${isOpen ? 'fa-times' : 'fa-bars'}`} />
             </button>
             {availableLeagues.length > 0 &&
-                    <div className={styles.dropdown}>
-                        <select id="league-select" value={leagueID} onChange={handleLeagueChange}>
-                            {availableLeagues.map((id) => (
-                                <option key={id} value={id}>
-                                    {id}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                <div className={styles.dropdown}>
+                    <DropdownMenu
+                        options={availableLeagues.map((id) => ({ name: id.toString(), value: id }))}
+                        selectedOption={leagueID.toString()}
+                        onSelect={(name, value) => handleLeagueChange(value)} />
+                </div>
                 }
             <div className={styles.content}>
                 <h2 className={styles.leagueHeading}><Link href={`/league/${leagueID}`}>{leagueName}</Link></h2>
