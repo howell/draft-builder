@@ -6,7 +6,7 @@ import Cookies from 'js-cookie';
 import './page.css'
 import { FindLeagueRequest, FindLeagueResponse } from '@/app/api/find-league/interface';
 import ApiClient from './api/ApiClient';
-import LoadingScreen from '@/ui/LoadingScreen';
+import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
 
 export default function Home() {
   const [leagueID, setLeagueID] = useState("");
@@ -14,6 +14,7 @@ export default function Home() {
   const [espnS2, setEspnS2] = useState("");
   const router = useRouter();
   const [submissionInProgress, setSubmissionInProgress] = useState(false);
+  const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>({});
 
   const handleSubmit = async () => {
     if (submissionInProgress) return;
@@ -40,15 +41,10 @@ export default function Home() {
         return;
       }
 
-      const request: FindLeagueRequest = {
-        platform: 'espn',
-        leagueID: parseInt(leagueID),
-        swid,
-        espnS2
-      };
-
       const client = new ApiClient('espn', parseInt(leagueID));
-      const result = await client.findLeague({ swid, espnS2 });
+      const request = client.findLeague({ swid, espnS2 });
+      setLoadingTasks({ 'Finding League': request });
+      const result = await request;
 
       if (typeof result === 'string') {
         alert(`Failed to find league: ${result}`);
@@ -70,7 +66,7 @@ export default function Home() {
   };
   
   if (submissionInProgress) {
-    return <LoadingScreen />;
+    return <LoadingScreen tasks={loadingTasks}/>;
   }
 
   return (

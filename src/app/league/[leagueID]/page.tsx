@@ -1,7 +1,7 @@
 'use client';
 import ApiClient from '@/app/api/ApiClient';
 import { leagueLineupSettings } from "@/espn/utils";
-import LoadingScreen from '@/ui/LoadingScreen';
+import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
 import { useState, useEffect } from 'react';
 
 const DEFAULT_YEAR = 2024;
@@ -12,12 +12,15 @@ export default function LeaguePage({ params }: Readonly<{ params: { leagueID: st
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [leagueInfo, setLeagueInfo] = useState<LeagueInfo | null>(null);
+    const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>({});
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const client = new ApiClient('espn', leagueID);
-                const response = await client.fetchLeague(DEFAULT_YEAR);
+                const request = client.fetchLeague(DEFAULT_YEAR);
+                setLoadingTasks({ 'Fetching League': request });
+                const response = await request;
                 if (typeof response === 'string') {
                     setError(`Failed to load league: ${response}`);
                     return;
@@ -39,7 +42,7 @@ export default function LeaguePage({ params }: Readonly<{ params: { leagueID: st
             </div>);
     }
     if (loading) {
-        return <LoadingScreen />;
+        return <LoadingScreen tasks={loadingTasks} />;
     }
 
     return (

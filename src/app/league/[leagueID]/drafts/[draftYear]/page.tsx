@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 // Dynamically import PlayerScatterChart with no SSR
 import dynamic from 'next/dynamic';
 import ApiClient from '@/app/api/ApiClient';
-import LoadingScreen from '@/ui/LoadingScreen';
+import LoadingScreen, { LoadingScreenProps, LoadingTasks } from '@/ui/LoadingScreen';
 const PlayerScatterChart = dynamic(() => import('./PlayerScatterChart'), { ssr: false });
 
 export type TableData = {
@@ -26,6 +26,7 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [tableData, setTableData] = useState<TableData[]>([]);
+    const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>({});
 
     useEffect(() => {
         const fetchData = async () => {
@@ -34,6 +35,14 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
                 const playerResponse = client.fetchPlayers(draftYear);
                 const draftResponse = client.fetchDraft(draftYear);
                 const teamsResponse = client.fetchLeagueTeams(draftYear, 0);
+
+                const tasks = {
+                    'Fetching Draft': draftResponse,
+                    'Fetching Team History': teamsResponse,
+                    'Fetching Players': playerResponse,
+                };
+                setLoadingTasks(tasks);
+                console.log('tasks:', tasks);
 
                 const draftData = await draftResponse;
                 if (typeof draftData === 'string') {
@@ -67,7 +76,7 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
     }, [leagueID, draftYear]);
 
     if (loading) {
-        return <LoadingScreen />;
+        return <LoadingScreen tasks={loadingTasks} />;
     }
 
     if (error) {

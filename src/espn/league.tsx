@@ -125,6 +125,7 @@ export async function fetchTeamsAtWeek(leagueID: number, season: number, scoring
         return teamsResponse.data;
     } catch (error) {
         if (axios.isAxiosError(error) && error.response) {
+            console.error("Issue fetching teams:", error);
             return error.response!.status
         }
         throw error;

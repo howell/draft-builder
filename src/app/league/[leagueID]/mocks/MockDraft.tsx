@@ -6,7 +6,7 @@ import * as regression from 'regression'
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer, Rankings } from '@/app/types';
 import React, { useState, useEffect } from 'react';
 import ApiClient from '@/app/api/ApiClient';
-import LoadingScreen from "@/ui/LoadingScreen";
+import LoadingScreen, { LoadingTasks } from "@/ui/LoadingScreen";
 
 const DEFAULT_YEAR = 2024;
 
@@ -19,17 +19,18 @@ const MockDraft: React.FC<MockDraftProps> = ({ leagueId, draftName }) => {
     const leagueID = parseInt(leagueId);
 
     const [loading, setLoading] = useState(true);
+    const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>({});
     const [error, setError] = useState<string | null>(null);
     const [tableData, setTableData] = useState<MockTableProps | null>(null);
 
     useEffect(() => {
-        fetchData(leagueID, DEFAULT_YEAR, setTableData, setError, setLoading);
+        fetchData(leagueID, DEFAULT_YEAR, setTableData, setError, setLoading, setLoadingTasks);
     }, []);
 
     if (error) {
         return <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>{error}</h1>;
     } else if (loading || !tableData) {
-        return <LoadingScreen />;
+        return <LoadingScreen tasks={loadingTasks}/>;
     }
     return <MockTable leagueId={leagueID}
         draftName={draftName}
@@ -42,11 +43,23 @@ const MockDraft: React.FC<MockDraftProps> = ({ leagueId, draftName }) => {
 
 export default MockDraft;
 
-async function fetchData(leagueID: number, draftYear: number, setTableData: (data: MockTableProps) => void, setError: (error: string) => void, setLoading: (loading: boolean) => void) {
+async function fetchData(leagueID: number,
+    draftYear: number,
+    setTableData: (data: MockTableProps) => void,
+    setError: (error: string) => void,
+    setLoading: (loading: boolean) => void,
+    setLoadingTasks: (tasks: LoadingTasks) => void) {
     try {
         const client = new ApiClient('espn', leagueID);
         const playerResponse = client.fetchPlayers(DEFAULT_YEAR);
         const leagueHistoryResponse = client.fetchLeagueHistory(DEFAULT_YEAR);
+
+        let tasks: LoadingTasks = {
+            'Fetching Players': playerResponse,
+            'Fetching League History': leagueHistoryResponse,
+            'Analyzing Draft': () => false
+        };
+        setLoadingTasks(tasks);
 
         const leagueHistory = await leagueHistoryResponse;
         if (typeof leagueHistory === 'string') {
@@ -57,7 +70,13 @@ async function fetchData(leagueID: number, draftYear: number, setTableData: (dat
             setError('No league history found');
             return;
         }
-        const draftHistory = await client.buildDraftHistory(leagueHistory.data!);
+        const draftHistoryTask = client.buildDraftHistory(leagueHistory.data!);
+        tasks = {
+            ...tasks,
+            'Fetching Draft History': draftHistoryTask
+        }
+        setLoadingTasks(tasks);
+        const draftHistory = await draftHistoryTask;
         if (typeof draftHistory === 'string') {
             setError(`Failed to load draft history: ${draftHistory}`);
             return;
