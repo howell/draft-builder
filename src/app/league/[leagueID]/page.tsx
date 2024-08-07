@@ -1,6 +1,6 @@
 'use client';
 import ApiClient from '@/app/api/ApiClient';
-import { CURRENT_SEASON } from '@/constants';
+import { compareLineupPositions, CURRENT_SEASON } from '@/constants';
 import { leagueLineupSettings } from "@/espn/utils";
 import ErrorScreen from '@/ui/ErrorScreen';
 import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
@@ -48,9 +48,11 @@ export default function LeaguePage({ params }: Readonly<{ params: { leagueID: st
                 <p>Here is some information about your league:</p>
                 <p>Lineup Settings:</p>
                 <ul>
-                    {Array.from(leagueLineupSettings(leagueInfo!)).map(([position, count]) => (
-                        count > 0 ? <li key={position}>{position}: {count}</li> : null
-                    ))}
+                    {Array.from(leagueLineupSettings(leagueInfo!))
+                        .sort(([positionA, _cA], [positionB, _cB]) => compareLineupPositions(positionA, positionB))
+                        .map(([position, count]) => (
+                            count > 0 ? <li key={position}>{position}: {count}</li> : null
+                        ))}
                 </ul>
                 <pre>{JSON.stringify(leagueInfo, null, 2)}</pre>
             </div>

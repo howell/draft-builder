@@ -7,6 +7,7 @@ import { DraftAnalysis, ExponentialCoefficients, MockPlayer, CostEstimatedPlayer
 import { loadDraftByName, saveSelectedRoster, deleteRoster, IN_PROGRESS_SELECTIONS_KEY } from '@/app/localStorage';
 import SearchSettings from './SearchSettings';
 import EstimationSettings from './EstimationSettings';
+import { compareLineupPositions } from '@/constants';
 
 export interface MockTableProps {
     leagueId: number;
@@ -193,7 +194,9 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                             </tr>
                         </thead>
                         <tbody>
-                            {Array.from(positions.entries()).flatMap(([position, count]) =>
+                            {Array.from(positions.entries())
+                            .sort(([positionA, _cA], [positionB, _cB]) => compareLineupPositions(positionA, positionB))
+                            .flatMap(([position, count]) =>
                                 Array.from({ length: count }, (_, i) => {
                                     const rosterSlot = { position, index: i };
                                     const slotName = serializeRosterSlot(rosterSlot);
@@ -343,6 +346,6 @@ function sum<T extends object, K extends keyof T>(values: (HasNumberProperty<T,K
     if (key) {
         return values.reduce((a, b) => a + (b[key] as number), 0);
     } else {
-        return values.reduce((a, b) => a as number + (b as number), 0);
+        return values.reduce((a, b) => a as number + (b as unknown as number), 0);
     }
 }
