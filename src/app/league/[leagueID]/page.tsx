@@ -1,6 +1,7 @@
 'use client';
 import ApiClient from '@/app/api/ApiClient';
 import { leagueLineupSettings } from "@/espn/utils";
+import ErrorScreen from '@/ui/ErrorScreen';
 import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
 import { useState, useEffect } from 'react';
 
@@ -36,10 +37,7 @@ export default function LeaguePage({ params }: Readonly<{ params: { leagueID: st
     }, []);
 
     if (error) {
-        return (
-            <div className="flex min-h-screen flex-col items-center justify-between p-24">
-                <h1>Error loading league: {error}</h1>
-            </div>);
+        return <ErrorScreen message={`Error loading league: ${error}`} />;
     }
     if (loading) {
         return <LoadingScreen tasks={loadingTasks} />;

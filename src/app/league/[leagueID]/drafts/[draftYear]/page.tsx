@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import ApiClient from '@/app/api/ApiClient';
 import LoadingScreen, { LoadingScreenProps, LoadingTasks } from '@/ui/LoadingScreen';
+import ErrorScreen from '@/ui/ErrorScreen';
 const PlayerScatterChart = dynamic(() => import('./PlayerScatterChart'), { ssr: false });
 
 export type TableData = {
@@ -80,7 +81,7 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
     }
 
     if (error) {
-        return <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>{error}</h1>;
+        return <ErrorScreen message={error} />;
     }
 
     const tableColumns: [keyof(TableData), string][] = [['numberDrafted', 'Nominated'],

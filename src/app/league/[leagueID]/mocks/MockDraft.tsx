@@ -7,6 +7,8 @@ import { DraftAnalysis, ExponentialCoefficients, MockPlayer, Rankings } from '@/
 import React, { useState, useEffect } from 'react';
 import ApiClient from '@/app/api/ApiClient';
 import LoadingScreen, { LoadingTasks } from "@/ui/LoadingScreen";
+import Error from "next/error";
+import ErrorScreen from "@/ui/ErrorScreen";
 
 const DEFAULT_YEAR = 2024;
 
@@ -28,7 +30,7 @@ const MockDraft: React.FC<MockDraftProps> = ({ leagueId, draftName }) => {
     }, []);
 
     if (error) {
-        return <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>{error}</h1>;
+        return <ErrorScreen message={error} />;
     } else if (loading || !tableData) {
         return <LoadingScreen tasks={loadingTasks}/>;
     }
