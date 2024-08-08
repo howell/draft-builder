@@ -191,6 +191,14 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
         setCostAdjustments(nextAdjustments);
     }
 
+    const handleShowingOnlyAvailableToggle = () => {
+        onSettingsChanged({
+            ...searchSettings,
+            showOnlyAvailable: !searchSettings.showOnlyAvailable,
+        });
+    }
+
+
     return (
         <div className='MockTable'>
             <div className="tables-container">
@@ -258,6 +266,16 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                                     onSettingsChanged={onSettingsChanged}
                                     positions={playerPositions}
                                     currentSettings={searchSettings}>
+                                    <div>
+                                        <label className='search-position-label'>
+                                            <input
+                                                type="checkbox"
+                                                checked={searchSettings.showOnlyAvailable}
+                                                onChange={() => handleShowingOnlyAvailableToggle()}
+                                            />
+                                            Only Show Available Players
+                                        </label>
+                                    </div>
                                     <button className="reset-button" onClick={resetSearchSettings}>Reset</button>
                                 </SearchSettings>
                             </div>

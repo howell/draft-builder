@@ -30,13 +30,6 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
         }
     };
 
-    const handleShowingOnlyAvailableToggle = () => {
-        onSettingsChanged({
-            ...currentSettings,
-            showOnlyAvailable: !currentSettings.showOnlyAvailable,
-        });
-    }
-
     const handlePlayerCountChange = (value: number) => {
         onSettingsChanged({
             ...currentSettings,
@@ -113,16 +106,6 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
                         />
                     </label>
                 </div>
-            </div>
-            <div>
-                <label className='search-position-label'>
-                    <input
-                        type="checkbox"
-                        checked={currentSettings.showOnlyAvailable}
-                        onChange={() => handleShowingOnlyAvailableToggle()}
-                    />
-                    Only Show Available Players
-                </label>
             </div>
             {children}
         </div>
