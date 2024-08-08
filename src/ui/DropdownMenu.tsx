@@ -53,7 +53,7 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ options, selectedOption, on
                 onBlur={() => setIsOpen(false)}>
                 {options.find(option => option.name === selectedOption)?.name || ''}
                     <div className={`${styles.iconContainer}`}>
-                        <i className={`fas ${isOpen ? 'fa-chevron-up' : 'fa-chevron-down'}`} />
+                        <i className={`fas fa-chevron-down`} />
                     </div>
             </div>
             {isOpen && (
