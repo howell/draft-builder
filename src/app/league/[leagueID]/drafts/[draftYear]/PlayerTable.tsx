@@ -55,24 +55,24 @@ const PlayerTable = <T extends object,>({
 
     return (
         <div className="table-container">
-        <table >
-            <thead>
-                <tr>
-                    {columns.map(([column, name]) => (
-                        <th key={column.toString()} className={getSortClass(column)} onClick={() => handleSort(column)}>{name}</th>))}
-                </tr>
-            </thead>
-            <tbody>
-                {sortedData.map((item) => (
-                    <tr key={item.id}
-                        className={onPlayerClick ? 'clickable' : ''}
-                        onClick={() => onPlayerClick && onPlayerClick(item)}>
-                        {columns.map(([column, _]) => (
-                            <td key={`${column.toString()} ${item.id}`}><div >{(item[column] as object).toString()}</div></td>))}
+            <table >
+                <thead>
+                    <tr>
+                        {columns.map(([column, name]) => (
+                            <th key={column.toString()} className={getSortClass(column)} onClick={() => handleSort(column)}>{name}</th>))}
                     </tr>
-                ))}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {sortedData.map((item) => (
+                        <tr key={item.id}
+                            className={onPlayerClick ? 'clickable' : ''}
+                            onClick={() => onPlayerClick && onPlayerClick(item)}>
+                            {columns.map(([column, _]) => (
+                                <td key={`${column.toString()} ${item.id}`}><div >{(item[column] as object).toString()}</div></td>))}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
     );
 };

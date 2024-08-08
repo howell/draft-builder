@@ -70,20 +70,22 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
                                                        ];
 
     return (
-        <div className='w-max flex flex-col items-center justify-center m-auto'>
-            <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>Your {draftYear} Draft Recap!</h1>
-            <div className='flex flex-col w-full items-start'>
-                <div className='flex-start'>
-                    <CollapsibleComponent label='Settings'>
-                        <SearchSettings positions={allPositions} currentSettings={searchSettings} onSettingsChanged={setSearchSettings}>
-                            <button className="mt-2 px-4 py-2 bg-white text-black rounded hover:bg-slate-300 focus:outline-none focus:ring-2"
-                                onClick={resetSearchSettings}>
-                                Reset
-                            </button>
-                        </SearchSettings>
-                    </CollapsibleComponent>
+        <div className='flex flex-col'>
+            <div className='w-max flex flex-col items-center justify-center m-auto'>
+                <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>Your {draftYear} Draft Recap!</h1>
+                <div className='flex flex-col w-full items-start'>
+                    <div className='flex-start'>
+                        <CollapsibleComponent label='Settings'>
+                            <SearchSettings positions={allPositions} currentSettings={searchSettings} onSettingsChanged={setSearchSettings}>
+                                <button className="mt-2 px-4 py-2 bg-white text-black rounded hover:bg-slate-300 focus:outline-none focus:ring-2"
+                                    onClick={resetSearchSettings}>
+                                    Reset
+                                </button>
+                            </SearchSettings>
+                        </CollapsibleComponent>
+                    </div>
+                    <PlayerTable players={showing} columns={tableColumns} defaultSortColumn='auctionPrice' />
                 </div>
-                <PlayerTable players={showing} columns={tableColumns} defaultSortColumn='auctionPrice' />
             </div>
             <PlayerScatterChart data={tableData} />
         </div>
@@ -92,7 +94,7 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
 
 export default Page;
 
-function makeTableRow(data: DraftedPlayer) : TableData {
+function makeTableRow(data: DraftedPlayer): TableData {
     return {
         id: data.id,
         name: data.fullName,
@@ -153,7 +155,7 @@ async function fetchData(leagueID: number,
 
 function showPlayer(p: TableData, searchSettings: SearchSettingsState) {
     return (p.auctionPrice >= searchSettings.minPrice &&
-            p.auctionPrice <= searchSettings.maxPrice &&
-            searchSettings.positions.includes(p.position)
-            );
+        p.auctionPrice <= searchSettings.maxPrice &&
+        searchSettings.positions.includes(p.position)
+    );
 }
