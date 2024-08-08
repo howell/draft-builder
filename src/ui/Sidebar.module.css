@@ -74,8 +74,9 @@
 
 .leagueHeading {
     max-width: 120px;
-    font-size: 1.8em;
+    font-size: 1.4em;
     margin-right: 36px;
+    margin-bottom: 5px;
     /* padding-right: 20px; */
 }
 
