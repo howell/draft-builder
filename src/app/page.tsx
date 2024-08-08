@@ -1,14 +1,14 @@
 'use client';
 import { useRouter } from 'next/navigation'
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CollapsibleComponent from '@/ui/Collapsible';
-import Cookies from 'js-cookie';
 import './page.css'
 import ApiClient from './api/ApiClient';
 import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
-import { EspnLeague } from '@/platforms/common';
+import { EspnLeague, PlatformLeague } from '@/platforms/common';
 import { activateLeague } from './navigation';
-import { saveLeague } from './localStorage';
+import { loadLeagues, saveLeague } from './localStorage';
+import Sidebar from '../ui/Sidebar';
 
 export default function Home() {
   const [leagueID, setLeagueID] = useState("");
@@ -17,6 +17,13 @@ export default function Home() {
   const router = useRouter();
   const [submissionInProgress, setSubmissionInProgress] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>({});
+  const [availableLeagues, setAvailableLeagues] = useState<PlatformLeague[]>([]);
+
+  useEffect(() => {
+    const availableLeagues = loadLeagues();
+    console.log(availableLeagues);
+    setAvailableLeagues(Object.values(availableLeagues.leagues));
+  }, []);
 
   const handleSubmit = async () => {
     if (submissionInProgress) return;
@@ -76,6 +83,7 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center p-24">
+      {availableLeagues.length > 0 && <Sidebar availableLeagues={availableLeagues} />}
       <div className="flex flex-col">
         <h1 className="league-id-header">To get started, enter your ESPN Fantasy Football league ID and click 'Submit'.</h1>
         <input

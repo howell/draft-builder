@@ -2,11 +2,15 @@
   position: relative;
   display: inline-block;
   width: 100%;
+  height: 36px;
+  border: 1px solid #cccccc3d;
+  padding: 5px;
 }
 
 .selected {
+  width: 100%;
+  height: 100%;
   padding: 10px;
-  border: 1px solid #cccccc3d;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
@@ -26,10 +30,17 @@
 }
 
 .options li {
-  padding: 10px;
+  padding: 5px;
   cursor: pointer;
 }
 
 .options li:hover, .options li.highlighted {
   background-color: #635858;
+}
+
+.iconContainer {
+  position: absolute;
+  right: 10px; /* Adjust as needed */
+  top: 50%;
+  transform: translateY(-50%);
 }
