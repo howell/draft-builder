@@ -13,15 +13,15 @@ input[type="range"] {
 /* Styles for input range slider in night mode */
 @media (prefers-color-scheme: dark) {
     input[type="range"] {
-        background: #555; /* Dark track color */
+        background: #9b939377;
     }
 
-    input[type="range"]::-webkit-slider-thumb {
-        background: #fff; /* Light thumb color for dark mode */
+    input[type="range"]::-webkit-slider-runnable-track {
+        background: #9b939377;
     }
 
     input[type="range"]::-moz-range-thumb {
-        background: #fff; /* Light thumb color for dark mode */
+        background: #9b939377;
     }
 }
 
