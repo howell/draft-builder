@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { SearchSettingsState } from '@/app/types';
+import React from 'react';
+import { SearchSettingsState } from '@/app/savedMockTypes';
 import './SearchSettings.css';
 
 export interface SearchSettingsProps {
@@ -60,9 +60,9 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
         <div>
             <div>
                 <h3>Positions</h3>
-                {positions.map((position) => (
-                    <div className='search-position-label-container'>
-                        <label key={position} className='search-position-label'>
+                <div className='search-position-label-container'>
+                    {positions.map((position) => (
+                        <label key={position} className='search-position-label mr-2'>
                             <input
                                 className='search-position-checkbox'
                                 type="checkbox"
@@ -71,38 +71,46 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
                             />
                             {position}
                         </label>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
-            <div>
-                <h3>Player Count</h3>
-                <input
-                    className='search-number night-mode-text'
-                    type="number"
-                    min={0}
-                    value={currentSettings.playerCount}
-                    onChange={(e) => handlePlayerCountChange(Number(e.target.value))}
-                />
-            </div>
-            <div>
-                <h3>Minimum Price</h3>
-                <input
-                    className='search-number night-mode-text'
-                    type="number"
-                    min={0}
-                    value={currentSettings.minPrice}
-                    onChange={(e) => handleMinPriceChange(Number(e.target.value))}
-                />
-            </div>
-            <div>
-                <h3>Maximum Price</h3>
-                <input
-                    className='search-number night-mode-text'
-                    type="number"
-                    min={0}
-                    value={currentSettings.maxPrice}
-                    onChange={(e) => handleMaxPriceChange(Number(e.target.value))}
-                />
+            <div className="flex flex-wrap">
+                <div className='mr-2 mt-2 w-2/5 max-w-1/2'>
+                    <label className='search-position-label'>
+                        Players
+                        <input
+                            className='search-number night-mode-text ml-2'
+                            type="number"
+                            min={0}
+                            value={currentSettings.playerCount}
+                            onChange={(e) => handlePlayerCountChange(Number(e.target.value))}
+                        />
+                    </label>
+                </div>
+                <div className='mr-2 mt-2 w-2/5 max-w-1/2'>
+                    <label className='search-position-label'>
+                        Min Price
+                        <input
+                            className='search-number night-mode-text ml-2'
+                            type="number"
+                            min={0}
+                            value={currentSettings.minPrice}
+                            onChange={(e) => handleMinPriceChange(Number(e.target.value))}
+                        />
+                    </label>
+                </div>
+                <div className='mr-2 mt-2 w-2/5 max-w-1/2'>
+                    <label className='search-position-label'>
+                        Max Price
+                        <input
+                            className='search-number night-mode-text ml-2'
+                            type="number"
+                            min={0}
+                            value={currentSettings.maxPrice}
+                            onChange={(e) => handleMaxPriceChange(Number(e.target.value))}
+                        />
+                    </label>
+                </div>
             </div>
             <div>
                 <label className='search-position-label'>

@@ -12,7 +12,7 @@ input[type="checkbox"] {
     flex-wrap: wrap;
     align-items: center; /* Align items vertically in the center */
     min-width: min-content;
-    max-width: 90%;
+    max-width: 100%;
 }
 
 .search-position-label {

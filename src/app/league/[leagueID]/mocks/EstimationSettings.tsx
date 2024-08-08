@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { EstimationSettingsState } from '@/app/types';
+import React from 'react';
+import { EstimationSettingsState } from '@/app/savedMockTypes';
 import './EstimationSettings.css';
 
 export interface EstimationSettingsProps {
