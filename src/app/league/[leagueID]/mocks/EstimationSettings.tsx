@@ -6,12 +6,14 @@ export interface EstimationSettingsProps {
     years: number[];
     currentSettings: EstimationSettingsState;
     onEstimationSettingsChanged?: (settings: EstimationSettingsState) => void;
+    children?: React.ReactNode;
 }
 
 const EstimationSettings: React.FC<EstimationSettingsProps> = ({
     years,
     currentSettings,
     onEstimationSettingsChanged = () => {},
+    children
 }) => {
 
     const handleYearToggle = (year: number) => {
@@ -66,6 +68,7 @@ const EstimationSettings: React.FC<EstimationSettingsProps> = ({
                     Position
                 </div>
             </div>
+            {children}
         </div>
     );
 };

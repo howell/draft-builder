@@ -37,9 +37,11 @@ const defaultCostPredictor: CostPredictor = {
 };
 
 const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, auctionBudget, players, draftHistory, playerPositions }) => {
+    const defaultSearchSettings: SearchSettingsState = { positions: playerPositions, playerCount: 200, minPrice: 1, maxPrice: auctionBudget, showOnlyAvailable: true };
+    const defaultEstimationSettings: EstimationSettingsState = { years: Array.from(draftHistory.keys()), weight: 50 };
     const [playerDb, setPlayerDb] = useState<MockPlayer[]>(players);
-    const [estimationSettings, setEstimationSettings] = useState<EstimationSettingsState>({ years: Array.from(draftHistory.keys()), weight: 50 });
-    const [searchSettings, setSearchSettings] = useState<SearchSettingsState>({ positions: playerPositions, playerCount: 200, minPrice: 1, maxPrice: auctionBudget, showOnlyAvailable: true });
+    const [estimationSettings, setEstimationSettings] = useState<EstimationSettingsState>(defaultEstimationSettings);
+    const [searchSettings, setSearchSettings] = useState<SearchSettingsState>(defaultSearchSettings);
     const [availablePlayers, setAvailablePlayers] = useState<CostEstimatedPlayer[]>([]);
     const [budgetSpent, setBudgetSpent] = useState(0);
     const [selectedPlayers, setSelectedPlayers] = useState<MockPlayer[]>([]);
@@ -151,11 +153,20 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
         }
     }
 
+    const resetSearchSettings = () => {
+        setSearchSettings(defaultSearchSettings);
+    }
+
     const onEstimationSettingsChanged = (settings: EstimationSettingsState) => {
         if (finishedLoading) {
             setEstimationSettings(settings);
         }
     }
+
+    const resetEstimationSettings = () => {
+        setEstimationSettings(defaultEstimationSettings);
+    }
+
 
     const resetRoster = () => {
         setRosterSelections({});
@@ -246,7 +257,9 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                                 <SearchSettings
                                     onSettingsChanged={onSettingsChanged}
                                     positions={playerPositions}
-                                    currentSettings={searchSettings} />
+                                    currentSettings={searchSettings}>
+                                    <button className="reset-button" onClick={resetSearchSettings}>Reset</button>
+                                </SearchSettings>
                             </div>
                         </div>
                         <div className={`estimation-settings`}>
@@ -258,7 +271,9 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                                 <EstimationSettings
                                     onEstimationSettingsChanged={onEstimationSettingsChanged}
                                     years={Array.from(draftHistory.keys())}
-                                    currentSettings={estimationSettings} />
+                                    currentSettings={estimationSettings} >
+                                    <button className="reset-button" onClick={resetEstimationSettings}>Reset</button>
+                                </EstimationSettings>
                             </div>
                         </div>
                     </div>

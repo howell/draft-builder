@@ -6,12 +6,14 @@ export interface SearchSettingsProps {
     positions: string[];
     currentSettings: SearchSettingsState;
     onSettingsChanged?: (settings: SearchSettingsState) => void;
+    children?: React.ReactNode;
 }
 
 const SearchSettings: React.FC<SearchSettingsProps> = ({
     positions,
     currentSettings,
     onSettingsChanged = () => { },
+    children
 }) => {
 
     const handlePositionToggle = (position: string) => {
@@ -75,19 +77,7 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
                 </div>
             </div>
             <div className="flex flex-wrap">
-                <div className='mr-2 mt-2 w-2/5 max-w-1/2'>
-                    <label className='search-position-label'>
-                        Players
-                        <input
-                            className='search-number night-mode-text ml-2'
-                            type="number"
-                            min={0}
-                            value={currentSettings.playerCount}
-                            onChange={(e) => handlePlayerCountChange(Number(e.target.value))}
-                        />
-                    </label>
-                </div>
-                <div className='mr-2 mt-2 w-2/5 max-w-1/2'>
+                <div className='mr-2 mt-2 min-w-fit w-2/5 max-w-1/2'>
                     <label className='search-position-label'>
                         Min Price
                         <input
@@ -99,7 +89,7 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
                         />
                     </label>
                 </div>
-                <div className='mr-2 mt-2 w-2/5 max-w-1/2'>
+                <div className='mr-2 mt-2 min-w-fit w-2/5 max-w-1/2'>
                     <label className='search-position-label'>
                         Max Price
                         <input
@@ -108,6 +98,18 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
                             min={0}
                             value={currentSettings.maxPrice}
                             onChange={(e) => handleMaxPriceChange(Number(e.target.value))}
+                        />
+                    </label>
+                </div>
+                <div className='mr-2 mt-2 min-w-fit w-2/5 max-w-1/2'>
+                    <label className='search-position-label'>
+                        Players
+                        <input
+                            className='search-number night-mode-text ml-2'
+                            type="number"
+                            min={0}
+                            value={currentSettings.playerCount}
+                            onChange={(e) => handlePlayerCountChange(Number(e.target.value))}
                         />
                     </label>
                 </div>
@@ -122,6 +124,7 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
                     Only Show Available Players
                 </label>
             </div>
+            {children}
         </div>
     );
 };
