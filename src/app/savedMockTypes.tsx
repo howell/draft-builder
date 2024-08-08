@@ -1,4 +1,4 @@
-import * as regression from 'regression'
+export const CURRENT_SCHEMA_VERSION = 2;
 
 export type Rankings = {
     overall: Map<number, number>,
@@ -33,14 +33,12 @@ export type RosterSelections = {
     [key: string]: CostEstimatedPlayer | undefined;
 }
 
-export const CURRENT_SCHEMA_VERSION = 2;
-
 export type StoredData = {
     schemaVersion: number;
-    [leagueId: number] : StoredLeagueData
+    [leagueId: number] : StoredMocksData
 }
 
-export type StoredLeagueData = {
+export type StoredMocksData = {
     drafts: { [draftName: string]: StoredDraftData }
 }
 

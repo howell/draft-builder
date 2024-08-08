@@ -2,7 +2,7 @@
 import { leagueLineupSettings, mergeDraftAndPlayerInfo, DraftedPlayer, slotName, positionName } from "@/platforms/espn/utils";
 import MockTable, { MockTableProps } from './MockTable';
 import * as regression from 'regression'
-import { DraftAnalysis, ExponentialCoefficients, MockPlayer, Rankings } from '@/app/types';
+import { DraftAnalysis, ExponentialCoefficients, MockPlayer, Rankings } from '@/app/savedMockTypes';
 import React, { useState, useEffect } from 'react';
 import ApiClient from '@/app/api/ApiClient';
 import LoadingScreen, { LoadingTasks } from "@/ui/LoadingScreen";

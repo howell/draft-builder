@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import MockRosterEntry from './MockRosterEntry';
 import './MockTable.css';
 import PlayerTable from '../drafts/[draftYear]/PlayerTable';
-import { DraftAnalysis, ExponentialCoefficients, MockPlayer, CostEstimatedPlayer, RosterSlot, RosterSelections, SearchSettingsState, EstimationSettingsState, StoredDraftData  } from '@/app/types';
+import { DraftAnalysis, ExponentialCoefficients, MockPlayer, CostEstimatedPlayer, RosterSlot, RosterSelections, SearchSettingsState, EstimationSettingsState, StoredDraftData  } from '@/app/savedMockTypes';
 import { loadDraftByName, saveSelectedRoster, deleteRoster, IN_PROGRESS_SELECTIONS_KEY } from '@/app/localStorage';
 import SearchSettings from './SearchSettings';
 import EstimationSettings from './EstimationSettings';

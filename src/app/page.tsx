@@ -8,6 +8,7 @@ import ApiClient from './api/ApiClient';
 import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
 import { EspnLeague } from '@/platforms/common';
 import { activateLeague } from './navigation';
+import { saveLeague } from './localStorage';
 
 export default function Home() {
   const [leagueID, setLeagueID] = useState("");
@@ -62,7 +63,7 @@ export default function Home() {
       }
 
       const league: EspnLeague = { platform: 'espn', id: parseInt(leagueID), swid: actualSwid, espnS2: actualEspnS2 };
-
+      saveLeague(league.id, league);
       activateLeague(league, router);
     } finally {
       setSubmissionInProgress(false);

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import styles from './Sidebar.module.css';
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { IN_PROGRESS_SELECTIONS_KEY, loadSavedLeagueInfo } from '@/app/localStorage';
+import { IN_PROGRESS_SELECTIONS_KEY, loadSavedMocks } from '@/app/localStorage';
 import { useRouter } from 'next/navigation';
 import DropdownMenu from '@/ui/DropdownMenu';
 import { PlatformLeague } from '@/platforms/common';
@@ -33,7 +33,7 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, years, leagueName, available
     const router = useRouter();
 
     const updateSavedDraftNames = () => {
-        const locallyStored = loadSavedLeagueInfo(leagueID);
+        const locallyStored = loadSavedMocks(leagueID);
         const savedDrafts = locallyStored.drafts;
         const loadedDraftNames = Object.keys(savedDrafts).filter((draftName) => draftName !== IN_PROGRESS_SELECTIONS_KEY).sort();
         if (!arraysEqual(savedDraftNames, loadedDraftNames)) {

@@ -4,19 +4,27 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ApiClient from '@/app/api/ApiClient';
 import { CURRENT_SEASON } from '@/constants';
+import { PlatformLeague } from '@/platforms/common';
+import { loadLeagues } from '@/app/localStorage';
 
 const LeagueLayout = ({ children, params } : { children: React.ReactNode, params: {leagueID: string, draftYear?: string } }) => {
     const leagueID = parseInt(params.leagueID);
 
     const [prevAuctions, setPrevAuctions] = useState<number[]>([]);
     const [leagueName, setLeagueName] = useState<string>('');
+    const [availableLeagues, setAvailableLeagues] = useState<PlatformLeague[]>([]);
     const router = useRouter();
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const client = new ApiClient('espn', leagueID);
-                const resp = await client.fetchLeagueHistory(CURRENT_SEASON);
+                const request = client.fetchLeagueHistory(CURRENT_SEASON);
+
+                const availableLeagues = loadLeagues();
+                setAvailableLeagues(Object.values(availableLeagues.leagues));
+
+                const resp = await request;
                 if (typeof resp === 'string') {
                     alert(`Failed to load league history: ${resp}`);
                     router.push('/');
@@ -51,7 +59,7 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
             <Sidebar leagueID={leagueID}
                 years={prevAuctions}
                 leagueName={leagueName}
-                availableLeagues={[{platform: 'espn', id: leagueID}]} />
+                availableLeagues={availableLeagues} />
             <main>{children}</main>
         </div>
     );

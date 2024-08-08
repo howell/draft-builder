@@ -1,15 +1,21 @@
 'use client'
-import { RosterSelections, StoredData, StoredLeagueData, CURRENT_SCHEMA_VERSION, StoredDraftData, EstimationSettingsState, SearchSettingsState } from './types';
+import { PlatformLeague } from '@/platforms/common';
+import { RosterSelections, StoredData, StoredMocksData, CURRENT_SCHEMA_VERSION, StoredDraftData, EstimationSettingsState, SearchSettingsState } from './savedMockTypes';
+import { StoredLeaguesData } from './savedLeagueTypes';
 
 export const IN_PROGRESS_SELECTIONS_KEY = '##IN_PROGRESS_SELECTIONS##';
 
 const isClient = typeof window !== 'undefined';
 
-export function emptyData(leagueID: number): StoredLeagueData {
+export const SAVED_LEAGUES_KEY = 'leagues';
+
+export function emptyData(leagueID: number): StoredMocksData {
     return { drafts: {} };
 }
 
-export function loadSavedLeagueInfo(leagueID: number): StoredLeagueData {
+const emptyLeagues: StoredLeaguesData = { schemaVersion: CURRENT_SCHEMA_VERSION, leagues: {} };
+
+export function loadSavedMocks(leagueID: number): StoredMocksData {
     if (!isClient) return emptyData(leagueID);
     const stored = localStorage.getItem(leagueID.toString());
     if (!stored) return emptyData(leagueID);
@@ -26,7 +32,7 @@ export function loadSavedLeagueInfo(leagueID: number): StoredLeagueData {
     return emptyData(leagueID);
 }
 
-export function saveLeagueInfo(leagueID: number, data: StoredLeagueData): void {
+export function saveMock(leagueID: number, data: StoredMocksData): void {
     if (!isClient) return;
     const stored = localStorage.getItem(leagueID.toString());
     const storedData = stored ? JSON.parse(stored) : null;
@@ -47,7 +53,7 @@ export function saveLeagueInfo(leagueID: number, data: StoredLeagueData): void {
 }
 
 export function loadDraftByName(leagueID: number, rosterName: string): StoredDraftData | undefined {
-    const leagueData = loadSavedLeagueInfo(leagueID);
+    const leagueData = loadSavedMocks(leagueID);
     const savedRosterSelections = leagueData.drafts[rosterName];
     if (savedRosterSelections) {
         return savedRosterSelections
@@ -58,20 +64,55 @@ export function loadDraftByName(leagueID: number, rosterName: string): StoredDra
 
 export function saveSelectedRoster(leagueID: number, rosterName: string, rosterSelections: RosterSelections, estimationSettings: EstimationSettingsState, searchSettings: SearchSettingsState) {
     if (!isClient) return;
-    const stored = loadSavedLeagueInfo(leagueID);
+    const stored = loadSavedMocks(leagueID);
     const withRoster = {
         drafts: {
             ...stored.drafts,
             [rosterName]: { rosterSelections, estimationSettings, searchSettings }
         }
     };
-    saveLeagueInfo(leagueID, withRoster);
+    saveMock(leagueID, withRoster);
 }
 
 export function deleteRoster(leagueID: number, rosterName: string) {
     if (!isClient) return;
-    const stored = loadSavedLeagueInfo(leagueID);
+    const stored = loadSavedMocks(leagueID);
     const drafts = stored.drafts;
     delete drafts[rosterName];
-    saveLeagueInfo(leagueID, stored);
+    saveMock(leagueID, stored);
+}
+
+export function saveLeague(leagueID: number, league: PlatformLeague) {
+    if (!isClient) return;
+    const stored = localStorage.getItem(SAVED_LEAGUES_KEY);
+    const storedLeagues: StoredLeaguesData = stored ? JSON.parse(stored) : undefined;
+    if (!storedLeagues || storedLeagues.schemaVersion !== CURRENT_SCHEMA_VERSION) {
+        const toStore: StoredLeaguesData = {
+            schemaVersion: CURRENT_SCHEMA_VERSION,
+            leagues: { [leagueID]: league }
+        };
+        localStorage.setItem(SAVED_LEAGUES_KEY, JSON.stringify(toStore));
+        return;
+    }
+    const toStore: StoredLeaguesData = {
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        leagues: {
+            ...storedLeagues.leagues,
+            [leagueID]: league
+        }
+    };
+    localStorage.setItem(SAVED_LEAGUES_KEY, JSON.stringify(toStore));
+}
+
+export function loadLeagues(): StoredLeaguesData {
+    if (!isClient) return emptyLeagues;
+    const stored = localStorage.getItem(SAVED_LEAGUES_KEY);
+    if (!stored) return emptyLeagues;
+
+    const storedLeagues: StoredLeaguesData = JSON.parse(stored);
+    if (!storedLeagues || storedLeagues.schemaVersion !== CURRENT_SCHEMA_VERSION) {
+        localStorage.removeItem(SAVED_LEAGUES_KEY);
+        return emptyLeagues;
+    }
+    return storedLeagues;
 }
