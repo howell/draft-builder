@@ -8,6 +8,7 @@ import ApiClient from '@/app/api/ApiClient';
 import LoadingScreen, { LoadingTasks } from "@/ui/LoadingScreen";
 import ErrorScreen from "@/ui/ErrorScreen";
 import { CURRENT_SEASON } from "@/constants";
+import { findBestRegression } from "../../analytics";
 
 export type MockDraftProps = {
     leagueId: string;
@@ -183,7 +184,7 @@ function rankPlayers(players: PlayerInfo[], scoringType: ScoringType): Rankings 
 function analyzeDraft(draftedPlayers: DraftedPlayer[]): DraftAnalysis {
     const sortedPicks = draftedPlayers.sort((a, b) => b.bidAmount - a.bidAmount);
     const data = sortedPicks.map((pick, index) => [index, pick.bidAmount] as [number, number]);
-    const overall = regression.exponential(data).equation as [number, number];
+    const overall = findBestRegression(data).equation as [number, number];
     const positions = new Map<string, ExponentialCoefficients>();
 
     for (const pick of sortedPicks) {
@@ -193,7 +194,7 @@ function analyzeDraft(draftedPlayers: DraftedPlayer[]): DraftAnalysis {
             const positionData = sortedPicks
                 .filter(p => p.defaultPositionId === position)
                 .map((p, index) => [index, p.bidAmount] as [number, number]);
-            const positionRegression = regression.exponential(positionData);
+            const positionRegression = findBestRegression(positionData);
             positions.set(posName, positionRegression.equation as [number, number]);
         }
     }

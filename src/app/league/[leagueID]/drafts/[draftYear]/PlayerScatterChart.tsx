@@ -1,7 +1,8 @@
 'use client'
+import { meanSquaredError } from '@/app/league/analytics';
 import { TableData } from './page';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, Area, LineChart, Line, ResponsiveContainer, Label, Text, Legend } from 'recharts';
-import regression from 'regression'
+import { findBestRegression, predictPrice } from '@/app/league/analytics';
 
 const PlayerScatterChart : React.FC<{data: TableData[]}> = ({ data }) => {
     const chartData = data.sort((a, b) => b.auctionPrice - a.auctionPrice)
@@ -11,9 +12,9 @@ const PlayerScatterChart : React.FC<{data: TableData[]}> = ({ data }) => {
             tooltip: `${i}: ${v.name} (${v.position}), \$${v.auctionPrice}`
         }));
     const regressionData = chartData.map(v => [v.index, v.auctionPrice] as [number, number]);
-    const result = regression.exponential(regressionData);
+    const result = findBestRegression(regressionData);
     const withPredictions = chartData.map((v, i) => {
-        const prediction = Math.round(result.predict(i)[1]);
+        const prediction = predictPrice(result, i);
         const delta = prediction - v.auctionPrice;
         return {
              ...v,
@@ -23,11 +24,16 @@ const PlayerScatterChart : React.FC<{data: TableData[]}> = ({ data }) => {
         }
     });
     const referencePoints = result.points.map(p => ({ x: p[0], y: p[1] }));
+    const mse = meanSquaredError(withPredictions, d => d.auctionPrice, d => d.prediction)
+    const topMse = meanSquaredError(withPredictions.slice(0, 50), d => d.auctionPrice, d => d.prediction);
     console.log(referencePoints)
     console.log("Predictions: ", withPredictions[0])
+    console.log("MSE: ", mse)
+    console.log("Top 50 MSE: ", topMse);
 
     return <div className='flex flex-col w-full m-auto items-center justify-center'>
         <h2 className='text-xl'>Actual and Predicted Player Prices</h2>
+        <h2 className='text-lg'>Mean Squared Error = {mse} (Top 50 MSE: {topMse})</h2>
         <ResponsiveContainer width="90%" height={600}>
             <LineChart data={withPredictions}>
                 <CartesianGrid />
