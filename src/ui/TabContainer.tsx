@@ -11,24 +11,26 @@ export type TabContainerProps = {
 
 const TabContainer: React.FC<TabContainerProps> = ({ children }) => {
     const [selectedTab, setSelectedTab] = useState(0);
+    console.log('Selected tab:', selectedTab);
 
     const handleTabClick = (tab: number) => {
+    console.log('Selected tab:', tab);
         setSelectedTab(tab);
     };
+    // 
 
     return (
         <div className="flex flex-col w-full">
-            <div className="flex justify-around">
+            <div className="flex">
                 {children.map((child, i) => (
-                    <button
-                        key={`tab-${i}`}
+                    <div key={`tab-${i}`}
                         onClick={() => handleTabClick(i)}
-                        className={`border border-solid border-2 px-4 py-2 ${selectedTab === i ? 'font-bold border-sky-500' : 'border-black '}`} >
+                        className={`cursor-pointer border-4 rounded-lg px-4 py-2 -mb-0.5 ${selectedTab === i ? 'border-b-0 font-bold border-[blue]' : 'border-black '}`}>
                         {child.title}
-                    </button>))
+                    </div>))
                 }
             </div>
-            <div className="border border-solid border-8 border-white">
+            <div className="border-2">
                 {children.map((child, i) => ( selectedTab === i && <div key="active-tab" className='w-full'>{child.content}</div>))}
             </div>
         </div>
