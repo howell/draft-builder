@@ -14,10 +14,8 @@ const TabContainer: React.FC<TabContainerProps> = ({ children }) => {
     console.log('Selected tab:', selectedTab);
 
     const handleTabClick = (tab: number) => {
-    console.log('Selected tab:', tab);
         setSelectedTab(tab);
     };
-    // 
 
     return (
         <div className="flex flex-col w-auto">
