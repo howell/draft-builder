@@ -69,6 +69,10 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
                                                         ['position', 'Position'],
                                                         ['teamDrafted', 'Drafted By'],
                                                        ];
+    const positionGraphs = allPositions.map(position => {
+        const data = tableData.filter(player => player.position === position);
+        return { title: position, content: <PlayerScatterChart data={data} /> };
+    });
 
     return (
         <div className='flex flex-col'>
@@ -88,7 +92,8 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
                     <PlayerTable players={showing} columns={tableColumns} defaultSortColumn='auctionPrice' />
                 </div>
             </div>
-            <TabContainer children={[{title: 'All Players', content: <PlayerScatterChart data={tableData} />}]} />
+            <h1 className='text-2xl'>Price Analysis</h1>
+            <TabContainer children={[{title: 'All Players', content: <PlayerScatterChart data={tableData} />}, ...positionGraphs]} />
         </div>
     );
 };
