@@ -55,8 +55,8 @@ const CustomTooltip = ({ active, payload }: any) => {
         const player = payload[0].payload;
         return (
             <div className="p-2 bg-white">
-                <p className="label">{`${player.tooltip}`}</p>
-                {player.desc && <p className="desc">{player.desc}</p>}
+                <p className="text-black label">{`${player.tooltip}`}</p>
+                {player.desc && <p className="text-black desc">{player.desc}</p>}
             </div>
         );
     }
