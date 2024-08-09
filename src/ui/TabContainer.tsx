@@ -20,7 +20,7 @@ const TabContainer: React.FC<TabContainerProps> = ({ children }) => {
     // 
 
     return (
-        <div className="flex flex-col w-full">
+        <div className="flex flex-col w-auto">
             <div className="flex">
                 {children.map((child, i) => (
                     <div key={`tab-${i}`}

@@ -92,7 +92,7 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
                     <PlayerTable players={showing} columns={tableColumns} defaultSortColumn='auctionPrice' />
                 </div>
             </div>
-            <h1 className='text-2xl'>Price Analysis</h1>
+            <h1 className='text-center text-2xl'>Price Analysis</h1>
             <TabContainer children={[{title: 'All Players', content: <PlayerScatterChart data={tableData} />}, ...positionGraphs]} />
         </div>
     );
