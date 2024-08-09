@@ -54,7 +54,7 @@ const PlayerTable = <T extends object,>({
     };
 
     return (
-        <div className="table-container">
+        <div className="table-container border-2">
             <table >
                 <thead>
                     <tr>
