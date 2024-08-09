@@ -10,6 +10,7 @@ import ErrorScreen from '@/ui/ErrorScreen';
 import { SearchSettingsState } from '@/app/savedMockTypes';
 import SearchSettings from '../../mocks/SearchSettings';
 import CollapsibleComponent from '@/ui/Collapsible';
+import TabContainer from '@/ui/TabContainer';
 const PlayerScatterChart = dynamic(() => import('./PlayerScatterChart'), { ssr: false });
 
 export type TableData = {
@@ -87,7 +88,7 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
                     <PlayerTable players={showing} columns={tableColumns} defaultSortColumn='auctionPrice' />
                 </div>
             </div>
-            <PlayerScatterChart data={tableData} />
+            <TabContainer children={[{title: 'All Players', content: <PlayerScatterChart data={tableData} />}]} />
         </div>
     );
 };
