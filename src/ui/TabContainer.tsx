@@ -18,17 +18,18 @@ const TabContainer: React.FC<TabContainerProps> = ({ children }) => {
 
     return (
         <div className="flex flex-col w-full">
-            <div className="flex justify-around border-b">
+            <div className="flex justify-around">
                 {children.map((child, i) => (
                     <button
+                        key={`tab-${i}`}
                         onClick={() => handleTabClick(i)}
-                        className={`px-4 py-2 ${selectedTab === i ? 'font-bold border-b-2 border-blue-500' : ''}`} >
-                        child.title
+                        className={`border border-solid border-2 px-4 py-2 ${selectedTab === i ? 'font-bold border-sky-500' : 'border-black '}`} >
+                        {child.title}
                     </button>))
                 }
             </div>
-            <div className="mt-4">
-                {children.map((child, i) => ( selectedTab === i && <div className='w-full'>{child.content}</div>))}
+            <div className="border border-solid border-8 border-white">
+                {children.map((child, i) => ( selectedTab === i && <div key="active-tab" className='w-full'>{child.content}</div>))}
             </div>
         </div>
     );
