@@ -8,6 +8,7 @@ export function positionName(slotId: number): string {
         case 1: return 'QB';
         case 3: return 'WR';
         case 4: return 'TE';
+        case 5: return 'K';
         default: return slotCategoryIdToPositionMap[slotId];
     }
 }
