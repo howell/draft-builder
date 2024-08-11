@@ -1,8 +1,10 @@
 'use client'
 import { meanSquaredError } from '@/app/league/analytics';
 import { TableData } from './page';
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, Area, LineChart, Line, ResponsiveContainer, Label, Text, Legend } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, Area, LineChart, Line, ResponsiveContainer, Legend } from 'recharts';
 import { findBestRegression, predictPrice } from '@/app/league/analytics';
+import { Dot } from 'recharts';
+import { ReactElement } from 'react';
 
 const PlayerScatterChart : React.FC<{data: TableData[]}> = ({ data }) => {
     const chartData = data.sort((a, b) => b.auctionPrice - a.auctionPrice)
@@ -40,8 +42,8 @@ const PlayerScatterChart : React.FC<{data: TableData[]}> = ({ data }) => {
                 <XAxis dataKey="index" type="number" />
                 <YAxis />
                 <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-                <Line type="linear" dataKey="prediction" stroke="#8884d8" name="Predicted Price" dot={{ r: 2 }} />
-                <Line type="linear" dataKey="auctionPrice" stroke="#000000" name="Actual Price" dot={{ r: 2 }} />
+                <Line type="linear" dataKey="prediction" stroke="#8884d8" name="Predicted Price" dot={dotStyle} />
+                <Line type="linear" dataKey="auctionPrice" stroke="#000000" name="Actual Price" dot={{r: 1, fill: '#000000'}} />
                 <Legend />
             </LineChart>
         </ResponsiveContainer>
@@ -62,3 +64,30 @@ const CustomTooltip = ({ active, payload }: any) => {
     }
     return null;
 };
+
+function positionColors(position: string) : string {
+    switch (position) {
+        case 'QB':
+            return '#00ff00';
+        case 'RB':
+            return '#ff0000';
+        case 'WR':
+            return '#0000ff';
+        case 'TE':
+            return '#ffbd14';
+        default:
+            return '#000000';
+    }
+};
+
+function dotStyle(props: any) : ReactElement {
+    const { cx, cy, stroke, payload, value, fill, r, index, strokeWidth } = props; 
+    return (
+        <Dot cx={cx}
+            cy={cy}
+            r={3}
+            stroke={stroke}
+            fill={positionColors(props.payload.position)}
+            strokeWidth={strokeWidth} />
+      );
+} 
