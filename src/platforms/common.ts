@@ -1,3 +1,5 @@
+import { EspnAuth } from "./espn/league";
+
 export type Platform = 'espn' | 'yahoo' | 'sleeper';
 
 export function isPlatform(str: any): str is Platform {
@@ -11,6 +13,5 @@ export type PlatformLeague = {
 
 export type EspnLeague = PlatformLeague & {
     platform: 'espn';
-    swid?: string;
-    espnS2?: string;
+    auth?: EspnAuth;
 };

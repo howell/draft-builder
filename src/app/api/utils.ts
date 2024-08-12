@@ -37,10 +37,11 @@ export function makeResponse<T>(resp: T, status: number, cache: boolean = true, 
 }
 
 export function retrieveEspnAuthCookies(req: NextRequest): EspnAuth | undefined {
-    const swid = req.cookies.get('swid');
-    const espnS2 = req.cookies.get('espn_s2');
+    const params = req.nextUrl.searchParams;
+    const swid = decodeSearchParams<string>(params, 'swid');
+    const espnS2 = decodeSearchParams<string>(params, 'espnS2');
     if (swid && espnS2) {
-        return { swid: swid.value, espnS2: espnS2.value };
+        return { swid: swid, espnS2: espnS2 };
     }
     return undefined;
 }

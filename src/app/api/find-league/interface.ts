@@ -1,10 +1,7 @@
-import { Platform } from "@/platforms/common";
+import { PlatformLeague } from "@/platforms/common";
 
 export type FindLeagueRequest = {
-    platform: Platform;
-    leagueID: number;
-    swid?: string;
-    espnS2?: string;
+    league: PlatformLeague;
 }
 
 export type FindLeagueResponse = {

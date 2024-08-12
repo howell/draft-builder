@@ -116,3 +116,8 @@ export function loadLeagues(): StoredLeaguesData {
     }
     return storedLeagues;
 }
+
+export function loadLeague(leagueID: number): PlatformLeague | undefined {
+    const stored = loadLeagues();
+    return stored.leagues[leagueID];
+}

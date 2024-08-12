@@ -3,7 +3,7 @@ import { fetchLeagueInfo } from '@/platforms/espn/league';
 import { NextRequest, NextResponse } from 'next/server';
 import { FindLeagueRequest, FindLeagueResponse } from './interface';
 import { decodeSearchParams, makeResponse } from '@/app/api/utils';
-import { isPlatform } from "@/platforms/common";
+import { EspnLeague, isPlatform, PlatformLeague } from "@/platforms/common";
 import { CURRENT_SEASON } from '@/constants';
 
 export async function GET(req: NextRequest) {
@@ -11,13 +11,12 @@ export async function GET(req: NextRequest) {
     if (!body) {
         return makeResponse<FindLeagueResponse>({ status: 'Invalid request' }, 400);
     }
-    if (body.platform !== 'espn') {
+    if (body.league.platform !== 'espn') {
         return makeResponse<FindLeagueResponse>({ status: 'Unsupported platform' }, 400);
     }
-    const leagueID = body.leagueID;
-    const swid = body.swid && decodeURIComponent(body.swid);
-    const espn_s2 = body.espnS2 && decodeURIComponent(body.espnS2);
-    const auth = swid && espn_s2 ? { swid: swid, espnS2: espn_s2 } : undefined;
+    const league = body.league as EspnLeague;
+    const leagueID = league.id;
+    const auth = league.auth;
     const leagueInfo = await fetchLeagueInfo(leagueID, CURRENT_SEASON, auth);
     if (typeof leagueInfo === 'number') {
         return makeResponse<FindLeagueResponse>({ status: 'Failed to fetch league info' }, 404);
@@ -27,18 +26,12 @@ export async function GET(req: NextRequest) {
 }
 
 function decodeRequest(searchParams: URLSearchParams): FindLeagueRequest | undefined {
-    const platform = decodeSearchParams<string | undefined>(searchParams, 'platform');
-    const leagueID = parseInt(decodeSearchParams(searchParams, 'leagueID'));
-    const swid = decodeSearchParams<string | undefined>(searchParams, 'swid');
-    const espnS2 = decodeSearchParams<string | undefined>(searchParams, 'espnS2');
+    const league = decodeSearchParams<PlatformLeague | undefined>(searchParams, 'league');
 
-    if (!isPlatform(platform) || isNaN(leagueID)) {
+    if (!isPlatform(league?.platform) || !isPlatform(league?.platform) || typeof(league?.id) !== 'number') {
         return undefined;
     }
     return {
-        platform,
-        leagueID,
-        swid,
-        espnS2
-    }
+        league
+    };
 }

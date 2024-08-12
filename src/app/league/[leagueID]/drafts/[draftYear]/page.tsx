@@ -11,6 +11,7 @@ import { SearchSettingsState } from '@/app/savedMockTypes';
 import SearchSettings from '../../mocks/SearchSettings';
 import CollapsibleComponent from '@/ui/Collapsible';
 import TabContainer from '@/ui/TabContainer';
+import { loadLeague } from '@/app/localStorage';
 const PlayerScatterChart = dynamic(() => import('./PlayerScatterChart'), { ssr: false });
 
 export type TableData = {
@@ -118,7 +119,12 @@ async function fetchData(leagueID: number,
     setLoading: (loading: boolean) => void,
     setError: (error: string) => void) {
     try {
-        const client = new ApiClient('espn', leagueID);
+        const league = loadLeague(leagueID);
+        if (!league) {
+            setError('Could not load league; please try logging in again');
+            return;
+        }
+        const client = new ApiClient(league);
         const playerResponse = client.fetchPlayers(draftYear);
         const draftResponse = client.fetchDraft(draftYear);
         const teamsResponse = client.fetchLeagueTeams(draftYear, 0);

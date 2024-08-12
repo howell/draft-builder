@@ -1,8 +1,7 @@
-import { Platform } from "@/platforms/common";
+import { PlatformLeague } from "@/platforms/common";
 
 export type FetchLeagueHistoryRequest = {
-    platform: Platform;
-    leagueID: number;
+    league: PlatformLeague;
     startSeason: number;
 }
 

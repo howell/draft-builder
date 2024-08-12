@@ -3,19 +3,20 @@ import { fetchLeagueHistory } from '@/platforms/espn/league';
 import { NextRequest } from 'next/server';
 import { FetchLeagueHistoryRequest, FetchLeagueHistoryResponse } from './interface';
 import { decodeSearchParams, makeResponse, retrieveEspnAuthCookies } from '@/app/api/utils';
-import { isPlatform } from "@/platforms/common";
+import { EspnLeague, isPlatform, PlatformLeague } from "@/platforms/common";
 
 export async function GET(req: NextRequest) {
     const body = decodeRequest(req.nextUrl.searchParams);
     if (!body) {
         return makeResponse<FetchLeagueHistoryResponse>({ status: 'Invalid request' }, 400);
     }
-    if (body.platform !== 'espn') {
+    if (body?.league?.platform !== 'espn') {
         return makeResponse<FetchLeagueHistoryResponse>({ status: 'Unsupported platform' }, 400);
     }
-    const leagueID = body.leagueID;
+    const league = body.league as EspnLeague;
+    const leagueID = league.id
     const startSeason = body.startSeason;
-    const auth = retrieveEspnAuthCookies(req);
+    const auth = league.auth;
     const leagueInfo = await fetchLeagueHistory(leagueID, startSeason, auth);
     if (leagueInfo.size === 0) {
         return makeResponse<FetchLeagueHistoryResponse>({ status: `Failed to fetch league info: ${leagueInfo}` }, 404);
@@ -33,16 +34,14 @@ export async function GET(req: NextRequest) {
 }
 
 function decodeRequest(searchParams: URLSearchParams): FetchLeagueHistoryRequest | undefined {
-    const platform = decodeSearchParams<string | undefined>(searchParams, 'platform');
-    const leagueID = parseInt(decodeSearchParams(searchParams, 'leagueID'));
+    const league = decodeSearchParams<PlatformLeague | undefined>(searchParams, 'league');
     const startSeason = parseInt(decodeSearchParams(searchParams, 'startSeason'));
 
-    if (!isPlatform(platform) || isNaN(leagueID) || isNaN(startSeason)) {
+    if (!league || isNaN(startSeason) || !isPlatform(league?.platform) || typeof(league?.id) !== 'number') {
         return undefined;
     }
     return {
-        platform,
-        leagueID,
+        league,
         startSeason
     }
 

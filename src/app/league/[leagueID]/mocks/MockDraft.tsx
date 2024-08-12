@@ -9,6 +9,7 @@ import LoadingScreen, { LoadingTasks } from "@/ui/LoadingScreen";
 import ErrorScreen from "@/ui/ErrorScreen";
 import { CURRENT_SEASON } from "@/constants";
 import { findBestRegression } from "../../analytics";
+import { loadLeague } from "@/app/localStorage";
 
 export type MockDraftProps = {
     leagueId: string;
@@ -50,7 +51,12 @@ async function fetchData(leagueID: number,
     setLoading: (loading: boolean) => void,
     setLoadingTasks: (tasks: LoadingTasks) => void) {
     try {
-        const client = new ApiClient('espn', leagueID);
+        const league = loadLeague(leagueID);
+        if (!league) {
+            setError('Could not load league; please try logging in again');
+            return;
+        }
+        const client = new ApiClient(league);
         const playerResponse = client.fetchPlayers(CURRENT_SEASON);
         const leagueHistoryResponse = client.fetchLeagueHistory(CURRENT_SEASON);
 

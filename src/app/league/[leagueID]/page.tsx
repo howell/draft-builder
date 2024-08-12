@@ -1,5 +1,6 @@
 'use client';
 import ApiClient from '@/app/api/ApiClient';
+import { loadLeague } from '@/app/localStorage';
 import { compareLineupPositions, CURRENT_SEASON } from '@/constants';
 import { leagueLineupSettings } from "@/platforms/espn/utils";
 import ErrorScreen from '@/ui/ErrorScreen';
@@ -16,7 +17,12 @@ export default function LeaguePage({ params }: Readonly<{ params: { leagueID: st
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const client = new ApiClient('espn', leagueID);
+                const league = loadLeague(leagueID);
+                if (!league) {
+                    setError('Could not load league; please try logging in again');
+                    return;
+                }
+                const client = new ApiClient(league);
                 const request = client.fetchLeague(CURRENT_SEASON);
                 setLoadingTasks({ 'Fetching League': request });
                 const response = await request;

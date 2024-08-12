@@ -2,11 +2,11 @@
 import Sidebar from '@/ui/Sidebar';
 import styles from '@/ui/Sidebar.module.css';
 import { useState, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, redirect } from 'next/navigation';
 import ApiClient from '@/app/api/ApiClient';
 import { CURRENT_SEASON } from '@/constants';
 import { PlatformLeague } from '@/platforms/common';
-import { IN_PROGRESS_SELECTIONS_KEY, loadLeagues, loadSavedMocks } from '@/app/localStorage';
+import { IN_PROGRESS_SELECTIONS_KEY, loadLeague, loadLeagues, loadSavedMocks } from '@/app/localStorage';
 import Link from 'next/link';
 
 const NEW_MOCK_NAME = '##New##';
@@ -47,11 +47,17 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const client = new ApiClient('espn', leagueID);
-                const request = client.fetchLeagueHistory(CURRENT_SEASON);
-
                 const availableLeagues = loadLeagues();
                 setAvailableLeagues(Object.values(availableLeagues.leagues));
+
+                const league = availableLeagues.leagues[leagueID];
+                if (!league) {
+                    router.push('/');
+                    return;
+                }
+                const client = new ApiClient(league);
+                const request = client.fetchLeagueHistory(CURRENT_SEASON);
+
 
                 const resp = await request;
                 if (typeof resp === 'string') {

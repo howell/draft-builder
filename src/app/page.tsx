@@ -5,7 +5,7 @@ import CollapsibleComponent from '@/ui/Collapsible';
 import './page.css'
 import ApiClient from './api/ApiClient';
 import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
-import { EspnLeague, PlatformLeague } from '@/platforms/common';
+import { EspnLeague, Platform, PlatformLeague } from '@/platforms/common';
 import { activateLeague } from './navigation';
 import { loadLeagues, saveLeague } from './localStorage';
 import Sidebar from '../ui/Sidebar';
@@ -55,8 +55,11 @@ export default function Home() {
       const actualSwid = providedSwid === "" ? undefined : providedSwid;
       const actualEspnS2 = providedEspnS2 === "" ? undefined : providedEspnS2;
 
-      const client = new ApiClient('espn', parseInt(leagueID));
-      const request = client.findLeague(actualSwid && actualEspnS2 ? { swid, espnS2 } : undefined);
+      const id = parseInt(leagueID);
+      const auth = actualSwid && actualEspnS2 ? { swid: actualSwid, espnS2: actualEspnS2 } : undefined;
+      const league: EspnLeague = { platform: 'espn', id, auth };
+      const client = new ApiClient(league);
+      const request = client.findLeague();
       setLoadingTasks({ 'Finding League': request });
       const result = await request;
 
@@ -69,7 +72,6 @@ export default function Home() {
         return;
       }
 
-      const league: EspnLeague = { platform: 'espn', id: parseInt(leagueID), swid: actualSwid, espnS2: actualEspnS2 };
       saveLeague(league.id, league);
       activateLeague(league, router);
     } finally {
