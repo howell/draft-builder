@@ -43,6 +43,10 @@ export type StoredMocksData = {
 }
 
 export type StoredDraftData = {
+    year: number;
+    notes: string;
+    created: number;
+    modified: number;
     rosterSelections: RosterSelections;
     estimationSettings: EstimationSettingsState;
     searchSettings: SearchSettingsState;

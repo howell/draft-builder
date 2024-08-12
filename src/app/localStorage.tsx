@@ -2,6 +2,7 @@
 import { PlatformLeague } from '@/platforms/common';
 import { RosterSelections, StoredData, StoredMocksData, CURRENT_SCHEMA_VERSION, StoredDraftData, EstimationSettingsState, SearchSettingsState } from './savedMockTypes';
 import { StoredLeaguesData } from './savedLeagueTypes';
+import { CURRENT_SEASON } from '@/constants';
 
 export const IN_PROGRESS_SELECTIONS_KEY = '##IN_PROGRESS_SELECTIONS##';
 
@@ -62,13 +63,26 @@ export function loadDraftByName(leagueID: number, rosterName: string): StoredDra
 }
 
 
-export function saveSelectedRoster(leagueID: number, rosterName: string, rosterSelections: RosterSelections, estimationSettings: EstimationSettingsState, searchSettings: SearchSettingsState) {
+export function saveSelectedRoster(leagueID: number, rosterName: string, rosterSelections: RosterSelections, estimationSettings: EstimationSettingsState, searchSettings: SearchSettingsState, notes: string = '') {
     if (!isClient) return;
     const stored = loadSavedMocks(leagueID);
+    const prev = stored.drafts[rosterName];
+    const modified = Date.now();
+    const created = prev ? prev.created : modified;
+    const year = CURRENT_SEASON;
+    const mock: StoredDraftData = {
+        year,
+        created,
+        modified,
+        rosterSelections,
+        estimationSettings,
+        searchSettings,
+        notes
+    }
     const withRoster = {
         drafts: {
             ...stored.drafts,
-            [rosterName]: { rosterSelections, estimationSettings, searchSettings }
+            [rosterName]: mock
         }
     };
     saveMock(leagueID, withRoster);
