@@ -1,8 +1,7 @@
 'use client';
 import ApiClient from '@/app/api/ApiClient';
 import { loadLeague } from '@/app/localStorage';
-import { compareLineupPositions, CURRENT_SEASON } from '@/constants';
-import { leagueLineupSettings } from "@/platforms/espn/utils";
+import { CURRENT_SEASON } from '@/constants';
 import ErrorScreen from '@/ui/ErrorScreen';
 import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
 import { useState, useEffect } from 'react';
@@ -48,19 +47,9 @@ export default function LeaguePage({ params }: Readonly<{ params: { leagueID: st
     }
 
     return (
-        <div className="container">
-            <div className="flex min-h-screen flex-col items-center justify-between p-24">
-                <h1>Welcome to league {leagueInfo!.settings.name}!</h1>
-                <p>Here is some information about your league:</p>
-                <p>Lineup Settings:</p>
-                <ul>
-                    {Array.from(leagueLineupSettings(leagueInfo!))
-                        .sort(([positionA, _cA], [positionB, _cB]) => compareLineupPositions(positionA, positionB))
-                        .map(([position, count]) => (
-                            count > 0 ? <li key={position}>{position}: {count}</li> : null
-                        ))}
-                </ul>
-            </div>
+        <div className="flex min-h-screen flex-col items-center p-24">
+            <h1 className="text-2xl">Welcome to {leagueInfo!.settings.name}!</h1>
+            <p>Use the links on the side to explore the league's previous auctions and plan for the next.</p>
         </div>
     );
 }

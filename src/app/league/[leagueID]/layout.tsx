@@ -1,12 +1,11 @@
 'use client';
 import Sidebar from '@/ui/Sidebar';
-import styles from '@/ui/Sidebar.module.css';
 import { useState, useEffect } from 'react';
-import { useRouter, usePathname, redirect } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import ApiClient from '@/app/api/ApiClient';
 import { CURRENT_SEASON } from '@/constants';
 import { PlatformLeague } from '@/platforms/common';
-import { IN_PROGRESS_SELECTIONS_KEY, loadLeague, loadLeagues, loadSavedMocks } from '@/app/localStorage';
+import { IN_PROGRESS_SELECTIONS_KEY, loadLeagues, loadSavedMocks } from '@/app/localStorage';
 import Link from 'next/link';
 import CollapsibleComponent from '@/ui/Collapsible';
 
@@ -100,21 +99,19 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
             <Sidebar leagueID={leagueID}
                 availableLeagues={availableLeagues}>
 
-                <h2 className={styles.leagueHeading}><Link href={`/league/${leagueID}`}>{leagueName}</Link></h2>
-                <p />
-                <CollapsibleComponent label={<h2 className='text-xl'>Drafts</h2>}>
-                    <ul className={styles.yearList}>
+                <h2 className="text-xl"><Link href={`/league/${leagueID}`}>{leagueName}</Link></h2>
+                <CollapsibleComponent label={<h2 className='mt-2 text-xl'>Drafts</h2>}>
+                    <ul className="">
                         {prevAuctions.map((year) => (
-                            <li key={year} className={year === currentYear ? styles.activeYear : ''}>
+                            <li key={year} className={year === currentYear ? 'font-bold text-lg' : ''}>
                                 <Link href={`/league/${leagueID}/drafts/${year}`}>{year}</Link>
                             </li>
                         ))}
                     </ul>
                 </CollapsibleComponent>
-                <p />
-                <CollapsibleComponent label={<h2 className='text-xl'>Mocks</h2>}>
-                    <ul className={styles.mockList}>
-                        <li key="newMock" className={currentMock === NEW_MOCK_NAME ? styles.activeMock : ''}>
+                <CollapsibleComponent label={<h2 className='mt-2 text-xl'>Mocks</h2>}>
+                    <ul className=''>
+                        <li key="newMock" className={currentMock === NEW_MOCK_NAME ? 'font-bold text-lg' : ''}>
                             <Link href={`/league/${leagueID}/mocks`}>New</Link>
                         </li>
                         <ul>
@@ -123,7 +120,7 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
                                     <CollapsibleComponent label={year.toString()} >
                                         <ul>
                                             {drafts.map((draftName) => (
-                                                <li key={draftName} className={draftName === currentMock ? styles.activeMock : ''}>
+                                                <li key={draftName} className={draftName === currentMock ? 'font-bold text-lg' : ''}>
                                                     <Link href={`/league/${leagueID}/mocks/${encodeURIComponent(draftName)}`} >{draftName}</Link>
                                                 </li>
                                             ))}
