@@ -1,5 +1,4 @@
 import React from 'react';
-import './ErrorScreen.css'; // Import the CSS file for styling
 
 interface ErrorScreenProps {
   message: string;
@@ -7,9 +6,9 @@ interface ErrorScreenProps {
 
 const ErrorScreen: React.FC<ErrorScreenProps> = ({ message }) => {
   return (
-    <div className="error-screen">
-      <div className="error-content">
-        <h1>Oops! Something went wrong</h1>
+    <div className="justify-center items-center h-screen w-full bg-red-300 text-black">
+      <div className="text-center p-8">
+        <h1 className='text-2xl'>Oops! Something went wrong</h1>
         <p>{message}</p>
       </div>
     </div>
