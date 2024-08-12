@@ -2,16 +2,16 @@
 import PlayerTable from './PlayerTable';
 import { mergeDraftAndPlayerInfo, DraftedPlayer, positionName } from "@/platforms/espn/utils";
 import React, { useState, useEffect } from 'react';
-// Dynamically import PlayerScatterChart with no SSR
 import dynamic from 'next/dynamic';
 import ApiClient from '@/app/api/ApiClient';
-import LoadingScreen, { LoadingScreenProps, LoadingTasks } from '@/ui/LoadingScreen';
+import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
 import ErrorScreen from '@/ui/ErrorScreen';
 import { SearchSettingsState } from '@/app/savedMockTypes';
 import SearchSettings from '../../mocks/SearchSettings';
 import CollapsibleComponent from '@/ui/Collapsible';
 import TabContainer from '@/ui/TabContainer';
 import { loadLeague } from '@/app/localStorage';
+// Dynamically import PlayerScatterChart with no SSR
 const PlayerScatterChart = dynamic(() => import('./PlayerScatterChart'), { ssr: false });
 
 export type TableData = {
@@ -76,7 +76,7 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
     });
 
     return (
-        <div className='flex flex-col'>
+        <div className='w-full flex flex-col'>
             <div className='w-max flex flex-col items-center justify-center m-auto'>
                 <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>Your {draftYear} Draft Recap!</h1>
                 <div className='flex flex-col w-full items-start'>
@@ -93,8 +93,10 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
                     <PlayerTable players={showing} columns={tableColumns} defaultSortColumn='auctionPrice' />
                 </div>
             </div>
-            <h1 className='text-center text-2xl'>Price Analysis</h1>
-            <TabContainer children={[{title: 'All Players', content: <PlayerScatterChart data={tableData} />}, ...positionGraphs]} />
+            <div className='w-4/5 m-auto items-center'>
+                <h1 className='text-center text-2xl'>Price Analysis</h1>
+                <TabContainer children={[{ title: 'All Players', content: <PlayerScatterChart data={tableData} /> }, ...positionGraphs]} />
+            </div>
         </div>
     );
 };
