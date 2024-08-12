@@ -8,15 +8,14 @@ import { CURRENT_SEASON } from '@/constants';
 import { PlatformLeague } from '@/platforms/common';
 import { IN_PROGRESS_SELECTIONS_KEY, loadLeague, loadLeagues, loadSavedMocks } from '@/app/localStorage';
 import Link from 'next/link';
+import CollapsibleComponent from '@/ui/Collapsible';
 
 const NEW_MOCK_NAME = '##New##';
 
 const LeagueLayout = ({ children, params } : { children: React.ReactNode, params: {leagueID: string, draftYear?: string } }) => {
     const leagueID = parseInt(params.leagueID);
 
-	const [showDrafts, setShowDrafts] = useState(true);
-	const [showMocks, setShowMocks] = useState(true);
-    const [savedDraftNames, setSavedDraftNames] = useState<string[]>([]);
+    const [savedDraftNames, setSavedDraftNames] = useState<[number, string[]][]>([]);
     const currentYear = parseDraftYear(usePathname())
     const currentMock = parseMockName(usePathname())
 
@@ -25,15 +24,21 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
     const [availableLeagues, setAvailableLeagues] = useState<PlatformLeague[]>([]);
     const router = useRouter();
 
-    const toggleDrafts = () => { setShowDrafts(!showDrafts); };
-    const toggleMocks = () => { setShowMocks(!showMocks); };
-
     const updateSavedDraftNames = () => {
         const locallyStored = loadSavedMocks(leagueID);
         const savedDrafts = locallyStored.drafts;
-        const loadedDraftNames = Object.keys(savedDrafts).filter((draftName) => draftName !== IN_PROGRESS_SELECTIONS_KEY).sort();
-        if (!arraysEqual(savedDraftNames, loadedDraftNames)) {
-            setSavedDraftNames(loadedDraftNames);
+        delete savedDrafts[IN_PROGRESS_SELECTIONS_KEY];
+        const years = new Set(Object.values(savedDrafts).map((draft) => draft.year));
+        const prevDrafts: [number, string[]][] = [];
+        for (const year of years) {
+            const drafts = Object.entries(savedDrafts).
+                filter(([draftName, draftData]) => draftName !== IN_PROGRESS_SELECTIONS_KEY && draftData.year === year)
+                .map(([draftName, draftData]) => draftName);
+            prevDrafts.push([year, drafts]);
+        }
+        prevDrafts.sort((a, b) => a[0] - b[0]);
+        if (savedDraftNames.length !== prevDrafts.length) {
+            setSavedDraftNames(prevDrafts);
         }
     }
 
@@ -97,11 +102,7 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
 
                 <h2 className={styles.leagueHeading}><Link href={`/league/${leagueID}`}>{leagueName}</Link></h2>
                 <p />
-                <span onClick={toggleDrafts} className={`${styles.draftButton}`}>
-                    Drafts
-                    <i className={`fas ${showDrafts ? 'fa-chevron-down' : 'fa-chevron-up'} ${styles.showDraftsIcon}`} />
-                </span>
-                {showDrafts && (
+                <CollapsibleComponent label={<h2 className='text-xl'>Drafts</h2>}>
                     <ul className={styles.yearList}>
                         {prevAuctions.map((year) => (
                             <li key={year} className={year === currentYear ? styles.activeYear : ''}>
@@ -109,23 +110,32 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
                             </li>
                         ))}
                     </ul>
-                )}
+                </CollapsibleComponent>
                 <p />
-                <span onClick={toggleMocks} className={`${styles.draftButton}`}>
-                    Mocks
-                    <i className={`fas ${showMocks ? 'fa-chevron-down' : 'fa-chevron-up'} ${styles.showDraftsIcon}`} />
-                </span>
-                {showMocks &&
+                <CollapsibleComponent label={<h2 className='text-xl'>Mocks</h2>}>
                     <ul className={styles.mockList}>
                         <li key="newMock" className={currentMock === NEW_MOCK_NAME ? styles.activeMock : ''}>
                             <Link href={`/league/${leagueID}/mocks`}>New</Link>
                         </li>
-                        {savedDraftNames.map((draftName) => (
-                            <li key={draftName} className={draftName === currentMock ? styles.activeMock : ''}>
-                                <Link href={`/league/${leagueID}/mocks/${encodeURIComponent(draftName)}`} >{draftName}</Link>
-                            </li>
-                        ))}
-                    </ul>}
+                        <ul>
+                            {savedDraftNames.map(([year, drafts]) => (
+                                <li key={year}>
+                                    <CollapsibleComponent label={year.toString()} >
+                                        <ul>
+                                            {drafts.map((draftName) => (
+                                                <li key={draftName} className={draftName === currentMock ? styles.activeMock : ''}>
+                                                    <Link href={`/league/${leagueID}/mocks/${encodeURIComponent(draftName)}`} >{draftName}</Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </CollapsibleComponent>
+                                </li>
+                            ))
+
+                            }
+                        </ul>
+                    </ul>
+                </CollapsibleComponent>
             </Sidebar>
             <main>{children}</main>
         </div>
@@ -150,15 +160,4 @@ function parseMockName(pathname: string): string {
     } else {
         return NEW_MOCK_NAME;
     }
-}
-function arraysEqual(savedDraftNames: string[], loadedDraftNames: string[]): boolean {
-    if (savedDraftNames.length !== loadedDraftNames.length) {
-        return false;
-    }
-    for (let i = 0; i < savedDraftNames.length; i++) {
-        if (savedDraftNames[i] !== loadedDraftNames[i]) {
-            return false;
-        }
-    }
-    return true;
 }
