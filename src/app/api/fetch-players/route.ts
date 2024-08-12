@@ -2,7 +2,7 @@
 import { fetchAllPlayerInfo } from '@/platforms/espn/league';
 import { NextRequest } from 'next/server';
 import { FetchPlayersRequest, FetchPlayersResponse } from './interface';
-import { decodeSearchParams, makeResponse, retrieveEspnAuthCookies } from '@/app/api/utils';
+import { decodeSearchParams, makeResponse } from '@/app/api/utils';
 import { EspnLeague, isPlatform, Platform, PlatformLeague } from "@/platforms/common";
 
 export async function GET(req: NextRequest) {

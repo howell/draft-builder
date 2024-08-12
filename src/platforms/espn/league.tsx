@@ -1,19 +1,11 @@
 import axios from "axios";
 import { buildRoute } from "./api";
-// import { cookies } from 'next/headers';
 
 
 export type EspnAuth = {
     espnS2: string,
     swid: string
 }
-
-// export function loadAuthCookies() : EspnAuth | undefined {
-//     const cooks = cookies();
-//     const swid = cooks.get('swid');
-//     const espnS2 = cooks.get('espn_s2');
-//     return swid && espnS2 ? { swid: swid.value, espnS2: espnS2.value } : undefined;
-// }
 
 export function authCookies(auth?: EspnAuth): string {
     return `espn_s2=${auth?.espnS2 || ''}; SWID=${auth?.swid || ''}`;

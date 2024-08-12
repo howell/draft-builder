@@ -36,16 +36,6 @@ export function makeResponse<T>(resp: T, status: number, cache: boolean = true, 
     return new NextResponse(JSON.stringify(resp), { status: status, headers: headers });
 }
 
-export function retrieveEspnAuthCookies(req: NextRequest): EspnAuth | undefined {
-    const params = req.nextUrl.searchParams;
-    const swid = decodeSearchParams<string>(params, 'swid');
-    const espnS2 = decodeSearchParams<string>(params, 'espnS2');
-    if (swid && espnS2) {
-        return { swid: swid, espnS2: espnS2 };
-    }
-    return undefined;
-}
-
 export function decodeSearchParams<T>(params: URLSearchParams, key: string, defaultValue?: T) : T {
     return params.has(key) ? JSON.parse(params.get(key)! ?? '') : defaultValue;
 }
