@@ -11,8 +11,6 @@ export type TabContainerProps = {
 
 const TabContainer: React.FC<TabContainerProps> = ({ children }) => {
     const [selectedTab, setSelectedTab] = useState(0);
-    console.log('Selected tab:', selectedTab);
-
     const handleTabClick = (tab: number) => {
         setSelectedTab(tab);
     };
