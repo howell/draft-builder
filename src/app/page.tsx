@@ -2,10 +2,9 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from "react";
 import CollapsibleComponent from '@/ui/Collapsible';
-import './page.css'
 import ApiClient from './api/ApiClient';
 import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
-import { EspnLeague, Platform, PlatformLeague } from '@/platforms/common';
+import { EspnLeague, PlatformLeague } from '@/platforms/common';
 import { activateLeague } from './navigation';
 import { loadLeagues, saveLeague } from './localStorage';
 import Sidebar from '../ui/Sidebar';
@@ -87,7 +86,7 @@ export default function Home() {
     <main className="flex min-h-screen flex-col items-center p-24">
       {availableLeagues.length > 0 && <Sidebar availableLeagues={availableLeagues} />}
       <div className="flex flex-col">
-        <h1 className="league-id-header">To get started, enter your ESPN Fantasy Football league ID and click 'Submit'.</h1>
+        <h1 className="text-xl">To get started, enter your ESPN Fantasy Football league ID and click 'Submit'.</h1>
         <input
           className="w-full h-12 p-2 mt-4 text-black bg-white border border-gray-300 rounded-lg"
           type="text"
@@ -98,34 +97,18 @@ export default function Home() {
         <button onClick={handleSubmit} className="w-full p-2 mt-4 text-white bg-black border border-gray-300 rounded-lg">
           Submit
         </button>
-        <p />
-        <p />
 
-        <div className="margin-top-20">
-          <CollapsibleComponent label={<h2 className="private-league-header">Private League?</h2>}>
-            <div className="private-league-content">
+        <div className="mt-5">
+          <CollapsibleComponent label={<h2 className="">Private League?</h2>}>
+            <div className="flex flex-col items-start">
               <div>
                 <label>For private leagues, enter your ESPN_S2 and SWID:</label>
               </div>
-              <div className="private-league-input">
-                <label>ESPN_S2:</label>
-                <input
-                  className="w-90 h-12 p-2 mt-2 text-black bg-white border border-gray-300 rounded-lg"
-                  type="text"
-                  name="espn_s2"
-                  value={espnS2}
-                  onChange={(event) => setEspnS2(event.target.value)}
-                />
-              </div>
-              <div className="private-league-input">
-                <label>SWID:</label>
-                <input
-                  className="w-90 h-12 p-2 mt-2 text-black bg-white border border-gray-300 rounded-lg"
-                  type="text"
-                  name="swid"
-                  value={swid}
-                  onChange={(event) => setSwid(event.target.value)}
-                />
+              <div className="w-full grid grid-cols-8 gap-1 items-center justify-start">
+                <PrivateLeagueLabel label="ESPN_S2" />
+                <PrivateLeagueInput label="ESPN_S2" value={espnS2} onChange={setEspnS2} />
+                <PrivateLeagueLabel label="SWID" />
+                <PrivateLeagueInput label="SWID" value={swid} onChange={setSwid} />
               </div>
             </div>
           </CollapsibleComponent>
@@ -134,3 +117,27 @@ export default function Home() {
     </main>
   );
 }
+
+const PrivateLeagueLabel: React.FC<{ label: string }> = ({ label }) => {
+  return (
+    <label className='w-1/10 text-left'>{label}:</label>
+  );
+}
+
+type PrivateLeagueInputProps = {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+};
+
+const PrivateLeagueInput: React.FC<PrivateLeagueInputProps> = ({ label, value, onChange }) => {
+  return (
+    <input
+      className="col-span-7 h-12 p-2 mt-2 text-black bg-white border border-gray-300 rounded-lg"
+      type="text"
+      name={label}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
+};
