@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import './LoadingScreen.css'; // Import the CSS file for styling
 
 export type StatusChecker = () => boolean;
 export type TaskStatusChecker = Promise<any> | StatusChecker;
@@ -36,10 +35,10 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ tasks = {} }) => {
 		setCurrentMessage(nextMessage);
 	});
 	return (
-		<div className="loading-screen">
-			<div className="loading-spinner"></div>
-			<p>Loading...</p>
-			{currentMessage && <p>{currentMessage}</p>}
+		<div className="fixed inset-0 flex flex-col justify-center items-center bg-white bg-opacity-90 z-50">
+			<div className="border-8 border-gray-200 border-t-blue-500 rounded-full w-16 h-16 animate-spin" />
+			<p className="mt-5 text-lg text-gray-800">Loading...</p>
+			{currentMessage && <p className="mt-5 text-lg text-gray-800">{currentMessage}</p>}
 		</div>
 	);
 };
@@ -67,19 +66,4 @@ function setupTasks(tasks: LoadingTasks,
 	if (newTasks.size !== pendingTasks.size) {
 		setPendingTasks(pendingTasks);
 	}
-}
-
-function initializeTasks(tasks: { [key: string]: TaskStatusChecker }): Map<string, TaskStatusChecker> {
-	console.log('Initializing tasks:', tasks);
-	const taskMap = new Map<string, TaskStatusChecker>();
-	for (const [key, task] of Object.entries(tasks)) {
-		taskMap.set(key, task);
-		if (typeof task !== 'function') {
-			task.then(() => {
-				taskMap.delete(key);
-			});
-		}
-	}
-	console.log('Initialized tasks:', taskMap);
-	return taskMap;
 }
