@@ -52,6 +52,7 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
         const fetchData = async () => {
             try {
                 const availableLeagues = loadLeagues();
+                availableLeagues.leagues[12345] = { platform: 'espn', id: 12345};
                 setAvailableLeagues(Object.values(availableLeagues.leagues));
 
                 const league = availableLeagues.leagues[leagueID];

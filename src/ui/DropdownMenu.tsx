@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import styles from './DropdownMenu.module.css';
 
 interface DropdownMenuProps {
   options: { name: string, value: any  }[];
@@ -26,12 +25,16 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ options, selectedOption, on
         const handleKeyDown = (event: globalThis.KeyboardEvent) => {
             if (isOpen) {
                 if (event.key === 'ArrowDown') {
+                    event.preventDefault();
                     setHighlightedIndex((prevIndex) => (prevIndex + 1) % options.length);
                 } else if (event.key === 'ArrowUp') {
+                    event.preventDefault();
                     setHighlightedIndex((prevIndex) => (prevIndex - 1 + options.length) % options.length);
                 } else if (event.key === 'Enter' && highlightedIndex >= 0) {
+                    event.preventDefault();
                     handleSelect(options[highlightedIndex].name, options[highlightedIndex].value);
                 } else if (event.key === 'Escape') {
+                    event.preventDefault();
                     setIsOpen(false);
                 }
             }
@@ -47,25 +50,27 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ options, selectedOption, on
 
 
     return (
-        <div className={styles.dropdown}>
-            <div className={`${styles.selected}`}
+        <div className="relative inline-block w-full h-9 border border-gray-300 p-1">
+            <div className="w-full h-full p-2 cursor-pointer flex justify-between items-center"
                 onClick={() => setIsOpen(!isOpen)}
                 onBlur={() => setIsOpen(false)}>
                 {options.find(option => option.name === selectedOption)?.name || ''}
-                    <div className={`${styles.iconContainer}`}>
+                    <div className="absolute top-1 right-2">
                         <i className={`fas fa-chevron-down`} />
                     </div>
             </div>
             {isOpen && (
-                <ul className={styles.options}>
-                    {options.map(option => (
-                        <li key={option.name}
-                            className={highlightedIndex === options.indexOf(option) ? styles.highlighted : ''}
-                            onClick={() => handleSelect(option.name, option.value)}>
-                            {option.name}
-                        </li>
-                    ))}
-                </ul>
+                <div className="absolute top-full left-0 w-full border border-gray-300 bg-gray-800 z-50">
+                    <ul className="w-full max-h-52 overflow-y-auto">
+                        {options.map(option => (
+                            <li key={option.name}
+                                className={`p-1 cursor-pointer hover:bg-gray-500 ${highlightedIndex === options.indexOf(option) ? 'bg-gray-500' : ''}`}
+                                onClick={() => handleSelect(option.name, option.value)}>
+                                {option.name}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
             )}
         </div>
     );
