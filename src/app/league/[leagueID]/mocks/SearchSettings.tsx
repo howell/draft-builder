@@ -1,6 +1,5 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { SearchSettingsState } from '@/app/savedMockTypes';
-import './SearchSettings.css';
 
 export interface SearchSettingsProps {
     positions: string[];
@@ -55,57 +54,42 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
         <div>
             <div>
                 <h3>Positions</h3>
-                <div className='search-position-label-container'>
+                <div className='flex flex-wrap items-center min-w-fit max-w-full'>
                     {positions.map((position) => (
-                        <label key={position} className='search-position-label mr-2'>
+                        <SearchLabel label={position}>
                             <input
-                                className='search-position-checkbox'
+                                className='mr-2'
                                 type="checkbox"
                                 checked={currentSettings.positions.includes(position)}
                                 onChange={() => handlePositionToggle(position)}
                             />
                             {position}
-                        </label>
+                        </SearchLabel>
                     ))}
                 </div>
             </div>
             <div className="flex flex-wrap">
-                <div className='mr-2 mt-2 min-w-fit w-2/5 max-w-1/2'>
-                    <label className='search-position-label'>
+                <SearchContainer>
+                    <SearchLabel label='Min Price'>
                         Min Price
-                        <input
-                            className='search-number night-mode-text ml-2'
-                            type="number"
-                            min={0}
-                            value={currentSettings.minPrice}
-                            onChange={(e) => handleMinPriceChange(Number(e.target.value))}
-                        />
-                    </label>
-                </div>
-                <div className='mr-2 mt-2 min-w-fit w-2/5 max-w-1/2'>
-                    <label className='search-position-label'>
+                        <SearchNumber value={currentSettings.minPrice}
+                            onChange={handleMinPriceChange} />
+                    </SearchLabel>
+                </SearchContainer>
+                <SearchContainer>
+                    <SearchLabel label='Max Price'>
                         Max Price
-                        <input
-                            className='search-number night-mode-text ml-2'
-                            type="number"
-                            min={0}
-                            value={currentSettings.maxPrice}
-                            onChange={(e) => handleMaxPriceChange(Number(e.target.value))}
-                        />
-                    </label>
-                </div>
-                <div className='mr-2 mt-2 min-w-fit w-2/5 max-w-1/2'>
-                    <label className='search-position-label'>
+                        <SearchNumber value={currentSettings.maxPrice}
+                            onChange={handleMaxPriceChange} />
+                    </SearchLabel>
+                </SearchContainer>
+                <SearchContainer>
+                    <SearchLabel label='Players'>
                         Players
-                        <input
-                            className='search-number night-mode-text ml-2'
-                            type="number"
-                            min={0}
-                            value={currentSettings.playerCount}
-                            onChange={(e) => handlePlayerCountChange(Number(e.target.value))}
-                        />
-                    </label>
-                </div>
+                        <SearchNumber value={currentSettings.playerCount}
+                            onChange={handlePlayerCountChange} />
+                    </SearchLabel>
+                </SearchContainer>
             </div>
             {children}
         </div>
@@ -113,3 +97,28 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
 };
 
 export default SearchSettings;
+
+const SearchLabel: React.FC<{ label: string, children: ReactNode }> = ({ label, children }) => (
+    <label key={label}
+        className='inline-flex items-center whitespace-nowrap min-w-fit mr-2'>
+        {children}
+    </label>
+);
+
+const SearchContainer: React.FC<{ children: ReactNode }> = ({ children }) => (
+    <div className='mr-2 mt-2 min-w-fit w-2/5 max-w-1/2'>
+        {children}
+    </div>
+);
+
+const SearchNumber: React.FC<{ value: number, onChange: (value: number) => void }> = ({ value, onChange }) => (
+    <input
+        className='min-w-6 max-w-12 ml-2
+                   bg-slate-700
+                   text-white'
+        type="number"
+        min={0}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+    />
+);
