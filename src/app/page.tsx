@@ -102,14 +102,18 @@ export default function Home() {
           <CollapsibleComponent label={<h2 className="">Private League?</h2>}>
             <div className="flex flex-col items-start">
               <div>
-                <label>For private leagues, enter your ESPN_S2 and SWID:</label>
+                <label>For private leagues, enter your espn_S2 and SWID:</label>
               </div>
               <div className="w-full grid grid-cols-2 gap-1 items-center justify-start mt-2">
-                <PrivateLeagueLabel label="ESPN_S2" />
-                <PrivateLeagueInput label="ESPN_S2" value={espnS2} onChange={setEspnS2} />
+                <PrivateLeagueLabel label="espn_S2" />
+                <PrivateLeagueInput label="espn_S2" value={espnS2} onChange={setEspnS2} />
                 <PrivateLeagueLabel label="SWID" />
                 <PrivateLeagueInput label="SWID" value={swid} onChange={setSwid} />
               </div>
+              <p className='max-w-prose mt-2'>
+                To find your espn_S2 and SWID, log into ESPN Fantasy Football in your browser, open the developer tools, and look for the cookies associated with the ESPN website.
+                The espn_S2 cookie is the value you need for espn_S2, and the SWID cookie is the value you need for SWID.
+              </p>
             </div>
           </CollapsibleComponent>
         </div>
