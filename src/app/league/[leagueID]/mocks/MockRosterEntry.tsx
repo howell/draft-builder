@@ -1,5 +1,6 @@
 import React, { ReactNode, useEffect, useState, } from 'react';
 import { RosterSlot, CostEstimatedPlayer  } from '@/app/savedMockTypes';
+import { DarkLightText } from '@/ui/basicComponents';
 
 export interface MockRosterEntryProps {
     selectedPlayer?: CostEstimatedPlayer;
@@ -120,14 +121,6 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
     );
 }
 export default MockRosterEntry;
-
-const DarkLightText: React.FC<{ children: ReactNode }> = ({ children }) => {
-    return (
-        <span className="bg-slate-300 text-black dark:bg-slate-700 dark:text-white">
-            {children}
-        </span>
-    );
-}
 
 const CostButton: React.FC<{ onClick: () => void, children: ReactNode }> = ({ onClick, children }) => {
     return (
