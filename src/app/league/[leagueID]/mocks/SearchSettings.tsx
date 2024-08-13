@@ -56,7 +56,7 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
                 <h3>Positions</h3>
                 <div className='flex flex-wrap items-center min-w-fit max-w-full'>
                     {positions.map((position) => (
-                        <SearchLabel label={position}>
+                        <SearchLabel label={position} key={position}>
                             <input
                                 className='mr-1'
                                 type="checkbox"

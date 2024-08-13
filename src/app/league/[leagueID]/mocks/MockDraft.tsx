@@ -26,7 +26,7 @@ const MockDraft: React.FC<MockDraftProps> = ({ leagueId, draftName }) => {
 
     useEffect(() => {
         fetchData(leagueID, CURRENT_SEASON, setTableData, setError, setLoading, setLoadingTasks);
-    }, []);
+    }, [leagueID]);
 
     if (error) {
         return <ErrorScreen message={error} />;

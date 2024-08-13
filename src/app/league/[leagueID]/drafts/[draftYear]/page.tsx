@@ -45,7 +45,7 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
         const positions = Array.from(new Set(tableData.map(player => player.position)));
         setSearchSettings({ ...searchSettings, positions });
         setAllPositions(positions);
-    }, [tableData]);
+    }, [tableData, searchSettings]);
 
     useEffect(() => {
         const includePlayer = (p: TableData) => showPlayer(p, searchSettings);
@@ -95,7 +95,7 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
             </div>
             <div className='w-4/5 m-auto items-center'>
                 <h1 className='text-center text-2xl'>Price Analysis</h1>
-                <TabContainer children={[{ title: 'All Players', content: <PlayerScatterChart data={tableData} /> }, ...positionGraphs]} />
+                <TabContainer pages={[{ title: 'All Players', content: <PlayerScatterChart data={tableData} /> }, ...positionGraphs]} />
             </div>
         </div>
     );

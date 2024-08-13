@@ -29,29 +29,29 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
         
     }
 
-    const updateSavedDraftNames = () => {
-        const locallyStored = loadSavedMocks(leagueID);
-        const savedDrafts = locallyStored.drafts;
-        delete savedDrafts[IN_PROGRESS_SELECTIONS_KEY];
-        const years = new Set(Object.values(savedDrafts).map((draft) => draft.year));
-        const prevDrafts: [number, string[]][] = [];
-        for (const year of years) {
-            const drafts = Object.entries(savedDrafts).
-                filter(([draftName, draftData]) => draftName !== IN_PROGRESS_SELECTIONS_KEY && draftData.year === year)
-                .map(([draftName, draftData]) => draftName);
-            prevDrafts.push([year, drafts]);
-        }
-        prevDrafts.sort((a, b) => a[0] - b[0]);
-        if (savedDraftNames.length !== prevDrafts.length) {
-            setSavedDraftNames(prevDrafts);
-        }
-    }
-
     useEffect(() => {
+        const updateSavedDraftNames = () => {
+            const locallyStored = loadSavedMocks(leagueID);
+            const savedDrafts = locallyStored.drafts;
+            delete savedDrafts[IN_PROGRESS_SELECTIONS_KEY];
+            const years = new Set(Object.values(savedDrafts).map((draft) => draft.year));
+            const prevDrafts: [number, string[]][] = [];
+            for (const year of years) {
+                const drafts = Object.entries(savedDrafts).
+                    filter(([draftName, draftData]) => draftName !== IN_PROGRESS_SELECTIONS_KEY && draftData.year === year)
+                    .map(([draftName, draftData]) => draftName);
+                prevDrafts.push([year, drafts]);
+            }
+            prevDrafts.sort((a, b) => a[0] - b[0]);
+            if (savedDraftNames.length !== prevDrafts.length) {
+                setSavedDraftNames(prevDrafts);
+            }
+        }
+
         updateSavedDraftNames();
         const interval = setInterval(updateSavedDraftNames, 1000);
         return () => clearInterval(interval);
-    }, []);
+    }, [leagueID, savedDraftNames.length]);
 
 
     useEffect(() => {
@@ -99,7 +99,7 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
         };
 
         fetchData();
-    }, [leagueID]);
+    }, [leagueID, router]);
 
     return (
         <div className='flex flex-col md:flex-row'>

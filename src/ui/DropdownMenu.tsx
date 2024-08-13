@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 interface DropdownMenuProps {
   options: { name: string, value: any  }[];
@@ -10,10 +10,10 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ options, selectedOption, on
     const [isOpen, setIsOpen] = useState(false);
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
-    const handleSelect = (name: string, value: any) => {
+    const handleSelect = useCallback((name: string, value: any) => {
         onSelect(name, value);
         setIsOpen(false);
-    };
+    }, [onSelect, setIsOpen]);
 
     useEffect(() => {
         if (!isOpen) {
@@ -46,7 +46,7 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ options, selectedOption, on
                 window.removeEventListener('keydown', handleKeyDown);
             };
         }
-    }, [isOpen, highlightedIndex]);
+    }, [isOpen, highlightedIndex, handleSelect, options]);
 
 
     return (

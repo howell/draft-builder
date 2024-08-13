@@ -66,24 +66,24 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
             setSearchSettings(loadedDraft.searchSettings);
         }
         setFinishedLoading(true);
-    }, []);
+    }, [leagueId, draftName]);
 
     useEffect(() => {
         if (finishedLoading) {
             saveSelectedRoster(leagueId, IN_PROGRESS_SELECTIONS_KEY, rosterSelections, estimationSettings, searchSettings);
         }
-    }, [rosterSelections, estimationSettings, searchSettings]);
+    }, [leagueId, rosterSelections, estimationSettings, searchSettings, finishedLoading]);
 
 
     useEffect(() => {
         setBudgetSpent(calculateAmountSpent(costPredictor.predict, rosterSpots, selectedPlayers, costAdjustments))
     },
-        [costPredictor, selectedPlayers, costAdjustments]);
+        [costPredictor, selectedPlayers, costAdjustments, rosterSpots]);
 
     useEffect(() => {
         const nextCostEstimator = { predict: (player: MockPlayer) => predictCostWithSettings(player, estimationSettings, draftHistory) };
         setCostPredictor(nextCostEstimator);
-    }, [estimationSettings]);
+    }, [estimationSettings, draftHistory]);
 
     useEffect(() => {
         if (finishedLoading) {
@@ -97,7 +97,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
             });
             setRosterSelections(nextRosterSelections);
         }
-    }, [finishedLoading, costPredictor]);
+    }, [finishedLoading, costPredictor, rosterSelections]);
 
     useEffect(() => {
         const includePlayer = (p: MockPlayer) => playerAvailable(p, searchSettings, costPredictor, selectedPlayers, auctionBudget, budgetSpent);
@@ -105,7 +105,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
             .slice(0, searchSettings.playerCount)
             .map(p => ({ ...p, estimatedCost: costPredictor.predict(p) }));
         setAvailablePlayers(nextPlayers);
-    }, [costPredictor, searchSettings, playerDb, selectedPlayers, budgetSpent]);
+    }, [costPredictor, searchSettings, playerDb, selectedPlayers, budgetSpent, auctionBudget]);
 
     const onPlayerSelected = (rosterSlot: RosterSlot, player?: CostEstimatedPlayer) => {
         const serializedSlot = serializeRosterSlot(rosterSlot);

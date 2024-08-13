@@ -1,4 +1,4 @@
-import React, { ReactNode, useEffect, useState, } from 'react';
+import React, { ReactNode, useCallback, useEffect, useState, } from 'react';
 import { RosterSlot, CostEstimatedPlayer  } from '@/app/savedMockTypes';
 import { DarkLightText } from '@/ui/basicComponents';
 
@@ -28,16 +28,16 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
     }
 
 
-    const updateSelectedPlayer = (player?: CostEstimatedPlayer) => {
+    const updateSelectedPlayer = useCallback((player?: CostEstimatedPlayer) => {
         setInputValue(player ? player.name : '');
         onPlayerSelected(rosterSlot, player);
-    }
+    }, [setInputValue, onPlayerSelected, rosterSlot]);
 
-    const handleSuggestionClick = (suggestion: CostEstimatedPlayer) => {
+    const handleSuggestionClick = useCallback((suggestion: CostEstimatedPlayer) => {
         setInputValue(suggestion.name);
         updateSelectedPlayer(suggestion);
         setSuggestions([]);
-    };
+    }, [setInputValue, updateSelectedPlayer, setSuggestions]);
 
     useEffect(() => {
         const handleKeyDown = (event: globalThis.KeyboardEvent) => {

@@ -33,7 +33,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ tasks = {} }) => {
 			}
 		}
 		setCurrentMessage(nextMessage);
-	});
+	}, [currentMessage, pendingTasks, completedTasks]);
 	return (
 		<div className="fixed inset-0 flex flex-col justify-center items-center bg-white bg-opacity-90 z-50">
 			<div className="border-8 border-gray-200 border-t-blue-500 rounded-full w-16 h-16 animate-spin" />

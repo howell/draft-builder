@@ -72,8 +72,8 @@ const PlayerTable = <T extends object,>({
                                 <div className="flex justify-start items-center">
                                     {typeof name === 'string' ?
                                         <span >{name}</span> :
-                                        [<span className='inline md:hidden'>{name.shortName}</span>,
-                                            <span className='hidden md:inline'>{name.name}</span>]}
+                                        [<span key={name.shortName} className='inline md:hidden'>{name.shortName}</span>,
+                                            <span key={name.name} className='hidden md:inline'>{name.name}</span>]}
                                     {/* <span className="ml-2">
                                         {getSortClass(column) === 'after:content-["▲"]' ? '▲' : getSortClass(column) === 'after:content-["▼"]' ? '▼' : ''}
                                     </span> */}

@@ -86,7 +86,7 @@ export default function Home() {
     <main className="flex min-h-screen flex-col items-center p-24">
       {availableLeagues.length > 0 && <Sidebar availableLeagues={availableLeagues} />}
       <div className="flex flex-col">
-        <h1 className="text-xl">To get started, enter your ESPN Fantasy Football league ID and click 'Submit'.</h1>
+        <h1 className="text-xl">To get started, enter your ESPN Fantasy Football league ID and click Submit.</h1>
         <input
           className="w-full h-12 p-2 mt-4 text-black bg-white border border-gray-300 rounded-lg"
           type="text"

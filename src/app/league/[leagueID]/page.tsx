@@ -37,7 +37,7 @@ export default function LeaguePage({ params }: Readonly<{ params: { leagueID: st
             }
         };
         fetchData();
-    }, []);
+    }, [leagueID]);
 
     if (error) {
         return <ErrorScreen message={`Error loading league: ${error}`} />;
@@ -49,7 +49,7 @@ export default function LeaguePage({ params }: Readonly<{ params: { leagueID: st
     return (
         <div className="flex min-h-screen flex-col items-center p-12 m-auto">
             <h1 className="text-2xl mb-4">Welcome to {leagueInfo!.settings.name}!</h1>
-            <p>Use the links on the side to explore the league's previous auctions and plan for the next.</p>
+            <p>Use the links on the side to explore the previous auctions and plan for the next.</p>
         </div>
     );
 }
