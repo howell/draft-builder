@@ -1,6 +1,5 @@
 'use client'
 import React, { useState } from 'react';
-import './PlayerTable.css';
 
 type PlayerData<T extends object> = { id: any; } & T;
 
@@ -48,27 +47,42 @@ const PlayerTable = <T extends object,>({
 
     const getSortClass = (column: SortColumn) => {
         if (column === sortColumn) {
-            return sortDirection === 'asc' ? 'sort-asc' : 'sort-desc';
+            return sortDirection === 'asc' ? 'after:content-["▲"]' : 'after:content-["▼"]';
         }
         return '';
     };
 
     return (
-        <div className="table-container border-2">
-            <table >
+        <div className="mx-auto my-5 border-collapse w-auto max-h-[90dvh] overflow-y-auto overflow-x-hidden">
+            <table className="table-auto">
                 <thead>
                     <tr>
                         {columns.map(([column, name]) => (
-                            <th key={column.toString()} className={getSortClass(column)} onClick={() => handleSort(column)}>{name}</th>))}
+                            <th
+                                key={column.toString()}
+                                className={`mx-2 px-4 border-2 border-black bg-gray-300 p-2 text-left text-black cursor-pointer sticky top-0`}
+                                onClick={() => handleSort(column)}>
+                                <div className="flex justify-start items-center">
+                                    <span>{name}</span>
+                                    <span className="ml-2">
+                                        {getSortClass(column) === 'after:content-["▲"]' ? '▲' : getSortClass(column) === 'after:content-["▼"]' ? '▼' : ''}
+                                    </span>
+                                </div>
+                            </th>))}
                     </tr>
                 </thead>
                 <tbody>
                     {sortedData.map((item) => (
                         <tr key={item.id}
-                            className={onPlayerClick ? 'clickable' : ''}
+                            className={`even:bg-gray-300 even:text-gray-700 odd:bg-gray-700 odd:text-gray-300 ${onPlayerClick ? 'cursor-pointer' : ''}`}
                             onClick={() => onPlayerClick && onPlayerClick(item)}>
                             {columns.map(([column, _]) => (
-                                <td key={`${column.toString()} ${item.id}`}><div >{(item[column] as object).toString()}</div></td>))}
+                                <td key={`${column.toString()} ${item.id}`}
+                                    className={`border-2 border-black p-2 text-left whitespace-nowrap text-ellipsis `} >
+                                    <div>
+                                        {(item[column] as object).toString()}
+                                    </div>
+                                </td>))}
                         </tr>
                     ))}
                 </tbody>
