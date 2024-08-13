@@ -261,15 +261,16 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                     <PrimaryHeading>
                         Available Players
                     </PrimaryHeading>
-                    <div className='grid auto-cols-auto auto-rows-auto w-full'>
-                        <div className='items-start w-auto'>
-                            <CollapsibleComponent label='Search Settings'>
+                    <div className='grid grid-cols-2 w-full'>
+                        <div className='items-start w-1/2'>
+                            <CollapsibleComponent label={<h2 className='text-lg'>Search Settings</h2>}>
                                 <SearchSettings
                                     onSettingsChanged={onSettingsChanged}
                                     positions={playerPositions}
                                     currentSettings={searchSettings}>
                                     <SearchLabel label='Only Show Available Players'>
                                         <input
+                                            className='mr-1'
                                             type="checkbox"
                                             checked={searchSettings.showOnlyAvailable}
                                             onChange={() => handleShowingOnlyAvailableToggle()}
@@ -280,8 +281,8 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                                 </SearchSettings>
                             </CollapsibleComponent>
                         </div>
-                        <div className='items-start w-auto'>
-                            <CollapsibleComponent label='Estimation Settings'>
+                        <div className='items-start w-1/2'>
+                            <CollapsibleComponent label={<h2 className='text-lg'>Estimation Settings</h2>}>
                                 <EstimationSettings
                                     onEstimationSettingsChanged={onEstimationSettingsChanged}
                                     years={Array.from(draftHistory.keys())}

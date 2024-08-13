@@ -53,6 +53,7 @@ const EstimationSettings: React.FC<EstimationSettingsProps> = ({
                                        mr-4
                                        min-w-fit'>
                             <input
+                                className='mr-1'
                                 type="checkbox"
                                 checked={currentSettings.years.includes(year)}
                                 onChange={() => handleYearToggle(year)}
@@ -71,9 +72,9 @@ const EstimationSettings: React.FC<EstimationSettingsProps> = ({
                                    w-auto
                                    h-4
                                    rounded
-                                    bg-slate-700 dark:bg-slate-700
-                                     [&::-webkit-slider-runnable-track]:dark:bg-slate-700
-                                     opacity-80'
+                                   bg-slate-700 dark:bg-slate-700
+                                   [&::-webkit-slider-runnable-track]:dark:bg-slate-700
+                                   opacity-80'
                         type="range"
                         min={0}
                         max={100}

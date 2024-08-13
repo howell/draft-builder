@@ -58,7 +58,7 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
                     {positions.map((position) => (
                         <SearchLabel label={position}>
                             <input
-                                className='mr-2'
+                                className='mr-1'
                                 type="checkbox"
                                 checked={currentSettings.positions.includes(position)}
                                 onChange={() => handlePositionToggle(position)}
@@ -71,21 +71,21 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
             <div className="flex flex-wrap">
                 <SearchContainer>
                     <SearchLabel label='Min Price'>
-                        Min Price
+                        Min Price:
                         <SearchNumber value={currentSettings.minPrice}
                             onChange={handleMinPriceChange} />
                     </SearchLabel>
                 </SearchContainer>
                 <SearchContainer>
                     <SearchLabel label='Max Price'>
-                        Max Price
+                        Max Price:
                         <SearchNumber value={currentSettings.maxPrice}
                             onChange={handleMaxPriceChange} />
                     </SearchLabel>
                 </SearchContainer>
                 <SearchContainer>
                     <SearchLabel label='Players'>
-                        Players
+                        Players:
                         <SearchNumber value={currentSettings.playerCount}
                             onChange={handlePlayerCountChange} />
                     </SearchLabel>
@@ -106,7 +106,7 @@ export const SearchLabel: React.FC<{ label: string, children: ReactNode }> = ({ 
 );
 
 const SearchContainer: React.FC<{ children: ReactNode }> = ({ children }) => (
-    <div className='mr-2 mt-2 min-w-fit w-2/5 max-w-1/2'>
+    <div className='mr-2 mt-2 min-w-fit max-w-1/2'>
         {children}
     </div>
 );
@@ -114,8 +114,7 @@ const SearchContainer: React.FC<{ children: ReactNode }> = ({ children }) => (
 const SearchNumber: React.FC<{ value: number, onChange: (value: number) => void }> = ({ value, onChange }) => (
     <input
         className='min-w-6 max-w-12 ml-2
-                   bg-slate-700
-                   text-white'
+                   dark:bg-slate-700 dark:text-white'
         type="number"
         min={0}
         value={value}

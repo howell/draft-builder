@@ -74,7 +74,7 @@ const PlayerTable = <T extends object,>({
                 <tbody>
                     {sortedData.map((item) => (
                         <tr key={item.id}
-                            className={`even:bg-gray-300 even:text-gray-700 odd:bg-gray-700 odd:text-gray-300 ${onPlayerClick ? 'cursor-pointer' : ''}`}
+                            className={`even:bg-gray-300 even:text-black odd:bg-gray-700 odd:text-white ${onPlayerClick ? 'cursor-pointer' : ''}`}
                             onClick={() => onPlayerClick && onPlayerClick(item)}>
                             {columns.map(([column, _]) => (
                                 <td key={`${column.toString()} ${item.id}`}
