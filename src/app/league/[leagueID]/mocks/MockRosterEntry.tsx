@@ -1,6 +1,5 @@
-import React, { useEffect, useState, useRef, KeyboardEvent } from 'react';
-import './MockRosterEntry.css';
-import { RosterSlot, CostEstimatedPlayer  } from '@/app/types';
+import React, { ReactNode, useEffect, useState, } from 'react';
+import { RosterSlot, CostEstimatedPlayer  } from '@/app/savedMockTypes';
 
 export interface MockRosterEntryProps {
     selectedPlayer?: CostEstimatedPlayer;
@@ -43,11 +42,17 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
         const handleKeyDown = (event: globalThis.KeyboardEvent) => {
             if (suggestions.length > 0) {
                 if (event.key === 'ArrowDown') {
+                    event.preventDefault();
                     setHighlightedIndex((prevIndex) => (prevIndex + 1) % suggestions.length);
                 } else if (event.key === 'ArrowUp') {
+                    event.preventDefault();
                     setHighlightedIndex((prevIndex) => (prevIndex - 1 + suggestions.length) % suggestions.length);
                 } else if (event.key === 'Enter' && highlightedIndex >= 0) {
+                    event.preventDefault();
                     handleSuggestionClick(suggestions[highlightedIndex]);
+                } else if (event.key === 'Escape') {
+                    event.preventDefault();
+                    setSuggestions([]);
                 }
             }
         };
@@ -76,42 +81,65 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
         <tr >
             <td>{position}</td>
             <td>
-                <input
-                    className='player-name night-mode-text'
-                    type="text"
-                    value={inputValue}
-                    onFocus={() => onFocus(rosterSlot, true)}
-                    onChange={handleInputChange}
-                    onBlur={onBlur}
-                    placeholder="Search for a player..."
-                />
-
+                <DarkLightText>
+                    <input
+                        className="flex justify-start items-start h-7 bg-inherit text-inherit ml-2 pl-2 py-4"
+                        type="text"
+                        value={inputValue}
+                        onFocus={() => onFocus(rosterSlot, true)}
+                        onChange={handleInputChange}
+                        onBlur={onBlur}
+                        placeholder="Search for a player..."
+                    />
                 {suggestions.length > 0 && (
-                    <ul className="suggestions-list">
+                    <ul className="bg-inherit text-inherit absolute z-50">
                         {suggestions.map((suggestion) => (
                             <li
-                                className={`night-mode-text ${suggestion === suggestions[highlightedIndex] ? 'highlighted' : ''}`}
+                                className={`text-inherit cursor-pointer ${suggestion === suggestions[highlightedIndex] ? 'bg-slate-300' : 'bg-inherit '}`}
                                 key={suggestion.id}
                                 onClick={() => handleSuggestionClick(suggestion)}
-                                style={{ cursor: 'pointer' }}
                             >
                                 {suggestion.name}, {suggestion.defaultPosition} ({suggestion.estimatedCost})
                             </li>
                         ))}
                     </ul>
                 )}
+                </DarkLightText>
             </td>
             <td>
-                <div className="player-cost">
-                    <div className="cost-buttons">
-                        <button onClick={() => onCostAdjusted(rosterSlot, 1)}>+</button>
-                        <button onClick={() => onCostAdjusted(rosterSlot, -1)}>-</button>
+                <div className="flex justify-start items-center">
+                    <div className="flex flex-col items-center mr-1">
+                        <CostButton onClick={() => onCostAdjusted(rosterSlot, 1)}>+</CostButton>
+                        <CostButton onClick={() => onCostAdjusted(rosterSlot, -1)}>-</CostButton>
                     </div>
                     {costAdjustment + (selectedPlayer ? selectedPlayer.estimatedCost : 1)}
-                    {costAdjustment !== 0 && <span className="cost-adjustment">({costAdjustment})</span>}
+                    {costAdjustment !== 0 && <span className="">({costAdjustment > 0 ? `+${costAdjustment}` : costAdjustment})</span>}
                 </div>
             </td>
         </tr>
     );
 }
 export default MockRosterEntry;
+
+const DarkLightText: React.FC<{ children: ReactNode }> = ({ children }) => {
+    return (
+        <span className="bg-slate-300 text-black dark:bg-slate-700 dark:text-white">
+            {children}
+        </span>
+    );
+}
+
+const CostButton: React.FC<{ onClick: () => void, children: ReactNode }> = ({ onClick, children }) => {
+    return (
+        <button onClick={onClick}
+            className="bg-slate-200 text-black
+                       border
+                       text-xs
+                       w-3 h-3
+                       my-0.5
+                       flex justify-center items-center
+                       cursor-pointer">
+            {children}
+        </button>
+    );
+}
