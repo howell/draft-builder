@@ -1,13 +1,14 @@
 'use client'
 import React, { useState, useEffect } from 'react';
 import MockRosterEntry from './MockRosterEntry';
-import './MockTable.css';
 import PlayerTable from '../drafts/[draftYear]/PlayerTable';
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer, CostEstimatedPlayer, RosterSlot, RosterSelections, SearchSettingsState, EstimationSettingsState, StoredDraftData  } from '@/app/savedMockTypes';
 import { loadDraftByName, saveSelectedRoster, deleteRoster, IN_PROGRESS_SELECTIONS_KEY } from '@/app/localStorage';
-import SearchSettings from './SearchSettings';
+import SearchSettings, { SearchLabel } from './SearchSettings';
 import EstimationSettings from './EstimationSettings';
 import { compareLineupPositions } from '@/constants';
+import { DarkLightText } from '@/ui/basicComponents';
+import CollapsibleComponent from '@/ui/Collapsible';
 
 export interface MockTableProps {
     leagueId: number;
@@ -73,9 +74,6 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
         }
     }, [rosterSelections, estimationSettings, searchSettings]);
 
-
-    const toggleSearchSettings = () => setShowSearchSettings(!showSearchSettings);
-    const toggleEstimationSettings = () => setShowEstimationSettings(!showEstimationSettings);
 
     useEffect(() => {
         setBudgetSpent(calculateAmountSpent(costPredictor.predict, rosterSpots, selectedPlayers, costAdjustments))
@@ -201,9 +199,9 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
 
     return (
         <div className='MockTable'>
-            <div className="tables-container">
-                <div className="roster-container">
-                    <h1>Your Roster</h1>
+            <div className="flex justify-between p-2 mx-20">
+                <div className="">
+                    <PrimaryHeading>Your Roster</PrimaryHeading>
                     <table>
                         <thead>
                             <tr>
@@ -239,70 +237,66 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                         <p>Remaining: {auctionBudget - budgetSpent} </p>
                     </div>
                     <div>
-                        <input
-                            className="night-mode-text roster-name-input mt-2"
-                            type="text"
-                            value={rosterName}
-                            onChange={(e) => setRosterName(e.target.value)}
-                            placeholder="Enter roster name"
-                        />
-                        <button className="save-roster-button mt-2 ml-2" onClick={saveRosterSelections}>Save Roster</button>
+                        <DarkLightText>
+                            <input
+                                className="bg-inherit text-inherit text-lg mt-2 p-2 w-3/5 rounded-lg"
+                                type="text"
+                                value={rosterName}
+                                onChange={(e) => setRosterName(e.target.value)}
+                                placeholder="Enter roster name"
+                            />
+                        </DarkLightText>
+                        <MockButton onClick={saveRosterSelections} styles="mt-2 ml-2 text-white border-blue-600 bg-blue-600 hover:bg-blue-400">
+                            Save Roster
+                        </MockButton>
                     </div>
                     <div>
-                        <button className="reset-button mt-2" onClick={resetRoster}>Reset</button>
-                        <button className="delete-roster-button mt-2" onClick={deleteRosterSelections}> <i className="fas fa-trash"></i> </button>
+                        <ResetButton onClick={resetRoster} />
+                        <MockButton onClick={deleteRosterSelections} styles='border-red-600 bg-red-600 hover:bg-red-400 text-white mt-2 mx-2'>
+                            <i className="fas fa-trash" />
+                        </MockButton>
                     </div>
                 </div>
-                <div className='available-players-container'>
-                    <h1>Available Players</h1>
-                    <div className='settings-container'>
-                        <div className={`search-settings`}>
-                            <h3 className="clickable-heading" onClick={toggleSearchSettings}>
-                                Search Settings
-                                <i className={`fas ${showSearchSettings ? 'fa-chevron-down' : 'fa-chevron-up'}`} id="search-icon"></i>
-                            </h3>
-                            <div className={`${showSearchSettings ? '' : 'hidden'}`}>
+                <div className='flex flex-col items-start ml-16'>
+                    <PrimaryHeading>
+                        Available Players
+                    </PrimaryHeading>
+                    <div className='grid auto-cols-auto auto-rows-auto w-full'>
+                        <div className='items-start w-auto'>
+                            <CollapsibleComponent label='Search Settings'>
                                 <SearchSettings
                                     onSettingsChanged={onSettingsChanged}
                                     positions={playerPositions}
                                     currentSettings={searchSettings}>
-                                    <div>
-                                        <label className='search-position-label'>
-                                            <input
-                                                type="checkbox"
-                                                checked={searchSettings.showOnlyAvailable}
-                                                onChange={() => handleShowingOnlyAvailableToggle()}
-                                            />
-                                            Only Show Available Players
-                                        </label>
-                                    </div>
-                                    <button className="reset-button" onClick={resetSearchSettings}>Reset</button>
+                                    <SearchLabel label='Only Show Available Players'>
+                                        <input
+                                            type="checkbox"
+                                            checked={searchSettings.showOnlyAvailable}
+                                            onChange={() => handleShowingOnlyAvailableToggle()}
+                                        />
+                                        Only Show Available Players
+                                    </SearchLabel>
+                                    <ResetButton onClick={resetSearchSettings} />
                                 </SearchSettings>
-                            </div>
+                            </CollapsibleComponent>
                         </div>
-                        <div className={`estimation-settings`}>
-                            <h3 className="clickable-heading" onClick={toggleEstimationSettings}>
-                                Estimation Settings
-                                <i className={`fas ${showEstimationSettings ? 'fa-chevron-down' : 'fa-chevron-up'}`} id="search-icon"></i>
-                            </h3>
-                            <div className={`${showEstimationSettings ? '' : 'hidden'}`}>
+                        <div className='items-start w-auto'>
+                            <CollapsibleComponent label='Estimation Settings'>
                                 <EstimationSettings
                                     onEstimationSettingsChanged={onEstimationSettingsChanged}
                                     years={Array.from(draftHistory.keys())}
                                     currentSettings={estimationSettings} >
-                                    <button className="reset-button" onClick={resetEstimationSettings}>Reset</button>
+                                    <ResetButton onClick={resetEstimationSettings} />
                                 </EstimationSettings>
-                            </div>
+                            </CollapsibleComponent>
                         </div>
                     </div>
-                    <div className="mock-player-table-container">
                     <PlayerTable
                         players={availablePlayers}
                         columns={availablePlayerColumns}
                         onPlayerClick={onPlayerClick}
                         defaultSortColumn='estimatedCost'
                         defaultSortDirection='desc' />
-                    </div>
                 </div>
             </div>
         </div>
@@ -322,7 +316,7 @@ function playerAvailable(p: MockPlayer, searchSettings: SearchSettingsState, cos
         searchSettings.positions.includes(p.defaultPosition) &&
         cost >= searchSettings.minPrice &&
         cost <= searchSettings.maxPrice;
-} 
+}
 
 function predictCostWithSettings(player: MockPlayer, settings: EstimationSettingsState, draftHistory: Map<number, DraftAnalysis>) {
     const estimates = [];
@@ -373,12 +367,38 @@ function calculateAmountSpent(costEstimator: (player: MockPlayer) => number, ros
 
 type HasNumberProperty<T, K extends keyof T> = T[K] extends number ? T : never;
 
-function sum<T extends object, K extends keyof T>(values: HasNumberProperty<T,K>[], key: K): number;
+function sum<T extends object, K extends keyof T>(values: HasNumberProperty<T, K>[], key: K): number;
 function sum<T extends number>(values: T[]): number;
-function sum<T extends object, K extends keyof T>(values: (HasNumberProperty<T,K>[] | T[]), key?: K): number {
+function sum<T extends object, K extends keyof T>(values: (HasNumberProperty<T, K>[] | T[]), key?: K): number {
     if (key) {
         return values.reduce((a, b) => a + (b[key] as number), 0);
     } else {
         return values.reduce((a, b) => a as number + (b as unknown as number), 0);
     }
 }
+
+type MockButtonProps = {
+    onClick: () => void;
+    styles?: string;
+    children: React.ReactNode;
+};
+
+const MockButton: React.FC<MockButtonProps> = (props) => (
+    <button onClick={props.onClick}
+        className={'py-2 px-2 text-lg rounded-lg border-2 ' + (props.styles ?? '')}>
+        {props.children}
+    </button>
+);
+
+const ResetButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
+    <MockButton onClick={onClick}
+        styles="bg-white text-black hover:bg-gray-200
+                dark:bg-slate-700 dark:text-white dark:hover:bg-slate-500
+                mt-2">
+        Reset
+    </MockButton>
+);
+
+const PrimaryHeading: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <h1 className="text-2xl font-bold">{children}</h1>
+);

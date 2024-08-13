@@ -98,7 +98,7 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
 
 export default SearchSettings;
 
-const SearchLabel: React.FC<{ label: string, children: ReactNode }> = ({ label, children }) => (
+export const SearchLabel: React.FC<{ label: string, children: ReactNode }> = ({ label, children }) => (
     <label key={label}
         className='inline-flex items-center whitespace-nowrap min-w-fit mr-2'>
         {children}
