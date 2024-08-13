@@ -1,6 +1,5 @@
 import React from 'react';
 import { EstimationSettingsState } from '@/app/savedMockTypes';
-import './EstimationSettings.css';
 
 export interface EstimationSettingsProps {
     years: number[];
@@ -41,9 +40,18 @@ const EstimationSettings: React.FC<EstimationSettingsProps> = ({
         <div>
             <div>
                 <h3>Include Years:</h3>
-                <div className='year-label-container'>
+                <div className='flex
+                                flex-wrap
+                                items-center
+                                min-w-fit
+                                 '>
                     {years.map((year) => (
-                        <label key={year} className="year-label">
+                        <label key={year}
+                            className='inline-flex
+                                       items-center
+                                       whitespace-nowrap
+                                       mr-4
+                                       min-w-fit'>
                             <input
                                 type="checkbox"
                                 checked={currentSettings.years.includes(year)}
@@ -56,9 +64,16 @@ const EstimationSettings: React.FC<EstimationSettingsProps> = ({
             </div>
             <div>
                 <h3>Rank Weight:</h3>
-                <div className='horizontal-container weight-container'>
+                <div className='flex flex-row items-center gap-4'>
                     Overall
                     <input
+                        className='appearance-none
+                                   w-auto
+                                   h-4
+                                   rounded
+                                    bg-slate-700 dark:bg-slate-700
+                                     [&::-webkit-slider-runnable-track]:dark:bg-slate-700
+                                     opacity-80'
                         type="range"
                         min={0}
                         max={100}
