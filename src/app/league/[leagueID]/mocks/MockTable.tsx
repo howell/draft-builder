@@ -306,7 +306,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
 
 export default MockTable;
 
-function playerAvailable(p: MockPlayer, searchSettings: SearchSettingsState, costPredictor: CostPredictor, selectedPlayers: MockPlayer[], auctionBudget: number, budgetSpent: number): boolean {
+export function playerAvailable(p: MockPlayer, searchSettings: SearchSettingsState, costPredictor: CostPredictor, selectedPlayers: MockPlayer[], auctionBudget: number, budgetSpent: number): boolean {
     const cost = costPredictor.predict(p)
     let playerAvailable = true;
     if (searchSettings.showOnlyAvailable) {

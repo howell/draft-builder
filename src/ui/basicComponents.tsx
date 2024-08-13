@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import React, { ReactNode } from "react";
 
 export const DarkLightText: React.FC<{ children: ReactNode }> = ({ children }) => {
     return (
