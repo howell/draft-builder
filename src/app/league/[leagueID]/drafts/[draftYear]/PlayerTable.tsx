@@ -3,9 +3,11 @@ import React, { useState } from 'react';
 
 type PlayerData<T extends object> = { id: any; } & T;
 
+export type ColumnName = string | { name: string; shortName?: string };
+
 export interface PlayerTableProps<T extends object> {
     players: PlayerData<T>[];
-    columns: [(keyof T), string][];
+    columns: [(keyof T), ColumnName][];
     defaultSortColumn?: keyof T;
     defaultSortDirection?: 'asc' | 'desc';
     onPlayerClick?: (player: PlayerData<T>) => void;
@@ -53,20 +55,28 @@ const PlayerTable = <T extends object,>({
     };
 
     return (
-        <div className="mx-auto my-5 border-collapse w-auto max-h-[90dvh] overflow-y-auto overflow-x-hidden">
-            <table className="table-auto">
+        <div className="mx-auto my-5 border-collapse w-auto max-h-[90dvh] overflow-y-auto overflow-x-auto md:overflow-x-hidden">
+            <table className="table-auto w-full">
                 <thead>
                     <tr>
                         {columns.map(([column, name]) => (
                             <th
                                 key={column.toString()}
-                                className={`mx-2 px-4 border-2 border-black bg-gray-300 p-2 text-left text-black cursor-pointer sticky top-0`}
+                                className={`max-w-6 md:w-min md:max-w-fit mx-2 px-2 py-2 
+                                            sticky top-0
+                                            border-2 border-black
+                                            text-left cursor-pointer 
+                                             bg-gray-300 text-black
+                                             ${getSortClass(column)}`}
                                 onClick={() => handleSort(column)}>
                                 <div className="flex justify-start items-center">
-                                    <span>{name}</span>
-                                    <span className="ml-2">
+                                    {typeof name === 'string' ?
+                                        <span >{name}</span> :
+                                        [<span className='inline md:hidden'>{name.shortName}</span>,
+                                            <span className='hidden md:inline'>{name.name}</span>]}
+                                    {/* <span className="ml-2">
                                         {getSortClass(column) === 'after:content-["▲"]' ? '▲' : getSortClass(column) === 'after:content-["▼"]' ? '▼' : ''}
-                                    </span>
+                                    </span> */}
                                 </div>
                             </th>))}
                     </tr>

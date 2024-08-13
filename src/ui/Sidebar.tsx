@@ -27,7 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, availableLeagues = [], child
     };
 
     return (
-        <div className={`fixed top-0 left-0 h-full bg-gray-800 text-white transition-all ${isOpen ? 'w-48' : 'w-8'}`}>
+        <div className={`fixed z-50 top-0 left-0 h-fit md:h-full bg-gray-800 text-white transition-all ${isOpen ? 'pb-10 w-48' : 'w-8'}`}>
             <button onClick={toggleSidebar} className="absolute top-0 right-0">
                 <i className={`pr-2 pt-2 text-2xl text-red-600 fas ${isOpen ? 'fa-times' : 'fa-bars'}`} />
             </button>

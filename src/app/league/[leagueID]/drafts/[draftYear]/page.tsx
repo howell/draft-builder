@@ -1,5 +1,5 @@
 "use client";
-import PlayerTable from './PlayerTable';
+import PlayerTable, { ColumnName } from './PlayerTable';
 import { mergeDraftAndPlayerInfo, DraftedPlayer, positionName } from "@/platforms/espn/utils";
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
@@ -64,11 +64,11 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
 
     const resetSearchSettings = () => setSearchSettings(defaultSearchSettings);
 
-    const tableColumns: [keyof(TableData), string][] = [['numberDrafted', 'Nominated'],
-                                                        ['auctionPrice', 'Price'],
+    const tableColumns: [keyof(TableData), ColumnName][] = [['numberDrafted', {name: 'Nominated', shortName: '#'}],
+                                                        ['auctionPrice', {name: 'Price', shortName: '$'}],
                                                         ['name', 'Name'],
-                                                        ['position', 'Position'],
-                                                        ['teamDrafted', 'Drafted By'],
+                                                        ['position', {name: 'Position', shortName: 'Pos'}],
+                                                        ['teamDrafted', {name: 'Drafted By', shortName: 'To'}],
                                                        ];
     const positionGraphs = allPositions.map(position => {
         const data = tableData.filter(player => player.position === position);
@@ -76,10 +76,10 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
     });
 
     return (
-        <div className='w-full flex flex-col'>
-            <div className='w-max flex flex-col items-center justify-center m-auto'>
-                <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>Your {draftYear} Draft Recap!</h1>
-                <div className='flex flex-col w-full items-start'>
+        <div className='flex flex-col pl-4 mt-2'>
+            <div className='flex flex-col justify-center m-auto'>
+                <h1 className='text-left md:text-center text-2xl font-bold'>Your {draftYear} Draft Recap!</h1>
+                <div className='flex flex-col w-auto items-start'>
                     <div className='flex-start'>
                         <CollapsibleComponent label='Settings'>
                             <SearchSettings positions={allPositions} currentSettings={searchSettings} onSettingsChanged={setSearchSettings}>

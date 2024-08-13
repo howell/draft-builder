@@ -23,8 +23,8 @@ const PlayerScatterChart : React.FC<{data: TableData[]}> = ({ data }) => {
         return {
              ...v,
             prediction,
-            tooltip: `${i}: ${v.name} (${v.position}), \$${prediction}`,
-            desc: `actual: ${v.auctionPrice} (err=${delta})`
+            tooltip: `${i}: ${v.name} (${v.position}), \$${v.auctionPrice}`,
+            desc: `predicted: ${prediction} (err=${delta})`
         }
     });
     const referencePoints = result.points.map(p => ({ x: p[0], y: p[1] }));

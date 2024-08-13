@@ -96,7 +96,7 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
     }, [leagueID]);
 
     return (
-        <div>
+        <div className='flex flex-col md:flex-row'>
             <Sidebar leagueID={leagueID}
                 availableLeagues={availableLeagues}>
 
@@ -135,7 +135,7 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
                     </ul>
                 </CollapsibleComponent>
             </Sidebar>
-            <main>{children}</main>
+            <main className='flex-1 p-4'>{children}</main>
         </div>
     );
 };

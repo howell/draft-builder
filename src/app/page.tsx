@@ -104,7 +104,7 @@ export default function Home() {
               <div>
                 <label>For private leagues, enter your ESPN_S2 and SWID:</label>
               </div>
-              <div className="w-full grid grid-cols-8 gap-1 items-center justify-start">
+              <div className="w-full grid grid-cols-2 gap-1 items-center justify-start mt-2">
                 <PrivateLeagueLabel label="ESPN_S2" />
                 <PrivateLeagueInput label="ESPN_S2" value={espnS2} onChange={setEspnS2} />
                 <PrivateLeagueLabel label="SWID" />
@@ -133,7 +133,7 @@ type PrivateLeagueInputProps = {
 const PrivateLeagueInput: React.FC<PrivateLeagueInputProps> = ({ label, value, onChange }) => {
   return (
     <input
-      className="col-span-7 h-12 p-2 mt-2 text-black bg-white border border-gray-300 rounded-lg"
+      className="col-span-3 h-12 p-2 mt-2 text-black bg-white border border-gray-300 rounded-lg"
       type="text"
       name={label}
       value={value}

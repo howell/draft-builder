@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react';
 import MockRosterEntry from './MockRosterEntry';
-import PlayerTable from '../drafts/[draftYear]/PlayerTable';
+import PlayerTable, { ColumnName } from '../drafts/[draftYear]/PlayerTable';
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer, CostEstimatedPlayer, RosterSlot, RosterSelections, SearchSettingsState, EstimationSettingsState, StoredDraftData  } from '@/app/savedMockTypes';
 import { loadDraftByName, saveSelectedRoster, deleteRoster, IN_PROGRESS_SELECTIONS_KEY } from '@/app/localStorage';
 import SearchSettings, { SearchLabel } from './SearchSettings';
@@ -20,13 +20,13 @@ export interface MockTableProps {
     playerPositions: string[];
 }
 
-const availablePlayerColumns: [(keyof CostEstimatedPlayer), string][] = [
+const availablePlayerColumns: [(keyof CostEstimatedPlayer), ColumnName][] = [
     ['name', 'Player'],
-    ['defaultPosition', 'Position'],
-    ['overallRank', 'Overall Rank'],
-    ['positionRank', 'Position Rank'],
-    ['suggestedCost', 'Suggested Cost'],
-    ['estimatedCost', 'Estimated Cost'],
+    ['defaultPosition', {name: 'Position', shortName: 'Pos'}],
+    ['overallRank', {name: 'Overall Rank', shortName: 'Ovr'}],
+    ['positionRank', {name: 'Position Rank', shortName: 'PosR'}],
+    ['suggestedCost', {name: 'Suggested Cost', shortName: '$Sug'}],
+    ['estimatedCost', {name: 'Estimated Cost', shortName: '$Est'}],
 ];
 
 type CostPredictor = {
