@@ -23,8 +23,8 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
     const [leagueName, setLeagueName] = useState<string>('');
     const [availableLeagues, setAvailableLeagues] = useState<PlatformLeague[]>([]);
     const router = useRouter();
-    
-    if (leagueID === 781060 && Cookies.get('magic word') !== 'Sam') {
+
+    if (leagueID === 781060 && Cookies.get('magic word') !== process.env.NEXT_PUBLIC_MAGIC_WORD) {
         router.push('/newman.gif');
         
     }
