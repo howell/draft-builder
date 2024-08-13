@@ -8,6 +8,7 @@ import { PlatformLeague } from '@/platforms/common';
 import { IN_PROGRESS_SELECTIONS_KEY, loadLeagues, loadSavedMocks } from '@/app/localStorage';
 import Link from 'next/link';
 import CollapsibleComponent from '@/ui/Collapsible';
+import Cookies from 'js-cookie'; // Import the Cookies module
 
 const NEW_MOCK_NAME = '##New##';
 
@@ -22,6 +23,11 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
     const [leagueName, setLeagueName] = useState<string>('');
     const [availableLeagues, setAvailableLeagues] = useState<PlatformLeague[]>([]);
     const router = useRouter();
+    
+    if (leagueID === 781060 && Cookies.get('magic word') !== 'Sam') {
+        router.push('/newman.gif');
+        
+    }
 
     const updateSavedDraftNames = () => {
         const locallyStored = loadSavedMocks(leagueID);
