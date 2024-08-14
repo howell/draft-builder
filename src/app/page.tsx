@@ -9,6 +9,7 @@ import { activateLeague } from './navigation';
 import { loadLeagues, saveLeague } from './localStorage';
 import Sidebar from '../ui/Sidebar';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Home() {
   const [leagueID, setLeagueID] = useState("");
@@ -88,6 +89,9 @@ export default function Home() {
       {availableLeagues.length > 0 && <Sidebar availableLeagues={availableLeagues} />}
       <div className="flex flex-col">
         <h1 className="text-xl">To get started, enter your ESPN Fantasy Football league ID and click Submit.</h1>
+          <div className="mt-2 items-center max-w-prose">
+            Curious? Try the <Link href="/demo"><span className='text-sky-600'>demo</span></Link>.
+          </div>
         <input
           className="w-full h-12 p-2 mt-4 text-black bg-white border border-gray-300 rounded-lg"
           type="text"
@@ -111,15 +115,15 @@ export default function Home() {
                 <PrivateLeagueLabel label="SWID" />
                 <PrivateLeagueInput label="SWID" value={swid} onChange={setSwid} />
               </div>
-              <p className='max-w-prose mt-2'>
+              <div className='max-w-prose mt-2'>
                 To find your espn_S2 and SWID, log into ESPN Fantasy Football in your browser, open the developer tools, and look for the cookies associated with the ESPN website.
-                The espn_S2 cookie is the value you need for espn_S2, and the SWID cookie is the value you need for SWID.
-              </p>
+                The espn_S2 cookie is the value you need for espn_S2, and the SWID cookie is the value you need for SWID. The gif below shows how to find these values in Chrome.
+                <div className="mt-4">
+                  <Image src="/find-cookies.gif" alt="How to find espn_S2 and SWID in Chrome" width={1920} height={1247} />
+                </div>
+              </div>
             </div>
           </CollapsibleComponent>
-          <div className="mt-10 items-center max-w-prose">
-            Curious? Try the <Link href="/demo"><span className='text-sky-600'>demo</span></Link>.
-          </div>
         </div>
       </div>
     </main>
