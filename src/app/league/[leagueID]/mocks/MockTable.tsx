@@ -23,7 +23,7 @@ export interface MockTableProps {
 const availablePlayerColumns: [(keyof CostEstimatedPlayer), ColumnName][] = [
     ['name', 'Player'],
     ['defaultPosition', {name: 'Position', shortName: 'Pos'}],
-    ['overallRank', {name: 'Overall Rank', shortName: 'Ovr'}],
+    ['overallRank', {name: 'Overall Rank', shortName: 'OvrR'}],
     ['positionRank', {name: 'Position Rank', shortName: 'PosR'}],
     ['suggestedCost', {name: 'Suggested Cost', shortName: '$Sug'}],
     ['estimatedCost', {name: 'Estimated Cost', shortName: '$Est'}],
@@ -198,20 +198,19 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
 
 
     return (
-        <div className='MockTable'>
-            <div className="flex justify-between p-2 mx-20">
-                <div className="">
-                    <PrimaryHeading>Your Roster</PrimaryHeading>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Position</th>
-                                <th>Player</th>
-                                <th>Cost</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {Array.from(positions.entries())
+        <div className="flex flex-col md:flex-row justify-between gap-8 p-2 mx-auto">
+            <div className="md:ml-8">
+                <PrimaryHeading>Your Roster</PrimaryHeading>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Position</th>
+                            <th>Player</th>
+                            <th>Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {Array.from(positions.entries())
                             .sort(([positionA, _cA], [positionB, _cB]) => compareLineupPositions(positionA, positionB))
                             .flatMap(([position, count]) =>
                                 Array.from({ length: count }, (_, i) => {
@@ -230,75 +229,74 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                                     />
                                 })
                             )}
-                        </tbody>
-                    </table>
-                    <div>
-                        <p>Budget: {auctionBudget} </p>
-                        <p>Remaining: {auctionBudget - budgetSpent} </p>
+                    </tbody>
+                </table>
+                <div>
+                    <p>Budget: {auctionBudget} </p>
+                    <p>Remaining: {auctionBudget - budgetSpent} </p>
+                </div>
+                <div>
+                    <DarkLightText>
+                        <input
+                            className="bg-inherit text-inherit text-lg mt-2 p-2 gap-8 w-auto rounded-lg"
+                            type="text"
+                            value={rosterName}
+                            onChange={(e) => setRosterName(e.target.value)}
+                            placeholder="Enter roster name"
+                        />
+                    </DarkLightText>
+                    <MockButton onClick={saveRosterSelections} styles="mt-2 text-white border-blue-600 bg-blue-600 hover:bg-blue-400">
+                        Save Roster
+                    </MockButton>
+                </div>
+                <div>
+                    <ResetButton onClick={resetRoster} />
+                    <MockButton onClick={deleteRosterSelections} styles='border-red-600 bg-red-600 hover:bg-red-400 text-white mt-2 mx-2'>
+                        <i className="fas fa-trash" />
+                    </MockButton>
+                </div>
+            </div>
+            <div className='flex flex-col items-start '>
+                <PrimaryHeading>
+                    Available Players
+                </PrimaryHeading>
+                <div className='grid grid-cols-2 w-full'>
+                    <div className='items-start w-1/2'>
+                        <CollapsibleComponent label={<h2 className='text-lg'>Search Settings</h2>}>
+                            <SearchSettings
+                                onSettingsChanged={onSettingsChanged}
+                                positions={playerPositions}
+                                currentSettings={searchSettings}>
+                                <SearchLabel label='Only Show Available Players'>
+                                    <input
+                                        className='mr-1'
+                                        type="checkbox"
+                                        checked={searchSettings.showOnlyAvailable}
+                                        onChange={() => handleShowingOnlyAvailableToggle()}
+                                    />
+                                    Only Show Available Players
+                                </SearchLabel>
+                                <ResetButton onClick={resetSearchSettings} />
+                            </SearchSettings>
+                        </CollapsibleComponent>
                     </div>
-                    <div>
-                        <DarkLightText>
-                            <input
-                                className="bg-inherit text-inherit text-lg mt-2 p-2 w-3/5 rounded-lg"
-                                type="text"
-                                value={rosterName}
-                                onChange={(e) => setRosterName(e.target.value)}
-                                placeholder="Enter roster name"
-                            />
-                        </DarkLightText>
-                        <MockButton onClick={saveRosterSelections} styles="mt-2 ml-2 text-white border-blue-600 bg-blue-600 hover:bg-blue-400">
-                            Save Roster
-                        </MockButton>
-                    </div>
-                    <div>
-                        <ResetButton onClick={resetRoster} />
-                        <MockButton onClick={deleteRosterSelections} styles='border-red-600 bg-red-600 hover:bg-red-400 text-white mt-2 mx-2'>
-                            <i className="fas fa-trash" />
-                        </MockButton>
+                    <div className='items-start w-1/2'>
+                        <CollapsibleComponent label={<h2 className='text-lg'>Estimation Settings</h2>}>
+                            <EstimationSettings
+                                onEstimationSettingsChanged={onEstimationSettingsChanged}
+                                years={Array.from(draftHistory.keys())}
+                                currentSettings={estimationSettings} >
+                                <ResetButton onClick={resetEstimationSettings} />
+                            </EstimationSettings>
+                        </CollapsibleComponent>
                     </div>
                 </div>
-                <div className='flex flex-col items-start ml-16'>
-                    <PrimaryHeading>
-                        Available Players
-                    </PrimaryHeading>
-                    <div className='grid grid-cols-2 w-full'>
-                        <div className='items-start w-1/2'>
-                            <CollapsibleComponent label={<h2 className='text-lg'>Search Settings</h2>}>
-                                <SearchSettings
-                                    onSettingsChanged={onSettingsChanged}
-                                    positions={playerPositions}
-                                    currentSettings={searchSettings}>
-                                    <SearchLabel label='Only Show Available Players'>
-                                        <input
-                                            className='mr-1'
-                                            type="checkbox"
-                                            checked={searchSettings.showOnlyAvailable}
-                                            onChange={() => handleShowingOnlyAvailableToggle()}
-                                        />
-                                        Only Show Available Players
-                                    </SearchLabel>
-                                    <ResetButton onClick={resetSearchSettings} />
-                                </SearchSettings>
-                            </CollapsibleComponent>
-                        </div>
-                        <div className='items-start w-1/2'>
-                            <CollapsibleComponent label={<h2 className='text-lg'>Estimation Settings</h2>}>
-                                <EstimationSettings
-                                    onEstimationSettingsChanged={onEstimationSettingsChanged}
-                                    years={Array.from(draftHistory.keys())}
-                                    currentSettings={estimationSettings} >
-                                    <ResetButton onClick={resetEstimationSettings} />
-                                </EstimationSettings>
-                            </CollapsibleComponent>
-                        </div>
-                    </div>
-                    <PlayerTable
-                        players={availablePlayers}
-                        columns={availablePlayerColumns}
-                        onPlayerClick={onPlayerClick}
-                        defaultSortColumn='estimatedCost'
-                        defaultSortDirection='desc' />
-                </div>
+                <PlayerTable
+                    players={availablePlayers}
+                    columns={availablePlayerColumns}
+                    onPlayerClick={onPlayerClick}
+                    defaultSortColumn='estimatedCost'
+                    defaultSortDirection='desc' />
             </div>
         </div>
     );

@@ -18,13 +18,13 @@ export default function Demo() {
   }, []);
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-24">
-          {availableLeagues.length > 0 && <Sidebar availableLeagues={availableLeagues} />}
-          <MockTable {...demoTableProps} />
-          <div className="flex flex-col">
-          </div>
-      </main>
-  );
+        <div className='flex flex-col md:flex-row'>
+            {availableLeagues.length > 0 && <Sidebar availableLeagues={availableLeagues} />}
+            <main className="flex-1 p-4">
+                <MockTable {...demoTableProps} />
+            </main>
+        </div>
+    );
 }
 
 const demoRoster = new Map([['QB', 1], ['RB', 2], ['WR', 2], ['TE', 1], ['FLEX', 1]]);

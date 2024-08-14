@@ -62,7 +62,7 @@ const PlayerTable = <T extends object,>({
                         {columns.map(([column, name]) => (
                             <th
                                 key={column.toString()}
-                                className={`max-w-6 md:w-min md:max-w-fit mx-2 px-2 py-2 
+                                className={`max-w-fit md:w-min md:max-w-fit mx-2 px-2 py-2 
                                             sticky top-0
                                             border-2 border-black
                                             text-left cursor-pointer 
