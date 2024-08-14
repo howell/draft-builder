@@ -343,6 +343,10 @@ function costPredictions(player: MockPlayer, analysis: DraftAnalysis): [number, 
     const positionName = player.defaultPosition;
     const overallPrediction = predictExponential(player.overallRank, analysis.overall);
     const coeffs = analysis.positions.get(positionName) as ExponentialCoefficients;
+    if (!coeffs) {
+        // this can happen when positions in the league (e.g. kickers) change from year to year
+        return [overallPrediction, overallPrediction];
+    }
     const positionPrediction = predictExponential(player.positionRank, coeffs);
     return [overallPrediction, positionPrediction];
 }
