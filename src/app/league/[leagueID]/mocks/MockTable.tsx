@@ -56,8 +56,6 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     const [rosterSlots, _setRosterSlots] = useState<RosterSlot[]>(computeRosterSlots(positions));
     const [rosterSpots, _setRosterSpots] = useState(rosterSlots.length);
 
-    // console.log("Mock Players", playerDb);
-
     useEffect(() => { 
         const loadedDraft = loadStoredDraftData(leagueId, draftName);
         if (loadedDraft && loadedDraft.rosterSelections && loadedDraft.estimationSettings && loadedDraft.searchSettings) {
@@ -319,7 +317,6 @@ export function playerAvailable(p: MockPlayer, searchSettings: SearchSettingsSta
         searchSettings.positions.includes(p.defaultPosition) &&
         cost >= searchSettings.minPrice &&
         cost <= searchSettings.maxPrice;
-    // console.log("Player Available", p, ans, cost);
     return ans;
 }
 
