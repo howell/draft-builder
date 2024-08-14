@@ -106,7 +106,8 @@ function positionColors(position: string): string {
 function dotStyle(props: any): ReactElement {
     const { cx, cy, stroke, payload, value, fill, r, index, strokeWidth } = props;
     return (
-        <Dot cx={cx}
+        <Dot key={`dot-${index}`}
+            cx={cx}
             cy={cy}
             r={3}
             stroke={stroke}
