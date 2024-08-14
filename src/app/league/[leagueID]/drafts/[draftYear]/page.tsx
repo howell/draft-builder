@@ -100,7 +100,7 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
             </div>
             <div className='w-4/5 m-auto items-center'>
                 <h1 className='text-center text-2xl'>Price Analysis</h1>
-                <TabContainer pages={[{ title: 'All Players', content: <PlayerScatterChart data={tableData} /> }, ...positionGraphs]} />
+                <TabContainer pages={positionGraphs} />
             </div>
         </div>
     );
@@ -175,10 +175,11 @@ async function fetchData(leagueID: number,
         setSearchSettings(settings);
         setDefaultSearchSettings(settings);
         setAllPositions(positions);
-        const positionGraphs = positions.map(position => {
+        let positionGraphs = positions.map(position => {
             const data = tableData.filter(player => player.position === position);
             return { title: position, content: <PlayerScatterChart data={data} /> };
         });
+        positionGraphs = [{ title: 'All Players', content: <PlayerScatterChart data={tableData} /> }, ...positionGraphs];
         setPositionGraphs(positionGraphs);
     } catch (error: any) {
         setError(error.message);

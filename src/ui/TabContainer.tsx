@@ -27,7 +27,12 @@ const TabContainer: React.FC<TabContainerProps> = ({ pages }) => {
                 }
             </div>
             <div className="border-2">
-                {pages.map((child, i) => ( selectedTab === i && <div key="active-tab" className='w-full'>{child.content}</div>))}
+                {pages.map((child, i) =>
+                     ( selectedTab === i &&
+                      <div key={`tab-${i}`} className='w-full'>
+                        {child.content}
+                    </div>
+                ))}
             </div>
         </div>
     );
