@@ -69,7 +69,7 @@ const includedPlayers: DemoPlayer[] = [
     {id: 20, name: 'Kyle Pitts', defaultPosition: 'TE', positions: ['TE', 'FLEX'], suggestedCost: 15 },
 ];
 
-includedPlayers.sort((a, b) => a.suggestedCost - b.suggestedCost);
+includedPlayers.sort((a, b) => b.suggestedCost - a.suggestedCost);
 
 const positionOrder = new Map<string, DemoPlayer[]>();
 for (const player of includedPlayers) {
