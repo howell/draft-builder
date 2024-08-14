@@ -8,6 +8,7 @@ import { EspnLeague, PlatformLeague } from '@/platforms/common';
 import { activateLeague } from './navigation';
 import { loadLeagues, saveLeague } from './localStorage';
 import Sidebar from '../ui/Sidebar';
+import Link from 'next/link';
 
 export default function Home() {
   const [leagueID, setLeagueID] = useState("");
@@ -116,6 +117,9 @@ export default function Home() {
               </p>
             </div>
           </CollapsibleComponent>
+          <div className="mt-10 items-center max-w-prose">
+            Curious? Try the <Link href="/demo"><span className='text-sky-600'>demo</span></Link>.
+          </div>
         </div>
       </div>
     </main>

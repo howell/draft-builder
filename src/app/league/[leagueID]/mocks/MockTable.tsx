@@ -56,6 +56,8 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     const [rosterSlots, _setRosterSlots] = useState<RosterSlot[]>(computeRosterSlots(positions));
     const [rosterSpots, _setRosterSpots] = useState(rosterSlots.length);
 
+    // console.log("Mock Players", playerDb);
+
     useEffect(() => { 
         const loadedDraft = loadStoredDraftData(leagueId, draftName);
         if (loadedDraft && loadedDraft.rosterSelections && loadedDraft.estimationSettings && loadedDraft.searchSettings) {
@@ -217,7 +219,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                                     const slotName = serializeRosterSlot(rosterSlot);
                                     return <MockRosterEntry
                                         rosterSlot={{ position, index: i }}
-                                        selectedPlayer={rosterSelections[slotName]}
+                                        selectedPlayer={costAdjustedRosterSelections[slotName]}
                                         key={slotName}
                                         players={availablePlayers}
                                         position={position}
@@ -315,10 +317,12 @@ export function playerAvailable(p: MockPlayer, searchSettings: SearchSettingsSta
         const playerSelected = selectedPlayers.find(sp => sp.id === p.id);
         playerAvailable = !playerSelected && (costPredictor.predict(p) <= auctionBudget - budgetSpent)
     }
-    return playerAvailable &&
+    const ans = playerAvailable &&
         searchSettings.positions.includes(p.defaultPosition) &&
         cost >= searchSettings.minPrice &&
         cost <= searchSettings.maxPrice;
+    // console.log("Player Available", p, ans, cost);
+    return ans;
 }
 
 function predictCostWithSettings(player: MockPlayer, settings: EstimationSettingsState, draftHistory: Map<number, DraftAnalysis>) {
