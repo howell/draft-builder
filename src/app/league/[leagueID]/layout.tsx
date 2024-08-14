@@ -25,7 +25,7 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
     const router = useRouter();
 
     if (leagueID === 781060 && Cookies.get('magic word') !== process.env.NEXT_PUBLIC_MAGIC_WORD) {
-        router.push('/newman.gif');
+        router.replace('/newman.gif');
         
     }
 
