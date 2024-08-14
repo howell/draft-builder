@@ -1,5 +1,5 @@
 import { MockPlayer, SearchSettingsState } from '@/app/savedMockTypes';
-import { playerAvailable } from './MockTable';
+import { playerAvailable, calculateAmountSpent, computeRosterSlots   } from './MockTable';
 
 describe('playerAvailable', () => {
     const mockPlayer: MockPlayer = {
@@ -115,5 +115,103 @@ describe('playerAvailable', () => {
         );
 
         expect(result).toBe(false);
+    });
+});
+
+describe('computeRosterSlots', () => {
+    it('should return an array of roster slots based on positions', () => {
+        const positions = new Map<string, number>([
+            ['QB', 1],
+            ['RB', 2],
+            ['WR', 3],
+        ]);
+
+        const expectedRosterSlots = [
+            { position: 'QB', index: 0 },
+            { position: 'RB', index: 0 },
+            { position: 'RB', index: 1 },
+            { position: 'WR', index: 0 },
+            { position: 'WR', index: 1 },
+            { position: 'WR', index: 2 },
+        ];
+
+        const rosterSlots = computeRosterSlots(positions);
+
+        expect(rosterSlots).toEqual(expectedRosterSlots);
+    });
+
+    it('should return an empty array when positions map is empty', () => {
+        const positions = new Map<string, number>();
+
+        const rosterSlots = computeRosterSlots(positions);
+
+        expect(rosterSlots).toEqual([]);
+    });
+});
+
+describe('calculateAmountSpent', () => {
+    const mockCostEstimator = jest.fn((player: MockPlayer) => player.suggestedCost);
+
+    it('should calculate the correct amount spent when there are no selected players and no adjustments', () => {
+        const rosterSpots = 10;
+        const selectedPlayers: MockPlayer[] = [];
+        const adjustments = new Map<string, number>();
+
+        const result = calculateAmountSpent(mockCostEstimator, rosterSpots, selectedPlayers, adjustments);
+
+        expect(result).toBe(rosterSpots);
+    });
+
+    it('should calculate the correct amount spent when there are selected players and no adjustments', () => {
+        const rosterSpots = 10;
+        const selectedPlayers = [
+            { id: 1, suggestedCost: 20 },
+            { id: 2, suggestedCost: 30 },
+            { id: 3, suggestedCost: 40 },
+        ] as MockPlayer[];
+        const adjustments = new Map<string, number>();
+
+        const result = calculateAmountSpent(mockCostEstimator, rosterSpots, selectedPlayers, adjustments);
+
+        const expectedCost = selectedPlayers.reduce((total, player) => total + mockCostEstimator(player), 0);
+        const unusedCost = rosterSpots - selectedPlayers.length;
+        expect(result).toBe(expectedCost + unusedCost);
+    });
+
+    it('should calculate the correct amount spent when there are adjustments', () => {
+        const rosterSpots = 10;
+        const selectedPlayers: MockPlayer[] = [];
+        const adjustments = new Map<string, number>([
+            ['QB', 5],
+            ['RB', 10],
+            ['WR', -5],
+        ]);
+
+        const result = calculateAmountSpent(mockCostEstimator, rosterSpots, selectedPlayers, adjustments);
+
+        const expectedCost = rosterSpots + adjustments.get('QB')! + adjustments.get('RB')! + adjustments.get('WR')!;
+        expect(result).toBe(expectedCost);
+    });
+
+    it('should calculate the correct amount spent when there are selected players and adjustments', () => {
+        const rosterSpots = 10;
+        const selectedPlayers = [
+            { id: 1, suggestedCost: 20 },
+            { id: 2, suggestedCost: 30 },
+            { id: 3, suggestedCost: 40 },
+        ] as MockPlayer[];
+        const adjustments = new Map<string, number>([
+            ['QB', 5],
+            ['RB', 10],
+            ['WR', -5],
+        ]);
+
+        const result = calculateAmountSpent(mockCostEstimator, rosterSpots, selectedPlayers, adjustments);
+
+        const selectedPlayersCost = selectedPlayers.reduce((total, player) => total + player.suggestedCost, 0);
+        const adjustmentsCost = adjustments.get('QB')! + adjustments.get('RB')! + adjustments.get('WR')!;
+        const unusedCost = rosterSpots - selectedPlayers.length;
+        const expectedCost = unusedCost + selectedPlayersCost + adjustmentsCost;
+        expect(result).toBe(expectedCost);
     });
 });

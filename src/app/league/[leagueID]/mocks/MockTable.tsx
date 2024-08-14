@@ -364,7 +364,7 @@ function loadStoredDraftData(leagueID: number, draftName: string | undefined): S
     return loadDraftByName(leagueID, name);
 }
 
-function calculateAmountSpent(costEstimator: (player: MockPlayer) => number, rosterSpots: number, selectedPlayers: MockPlayer[], adjustments: Map<string, number>): number {
+export function calculateAmountSpent(costEstimator: (player: MockPlayer) => number, rosterSpots: number, selectedPlayers: MockPlayer[], adjustments: Map<string, number>): number {
     const unSelectedCost = rosterSpots - selectedPlayers.length;
     const selectionsCost = sum(selectedPlayers.map(costEstimator));
     const costAdjustments = sum(Array.from(adjustments.values()));
