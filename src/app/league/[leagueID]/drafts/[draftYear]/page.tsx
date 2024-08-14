@@ -9,7 +9,7 @@ import ErrorScreen from '@/ui/ErrorScreen';
 import { SearchSettingsState } from '@/app/savedMockTypes';
 import SearchSettings from '../../mocks/SearchSettings';
 import CollapsibleComponent from '@/ui/Collapsible';
-import TabContainer from '@/ui/TabContainer';
+import TabContainer, { TabChild } from '@/ui/TabContainer';
 import { loadLeague } from '@/app/localStorage';
 // Dynamically import PlayerScatterChart with no SSR
 const PlayerScatterChart = dynamic(() => import('./PlayerScatterChart'), { ssr: false });
@@ -23,6 +23,13 @@ export type TableData = {
     position: string;
 };
 
+const tableColumns: [keyof(TableData), ColumnName][] = [
+    ['numberDrafted', { name: 'Nominated', shortName: '#' }],
+    ['auctionPrice', { name: 'Price', shortName: '$' }],
+    ['name', 'Name'],
+    ['position', { name: 'Position', shortName: 'Pos' }],
+    ['teamDrafted', { name: 'Drafted By', shortName: 'To' }],
+];
 
 const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: string} }>) => {
     const leagueID = parseInt(params.leagueID);
@@ -34,17 +41,26 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
     const [tableData, setTableData] = useState<TableData[]>([]);
     const [showing, setShowing] = useState<TableData[]>([]);
     const [allPositions, setAllPositions] = useState<string[]>([]);
-    const defaultSearchSettings: SearchSettingsState = { positions: allPositions, playerCount: 200, minPrice: 1, maxPrice: 999, showOnlyAvailable: true };
+    const [defaultSearchSettings, setDefaultSearchSettings] = useState<SearchSettingsState>({ positions: allPositions, playerCount: 200, minPrice: 1, maxPrice: 999, showOnlyAvailable: true });
     const [searchSettings, setSearchSettings] = useState<SearchSettingsState>(defaultSearchSettings);
+    const [positionGraphs, setPositionGraphs] = useState<TabChild[]>([]);
+
 
     useEffect(() => {
-        fetchData(leagueID, draftYear, setLoadingTasks, setTableData, setLoading, setError);
+        fetchData(leagueID,
+            draftYear,
+            defaultSearchSettings,
+            setLoadingTasks,
+            setTableData,
+            setLoading,
+            setError,
+            setAllPositions,
+            setSearchSettings,
+            setDefaultSearchSettings,
+            setPositionGraphs);
     }, [leagueID, draftYear]);
 
     useEffect(() => {
-        const positions = Array.from(new Set(tableData.map(player => player.position)));
-        setSearchSettings({ ...searchSettings, positions });
-        setAllPositions(positions);
     }, [tableData, searchSettings]);
 
     useEffect(() => {
@@ -63,17 +79,6 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
     }
 
     const resetSearchSettings = () => setSearchSettings(defaultSearchSettings);
-
-    const tableColumns: [keyof(TableData), ColumnName][] = [['numberDrafted', {name: 'Nominated', shortName: '#'}],
-                                                        ['auctionPrice', {name: 'Price', shortName: '$'}],
-                                                        ['name', 'Name'],
-                                                        ['position', {name: 'Position', shortName: 'Pos'}],
-                                                        ['teamDrafted', {name: 'Drafted By', shortName: 'To'}],
-                                                       ];
-    const positionGraphs = allPositions.map(position => {
-        const data = tableData.filter(player => player.position === position);
-        return { title: position, content: <PlayerScatterChart data={data} /> };
-    });
 
     return (
         <div className='flex flex-col pl-4 mt-2'>
@@ -116,10 +121,15 @@ function makeTableRow(data: DraftedPlayer): TableData {
 
 async function fetchData(leagueID: number,
     draftYear: number,
+    defaultSearchSettings: SearchSettingsState,
     setLoadingTasks: (tasks: LoadingTasks) => void,
     setTableData: (data: TableData[]) => void,
     setLoading: (loading: boolean) => void,
-    setError: (error: string) => void) {
+    setError: (error: string) => void,
+    setAllPositions: (positions: string[]) => void,
+    setSearchSettings: (settings: SearchSettingsState) => void,
+    setDefaultSearchSettings: (settings: SearchSettingsState) => void,
+    setPositionGraphs: (graphs: TabChild[]) => void) {
     try {
         const league = loadLeague(leagueID);
         if (!league) {
@@ -159,7 +169,17 @@ async function fetchData(leagueID: number,
 
         const resultData = mergeDraftAndPlayerInfo(draftData.data!.draftDetail.picks, playerData.data!.players, teamsData.data!.teams);
         const tableData = resultData.map(makeTableRow);
+        const positions = Array.from(new Set(tableData.map(player => player.position)));
+        const settings = { ...defaultSearchSettings, positions };
         setTableData(tableData);
+        setSearchSettings(settings);
+        setDefaultSearchSettings(settings);
+        setAllPositions(positions);
+        const positionGraphs = positions.map(position => {
+            const data = tableData.filter(player => player.position === position);
+            return { title: position, content: <PlayerScatterChart data={data} /> };
+        });
+        setPositionGraphs(positionGraphs);
     } catch (error: any) {
         setError(error.message);
     } finally {
