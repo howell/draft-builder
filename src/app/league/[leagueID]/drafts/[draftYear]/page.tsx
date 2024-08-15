@@ -98,7 +98,7 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
                     <PlayerTable players={showing} columns={tableColumns} defaultSortColumn='auctionPrice' />
                 </div>
             </div>
-            <div className='w-4/5 m-auto items-center'>
+            <div className='w-[90dvw] m-auto items-center'>
                 <h1 className='text-center text-2xl'>Price Analysis</h1>
                 <TabContainer pages={positionGraphs} />
             </div>

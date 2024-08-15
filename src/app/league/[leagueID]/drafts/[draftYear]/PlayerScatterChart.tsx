@@ -26,7 +26,7 @@ const PlayerScatterChart : React.FC<{data: TableData[]}> = ({ data }) => {
                 </div>
                 <div className='flex flex-col w-full m-auto items-center justify-center'>
                     <h2 className='text-xl'>Actual and Predicted Player Prices</h2>
-                    <h2 className='text-lg'>Mean Squared Error = {chartData.mse} (Top 50 MSE: {chartData.topMse})</h2>
+                    <h2 className='text-lg'>Mean Squared Error = {truncateFloat(chartData.mse, 2)} (Top 50 MSE: {truncateFloat(chartData.topMse, 2)})</h2>
                 </div>
             </div>
             <ResponsiveContainer width="90%" height={600}>
@@ -129,4 +129,9 @@ const NumberInput = ({ name, value, onChange }: { name: string, value: number, o
             />
         </div>
     )
+}
+
+export function truncateFloat(value: number, places: number): number {
+    const factor = Math.pow(10, places);
+    return Math.floor(value * factor) / factor;
 }
