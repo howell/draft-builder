@@ -41,7 +41,7 @@ const EstimationSettings: React.FC<EstimationSettingsProps> = ({
         <div>
             <div>
                 <h3>
-                    <Tooltip content='The estimated price is based on the results of these drafts'>
+                    <Tooltip text='The estimated price is based on the results of these drafts'>
                         Include Years:
                     </Tooltip>
                 </h3>
@@ -70,7 +70,7 @@ const EstimationSettings: React.FC<EstimationSettingsProps> = ({
             </div>
             <div>
                 <h3>
-                    <Tooltip content='Determines if the estimate is based on the overall rank of a player or their rank within their position (say, RB6 vs RB18).'>
+                    <Tooltip text='Determines if the estimate is based on the overall rank of a player or their rank within their position (say, RB6 vs RB18).'>
                         Rank Weight:
                     </Tooltip>
                 </h3>

@@ -106,7 +106,7 @@ const ColumnHeader: React.FC<{name: ColumnName}> = ({ name }) => {
     if (typeof name === 'string') {
         return <span >{name}</span>;
     }
-    const withTooltip = (nm: String) => name.tooltip ? <Tooltip content={name.tooltip}>{nm}</Tooltip> : nm;
+    const withTooltip = (nm: String) => name.tooltip ? <Tooltip text={name.tooltip}>{nm}</Tooltip> : nm;
     return [<span key={name.shortName} className='inline md:hidden'>{withTooltip(name.shortName ?? name.name)}</span>,
         <span key={name.name} className='hidden md:inline'>{withTooltip(name.name)}</span>];
 }
