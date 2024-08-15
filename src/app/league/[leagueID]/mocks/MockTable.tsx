@@ -258,8 +258,8 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                 <PrimaryHeading>
                     Available Players
                 </PrimaryHeading>
-                <div className='grid grid-cols-2 w-full'>
-                    <div className='items-start w-1/2'>
+                <div className='grid md:grid-cols-2 w-full'>
+                    <div className='items-start md:w-1/2'>
                         <CollapsibleComponent label={<h2 className='text-lg'>Search Settings</h2>}>
                             <SearchSettings
                                 onSettingsChanged={onSettingsChanged}
@@ -278,7 +278,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                             </SearchSettings>
                         </CollapsibleComponent>
                     </div>
-                    <div className='items-start w-1/2'>
+                    <div className='items-start md:w-1/2'>
                         <CollapsibleComponent label={<h2 className='text-lg'>Estimation Settings</h2>}>
                             <EstimationSettings
                                 onEstimationSettingsChanged={onEstimationSettingsChanged}

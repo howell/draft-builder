@@ -75,7 +75,7 @@ const EstimationSettings: React.FC<EstimationSettingsProps> = ({
                     </Tooltip>
                 </h3>
                 <div className='flex flex-row items-center gap-4'>
-                    Overall
+                    Overall ({100 - currentSettings.weight}%)
                     <input
                         className='appearance-none
                                    w-auto
@@ -90,7 +90,7 @@ const EstimationSettings: React.FC<EstimationSettingsProps> = ({
                         value={currentSettings.weight}
                         onChange={(e) => handleWeightChange(Number(e.target.value))}
                     />
-                    Position
+                    Position ({currentSettings.weight}%)
                 </div>
             </div>
             {children}
