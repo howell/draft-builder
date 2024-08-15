@@ -25,8 +25,8 @@ const availablePlayerColumns: [(keyof CostEstimatedPlayer), ColumnName][] = [
     ['defaultPosition', {name: 'Position', shortName: 'Pos'}],
     ['overallRank', {name: 'Overall Rank', shortName: 'OvrR'}],
     ['positionRank', {name: 'Position Rank', shortName: 'PosR'}],
-    ['suggestedCost', {name: 'Suggested Cost', shortName: '$Sug'}],
-    ['estimatedCost', {name: 'Estimated Cost', shortName: '$Est'}],
+    ['suggestedCost', {name: 'Platform Cost', shortName: '$Sug', tooltip: 'The price the platform puts next to the player in the draft room'}],
+    ['estimatedCost', {name: 'Estimated Cost', shortName: '$Est', tooltip: "The price the player will go for based on your league history"}],
 ];
 
 type CostPredictor = {

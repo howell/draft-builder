@@ -1,9 +1,14 @@
 'use client'
+import Tooltip from '@/ui/Tooltip';
 import React, { useState } from 'react';
 
 type PlayerData<T extends object> = { id: any; } & T;
 
-export type ColumnName = string | { name: string; shortName?: string };
+export type ColumnName = string | {
+    name: string;
+    shortName?: string;
+    tooltip?: string;
+};
 
 export interface PlayerTableProps<T extends object> {
     players: PlayerData<T>[];
@@ -70,13 +75,7 @@ const PlayerTable = <T extends object,>({
                                              ${getSortClass(column)}`}
                                 onClick={() => handleSort(column)}>
                                 <div className="flex justify-start items-center">
-                                    {typeof name === 'string' ?
-                                        <span >{name}</span> :
-                                        [<span key={name.shortName} className='inline md:hidden'>{name.shortName}</span>,
-                                            <span key={name.name} className='hidden md:inline'>{name.name}</span>]}
-                                    {/* <span className="ml-2">
-                                        {getSortClass(column) === 'after:content-["▲"]' ? '▲' : getSortClass(column) === 'after:content-["▼"]' ? '▼' : ''}
-                                    </span> */}
+                                    <ColumnHeader name={name} />
                                 </div>
                             </th>))}
                     </tr>
@@ -102,3 +101,12 @@ const PlayerTable = <T extends object,>({
 };
 
 export default PlayerTable;
+
+const ColumnHeader: React.FC<{name: ColumnName}> = ({ name }) => {
+    if (typeof name === 'string') {
+        return <span >{name}</span>;
+    }
+    const withTooltip = (nm: String) => name.tooltip ? <Tooltip content={name.tooltip}>{nm}</Tooltip> : nm;
+    return [<span key={name.shortName} className='inline md:hidden'>{withTooltip(name.shortName ?? name.name)}</span>,
+        <span key={name.name} className='hidden md:inline'>{withTooltip(name.name)}</span>];
+}
