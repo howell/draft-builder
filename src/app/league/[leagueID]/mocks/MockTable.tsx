@@ -9,6 +9,7 @@ import EstimationSettings from './EstimationSettings';
 import { compareLineupPositions } from '@/constants';
 import { DarkLightText } from '@/ui/basicComponents';
 import CollapsibleComponent from '@/ui/Collapsible';
+import Tooltip from '@/ui/Tooltip';
 
 export interface MockTableProps {
     leagueId: number;
@@ -204,7 +205,11 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                         <tr>
                             <th>Position</th>
                             <th>Player</th>
-                            <th>Cost</th>
+                            <th>
+                                <Tooltip text='Use the + and - buttons to adjust the budget spent on a particular roster slot up or down'>
+                                    Cost
+                                </Tooltip>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
