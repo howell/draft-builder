@@ -58,7 +58,7 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
             setSearchSettings,
             setDefaultSearchSettings,
             setPositionGraphs);
-    }, [leagueID, draftYear]);
+    }, [leagueID, draftYear, defaultSearchSettings]);
 
     useEffect(() => {
     }, [tableData, searchSettings]);
