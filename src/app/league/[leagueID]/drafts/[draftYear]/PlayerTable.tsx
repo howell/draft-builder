@@ -60,22 +60,22 @@ const PlayerTable = <T extends object,>({
     };
 
     return (
-        <div className="mx-auto my-5 border-collapse w-auto max-h-[90dvh] overflow-y-auto overflow-x-auto md:overflow-x-hidden">
+        <div className="mx-auto my-5 border-collapse w-full max-h-[90dvh] overflow-y-auto overflow-x-auto md:overflow-x-hidden">
             <table className="table-auto w-full">
                 <thead>
                     <tr>
                         {columns.map(([column, name]) => (
                             <th
                                 key={column.toString()}
-                                className={`max-w-fit md:w-min md:max-w-fit mx-2 px-2 py-2 
+                                className={`max-w-fit md:w-auto md:max-w-max mx-2 px-2 py-2 
                                             sticky top-0
                                             border-2 border-black
-                                            text-left cursor-pointer 
+                                            text-left
                                              bg-gray-300 text-black
                                              ${getSortClass(column)}`}
-                                onClick={() => handleSort(column)}>
-                                <div className="flex justify-start items-center">
-                                    <ColumnHeader name={name} />
+                                >
+                                <div className="justify-start items-center">
+                                    <ColumnHeader name={name} onClick={() => handleSort(column)} />
                                 </div>
                             </th>))}
                     </tr>
@@ -102,11 +102,18 @@ const PlayerTable = <T extends object,>({
 
 export default PlayerTable;
 
-const ColumnHeader: React.FC<{name: ColumnName}> = ({ name }) => {
+const ColumnHeader: React.FC<{name: ColumnName, onClick: () => void}> = ({ name, onClick }) => {
     if (typeof name === 'string') {
         return <span >{name}</span>;
     }
-    const withTooltip = (nm: String) => name.tooltip ? <Tooltip text={name.tooltip}>{nm}</Tooltip> : nm;
+    const withTooltip = (nm: String) => name.tooltip ?
+        <Tooltip text={name.tooltip}>
+            <div onClick={onClick}
+                className='cursor-pointer'>
+                {nm}
+            </div>
+        </Tooltip>
+        : nm;
     return [<span key={name.shortName} className='inline md:hidden'>{withTooltip(name.shortName ?? name.name)}</span>,
         <span key={name.name} className='hidden md:inline'>{withTooltip(name.name)}</span>];
 }

@@ -1,4 +1,5 @@
 'use client';
+import { after } from 'node:test';
 import React, { ReactNode, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -7,7 +8,7 @@ interface TooltipProps {
     text: string;
 }
 
-export const TOOLTIP_DELAY = 300;
+export const TOOLTIP_DELAY = 5;
 const TOOLTIP_MARGIN = 10;
 
 const Tooltip: React.FC<TooltipProps> = ({ text, children }) => {
@@ -36,11 +37,11 @@ const Tooltip: React.FC<TooltipProps> = ({ text, children }) => {
 
                 const topBound = window.scrollY + TOOLTIP_MARGIN;
                 const rightBound = window.scrollX + viewportWidth - TOOLTIP_MARGIN;
-                let newTop = parentTop - height;
-                let newLeft = parentRight;
+                let newTop = window.scrollY + parentTop - height;
+                let newLeft = window.scrollX + parentRight;
 
                 if (newTop < topBound) {
-                    newTop = parentBottom;
+                    newTop = parentBottom + window.scrollY;
                 }
                 if (newLeft + width > rightBound) {
                     newLeft = newLeft - width;
@@ -74,18 +75,20 @@ const Tooltip: React.FC<TooltipProps> = ({ text, children }) => {
 
     return (
         <div className="relative inline-block">
-            <div
-                className={`cursor-pointer `}
-                onMouseEnter={showTooltip}
-                onMouseLeave={hideTooltip}
-                onTouchStart={showTooltip}
-                onTouchEnd={hideTooltip}
-            >
+            <div className='flex'>
                 {children}
-                <span
-                    ref={parentRef}
-                    className='after:font-font-awesome after:content-info-circle after:ml-0.5 after:text-xxs after:align-top
+                <div className='w-1'
+                    ref={parentRef}>
+                    <span
+                        role="tooltip-trigger"
+                        aria-label="Show tooltip"
+                        onMouseEnter={showTooltip}
+                        onMouseLeave={hideTooltip}
+                        onTouchStart={showTooltip}
+                        onTouchEnd={hideTooltip}
+                        className='after:font-font-awesome after:content-info-circle after:ml-0.5 after:text-xxs after:align-top after:cursor-pointer
                      after:text-slate-600 after:dark:text-slate-300' />
+                </div>
             </div>
             {isVisible && createPortal(
                 <div

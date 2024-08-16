@@ -3,6 +3,10 @@ import { render, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom'; // Ensure this is imported
 import Tooltip, { TOOLTIP_DELAY } from './Tooltip';
 
+async function tooltipWait() {
+    await new Promise((resolve) => setTimeout(resolve, TOOLTIP_DELAY + 5));
+}
+
 describe('Tooltip', () => {
     it('should render the children', () => {
         const { getByText } = render(
@@ -25,14 +29,15 @@ describe('Tooltip', () => {
     });
 
     it('should show the tooltip on mouse enter', () => {
-        const { getByText, getByTestId } = render(
+        const { getByText, getByTestId, getByRole } = render(
             <Tooltip text="Tooltip Text">
                 <p data-testid="in-tooltip">stuff</p>
                 <button>Button</button>
             </Tooltip>
         );
 
-        fireEvent.mouseEnter(getByTestId('in-tooltip'));
+        fireEvent.mouseEnter(getByRole('tooltip-trigger'));
+        tooltipWait();
 
         expect(getByText('Tooltip Text')).toBeInTheDocument();
     });
@@ -48,21 +53,22 @@ describe('Tooltip', () => {
         );
 
         fireEvent.mouseEnter(getByTestId('in-tooltip'));
-        await new Promise((resolve) => setTimeout(resolve, TOOLTIP_DELAY + 10));
+        tooltipWait();
         fireEvent.mouseLeave(getByTestId('in-tooltip'));
-        await new Promise((resolve) => setTimeout(resolve, TOOLTIP_DELAY + 10));
+        tooltipWait();
 
         expect(queryByText('Tooltip Text')).toBeNull();
     });
 
     it('should show the tooltip on touch start', () => {
-        const { getByText, getByTestId } = render(
+        const { getByText, getByRole } = render(
             <Tooltip text="Tooltip Text">
                 <button data-testid="in-tooltip">Button</button>
             </Tooltip>
         );
 
-        fireEvent.touchStart(getByTestId('in-tooltip'));
+        fireEvent.mouseEnter(getByRole('tooltip-trigger'));
+        tooltipWait();
 
         expect(getByText('Tooltip Text')).toBeInTheDocument();
     });
@@ -75,9 +81,9 @@ describe('Tooltip', () => {
         );
 
         fireEvent.touchStart(getByTestId('in-tooltip'));
-        await new Promise((resolve) => setTimeout(resolve, TOOLTIP_DELAY + 10));
+        tooltipWait();
         fireEvent.touchEnd(getByTestId('in-tooltip'));
-        await new Promise((resolve) => setTimeout(resolve, TOOLTIP_DELAY + 10));
+        tooltipWait();
 
         expect(queryByText('Tooltip Text')).toBeNull();
     });

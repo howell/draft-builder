@@ -14,12 +14,12 @@ const CollapsibleComponent: React.FC<ToggleComponentProps> = ({ label, children 
 
     return (
         <div>
-            <button onClick={handleClick}>
-                <div className="flex items-center">
-                    {label}
+            <div className="flex items-center">
+                {label}
+                <button onClick={handleClick}>
                     <i className={`ml-2 pt-1 fas ${isVisible ? 'fa-chevron-down' : 'fa-chevron-up'}`} />
-                 </div>
-            </button>
+                </button>
+            </div>
             {isVisible && children}
         </div>
     );
