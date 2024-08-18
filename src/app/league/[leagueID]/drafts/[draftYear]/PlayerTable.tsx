@@ -67,14 +67,14 @@ const PlayerTable = <T extends object,>({
                         {columns.map(([column, name]) => (
                             <th
                                 key={column.toString()}
-                                className={`max-w-fit md:w-auto md:max-w-max mx-2 px-2 py-2 
+                                className={`max-w-fit md:w-max md:max-w-max mx-2 px-2 py-2 
                                             sticky top-0
                                             border-2 border-black
                                             text-left
                                              bg-gray-300 text-black
                                              ${getSortClass(column)}`}
                                 >
-                                <div className="justify-start items-center">
+                                <div className="inline justify-start items-center w-max">
                                     <ColumnHeader name={name} onClick={() => handleSort(column)} />
                                 </div>
                             </th>))}
@@ -106,14 +106,20 @@ const ColumnHeader: React.FC<{name: ColumnName, onClick: () => void}> = ({ name,
     if (typeof name === 'string') {
         return <span >{name}</span>;
     }
-    const withTooltip = (nm: String) => name.tooltip ?
-        <Tooltip text={name.tooltip}>
+    const withTooltip = (nm: String) => {
+        const inner = (
             <div onClick={onClick}
                 className='cursor-pointer'>
                 {nm}
             </div>
-        </Tooltip>
-        : nm;
+        );
+        if (name.tooltip) {
+            return <Tooltip text={name.tooltip}>
+                {inner}
+            </Tooltip>
+        }
+        return inner;
+    };
     return [<span key={name.shortName} className='inline md:hidden'>{withTooltip(name.shortName ?? name.name)}</span>,
         <span key={name.name} className='hidden md:inline'>{withTooltip(name.name)}</span>];
 }

@@ -77,18 +77,14 @@ const Tooltip: React.FC<TooltipProps> = ({ text, children }) => {
         <div className="relative inline-block">
             <div className='flex'>
                 {children}
-                <div className='w-1'
-                    ref={parentRef}>
-                    <span
-                        role="tooltip-trigger"
-                        aria-label="Show tooltip"
-                        onMouseEnter={showTooltip}
-                        onMouseLeave={hideTooltip}
-                        onTouchStart={showTooltip}
-                        onTouchEnd={hideTooltip}
-                        className='after:font-font-awesome after:content-info-circle after:ml-0.5 after:text-xxs after:align-top after:cursor-pointer
-                     after:text-slate-600 after:dark:text-slate-300' />
-                </div>
+                <i ref={parentRef}
+                    className={`p-0.5 fas fa-info-circle text-slate-600 dark:text-slate-600 text-xxs`}
+                    role="tooltip-trigger"
+                    aria-label="Show tooltip"
+                    onMouseEnter={showTooltip}
+                    onMouseLeave={hideTooltip}
+                    onTouchStart={showTooltip}
+                    onTouchEnd={hideTooltip} />
             </div>
             {isVisible && createPortal(
                 <div
