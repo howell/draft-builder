@@ -1,15 +1,16 @@
-import { MockPlayer, SearchSettingsState } from '@/app/savedMockTypes';
+import { CostEstimatedPlayer, MockPlayer, SearchSettingsState } from '@/app/savedMockTypes';
 import { playerAvailable, calculateAmountSpent, computeRosterSlots   } from './MockTable';
 
 describe('playerAvailable', () => {
-    const mockPlayer: MockPlayer = {
+    const mockPlayer: CostEstimatedPlayer = {
         id: 1,
         name: "Sam Brady",
         positions: ["QB", "TE"],
         defaultPosition: "QB",
         suggestedCost: 120,
         overallRank: 1,
-        positionRank: 1
+        positionRank: 1,
+        estimatedCost: 10
       };
 
     const mockSearchSettings: SearchSettingsState = {
@@ -36,7 +37,6 @@ describe('playerAvailable', () => {
         const result = playerAvailable(
             mockPlayer,
             mockSearchSettings,
-            mockCostPredictor,
             mockSelectedPlayers,
             mockAuctionBudget,
             mockBudgetSpent
@@ -49,7 +49,6 @@ describe('playerAvailable', () => {
         const result = playerAvailable(
             { ...mockPlayer, id: 2 },
             mockSearchSettings,
-            mockCostPredictor,
             mockSelectedPlayers,
             mockAuctionBudget,
             mockBudgetSpent
@@ -67,9 +66,8 @@ describe('playerAvailable', () => {
 
     it('should return false when player cost exceeds budget', () => {
         const result = playerAvailable(
-            mockPlayer,
+            {...mockPlayer, estimatedCost: 100},
             mockSearchSettings,
-            expensivePredictor,
             mockSelectedPlayers,
             mockAuctionBudget,
             mockBudgetSpent
@@ -82,7 +80,6 @@ describe('playerAvailable', () => {
         const result = playerAvailable(
             { ...mockPlayer, defaultPosition: 'TE' },
             mockSearchSettings,
-            mockCostPredictor,
             mockSelectedPlayers,
             mockAuctionBudget,
             mockBudgetSpent
@@ -93,9 +90,8 @@ describe('playerAvailable', () => {
 
     it('should return false when player cost is below minPrice', () => {
         const result = playerAvailable(
-            mockPlayer,
+            {...mockPlayer, estimatedCost: 1},
             mockSearchSettings,
-            cheapPredictor,
             mockSelectedPlayers,
             mockAuctionBudget,
             mockBudgetSpent
@@ -106,9 +102,8 @@ describe('playerAvailable', () => {
 
     it('should return false when player cost is above maxPrice', () => {
         const result = playerAvailable(
-            mockPlayer,
+            {...mockPlayer, estimatedCost: 20},
             mockSearchSettings,
-            expensivePredictor,
             mockSelectedPlayers,
             mockAuctionBudget,
             mockBudgetSpent

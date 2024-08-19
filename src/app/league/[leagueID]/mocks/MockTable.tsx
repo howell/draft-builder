@@ -45,6 +45,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     const [estimationSettings, setEstimationSettings] = useState<EstimationSettingsState>(defaultEstimationSettings);
     const [searchSettings, setSearchSettings] = useState<SearchSettingsState>(defaultSearchSettings);
     const [availablePlayers, setAvailablePlayers] = useState<CostEstimatedPlayer[]>([]);
+    const [positionallyAvailablePlayers, setPositionallyAvailablePlayers] = useState<Map<string, CostEstimatedPlayer[]>>(new Map());
     const [budgetSpent, setBudgetSpent] = useState(0);
     const [selectedPlayers, setSelectedPlayers] = useState<MockPlayer[]>([]);
     const [rosterSelections, setRosterSelections] = useState<RosterSelections>({});
@@ -98,12 +99,18 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     }, [finishedLoading, costPredictor, rosterSelections]);
 
     useEffect(() => {
-        const includePlayer = (p: MockPlayer) => playerAvailable(p, searchSettings, costPredictor, selectedPlayers, auctionBudget, budgetSpent);
-        const nextPlayers = playerDb.filter(includePlayer)
-            .slice(0, searchSettings.playerCount)
-            .map(p => ({ ...p, estimatedCost: costPredictor.predict(p) }));
+        const pricedPlayers = playerDb.map(p => ({ ...p, estimatedCost: costPredictor.predict(p) }));
+        const nextPositionallyAvailablePlayers = new Map<string, CostEstimatedPlayer[]>();
+        const includePlayer = (s: SearchSettingsState) => (p: CostEstimatedPlayer) => playerAvailable(p, s, selectedPlayers, auctionBudget, budgetSpent);
+        for (const position of playerPositions) {
+            const settingsWithPosition = { ...searchSettings, positions: [position] };
+            nextPositionallyAvailablePlayers.set(position, pricedPlayers.filter(includePlayer(settingsWithPosition)));
+        }
+        const nextPlayers = pricedPlayers.filter(includePlayer(searchSettings))
+            .slice(0, searchSettings.playerCount);
+        setPositionallyAvailablePlayers(nextPositionallyAvailablePlayers);
         setAvailablePlayers(nextPlayers);
-    }, [costPredictor, searchSettings, playerDb, selectedPlayers, budgetSpent, auctionBudget]);
+    }, [costPredictor, searchSettings, playerDb, selectedPlayers, budgetSpent, auctionBudget, playerPositions]);
 
     useEffect(() => {
         const nextSelected = Object.values(rosterSelections).filter(p => p !== undefined) as CostEstimatedPlayer[];
@@ -220,7 +227,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                                 rosterSlot={slot}
                                 selectedPlayer={costAdjustedRosterSelections[slotName]}
                                 key={slotName}
-                                players={availablePlayers}
+                                players={positionallyAvailablePlayers.get(slot.position) ?? availablePlayers}
                                 position={slot.position}
                                 costAdjustment={costAdjustments.get(slotName)}
                                 onCostAdjusted={onCostAdjusted}
@@ -311,12 +318,12 @@ export function computeRosterSlots(positions: Map<string, number>): RosterSlot[]
                 ({ position: name, index: i })))
 }
 
-export function playerAvailable(p: MockPlayer, searchSettings: SearchSettingsState, costPredictor: CostPredictor, selectedPlayers: MockPlayer[], auctionBudget: number, budgetSpent: number): boolean {
-    const cost = costPredictor.predict(p)
+export function playerAvailable(p: CostEstimatedPlayer, searchSettings: SearchSettingsState, selectedPlayers: MockPlayer[], auctionBudget: number, budgetSpent: number): boolean {
+    const cost = p.estimatedCost
     let playerAvailable = true;
     if (searchSettings.showOnlyAvailable) {
         const playerSelected = selectedPlayers.find(sp => sp.id === p.id);
-        playerAvailable = !playerSelected && (costPredictor.predict(p) <= auctionBudget - budgetSpent)
+        playerAvailable = !playerSelected && (cost <= auctionBudget - budgetSpent)
     }
     const ans = playerAvailable &&
         searchSettings.positions.includes(p.defaultPosition) &&
