@@ -41,7 +41,8 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
     const [tableData, setTableData] = useState<TableData[]>([]);
     const [showing, setShowing] = useState<TableData[]>([]);
     const [allPositions, setAllPositions] = useState<string[]>([]);
-    const [defaultSearchSettings, setDefaultSearchSettings] = useState<SearchSettingsState>({ positions: allPositions, playerCount: 200, minPrice: 1, maxPrice: 999, showOnlyAvailable: true });
+    const [initialSearchSettings, setInitialSearchSettings] = useState<SearchSettingsState>(defaultSearchSettingsFor([]));
+    const [defaultSearchSettings, setDefaultSearchSettings] = useState<SearchSettingsState>(initialSearchSettings);
     const [searchSettings, setSearchSettings] = useState<SearchSettingsState>(defaultSearchSettings);
     const [positionGraphs, setPositionGraphs] = useState<TabChild[]>([]);
 
@@ -49,7 +50,7 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
     useEffect(() => {
         fetchData(leagueID,
             draftYear,
-            defaultSearchSettings,
+            initialSearchSettings,
             setLoadingTasks,
             setTableData,
             setLoading,
@@ -58,7 +59,7 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
             setSearchSettings,
             setDefaultSearchSettings,
             setPositionGraphs);
-    }, [leagueID, draftYear, defaultSearchSettings]);
+    }, [leagueID, draftYear, initialSearchSettings]);
 
     useEffect(() => {
     }, [tableData, searchSettings]);
@@ -107,6 +108,10 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
 };
 
 export default Page;
+
+function defaultSearchSettingsFor(positions: string[]): SearchSettingsState {
+    return { positions: positions, playerCount: 200, minPrice: 1, maxPrice: 999, showOnlyAvailable: true }
+}
 
 function makeTableRow(data: DraftedPlayer): TableData {
     return {
