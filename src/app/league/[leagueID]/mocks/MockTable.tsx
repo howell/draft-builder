@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import MockRosterEntry from './MockRosterEntry';
 import PlayerTable, { ColumnName } from '../drafts/[draftYear]/PlayerTable';
-import { DraftAnalysis, ExponentialCoefficients, MockPlayer, CostEstimatedPlayer, RosterSlot, RosterSelections, SearchSettingsState, EstimationSettingsState, StoredDraftData  } from '@/app/savedMockTypes';
+import { DraftAnalysis, ExponentialCoefficients, MockPlayer, CostEstimatedPlayer, RosterSlot, RosterSelections, SearchSettingsState, EstimationSettingsState, StoredDraftDataCurrent  } from '@/app/savedMockTypes';
 import { loadDraftByName, saveSelectedRoster, deleteRoster, IN_PROGRESS_SELECTIONS_KEY } from '@/app/localStorage';
 import SearchSettings, { SearchLabel } from './SearchSettings';
 import EstimationSettings from './EstimationSettings';
@@ -60,8 +60,10 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
 
     useEffect(() => { 
         const loadedDraft = loadStoredDraftData(leagueId, draftName);
-        if (loadedDraft && loadedDraft.rosterSelections && loadedDraft.estimationSettings && loadedDraft.searchSettings) {
+        if (loadedDraft && loadedDraft.rosterSelections && loadedDraft.costAdjustments && loadedDraft.estimationSettings && loadedDraft.searchSettings) {
+            console.log("Loaded adjustments", loadedDraft.costAdjustments, new Map(Object.entries(loadedDraft.costAdjustments)))
             setRosterSelections(loadedDraft.rosterSelections);
+            setCostAdjustments(new Map(Object.entries(loadedDraft.costAdjustments)));
             setEstimationSettings(loadedDraft.estimationSettings);
             setSearchSettings(loadedDraft.searchSettings);
         }
@@ -70,9 +72,10 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
 
     useEffect(() => {
         if (finishedLoading) {
-            saveSelectedRoster(leagueId, IN_PROGRESS_SELECTIONS_KEY, rosterSelections, estimationSettings, searchSettings);
+            console.log("Saving adjustments", Object.fromEntries(costAdjustments.entries()))
+            saveSelectedRoster(leagueId, IN_PROGRESS_SELECTIONS_KEY, rosterSelections, Object.fromEntries(costAdjustments.entries()), estimationSettings, searchSettings);
         }
-    }, [leagueId, rosterSelections, estimationSettings, searchSettings, finishedLoading]);
+    }, [leagueId, rosterSelections, costAdjustments, estimationSettings, searchSettings, finishedLoading]);
 
 
     useEffect(() => {
@@ -178,7 +181,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     }
 
     const saveRosterSelections = () => {
-        saveSelectedRoster(leagueId, rosterName, costAdjustedRosterSelections, estimationSettings, searchSettings);
+        saveSelectedRoster(leagueId, rosterName, costAdjustedRosterSelections, Object.fromEntries(costAdjustments.entries()), estimationSettings, searchSettings);
         alert('Roster selections saved!');
     };
 
@@ -371,7 +374,7 @@ function serializeRosterSlot(slot: RosterSlot): string {
     return JSON.stringify(slot);
 };
 
-function loadStoredDraftData(leagueID: number, draftName: string | undefined): StoredDraftData | undefined {
+function loadStoredDraftData(leagueID: number, draftName: string | undefined): StoredDraftDataCurrent | undefined {
     const name = draftName === '' ? IN_PROGRESS_SELECTIONS_KEY : (draftName || IN_PROGRESS_SELECTIONS_KEY);
     return loadDraftByName(leagueID, name);
 }

@@ -23,4 +23,3 @@
 * Draft page: Show overall and position rank columns
 
 ## Fixes
-* Cost adjustments aren't being saved
