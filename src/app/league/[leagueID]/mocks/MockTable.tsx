@@ -126,6 +126,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     };
 
     const onPlayerClick = (player:CostEstimatedPlayer) => {
+        console.log('Player clicked', player);
         if (lastFocusedRosterSlot && player.positions.includes(lastFocusedRosterSlot.position)) {
             onPlayerSelected(lastFocusedRosterSlot, player);
             return;
@@ -213,25 +214,20 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                         </tr>
                     </thead>
                     <tbody>
-                        {Array.from(positions.entries())
-                            .sort(([positionA, _cA], [positionB, _cB]) => compareLineupPositions(positionA, positionB))
-                            .flatMap(([position, count]) =>
-                                Array.from({ length: count }, (_, i) => {
-                                    const rosterSlot = { position, index: i };
-                                    const slotName = serializeRosterSlot(rosterSlot);
-                                    return <MockRosterEntry
-                                        rosterSlot={{ position, index: i }}
-                                        selectedPlayer={costAdjustedRosterSelections[slotName]}
-                                        key={slotName}
-                                        players={availablePlayers}
-                                        position={position}
-                                        costAdjustment={costAdjustments.get(slotName)}
-                                        onCostAdjusted={onCostAdjusted}
-                                        onPlayerSelected={onPlayerSelected}
-                                        onFocus={onRosterSlotFocus}
-                                    />
-                                })
-                            )}
+                        {rosterSlots.map((slot) => {
+                            const slotName = serializeRosterSlot(slot);
+                            return <MockRosterEntry
+                                rosterSlot={slot}
+                                selectedPlayer={costAdjustedRosterSelections[slotName]}
+                                key={slotName}
+                                players={availablePlayers}
+                                position={slot.position}
+                                costAdjustment={costAdjustments.get(slotName)}
+                                onCostAdjusted={onCostAdjusted}
+                                onPlayerSelected={onPlayerSelected}
+                                onFocus={onRosterSlotFocus}
+                            />
+                        })}
                     </tbody>
                 </table>
                 <div>
@@ -308,7 +304,11 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
 export default MockTable;
 
 export function computeRosterSlots(positions: Map<string, number>): RosterSlot[] {
-    return Array.from(positions.entries()).flatMap(([name, count]) => Array.from({ length: count }, (_, i) => ({ position: name, index: i })))
+    return Array.from(positions.entries())
+        .sort(([positionA, _cA], [positionB, _cB]) => compareLineupPositions(positionA, positionB))
+        .flatMap(([name, count]) =>
+            Array.from({ length: count }, (_, i) =>
+                ({ position: name, index: i })))
 }
 
 export function playerAvailable(p: MockPlayer, searchSettings: SearchSettingsState, costPredictor: CostPredictor, selectedPlayers: MockPlayer[], auctionBudget: number, budgetSpent: number): boolean {

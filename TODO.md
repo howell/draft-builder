@@ -26,4 +26,3 @@
 * Mock Roster Entry should be able to search that position even if it's not
   checked in the search settings.
 * Cost adjustments aren't being saved
-* Clicked players won't go into flex spot
