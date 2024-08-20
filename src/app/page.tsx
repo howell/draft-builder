@@ -13,6 +13,7 @@ import EspnLogin from './EspnLogin';
 import TabContainer, { TabTitle } from '@/ui/TabContainer';
 import Image from 'next/image';
 import Link from 'next/link';
+import SleeperLogin from './SleeperLogin';
 
 export default function Home() {
   const router = useRouter();
@@ -52,7 +53,7 @@ export default function Home() {
           <TabContainer pages={[
             { title: headerFor('espn'), content: <LeagueLogin><EspnLogin submitLeague={handleSubmit} /></LeagueLogin> },
             { title: headerFor('yahoo'), content: <LeagueLogin><div>Coming Soon</div></LeagueLogin> },
-            { title: headerFor('sleeper'), content: <LeagueLogin><div>Coming Soon</div></LeagueLogin> },
+            { title: headerFor('sleeper'), content: <LeagueLogin><SleeperLogin submitLeague={handleSubmit} /></LeagueLogin> },
           ]} />
         </div>
       </div>

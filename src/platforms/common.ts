@@ -20,6 +20,14 @@ export type EspnLeague = PlatformLeague & {
     auth?: EspnAuth;
 };
 
+export type YahooLeague = PlatformLeague & {
+    platform: 'yahoo';
+};
+
+export type SleeperLeague = PlatformLeague & {
+    platform: 'sleeper';
+};
+
 export function platformLogo(platform: Platform): StaticImageData {
     switch (platform) {
         case 'espn':

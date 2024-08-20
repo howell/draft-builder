@@ -2,7 +2,7 @@
 import CollapsibleComponent from '@/ui/Collapsible';
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { LeagueLoginProps, PrivateLeagueInput, PrivateLeagueInputProps, PrivateLeagueLabel } from './leagueInputs';
+import { LeagueDataInput, LeagueLoginProps, PrivateLeagueInput, PrivateLeagueLabel, SubmitButton } from './leagueInputs';
 import { EspnLeague } from '@/platforms/common';
 
 const EspnLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
@@ -47,16 +47,8 @@ const EspnLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
         <div>
             <h1 className="text-xl">Enter your ESPN Fantasy Football league ID and click Submit.</h1>
 
-            <input
-                className="w-full h-12 p-2 mt-4 text-black bg-white border border-gray-300 rounded-lg"
-                type="text"
-                name="leagueID"
-                value={leagueID}
-                onChange={(event) => setLeagueID(event.target.value)}
-            />
-            <button onClick={handleSubmit} className="w-full p-2 mt-4 text-white bg-black border border-gray-300 rounded-lg">
-                Submit
-            </button>
+            <LeagueDataInput label="League ID" value={leagueID} onChange={setLeagueID} />
+            <SubmitButton onClick={handleSubmit} />
 
             <div className="mt-5">
                 <CollapsibleComponent label={<h2 className="">Private League?</h2>}>
