@@ -60,7 +60,7 @@ export default function Home() {
   );
 }
 
-export async function submitLeague(league: PlatformLeague,
+async function submitLeague(league: PlatformLeague,
   router: AppRouterInstance,
   setLoadingTasks: (tasks: LoadingTasks) => void,
   saveLeague: (id: number, league: PlatformLeague) => void)
@@ -83,7 +83,7 @@ export async function submitLeague(league: PlatformLeague,
   activateLeague(league, router);
 }
 
-export function headerFor(platform: Platform): TabTitle {
+function headerFor(platform: Platform): TabTitle {
   const logo = platformLogo(platform);
   const component = (selected: boolean) => {
     return (
@@ -96,7 +96,7 @@ export function headerFor(platform: Platform): TabTitle {
   return component;
 }
 
-export const LeagueLogin: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const LeagueLogin: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <div className="min-w-full p-4">
       {children}
