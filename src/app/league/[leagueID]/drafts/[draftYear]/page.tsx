@@ -203,12 +203,14 @@ function showPlayer(p: TableData, searchSettings: SearchSettingsState) {
 
 function chartTitleFor(position: string) : TabTitle {
     const heading = <span className='text-lg pb-0.5 text-nowrap'>{position}</span>;
-    return (selected: boolean) => {
+    const component = (selected: boolean) => {
         if (selected) {
             return <span className='font-bold border-blue-400 border-b-2 border-opacity-75'>{heading}</span>;
         }
         return heading;
     };
+    component.displayName = 'chartTitleFor';
+    return component;
 }
 
 const ChartContainer: React.FC<{ children: React.ReactNode }> = ({ children }) => {

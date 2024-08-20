@@ -85,13 +85,15 @@ export async function submitLeague(league: PlatformLeague,
 
 export function headerFor(platform: Platform): TabTitle {
   const logo = platformLogo(platform);
-  return (selected: boolean) => {
+  const component = (selected: boolean) => {
     return (
       <div className={`w-10 pb-2 ${selected ? 'border-blue-400 border-b-2 border-opacity-75 ' : ''}`}>
         <Image src={logo} alt={platform + " logo"} />
       </div>
     );
   };
+  component.displayName = `TabTitle(${platform})`;
+  return component;
 }
 
 export const LeagueLogin: React.FC<{ children: React.ReactNode }> = ({ children }) => {
