@@ -9,7 +9,7 @@ import ErrorScreen from '@/ui/ErrorScreen';
 import { SearchSettingsState } from '@/app/savedMockTypes';
 import SearchSettings from '../../mocks/SearchSettings';
 import CollapsibleComponent from '@/ui/Collapsible';
-import TabContainer, { TabChild } from '@/ui/TabContainer';
+import TabContainer, { TabChild, TabTitle } from '@/ui/TabContainer';
 import { loadLeague } from '@/app/localStorage';
 // Dynamically import PlayerScatterChart with no SSR
 const PlayerScatterChart = dynamic(() => import('./PlayerScatterChart'), { ssr: false });
@@ -182,9 +182,9 @@ async function fetchData(leagueID: number,
         setAllPositions(positions);
         let positionGraphs = positions.map(position => {
             const data = tableData.filter(player => player.position === position);
-            return { title: position, content: <PlayerScatterChart data={data} /> };
+            return { title: chartTitleFor(position), content: <ChartContainer><PlayerScatterChart data={data} /></ChartContainer> };
         });
-        positionGraphs = [{ title: 'All Players', content: <PlayerScatterChart data={tableData} /> }, ...positionGraphs];
+        positionGraphs = [{ title: chartTitleFor('All Players'), content: <ChartContainer><PlayerScatterChart data={tableData} /></ChartContainer> }, ...positionGraphs];
         setPositionGraphs(positionGraphs);
     } catch (error: any) {
         setError(error.message);
@@ -199,3 +199,22 @@ function showPlayer(p: TableData, searchSettings: SearchSettingsState) {
         searchSettings.positions.includes(p.position)
     );
 }
+
+
+function chartTitleFor(position: string) : TabTitle {
+    const heading = <span className='text-lg pb-0.5 text-nowrap'>{position}</span>;
+    return (selected: boolean) => {
+        if (selected) {
+            return <span className='font-bold border-blue-400 border-b-2 border-opacity-75'>{heading}</span>;
+        }
+        return heading;
+    };
+}
+
+const ChartContainer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    return (
+        <div className="border-2 w-dvw">
+            {children}
+        </div>
+    );
+};

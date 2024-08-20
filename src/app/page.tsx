@@ -10,7 +10,7 @@ import Sidebar from '../ui/Sidebar';
 import { LeagueSubmitCallback } from './leagueInputs';
 import { activateLeague } from './navigation';
 import EspnLogin from './EspnLogin';
-import TabContainer from '@/ui/TabContainer';
+import TabContainer, { TabTitle } from '@/ui/TabContainer';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -83,18 +83,20 @@ export async function submitLeague(league: PlatformLeague,
   activateLeague(league, router);
 }
 
-export function headerFor(platform: Platform) {
+export function headerFor(platform: Platform): TabTitle {
   const logo = platformLogo(platform);
-  return (
-    <div className='w-10'>
-      <Image src={logo} alt={platform + " logo"} />
-    </div>
-  );
+  return (selected: boolean) => {
+    return (
+      <div className={`w-10 pb-2 ${selected ? 'border-blue-400 border-b-2 border-opacity-75 ' : ''}`}>
+        <Image src={logo} alt={platform + " logo"} />
+      </div>
+    );
+  };
 }
 
-export const LeagueLogin: React.FC<{children: React.ReactNode}> = ({ children }) => {
+export const LeagueLogin: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <div className="min-w-full min-h-60 p-4">
+    <div className="min-w-full p-4">
       {children}
     </div>
   );

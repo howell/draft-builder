@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 
+export type TabTitle = React.ReactNode | ((selected: boolean) => React.ReactNode);
+
 export type TabChild = {
-    title: React.ReactNode;
+    title: TabTitle;
     content: React.ReactNode | string;
 }
 
@@ -17,16 +19,16 @@ const TabContainer: React.FC<TabContainerProps> = ({ pages }) => {
 
     return (
         <div className="flex flex-col w-auto">
-            <div className="flex">
+            <div className="flex justify-evenly">
                 {pages.map((child, i) => (
                     <div key={`tab-${i}`}
                         onClick={() => handleTabClick(i)}
-                        className={`cursor-pointer border-4 rounded-lg px-4 py-2 -mb-0.5 ${selectedTab === i ? 'border-b-0 font-bold border-[blue]' : 'border-black '}`}>
-                        {child.title}
+                        className={`cursor-pointer px-4 py-2`}>
+                        {typeof child.title === 'function' ? child.title(selectedTab === i) : child.title}
                     </div>))
                 }
             </div>
-            <div className="border-2">
+            <div className="">
                 {pages.map((child, i) =>
                      ( selectedTab === i &&
                       <div key={`tab-${i}`} className='w-full'>
