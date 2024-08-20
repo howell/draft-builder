@@ -6,6 +6,7 @@ import DropdownMenu from '@/ui/DropdownMenu';
 import { PlatformLeague, platformLogo } from '@/platforms/common';
 import { activateLeague } from '../app/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 
 interface SidebarProps {
     leagueID?: number;
@@ -32,30 +33,43 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, availableLeagues = [], child
             <button onClick={toggleSidebar} className="absolute top-0 right-0">
                 <i className={`pr-2 pt-2 text-2xl text-red-600 fas ${isOpen ? 'fa-times' : 'fa-bars'}`} />
             </button>
-            {isOpen &&
-                availableLeagues.length > 0 &&
-                <div>
+            {isOpen && <OpenSidebar leagueID={leagueID} availableLeagues={availableLeagues} handleLeagueChange={handleLeagueChange}>
+                {children}
+            </OpenSidebar>}
+        </div>
+    );
+};
+
+export default Sidebar;
+
+const OpenSidebar: React.FC<SidebarProps & { handleLeagueChange: (league: PlatformLeague) => any}> = ({ leagueID, availableLeagues = [], children, handleLeagueChange }) => {
+    return (
+        <span>
+            <Link href='/'><i className="fas fa-home text-lg ml-2 mt-2" /></Link>
+            {availableLeagues.length > 0 &&
+                <span>
                     <div className="mb-4 mt-2 mx-1 w-4/5">
                         <DropdownMenu
                             options={availableLeagues.map((lg) => ({ name: <LeagueOption league={lg} />, value: lg }))}
                             selectedOption={availableLeagues.find(lg => lg.id === leagueID)}
                             onSelect={(name, value) => handleLeagueChange(value)} />
                     </div>
-                    < div className="ml-2">
+                    <div className="ml-2">
                         {children}
                     </div>
-                </div>
+                </span>
             }
-        </div>
-    );
-};
+
+        </span>
+
+    )
+}
 
 const LeagueOption: React.FC<{ league: PlatformLeague }> = ({ league }) => {
     const logo = platformLogo(league.platform);
     return (
         <div className="flex flex-row items-center relative">
             <div className='w-5 mr-2 relative object-cover'> 
-                {/* <Image src={logo.src} alt={league.platform + " logo"} width={logo.size} height={logo.size} /> */}
                 <Image src={logo} alt={league.platform + " logo"} />
             </div>
             {league.id}
@@ -64,4 +78,3 @@ const LeagueOption: React.FC<{ league: PlatformLeague }> = ({ league }) => {
 
 }
 
-export default Sidebar;
