@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, ReactElement } from 'react';
 
 interface DropdownMenuProps {
-  options: { name: string, value: any  }[];
-  selectedOption: string;
-  onSelect: (name: string, value: any) => void;
+  options: { name: ReactElement, value: any  }[];
+  selectedOption: any;
+  onSelect: (name: ReactElement, value: any) => void;
 }
 
 const DropdownMenu: React.FC<DropdownMenuProps> = ({ options, selectedOption, onSelect }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
-    const handleSelect = useCallback((name: string, value: any) => {
+    const handleSelect = useCallback((name: ReactElement, value: any) => {
         onSelect(name, value);
         setIsOpen(false);
     }, [onSelect, setIsOpen]);
@@ -54,7 +54,7 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ options, selectedOption, on
             <div className="w-full h-full p-2 cursor-pointer flex justify-between items-center"
                 onClick={() => setIsOpen(!isOpen)}
                 onBlur={() => setIsOpen(false)}>
-                {options.find(option => option.name === selectedOption)?.name || ''}
+                {options.find(option => option.value === selectedOption)?.name || ''}
                     <div className="absolute top-1 right-2">
                         <i className={`fas fa-chevron-down`} />
                     </div>
@@ -63,7 +63,7 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ options, selectedOption, on
                 <div className="absolute top-full left-0 w-full border border-gray-300 bg-gray-800 z-50">
                     <ul className="w-full max-h-52 overflow-y-auto">
                         {options.map(option => (
-                            <li key={option.name}
+                            <li key={option.value}
                                 className={`p-1 cursor-pointer hover:bg-gray-500 ${highlightedIndex === options.indexOf(option) ? 'bg-gray-500' : ''}`}
                                 onClick={() => handleSelect(option.name, option.value)}>
                                 {option.name}

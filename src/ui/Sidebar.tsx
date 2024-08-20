@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DropdownMenu from '@/ui/DropdownMenu';
-import { PlatformLeague } from '@/platforms/common';
+import { PlatformLeague, platformLogo } from '@/platforms/common';
 import { activateLeague } from '../app/navigation';
+import Image from 'next/image';
 
 interface SidebarProps {
     leagueID?: number;
@@ -36,8 +37,8 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, availableLeagues = [], child
                 <div>
                     <div className="mb-4 mt-2 mx-1 w-4/5">
                         <DropdownMenu
-                            options={availableLeagues.map((lg) => ({ name: lg.id.toString(), value: lg }))}
-                            selectedOption={leagueID ? leagueID.toString() : ''}
+                            options={availableLeagues.map((lg) => ({ name: <LeagueOption league={lg} />, value: lg }))}
+                            selectedOption={availableLeagues.find(lg => lg.id === leagueID)}
                             onSelect={(name, value) => handleLeagueChange(value)} />
                     </div>
                     < div className="ml-2">
@@ -48,5 +49,19 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, availableLeagues = [], child
         </div>
     );
 };
+
+const LeagueOption: React.FC<{ league: PlatformLeague }> = ({ league }) => {
+    const logo = platformLogo(league.platform);
+    return (
+        <div className="flex flex-row items-center relative">
+            <div className='w-5 mr-2 relative object-cover'> 
+                {/* <Image src={logo.src} alt={league.platform + " logo"} width={logo.size} height={logo.size} /> */}
+                <Image src={logo} alt={league.platform + " logo"} />
+            </div>
+            {league.id}
+        </div>
+    )
+
+}
 
 export default Sidebar;
