@@ -4,12 +4,15 @@ import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.
 import { useCallback, useEffect, useState } from "react";
 import ApiClient from './api/ApiClient';
 import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
-import { PlatformLeague } from '@/platforms/common';
+import { Platform, PlatformLeague, platformLogo } from '@/platforms/common';
 import { loadLeagues, saveLeague } from './localStorage';
 import Sidebar from '../ui/Sidebar';
 import { LeagueSubmitCallback } from './leagueInputs';
 import { activateLeague } from './navigation';
 import EspnLogin from './EspnLogin';
+import TabContainer from '@/ui/TabContainer';
+import Image from 'next/image';
+import Link from 'next/link';
 
 export default function Home() {
   const router = useRouter();
@@ -38,11 +41,20 @@ export default function Home() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-24">
+    <main className="flex min-h-screen flex-col items-center pt-24 px-12 md:ml-44 ">
       {availableLeagues.length > 0 && <Sidebar availableLeagues={availableLeagues} />}
-      <div className="flex flex-col">
-        <h1 className="text-4xl mb-4">Login With:</h1>
-        <EspnLogin submitLeague={handleSubmit} />
+      <div className="flex flex-col w-full">
+        <h1 className="text-4xl text-center mb-4">Login With:</h1>
+        <div className="mt-2 items-center max-w-prose">
+          Curious? Try the <Link href="/demo"><span className='text-sky-600'>demo</span></Link>.
+        </div>
+        <div className='min-w-full w-full'>
+          <TabContainer pages={[
+            { title: headerFor('espn'), content: <LeagueLogin><EspnLogin submitLeague={handleSubmit} /></LeagueLogin> },
+            { title: headerFor('yahoo'), content: <LeagueLogin><div>Coming Soon</div></LeagueLogin> },
+            { title: headerFor('sleeper'), content: <LeagueLogin><div>Coming Soon</div></LeagueLogin> },
+          ]} />
+        </div>
       </div>
     </main>
   );
@@ -69,4 +81,21 @@ export async function submitLeague(league: PlatformLeague,
 
   saveLeague(league.id, league);
   activateLeague(league, router);
+}
+
+export function headerFor(platform: Platform) {
+  const logo = platformLogo(platform);
+  return (
+    <div className='w-10'>
+      <Image src={logo} alt={platform + " logo"} />
+    </div>
+  );
+}
+
+export const LeagueLogin: React.FC<{children: React.ReactNode}> = ({ children }) => {
+  return (
+    <div className="min-w-full min-h-60 p-4">
+      {children}
+    </div>
+  );
 }

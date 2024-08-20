@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 export type TabChild = {
-    title: string;
+    title: React.ReactNode;
     content: React.ReactNode | string;
 }
 

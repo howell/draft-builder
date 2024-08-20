@@ -1,7 +1,6 @@
 'use client';
 import CollapsibleComponent from '@/ui/Collapsible';
 import React, { useState } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
 import { LeagueLoginProps, PrivateLeagueInput, PrivateLeagueInputProps, PrivateLeagueLabel } from './leagueInputs';
 import { EspnLeague } from '@/platforms/common';
@@ -48,9 +47,6 @@ const EspnLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
         <div>
             <h1 className="text-xl">Enter your ESPN Fantasy Football league ID and click Submit.</h1>
 
-            <div className="mt-2 items-center max-w-prose">
-                Curious? Try the <Link href="/demo"><span className='text-sky-600'>demo</span></Link>.
-            </div>
             <input
                 className="w-full h-12 p-2 mt-4 text-black bg-white border border-gray-300 rounded-lg"
                 type="text"
