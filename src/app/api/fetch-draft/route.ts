@@ -1,23 +1,17 @@
 'use server'
-import { EspnAuth, fetchDraftInfo } from '@/platforms/espn/league';
 import { NextRequest } from 'next/server';
 import { FetchDraftRequest, FetchDraftResponse } from './interface';
 import { decodeSearchParams, makeResponse } from '@/app/api/utils';
-import { EspnLeague, isPlatform, PlatformLeague } from "@/platforms/common";
+import { isPlatform, PlatformLeague } from "@/platforms/common";
+import { apiFor } from '@/platforms/ApiClient';
 
 export async function GET(req: NextRequest) {
     const body = decodeRequest(req.nextUrl.searchParams);
     if (!body) {
         return makeResponse<FetchDraftResponse>({ status: 'Invalid request' }, 400);
     }
-    if (body.league.platform !== 'espn') {
-        return makeResponse<FetchDraftResponse>({ status: 'Unsupported platform' }, 400);
-    }
-    const league = body.league as EspnLeague;
-    const leagueID = league.id;
-    const season = body.season;
-    const auth = league.auth;
-    const draftInfo = await fetchDraftInfo(leagueID, season, auth);
+    const api = apiFor(body.league);
+    const draftInfo = await api.fetchDraft(body.season);
     if (typeof draftInfo === 'number') {
         return makeResponse<FetchDraftResponse>({ status: `Failed to fetch league info: ${draftInfo}` }, 404);
      }

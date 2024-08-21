@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { act } from 'react';
 import { render, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom'; // Ensure this is imported
 import Tooltip, { TOOLTIP_DELAY } from './Tooltip';
 
 async function tooltipWait() {
-    await new Promise((resolve) => setTimeout(resolve, TOOLTIP_DELAY + 5));
+    await new Promise((resolve) => setTimeout(resolve, TOOLTIP_DELAY + 10));
 }
 
 describe('Tooltip', () => {
@@ -35,9 +35,10 @@ describe('Tooltip', () => {
                 <button>Button</button>
             </Tooltip>
         );
-
-        fireEvent.mouseEnter(getByRole('tooltip-trigger'));
-        await tooltipWait();
+        await act(async () => {
+            fireEvent.mouseEnter(getByRole('tooltip-trigger'));
+            await tooltipWait();
+        });
 
         expect(getByText('Tooltip Text')).toBeInTheDocument();
     });
@@ -52,11 +53,15 @@ describe('Tooltip', () => {
             </div>
         );
 
-        fireEvent.mouseEnter(getByRole('tooltip-trigger'));
-        await tooltipWait();
+        await act(async () => {
+            fireEvent.mouseEnter(getByRole('tooltip-trigger'));
+            await tooltipWait();
+        });
         expect(queryByText('Tooltip Text')).toBeInTheDocument();
-        fireEvent.mouseLeave(getByRole('tooltip-trigger'));
-        await tooltipWait();
+        await act(async () => {
+            fireEvent.mouseLeave(getByRole('tooltip-trigger'));
+            await tooltipWait();
+        });
 
         expect(queryByText('Tooltip Text')).toBeNull();
     });
@@ -68,8 +73,10 @@ describe('Tooltip', () => {
             </Tooltip>
         );
 
-        fireEvent.mouseEnter(getByRole('tooltip-trigger'));
-        await tooltipWait();
+        await act(async () => {
+            fireEvent.mouseEnter(getByRole('tooltip-trigger'));
+            await tooltipWait();
+        });
 
         expect(getByText('Tooltip Text')).toBeInTheDocument();
     });
@@ -81,10 +88,14 @@ describe('Tooltip', () => {
             </Tooltip>
         );
     
-        fireEvent.touchStart(getByRole('tooltip-trigger'));
-        await tooltipWait();
-        fireEvent.touchEnd(getByRole('tooltip-trigger'));
-        await tooltipWait();
+        await act(async () => {
+            fireEvent.touchStart(getByRole('tooltip-trigger'))
+            await tooltipWait();
+        });
+        await act(async () => {
+            fireEvent.touchEnd(getByRole('tooltip-trigger'));
+            await tooltipWait();
+        });
     
         expect(queryByText('Tooltip Text')).not.toBeInTheDocument();
     });
@@ -99,8 +110,10 @@ it('should position the tooltip to the top right if there is enough room', async
     );
 
     const tooltipTrigger = getByRole('tooltip-trigger');
-    fireEvent.mouseEnter(tooltipTrigger);
-    await tooltipWait();
+    await act(async () => {
+        fireEvent.mouseEnter(tooltipTrigger)
+        await tooltipWait();
+    });
 
     const tooltip = queryByText('Tooltip Text');
     const tooltipRect = tooltip?.getBoundingClientRect();
@@ -121,8 +134,10 @@ it('should adjust the tooltip position down if there is not enough room on the t
     );
 
     const tooltipTrigger = getByRole('tooltip-trigger');
-    fireEvent.mouseEnter(tooltipTrigger);
-    await tooltipWait();
+    await act(async () => {
+        fireEvent.mouseEnter(tooltipTrigger)
+        await tooltipWait();
+    });
 
     const tooltip = queryByText('Tooltip Text');
     const tooltipRect = tooltip?.getBoundingClientRect();
@@ -143,8 +158,10 @@ it('should adjust the tooltip position to the left if there is not enough room o
     );
 
     const tooltipTrigger = getByRole('tooltip-trigger');
-    fireEvent.mouseEnter(tooltipTrigger);
-    await tooltipWait();
+    await act(async () => {
+        fireEvent.mouseEnter(tooltipTrigger)
+        await tooltipWait();
+    });
 
     const tooltip = queryByText('Tooltip Text');
     const tooltipRect = tooltip?.getBoundingClientRect();

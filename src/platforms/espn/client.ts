@@ -1,18 +1,18 @@
-import { FetchDraftResponse, FetchDraftRequest } from "./fetch-draft/interface";
-import { FetchLeagueHistoryRequest, FetchLeagueHistoryResponse, LeagueInfoHistory } from "./fetch-league-history/interface";
-import { FetchLeagueTeamsResponse, FetchLeagueTeamsRequest } from "./fetch-league-teams/interface";
-import { FetchLeagueResponse, FetchLeagueRequest } from "./fetch-league/interface";
-import { FetchPlayersResponse, FetchPlayersRequest } from "./fetch-players/interface";
-import { FindLeagueRequest, FindLeagueResponse } from "./find-league/interface";
-import { FETCH_DRAFT_ENDPOINT, FETCH_LEAGUE_ENDPOINT, FETCH_LEAGUE_HISTORY_ENDPOINT, FETCH_LEAGUE_TEAMS_ENDPOINT, FETCH_PLAYERS_ENDPOINT, FIND_LEAGUE_ENDPOINT } from "./interface";
-import { PlatformLeague } from "@/platforms/common";
-import { makeApiRequest } from "./utils";
-import { DraftDetail, LeagueInfo, Player } from "@/platforms/PlatformApi";
+import { FetchDraftResponse, FetchDraftRequest } from "@/app/api/fetch-draft/interface";
+import { FetchLeagueHistoryRequest, FetchLeagueHistoryResponse, LeagueInfoHistory } from "@/app/api/fetch-league-history/interface";
+import { FetchLeagueTeamsResponse, FetchLeagueTeamsRequest } from "@/app/api/fetch-league-teams/interface";
+import { FetchLeagueResponse, FetchLeagueRequest } from "@/app/api/fetch-league/interface";
+import { FetchPlayersResponse, FetchPlayersRequest } from "@/app/api/fetch-players/interface";
+import { FindLeagueRequest, FindLeagueResponse } from "@/app/api/find-league/interface";
+import { FETCH_DRAFT_ENDPOINT, FETCH_LEAGUE_ENDPOINT, FETCH_LEAGUE_HISTORY_ENDPOINT, FETCH_LEAGUE_TEAMS_ENDPOINT, FETCH_PLAYERS_ENDPOINT, FIND_LEAGUE_ENDPOINT } from "@/app/api/interface";
+import { EspnLeague, Platform, PlatformLeague } from "@/platforms/common";
+import { makeApiRequest } from "@/app/api/utils";
+import { DraftInfo } from "../PlatformApi";
 
-export default class ApiClient {
-    private league: PlatformLeague;
+export default class EspnApiClient {
+    private league: EspnLeague;
 
-    constructor(league: PlatformLeague) {
+    constructor(league: EspnLeague) {
         this.league = league;
     }
 
@@ -66,20 +66,5 @@ export default class ApiClient {
         return makeApiRequest<FetchPlayersRequest, FetchPlayersResponse>(FETCH_PLAYERS_ENDPOINT, 'GET', req);
     }
 
-    public buildDraftHistory(leagueHistory: LeagueInfoHistory) : Promise<Map<DraftDetail, Player[]>> {
-        const years = Array.from(Object.entries(leagueHistory))
-            .filter(([_, info]) => info.draft.type === 'auction' && info.drafted) as [string, LeagueInfo][];
-        const requests = years.map(([year, _]) =>
-             Promise.all([this.fetchDraft(parseInt(year)), this.fetchPlayers(parseInt(year))]));
-        const responses = Promise.all(requests);
-        const successes = responses.then(resps =>
-             resps.filter(([draftResponse, playerResponse]) =>
-                 typeof draftResponse !== 'string' && typeof playerResponse !== 'string') as
-            [FetchDraftResponse, FetchPlayersResponse][]);
-        const result = successes.then(successes =>
-             new Map(successes.map(([draftResponse, playerResponse]) =>
-                 [draftResponse.data!, playerResponse.data!])));
-        return result;
-    }
 
 }    

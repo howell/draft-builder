@@ -1,5 +1,6 @@
 import axios from "axios";
 import { buildRoute } from "./api";
+import { DraftInfo, LeagueInfo, PlayersInfo, TeamInfo } from "./types";
 
 
 export type EspnAuth = {
@@ -75,7 +76,7 @@ function buildDraftRoute(leagueID: number, season: number, scoringPeriodId = 0) 
     );
 }
 
-export async function fetchAllPlayerInfo(leagueID: number, season: number, scoringPeriodId = 0, maxPlayers = 1000, auth?: EspnAuth): Promise<number | PlayersInfo> {
+export async function fetchAllPlayerInfo(leagueID: number, season: number, auth?: EspnAuth, scoringPeriodId = 0, maxPlayers = 1000): Promise<number | PlayersInfo> {
     try {
         const playerResponse = await axios.get(buildPlayerRoute(leagueID, season, scoringPeriodId), {
             headers: {

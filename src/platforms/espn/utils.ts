@@ -1,3 +1,4 @@
+import { DraftPick, LeagueInfo, PlayerInfo, Team } from "./types";
 
 export function slotName(slotId: number): string {
     return slotCategoryIdToPositionMap[slotId];
@@ -53,24 +54,3 @@ export function leagueLineupSettings(league: LeagueInfo): Map<string, number> {
 }
 
 export type DraftedPlayer = DraftPick & PlayerInfo["player"] & { draftedBy: Team | number; };
-
-export function mergeDraftAndPlayerInfo(draftData: DraftPick[], playerData: PlayerInfo[], teams: Team[] = []): DraftedPlayer[] {
-    return draftData.map((pick) => {
-        const player = playerData.find((info: PlayerInfo) => info.player.id === pick.playerId);
-        const team = teams.find((team: Team) => team.id === pick.teamId);
-        if (!player) {
-            console.error('Player not found for pick:', pick);
-            throw new Error('Player not found for pick');
-        }
-        if (teams.length > 0 && !team) {
-            console.error('Team not found for pick:', pick);
-            throw new Error('Team not found for pick');
-        }
-        return {
-            ...pick,
-            ...player.player,
-            draftedBy: team || pick.teamId
-        };
-    });
-}
-

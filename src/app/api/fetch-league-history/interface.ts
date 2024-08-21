@@ -1,4 +1,5 @@
 import { PlatformLeague } from "@/platforms/common";
+import { LeagueInfo } from "@/platforms/PlatformApi";
 
 export type FetchLeagueHistoryRequest = {
     league: PlatformLeague;

@@ -1,4 +1,5 @@
-import { Platform, PlatformLeague } from "@/platforms/common";
+import { PlatformLeague } from "@/platforms/common";
+import { Player } from "@/platforms/PlatformApi";
 
 export type FetchPlayersRequest = {
     league: PlatformLeague;
@@ -9,7 +10,7 @@ export type FetchPlayersRequest = {
 
 export type FetchPlayersResponse = {
     status: 'ok' | string;
-    data?: PlayersInfo;
+    data?: Player[];
 }
 
 

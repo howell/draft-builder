@@ -1,30 +1,21 @@
 'use server'
-import { fetchLeagueHistory } from '@/platforms/espn/league';
 import { NextRequest } from 'next/server';
 import { FetchLeagueHistoryRequest, FetchLeagueHistoryResponse } from './interface';
 import { decodeSearchParams, makeResponse } from '@/app/api/utils';
-import { EspnLeague, isPlatform, PlatformLeague } from "@/platforms/common";
+import { isPlatform, PlatformLeague } from "@/platforms/common";
+import { apiFor } from '@/platforms/ApiClient';
 
 export async function GET(req: NextRequest) {
     const body = decodeRequest(req.nextUrl.searchParams);
     if (!body) {
         return makeResponse<FetchLeagueHistoryResponse>({ status: 'Invalid request' }, 400);
     }
-    if (body?.league?.platform !== 'espn') {
-        return makeResponse<FetchLeagueHistoryResponse>({ status: 'Unsupported platform' }, 400);
-    }
-    const league = body.league as EspnLeague;
-    const leagueID = league.id
-    const startSeason = body.startSeason;
-    const auth = league.auth;
-    const leagueInfo = await fetchLeagueHistory(leagueID, startSeason, auth);
+    const api = apiFor(body.league);
+    const leagueInfo = await api.fetchLeagueHistory(body.startSeason);
     if (leagueInfo.size === 0) {
         return makeResponse<FetchLeagueHistoryResponse>({ status: `Failed to fetch league info: ${leagueInfo}` }, 404);
      }
-    let leagueData: { [key: number]: LeagueInfo } = {};
-    leagueInfo.forEach((value, key) => {
-        leagueData[key] = value;
-    });
+    const leagueData = Object.fromEntries(leagueInfo.entries());
      const resp: FetchLeagueHistoryResponse = {
          status: 'ok',
          data: leagueData

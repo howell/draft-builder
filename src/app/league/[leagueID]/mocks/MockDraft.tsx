@@ -1,5 +1,6 @@
 'use client';
-import { leagueLineupSettings, mergeDraftAndPlayerInfo, DraftedPlayer, slotName, positionName } from "@/platforms/espn/utils";
+import { leagueLineupSettings, slotName, positionName } from "@/platforms/espn/utils";
+import { DraftedPlayer, mergeDraftAndPlayerInfo, Player, ScoringType } from "@/platforms/PlatformApi";
 import MockTable, { MockTableProps } from './MockTable';
 import * as regression from 'regression'
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer, Rankings } from '@/app/savedMockTypes';
@@ -10,6 +11,7 @@ import ErrorScreen from "@/ui/ErrorScreen";
 import { CURRENT_SEASON } from "@/constants";
 import { findBestRegression } from "../../analytics";
 import { loadLeague } from "@/app/localStorage";
+import { RankInfo, } from "@/platforms/espn/types";
 
 export type MockDraftProps = {
     leagueId: string;
@@ -88,7 +90,9 @@ async function fetchData(leagueID: number,
             return;
         }
         const draftAnalyses = new Map(Array.from(draftHistory.entries()).map(([draftInfo, players]) =>
-            [draftInfo.seasonId, analyzeDraft(mergeDraftAndPlayerInfo(draftInfo.draftDetail.picks, players))] as [number, DraftAnalysis]));
+            [draftInfo.season,
+                 analyzeDraft(mergeDraftAndPlayerInfo(draftInfo.picks, players))] as
+            [number, DraftAnalysis]));
 
         const latestInfo = leagueHistory.data![CURRENT_SEASON]!;
         const playerData = await playerResponse;
@@ -97,12 +101,12 @@ async function fetchData(leagueID: number,
             return;
         }
 
-        const scoringType = latestInfo.settings.scoringSettings.scoringType;
-        const playerDb = buildPlayerDb(playerData.data!.players, scoringType, Array.from(draftAnalyses.values()));
+        const scoringType = latestInfo.scoringType;
+        const playerDb = buildPlayerDb(playerData.data!, scoringType, Array.from(draftAnalyses.values()));
         const positions = Array.from(new Set(playerDb.map(player => player.defaultPosition)));
 
-        const auctionBudget = latestInfo.settings.draftSettings.auctionBudget;
-        const lineupSettings = leagueLineupSettings(latestInfo);
+        const auctionBudget = latestInfo.draft.auctionBudget;
+        const lineupSettings = latestInfo.rosterSettings;
         lineupSettings.delete('IR');
         console.log("Draft Analysis", draftAnalyses);
         setTableData({
@@ -121,64 +125,64 @@ async function fetchData(leagueID: number,
     }
 }
 
-function buildPlayerDb(players: PlayerInfo[], scoringType: ScoringType, draftAnalyses: DraftAnalysis[]): MockPlayer[] {
+function buildPlayerDb(players: Player[], scoringType: ScoringType, draftAnalyses: DraftAnalysis[]): MockPlayer[] {
     const rankings = rankPlayers(players, scoringType);
     return players.map(player => ({
-        id: player.player.id,
-        name: player.player.fullName,
-        defaultPosition: positionName(player.player.defaultPositionId),
-        positions: player.player.eligibleSlots.map(slot => slotName(slot)),
-        suggestedCost: (player.draftAuctionValue),
-        overallRank: 1 + (rankings.overall.get(player.player.id) as number),
-        positionRank: 1 + (rankings.positional.get(player.player.defaultPositionId)?.get(player.player.id) as number)
+        id: player.espnId,
+        name: player.fullName,
+        defaultPosition: player.position,
+        positions: player.eligiblePositions,
+        suggestedCost: player.platformPrice,
+        overallRank: 1 + (rankings.overall.get(player.espnId) as number),
+        positionRank: 1 + (rankings.positional.get(player.position)?.get(player.espnId) as number)
     }));
 }
 
-function rankPlayers(players: PlayerInfo[], scoringType: ScoringType): Rankings {
-    const comparePlayers = (a: PlayerInfo, b: PlayerInfo) => {
-        const aCost = a.draftAuctionValue;
-        const bCost = b.draftAuctionValue;
-        if (aCost !== bCost) {
-            return bCost - aCost;
-        }
-        if (!a.player.draftRanksByRankType || !a.player.draftRanksByRankType[scoringType]) {
-            return 1;
-        }
-        if (!b.player.draftRanksByRankType || !b.player.draftRanksByRankType[scoringType]) {
-            return -1;
-        }
-        let aRank: (RankInfo | number) = b.player.draftRanksByRankType[scoringType];
-        if (typeof aRank !== 'number') {
-            aRank = aRank.rank;
-        }
-        let bRank: (RankInfo | number) = a.player.draftRanksByRankType[scoringType];
-        if (typeof bRank !== 'number') {
-            bRank = bRank.rank;
-        }
-        return bRank - aRank;
-
+function rankPlayers(players: Player[], scoringType: ScoringType): Rankings {
+    const comparePlayers = (a: Player, b: Player) => {
+        const aCost = a.platformPrice;
+        const bCost = b.platformPrice;
+        return (bCost ?? 0) - (aCost ?? 0);
+        // if (aCost !== bCost) {
+        //     return (bCost ?? 0) - (aCost ?? 0);
+        // }
+        // if (!a.player.draftRanksByRankType || !a.player.draftRanksByRankType[scoringType]) {
+        //     return 1;
+        // }
+        // if (!b.player.draftRanksByRankType || !b.player.draftRanksByRankType[scoringType]) {
+        //     return -1;
+        // }
+        // let aRank: (RankInfo | number) = b.player.draftRanksByRankType[scoringType];
+        // if (typeof aRank !== 'number') {
+        //     aRank = aRank.rank;
+        // }
+        // let bRank: (RankInfo | number) = a.player.draftRanksByRankType[scoringType];
+        // if (typeof bRank !== 'number') {
+        //     bRank = bRank.rank;
+        // }
+        // return bRank - aRank;
     }
     players.sort(comparePlayers);
-    const positionOrder = new Map<number, PlayerInfo[]>();
+    const positionOrder = new Map<string, Player[]>();
     for (const playerInfo of players) {
-        const position = playerInfo.player.defaultPositionId
+        const position = playerInfo.position;
         if (!positionOrder.has(position)) {
-            const positionData = players.filter(p => p.player.defaultPositionId === position);
+            const positionData = players.filter(p => p.position === position);
             positionOrder.set(position, positionData);
         }
     }
 
     const overallRankings = new Map<number, number>();
-    const positionRankings = new Map<number, Map<number, number>>();
+    const positionRankings = new Map<string, Map<number, number>>();
 
     players.forEach((player, index) => {
-        overallRankings.set(player.player.id, index);
-        const position = player.player.defaultPositionId;
+        overallRankings.set(player.espnId, index);
+        const position = player.position;
         if (!positionRankings.has(position)) {
             positionRankings.set(position, new Map<number, number>());
         }
         const positionRank = positionOrder.get(position)?.indexOf(player) as number;
-        positionRankings.get(position)?.set(player.player.id, positionRank);
+        positionRankings.get(position)?.set(player.espnId, positionRank);
     });
 
     return {
@@ -189,20 +193,19 @@ function rankPlayers(players: PlayerInfo[], scoringType: ScoringType): Rankings 
 }
 
 function analyzeDraft(draftedPlayers: DraftedPlayer[]): DraftAnalysis {
-    const sortedPicks = draftedPlayers.sort((a, b) => b.bidAmount - a.bidAmount);
-    const data = sortedPicks.map((pick, index) => [index, pick.bidAmount] as [number, number]);
+    const sortedPicks = draftedPlayers.sort((a, b) => b.price - a.price);
+    const data = sortedPicks.map((pick, index) => [index, pick.price] as [number, number]);
     const overall = findBestRegression(data).equation as [number, number];
     const positions = new Map<string, ExponentialCoefficients>();
 
     for (const pick of sortedPicks) {
-        const position = pick.defaultPositionId;
-        const posName = positionName(position);
-        if (!positions.has(posName)) {
+        const position = pick.position;
+        if (!positions.has(position)) {
             const positionData = sortedPicks
-                .filter(p => p.defaultPositionId === position)
-                .map((p, index) => [index, p.bidAmount] as [number, number]);
+                .filter(p => p.position === position)
+                .map((p, index) => [index, p.price] as [number, number]);
             const positionRegression = findBestRegression(positionData);
-            positions.set(posName, positionRegression.equation as [number, number]);
+            positions.set(position, positionRegression.equation as [number, number]);
         }
     }
     return {

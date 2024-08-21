@@ -83,7 +83,7 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
                     if (typeof info === 'number') {
                         console.error(`Failed to fetch league info for ${year}: ${info}`);
                     } else {
-                        if (info.draftDetail.drafted && info.settings.draftSettings.type === 'AUCTION') {
+                        if (info.drafted && info.draft.type === 'auction') {
                             auctions.push(parseInt(year));
                         }
                     }
@@ -91,7 +91,7 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
 
                 auctions.sort((a, b) => b - a);
                 setPrevAuctions(auctions);
-                setLeagueName(leagueHistory[CURRENT_SEASON]!.settings.name);
+                setLeagueName(leagueHistory[CURRENT_SEASON]!.name);
             } catch (error: any) {
                 alert(`Error while loading league history: ${error.message}`);
             } finally {

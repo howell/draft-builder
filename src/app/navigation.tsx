@@ -1,5 +1,4 @@
-import { EspnLeague, PlatformLeague } from "@/platforms/common";
-import Cookies from 'js-cookie';
+import { PlatformLeague } from "@/platforms/common";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 export function activateLeague(league: PlatformLeague, router: AppRouterInstance) {

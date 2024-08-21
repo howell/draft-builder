@@ -1,6 +1,7 @@
 "use client";
 import PlayerTable, { ColumnName } from './PlayerTable';
-import { mergeDraftAndPlayerInfo, DraftedPlayer, positionName } from "@/platforms/espn/utils";
+import { positionName } from "@/platforms/espn/utils";
+import { DraftedPlayer, LeagueTeam, mergeDraftAndPlayerInfo } from "@/platforms/PlatformApi";
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import ApiClient from '@/app/api/ApiClient';
@@ -115,13 +116,19 @@ function defaultSearchSettingsFor(positions: string[]): SearchSettingsState {
 
 function makeTableRow(data: DraftedPlayer): TableData {
     return {
-        id: data.id,
+        id: data.playerId,
         name: data.fullName,
-        auctionPrice: data.bidAmount,
+        auctionPrice: data.price,
         numberDrafted: data.overallPickNumber,
-        teamDrafted: typeof data.draftedBy === 'number' ? '' : data.draftedBy.name,
-        position: positionName(data.defaultPositionId)
+        teamDrafted: teamName(data.draftedBy),
+        position: data.position,
     }
+}
+
+function teamName(team: string | number | LeagueTeam): string {
+    return typeof team === 'string' ? team :
+        typeof team === 'number' ? `Team ${team}` :
+            team.name;
 }
 
 async function fetchData(leagueID: number,
@@ -172,7 +179,7 @@ async function fetchData(leagueID: number,
             return;
         }
 
-        const resultData = mergeDraftAndPlayerInfo(draftData.data!.draftDetail.picks, playerData.data!.players, teamsData.data!.teams);
+        const resultData = mergeDraftAndPlayerInfo(draftData.data!.picks, playerData.data!, teamsData.data!);
         const tableData = resultData.map(makeTableRow);
         const positions = Array.from(new Set(tableData.map(player => player.position)));
         const settings = { ...defaultSearchSettings, positions };

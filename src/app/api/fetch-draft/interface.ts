@@ -1,4 +1,5 @@
-import { Platform, PlatformLeague } from "@/platforms/common";
+import { PlatformLeague } from "@/platforms/common";
+import { DraftDetail } from "@/platforms/PlatformApi";
 
 export type FetchDraftRequest = {
     league: PlatformLeague;
@@ -7,6 +8,6 @@ export type FetchDraftRequest = {
 
 export type FetchDraftResponse = {
     status: 'ok' | string;
-    data?: DraftInfo;
+    data?: DraftDetail;
 }
 

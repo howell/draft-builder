@@ -1,4 +1,4 @@
-type LeagueInfo = {
+export type LeagueInfo = {
     draftDetail: DraftDetail;
     gameId: number;
     id: number;
@@ -9,7 +9,7 @@ type LeagueInfo = {
     status: Status;
 };
 
-type Settings = {
+export type Settings = {
     acquisitionSettings: AcquisitionSettings;
     draftSettings: DraftSettings;
     financeSettings: FinanceSettings;
@@ -24,7 +24,7 @@ type Settings = {
     tradeSettings: TradeSettings;
 };
 
-type Status = {
+export type Status = {
     activatedDate: number;
     createdAsLeagueType: number;
     currentLeagueType: number;
@@ -47,12 +47,12 @@ type Status = {
     waiverProcessStatus: { [key: string]: number };
 };
 
-type DraftDetail = {
+export type DraftDetail = {
     drafted: boolean;
     inProgress: boolean;
 };
 
-type AcquisitionSettings = {
+export type AcquisitionSettings = {
     acquisitionBudget: number;
     acquisitionLimit: number;
     acquisitionType: string;
@@ -68,7 +68,7 @@ type AcquisitionSettings = {
     waiverProcessHour: number;
 };
 
-type DraftSettings = {
+export type DraftSettings = {
     auctionBudget: number;
     availableDate: number;
     date: number;
@@ -83,7 +83,7 @@ type DraftSettings = {
     type: string;
 };
 
-type FinanceSettings = {
+export type FinanceSettings = {
     entryFee: number;
     miscFee: number;
     perLoss: number;
@@ -94,7 +94,7 @@ type FinanceSettings = {
     playerMoveToIR: number;
 };
 
-type RosterSettings = {
+export type RosterSettings = {
     isBenchUnlimited: boolean;
     isUsingUndroppableList: boolean;
     lineupLocktimeType: string;
@@ -106,7 +106,7 @@ type RosterSettings = {
     universeIds: number[];
 };
 
-type ScheduleSettings = {
+export type ScheduleSettings = {
     divisions: { id: number; name: string; size: number }[];
     matchupPeriodCount: number;
     matchupPeriodLength: number;
@@ -120,9 +120,9 @@ type ScheduleSettings = {
     variablePlayoffMatchupPeriodLength: boolean;
 };
 
-type ScoringType = 'STANDARD' | 'PPR';
+export type ScoringType = 'STANDARD' | 'PPR';
 
-type ScoringSettings = {
+export type ScoringSettings = {
     allowOutOfPositionScoring: boolean;
     homeTeamBonus: number;
     matchupTieRule: string;
@@ -142,7 +142,7 @@ type ScoringSettings = {
     scoringType: ScoringType;
 };
 
-type TradeSettings = {
+export type TradeSettings = {
     allowOutOfUniverse: boolean;
     deadlineDate: number;
     max: number;
@@ -150,7 +150,7 @@ type TradeSettings = {
     vetoVotesRequired: number;
 };
 
-type DraftInfo = {
+export type DraftInfo = {
     draftDetail: DraftInfoDetail;
     gameId: number;
     id: number;
@@ -163,14 +163,14 @@ type DraftInfo = {
     teams: any;
 }
 
-type DraftInfoDetail = {
+export type DraftInfoDetail = {
     completeDate: number;
     drafted: boolean;
     inProgress: boolean;
     picks: DraftPick[];
 };
 
-type DraftPick = {
+export type DraftPick = {
     autoDraftTypeId: number;
     bidAmount: number;
     id: number;
@@ -187,17 +187,17 @@ type DraftPick = {
     tradeLocked: boolean;
 };
 
-type PlayersInfo = {
+export type PlayersInfo = {
     players: PlayerInfo[];
     positionAgainstOpponent: any;
 };
 
-type DraftRanksByRankType = {
+export type DraftRanksByRankType = {
     STANDARD: RankInfo;
     PPR: RankInfo;
 };
 
-type RankInfo = {
+export type RankInfo = {
     auctionValue: number;
     averageRank?: number;
     published: boolean;
@@ -207,7 +207,7 @@ type RankInfo = {
     slotId: number;
 };
 
-type PlayerInfo = {
+export type PlayerInfo = {
     draftAuctionValue: number;
     id: number;
     keeperValue: number;
@@ -266,12 +266,12 @@ type PlayerInfo = {
     tradeLocked: boolean;
 };
 
-type TeamInfo = {
+export type TeamInfo = {
     teams: Team[];
     members: Member[];
 };
 
-type Team = {
+export type Team = {
     abbrev: string;
     currentProjectedRank: number;
     divisionId: number;
@@ -316,7 +316,7 @@ type Team = {
     waiverRank: number;
 }
 
-type TeamRecord = {
+export type TeamRecord = {
     gamesBack: number;
     losses: number;
     percentage: number;
@@ -328,7 +328,7 @@ type TeamRecord = {
     wins: number;
 }
 
-type RosterEntry = {
+export type RosterEntry = {
     acquisitionDate: null | string;
     acquisitionType: null | string;
     injuryStatus: "NORMAL" | "ACTIVE";
@@ -410,7 +410,7 @@ type RosterEntry = {
     tradeLocked: boolean;
 };
 
-type Member = {
+export type Member = {
     displayName: string;
     firstName: string;
     id: string;
@@ -418,7 +418,7 @@ type Member = {
     notificationSettings: NotificationSetting[];
 };
 
-type NotificationSetting = {
+export type NotificationSetting = {
     enabled: boolean;
     id: string;
     type: string;

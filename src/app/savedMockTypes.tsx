@@ -40,8 +40,8 @@ export type StoredDraftDataV2 = {
 
 
 export type Rankings = {
-    overall: Map<number, number>,
-    positional: Map<number, Map<number, number>>
+    overall: Map<number, number>, // playerId -> rank
+    positional: Map<string, Map<number, number>> // position -> playerId -> rank
 }
 
 export type ExponentialCoefficients = [number, number];
@@ -56,7 +56,7 @@ export type MockPlayer = {
     name: string;
     defaultPosition: string;
     positions: string[];
-    suggestedCost: number,
+    suggestedCost?: number,
     overallRank: number;
     positionRank: number;
 }
