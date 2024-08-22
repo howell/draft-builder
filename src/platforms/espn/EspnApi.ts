@@ -25,8 +25,9 @@ export class EspnApi extends PlatformApi {
             .then(importEspnLeagueHistory);
     }
 
-    public fetchDraft(draftId?: number): Promise<DraftDetail | number> {
-        return fetchDraftInfo(this.league.id, CURRENT_SEASON, this.league.auth)
+    public fetchDraft(season?: number): Promise<DraftDetail | number> {
+        season = season || CURRENT_SEASON;
+        return fetchDraftInfo(this.league.id, season, this.league.auth)
             .then(convertBy(importEspnDraftDetail));
     }
 
@@ -61,7 +62,7 @@ export function importEspnLeagueInfo(info: EspnT.LeagueInfo): LeagueInfo {
             type: importEspnDraftType(info.settings.draftSettings.type),
             auctionBudget: info.settings.draftSettings.auctionBudget,
             },
-            rosterSettings: leagueLineupSettings(info)
+        rosterSettings: leagueLineupSettings(info)
     };
 }
 

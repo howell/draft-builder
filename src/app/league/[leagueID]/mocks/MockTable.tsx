@@ -10,12 +10,13 @@ import { compareLineupPositions } from '@/constants';
 import { DarkLightText } from '@/ui/basicComponents';
 import CollapsibleComponent from '@/ui/Collapsible';
 import Tooltip from '@/ui/Tooltip';
+import { RosterSettings } from '@/platforms/PlatformApi';
 
 export interface MockTableProps {
     leagueId: number;
     draftName?: string;
     auctionBudget: number;
-    positions: Map<string, number>;
+    positions: RosterSettings;
     players: MockPlayer[];
     draftHistory: Map<number, DraftAnalysis>;
     playerPositions: string[];
@@ -142,6 +143,11 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
             return;
         }
         const eligibleSlots = rosterSlots.filter(slot => player.positions.includes(slot.position));
+        const exactSlot = eligibleSlots.find(slot => slot.position === player.defaultPosition);
+        if (exactSlot) {
+            onPlayerSelected(exactSlot, player);
+            return;
+        }
         for (const slot of eligibleSlots) {
             const slotName = serializeRosterSlot(slot);
             if (!rosterSelections[slotName]) {
@@ -313,8 +319,8 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
 
 export default MockTable;
 
-export function computeRosterSlots(positions: Map<string, number>): RosterSlot[] {
-    return Array.from(positions.entries())
+export function computeRosterSlots(positions: RosterSettings): RosterSlot[] {
+    return Array.from(Object.entries(positions))
         .sort(([positionA, _cA], [positionB, _cB]) => compareLineupPositions(positionA, positionB))
         .flatMap(([name, count]) =>
             Array.from({ length: count }, (_, i) =>

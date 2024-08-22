@@ -23,7 +23,6 @@ export default function Home() {
 
   useEffect(() => {
     const availableLeagues = loadLeagues();
-    console.log(availableLeagues);
     setAvailableLeagues(Object.values(availableLeagues.leagues));
   }, []);
 

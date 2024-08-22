@@ -27,7 +27,7 @@ export default function Demo() {
     );
 }
 
-const demoRoster = new Map([['QB', 1], ['RB', 2], ['WR', 2], ['TE', 1], ['FLEX', 1]]);
+const demoRoster = Object.fromEntries([['QB', 1], ['RB', 2], ['WR', 2], ['TE', 1], ['FLEX', 1]]);
 const demoPlayerPositions = ['QB', 'RB', 'WR', 'TE'];
 
 const analysis23: DraftAnalysis = {overall: [67.45, -0.03], positions: new Map([['QB', [48.61, -0.1]], ['RB', [76.17, -0.08]], ['WR', [52.79, -0.07]], ['TE', [34.83, -0.32]]])};

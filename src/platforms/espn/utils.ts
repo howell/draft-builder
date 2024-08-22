@@ -44,13 +44,13 @@ export const slotCategoryIdToPositionMap: { [key: number]: string; } = {
     25: 'Rookie'
 };
 
-export function leagueLineupSettings(league: LeagueInfo): Map<string, number> {
+export function leagueLineupSettings(league: LeagueInfo): Record<string, number> {
     const slotCounts = league.settings.rosterSettings.lineupSlotCounts;
     const positionCounts: [string, number][] = Object.keys(slotCounts).map((slot: string) => [
         slotCategoryIdToPositionMap[parseInt(slot)],
         slotCounts[slot],
     ]);
-    return new Map(positionCounts);
+    return Object.fromEntries(positionCounts);
 }
 
 export type DraftedPlayer = DraftPick & PlayerInfo["player"] & { draftedBy: Team | number; };

@@ -115,7 +115,7 @@ describe('playerAvailable', () => {
 
 describe('computeRosterSlots', () => {
     it('should return an array of roster slots based on positions', () => {
-        const positions = new Map<string, number>([
+        const positions = Object.fromEntries([
             ['QB', 1],
             ['RB', 2],
             ['WR', 3],

@@ -107,7 +107,7 @@ async function fetchData(leagueID: number,
 
         const auctionBudget = latestInfo.draft.auctionBudget;
         const lineupSettings = latestInfo.rosterSettings;
-        lineupSettings.delete('IR');
+        delete lineupSettings['IR'];
         console.log("Draft Analysis", draftAnalyses);
         setTableData({
             leagueId: leagueID,

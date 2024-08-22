@@ -9,7 +9,7 @@ export type LeagueInfo = {
     rosterSettings: RosterSettings;
 };
 
-export type RosterSettings = Map<string, number>;
+export type RosterSettings = Record<string, number>;
 
 
 export type LeagueHistory = Map<number, LeagueInfo>;
