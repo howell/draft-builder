@@ -136,7 +136,7 @@ describe('computeRosterSlots', () => {
     });
 
     it('should return an empty array when positions map is empty', () => {
-        const positions = new Map<string, number>();
+        const positions = {};
 
         const rosterSlots = computeRosterSlots(positions);
 
@@ -145,7 +145,7 @@ describe('computeRosterSlots', () => {
 });
 
 describe('calculateAmountSpent', () => {
-    const mockCostEstimator = jest.fn((player: MockPlayer) => player.suggestedCost);
+    const mockCostEstimator = jest.fn((player: MockPlayer) => player.suggestedCost!);
 
     it('should calculate the correct amount spent when there are no selected players and no adjustments', () => {
         const rosterSpots = 10;
@@ -203,7 +203,7 @@ describe('calculateAmountSpent', () => {
 
         const result = calculateAmountSpent(mockCostEstimator, rosterSpots, selectedPlayers, adjustments);
 
-        const selectedPlayersCost = selectedPlayers.reduce((total, player) => total + player.suggestedCost, 0);
+        const selectedPlayersCost = selectedPlayers.reduce((total, player) => total + player.suggestedCost!, 0);
         const adjustmentsCost = adjustments.get('QB')! + adjustments.get('RB')! + adjustments.get('WR')!;
         const unusedCost = rosterSpots - selectedPlayers.length;
         const expectedCost = unusedCost + selectedPlayersCost + adjustmentsCost;
