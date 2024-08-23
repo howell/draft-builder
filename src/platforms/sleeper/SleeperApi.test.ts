@@ -1,9 +1,9 @@
-import { SleeperApi, importSleeperLeagueInfo, importSleeperDraftDetail, importSleeperTeamInfo } from "./SleeperApi";
+import { SleeperApi, importSleeperLeagueInfo, importSleeperDraftDetail, importSleeperTeamInfo, importSleeperDraftPick } from "./SleeperApi";
 import { SleeperLeague } from "../common";
 import { fetchLeagueInfo, fetchLeagueHistory, fetchDraftInfo, fetchLeagueTeams } from "./api";
 import { LeagueInfo, LeagueHistory, DraftDetail, LeagueTeam } from "../PlatformApi";
 import * as SleeperT from "./types";
-import { realDraftInfo, realLeague } from "./examples";
+import { realDraftInfo, realLeague, realDraftPick, realDraftPick2 } from "./examples";
 
 jest.mock("./api");
 
@@ -65,24 +65,20 @@ describe("SleeperApi", () => {
     describe("fetchDraft", () => {
 
         it("should return error code if draft info fetch fails", async () => {
-            const draftId = '5878';
+            const sesasonId = '2024';
 
+
+            (fetchLeagueInfo as jest.Mock).mockResolvedValue({season: '2024', draft_id: '123'} as any);
             (fetchDraftInfo as jest.Mock).mockResolvedValue(400);
 
             const sleeperApi = new SleeperApi(league);
-            const result = await sleeperApi.fetchDraft(draftId);
+            const result = await sleeperApi.fetchDraft(sesasonId);
 
-            expect(fetchDraftInfo).toHaveBeenCalledWith(draftId);
+            expect(fetchLeagueInfo).toHaveBeenCalledWith(league.id);
+            expect(fetchDraftInfo).toHaveBeenCalledWith('123');
             expect(result).toEqual(400);
         });
 
-        it("should return error code if draftId is not provided", async () => {
-            const sleeperApi = new SleeperApi(league);
-            const result = await sleeperApi.fetchDraft();
-
-            expect(fetchDraftInfo).not.toHaveBeenCalled();
-            expect(result).toEqual(400);
-        });
     });
 
     describe("fetchLeagueTeams", () => {
@@ -149,5 +145,26 @@ describe("importSleeperTeamInfo", () => {
         const result = importSleeperTeamInfo(sleeperTeamInfo);
 
         expect(result).toEqual(expectedTeamInfo);
+    });
+});
+describe("importSleeperDraftPick", () => {
+    it("should import Sleeper draft pick", () => {
+        expect(importSleeperDraftPick(realDraftPick)).toEqual(
+            {
+                playerId: "KC",
+                team: "739615909098000384",
+                price: 1,
+                overallPickNumber: 180,
+            }
+        );
+
+        expect(importSleeperDraftPick(realDraftPick2)).toEqual(
+            {
+                playerId: "7569",
+                team: "73448567356145664",
+                price: 1,
+                overallPickNumber: 144,
+            }
+        );
     });
 });

@@ -27,7 +27,7 @@ export type DraftDetail = {
 };
 
 export type DraftPick = {
-    playerId: number;
+    playerId: string | number;
     team: string | number;
     price: number;
     overallPickNumber: number;
@@ -55,7 +55,7 @@ export abstract class PlatformApi {
 
     public abstract fetchLeagueHistory(startYear?: SeasonId): Promise<LeagueHistory>;
 
-    public abstract fetchDraft(draftId?: string): Promise<DraftDetail | number>;
+    public abstract fetchDraft(seasonId?: SeasonId): Promise<DraftDetail | number>;
 
     public abstract fetchLeagueTeams(season?: SeasonId): Promise<LeagueTeam[] | number>;
 

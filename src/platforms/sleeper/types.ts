@@ -61,16 +61,18 @@ export type DraftSettings = {
 export type DraftPick = {
     player_id: string;
     picked_by: string;
-    roster_id?: string;
+    roster_id?: string | number;
     round?: number;
     draft_slot?: number;
     pick_no: number;
     metadata: DraftPickMetadata;
     is_keeper: null;
     draft_id: string;
+    [more: string]: any;
 };
 
 export type DraftPickMetadata = {
+    amount?: string;
     team: string;
     status: string;
     sport: string;
@@ -81,6 +83,7 @@ export type DraftPickMetadata = {
     last_name: string;
     injury_status: string;
     first_name: string;
+    [more: string]: any;
 };
 
 export type Players = {

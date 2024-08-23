@@ -405,3 +405,55 @@ export const realDraftInfo: T.DraftInfo = {
     "status": "pre_draft",
     "type": "auction"
 };
+
+export const realDraftPick: T.DraftPick = {
+    "draft_id": "992211055641944065",
+    "draft_slot": 2,
+    "is_keeper": null,
+    "metadata": {
+        "amount": "1",
+        "first_name": "Kansas City",
+        "injury_status": "",
+        "last_name": "Chiefs",
+        "news_updated": "",
+        "number": "",
+        "player_id": "KC",
+        "position": "DEF",
+        "slot": "2",
+        "sport": "nfl",
+        "status": "",
+        "team": "KC",
+        "years_exp": ""
+    },
+    "pick_no": 180,
+    "picked_by": "739615909098000384",
+    "player_id": "KC",
+    "roster_id": 4,
+    "round": 15
+};
+
+export const realDraftPick2: T.DraftPick = {
+    "draft_id": "992211055641944065",
+    "draft_slot": 9,
+    "is_keeper": null,
+    "metadata": {
+        "amount": "1",
+        "first_name": "Nico",
+        "injury_status": "",
+        "last_name": "Collins",
+        "news_updated": "1692496210240",
+        "number": "12",
+        "player_id": "7569",
+        "position": "WR",
+        "slot": "9",
+        "sport": "nfl",
+        "status": "Active",
+        "team": "HOU",
+        "years_exp": "2"
+    },
+    "pick_no": 144,
+    "picked_by": "73448567356145664",
+    "player_id": "7569",
+    "roster_id": 1,
+    "round": 12
+};

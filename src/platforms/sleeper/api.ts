@@ -60,9 +60,11 @@ export async function fetchDraftInfo(draftId: string): Promise<number | DraftInf
 }
 
 export async function fetchDraftPicks(draftId: string): Promise<number | [DraftPick]> {
+    console.log("fetchDraftPicks draftId", draftId);
     const route = buildRoute(`draft/${draftId}/picks`, '');
     try {
         const draftResponse = await axios.get(route);
+        console.log("draft picks response", JSON.stringify(draftResponse.data, null, 2));
         return draftResponse.data;
     } catch (error) {
         if (axios.isAxiosError(error) && error.response) {

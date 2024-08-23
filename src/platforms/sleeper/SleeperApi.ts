@@ -1,7 +1,9 @@
+import { CURRENT_MOCKS_SCHEMA_VERSION } from '@/app/savedMockTypes';
 import { SeasonId, SleeperLeague } from '../common';
-import { PlatformApi, LeagueInfo, DraftDetail, LeagueHistory, LeagueTeam, Player, convertBy } from '../PlatformApi';
-import { fetchDraftInfo, fetchLeagueHistory, fetchLeagueInfo, fetchLeagueTeams } from './api';
+import { PlatformApi, LeagueInfo, DraftDetail, LeagueHistory, LeagueTeam, Player, convertBy, DraftPick } from '../PlatformApi';
+import { fetchDraftInfo, fetchDraftPicks, fetchLeagueHistory, fetchLeagueInfo, fetchLeagueTeams } from './api';
 import type * as SleeperT from './types';
+import { CURRENT_SEASON } from '@/constants';
 
 export class SleeperApi extends PlatformApi {
     private league: SleeperLeague;
@@ -39,12 +41,22 @@ export class SleeperApi extends PlatformApi {
         );
     }
 
-    public fetchDraft(draftId?: string): Promise<DraftDetail | number> {
-        if (!draftId) {
-            return Promise.resolve(400);
+    public async fetchDraft(seasonId?: SeasonId): Promise<DraftDetail | number> {
+        seasonId = seasonId ?? CURRENT_SEASON;
+        const seasonInfo = await this.infoForSeason(seasonId);
+        if (typeof seasonInfo === 'number') {
+            return seasonInfo;
         }
-        return fetchDraftInfo(draftId)
-            .then(convertBy(importSleeperDraftDetail));
+        const infoReq = fetchDraftInfo(seasonInfo.draft_id)
+        const picksReq = fetchDraftPicks(seasonInfo.draft_id);
+        const [info, picks] = await Promise.all([infoReq, picksReq]);
+        if (typeof info === 'number') {
+            return info;
+        }
+        if (typeof picks === 'number') {
+            return picks;
+        }
+        return importSleeperDraftDetail(info, picks);
 
     }
     public fetchLeagueTeams(season?: SeasonId): Promise<LeagueTeam[] | number> {
@@ -55,6 +67,14 @@ export class SleeperApi extends PlatformApi {
     // TODO
     public fetchPlayers(season?: SeasonId): Promise<Player[] | number> {
         return Promise.resolve([]);
+    }
+
+    private async infoForSeason(season: SeasonId): Promise<SleeperT.LeagueInfo | number> {
+        let currentLeagueInfo = await fetchLeagueInfo(this.league.id);
+        while (typeof currentLeagueInfo !== 'number' && currentLeagueInfo.season !== season) {
+            currentLeagueInfo = await fetchLeagueInfo(currentLeagueInfo.previous_league_id);
+        }
+        return currentLeagueInfo;
     }
 
 
@@ -75,11 +95,19 @@ export function importSleeperLeagueInfo(leagueInfo: SleeperT.LeagueInfo, draftIn
     };
 }
 
-// TODO
-export function importSleeperDraftDetail(arg: SleeperT.DraftInfo): DraftDetail {
+export function importSleeperDraftDetail(info: SleeperT.DraftInfo, picks: SleeperT.DraftPick[]): DraftDetail {
     return {
-        season: arg.season,
-        picks: []
+        season: info.season,
+        picks: picks.map(importSleeperDraftPick)
+    };
+}
+
+export function importSleeperDraftPick(pick: SleeperT.DraftPick): DraftPick {
+    return {
+        playerId: pick.player_id,
+        team: pick.picked_by,
+        price: parseInt(pick.metadata?.amount ?? '-1'),
+        overallPickNumber: pick.pick_no
     };
 }
 
