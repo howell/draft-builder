@@ -12,13 +12,9 @@ export function buildRoute(route: any, params: any) : string{
 }
 
 export async function fetchLeagueInfo(leagueID: LeagueId): Promise<LeagueInfo | number> {
-    console.log("fetch sleeper league", leagueID);
     const route = buildRoute(`league/${leagueID}`, '');
-    console.log("fetch sleeper league route", route);
     try {
         const leagueResponse = await axios.get(route);
-        console.log("league response");
-        console.log(JSON.stringify(leagueResponse.data, null, 2));
         return leagueResponse.data;
     } catch (error) {
         if (axios.isAxiosError(error) && error.response) {
@@ -38,7 +34,7 @@ export async function fetchLeagueHistory(leagueID: LeagueId): Promise<Map<number
 
     let league: LeagueInfo | number = latestInfo;
     while (league.previous_league_id && league.previous_league_id !== '') {
-        league = await fetchLeagueInfo(latestInfo.previous_league_id);
+        league = await fetchLeagueInfo(league.previous_league_id);
         if (typeof league === 'number') {
             break;
         }
