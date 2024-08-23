@@ -101,15 +101,6 @@ describe("SleeperApi", () => {
             expect(result).toEqual(expectedLeagueTeams);
         });
     });
-
-    describe("fetchPlayers", () => {
-        it("should return an empty array", async () => {
-            const sleeperApi = new SleeperApi(league);
-            const result = await sleeperApi.fetchPlayers();
-
-            expect(result).toEqual([]);
-        });
-    });
 });
 
 describe("importSleeperLeagueInfo", () => {

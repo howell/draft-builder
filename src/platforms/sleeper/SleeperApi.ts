@@ -1,9 +1,11 @@
-import { CURRENT_MOCKS_SCHEMA_VERSION } from '@/app/savedMockTypes';
 import { SeasonId, SleeperLeague } from '../common';
 import { PlatformApi, LeagueInfo, DraftDetail, LeagueHistory, LeagueTeam, Player, convertBy, DraftPick } from '../PlatformApi';
-import { fetchDraftInfo, fetchDraftPicks, fetchLeagueHistory, fetchLeagueInfo, fetchLeagueTeams } from './api';
+import { fetchDraftInfo, fetchDraftPicks, fetchLeagueHistory, fetchLeagueInfo, fetchLeagueTeams, fetchPlayers } from './api';
 import type * as SleeperT from './types';
 import { CURRENT_SEASON } from '@/constants';
+import redis from '@/redis/redis';
+
+const PLAYERS_CACHE_KEY = 'sleeper-players';
 
 export class SleeperApi extends PlatformApi {
     private league: SleeperLeague;
@@ -64,9 +66,25 @@ export class SleeperApi extends PlatformApi {
             .then(convertBy((info: SleeperT.LeagueUser[]) => info.map(importSleeperTeamInfo)));
     }
 
-    // TODO
-    public fetchPlayers(season?: SeasonId): Promise<Player[] | number> {
-        return Promise.resolve([]);
+    public async fetchPlayers(season?: SeasonId): Promise<Player[] | number> {
+        console.log("client api wants to fetch sleeper players");
+        const cached = await redis.get(PLAYERS_CACHE_KEY);
+        console.log("cached", typeof cached);
+        const cached_data = cached && JSON.parse(cached);
+        console.log("cached_data", typeof cached_data);
+        if (cached_data) {
+            return cached_data
+        }
+        const sleeperPlayers = await fetchPlayers();
+        console.log("fetched players type", typeof sleeperPlayers);
+        if (typeof sleeperPlayers === 'number') {
+            return sleeperPlayers;
+        }
+        console.log('first fetched player', sleeperPlayers[Object.keys(sleeperPlayers)[0]]);
+        const players = Object.entries(sleeperPlayers).map(([id, player]) => importSleeperPlayer(id, player));
+        console.log('first player', players[0]);
+        redis.set(PLAYERS_CACHE_KEY, JSON.stringify(players));
+        return players;
     }
 
     private async infoForSeason(season: SeasonId): Promise<SleeperT.LeagueInfo | number> {
@@ -115,5 +133,14 @@ export function importSleeperTeamInfo(arg: SleeperT.LeagueUser): LeagueTeam {
     return {
         id: arg.user_id,
         name: arg.display_name
+    };
+}
+
+export function importSleeperPlayer(id: string, player: SleeperT.Player): Player {
+    return {
+        espnId: parseInt(player.espn_id),
+        fullName: player.first_name + ' ' + player.last_name,
+        position: player.position,
+        eligiblePositions: player.fantasy_positions,
     };
 }

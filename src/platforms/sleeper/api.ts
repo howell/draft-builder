@@ -75,6 +75,7 @@ export async function fetchDraftPicks(draftId: string): Promise<number | [DraftP
 }
 
 export async function fetchPlayers(): Promise<number | Players> {
+    console.log("sleeper fetchPlayers");
     const route = buildRoute(`players/nfl`, '');
     try {
         const playersResponse = await axios.get(route);
