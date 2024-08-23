@@ -72,7 +72,7 @@ const LeagueOption: React.FC<{ league: PlatformLeague }> = ({ league }) => {
             <div className='w-8 mr-2 relative object-cover'> 
                 <Image src={logo} alt={league.platform + " logo"} />
             </div>
-            <span className='text-ellipsis overflow-x-clip'>
+            <span className='text-ellipsis overflow-x-clip mr-1'>
                 {league.id}
             </span>
         </div>
