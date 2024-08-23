@@ -1,9 +1,7 @@
 'use client';
-import CollapsibleComponent from '@/ui/Collapsible';
 import React, { useState } from 'react';
-import Image from 'next/image';
 import { LeagueDataInput, LeagueLoginProps, PrivateLeagueInput, PrivateLeagueInputProps, PrivateLeagueLabel, SubmitButton } from './leagueInputs';
-import { EspnLeague, SleeperLeague } from '@/platforms/common';
+import { isLeagueId, SleeperLeague } from '@/platforms/common';
 
 const SleeperLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
     const [leagueID, setLeagueID] = useState("");
@@ -15,13 +13,16 @@ const SleeperLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
         return;
       }
 
-      if (isNaN(parseInt(leagueID))) {
+      
+
+      if (!isLeagueId(leagueID)) {
         alert("League ID must be a number");
         return;
       }
 
-      const id = parseInt(leagueID);
-      const league: SleeperLeague = { platform: 'sleeper', id };
+      console.log("League input", leagueID);
+      console.log("Submitting league", leagueID);
+      const league: SleeperLeague = { platform: 'sleeper', id: leagueID };
       await submitLeague(league);
     };
 

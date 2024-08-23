@@ -1,8 +1,6 @@
 'use client';
-import { leagueLineupSettings, slotName, positionName } from "@/platforms/espn/utils";
 import { DraftedPlayer, mergeDraftAndPlayerInfo, Player, ScoringType } from "@/platforms/PlatformApi";
 import MockTable, { MockTableProps } from './MockTable';
-import * as regression from 'regression'
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer, Rankings } from '@/app/savedMockTypes';
 import React, { useState, useEffect } from 'react';
 import ApiClient from '@/app/api/ApiClient';
@@ -11,31 +9,29 @@ import ErrorScreen from "@/ui/ErrorScreen";
 import { CURRENT_SEASON } from "@/constants";
 import { findBestRegression } from "../../analytics";
 import { loadLeague } from "@/app/localStorage";
-import { RankInfo, } from "@/platforms/espn/types";
+import { LeagueId, SeasonId } from "@/platforms/common";
 
 export type MockDraftProps = {
-    leagueId: string;
+    leagueId: LeagueId;
     draftName?: string;
 }
 
 const MockDraft: React.FC<MockDraftProps> = ({ leagueId, draftName }) => {
-    const leagueID = parseInt(leagueId);
-
     const [loading, setLoading] = useState(true);
     const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>({});
     const [error, setError] = useState<string | null>(null);
     const [tableData, setTableData] = useState<MockTableProps | null>(null);
 
     useEffect(() => {
-        fetchData(leagueID, CURRENT_SEASON, setTableData, setError, setLoading, setLoadingTasks);
-    }, [leagueID]);
+        fetchData(leagueId, CURRENT_SEASON, setTableData, setError, setLoading, setLoadingTasks);
+    }, [leagueId]);
 
     if (error) {
         return <ErrorScreen message={error} />;
     } else if (loading || !tableData) {
         return <LoadingScreen tasks={loadingTasks}/>;
     }
-    return <MockTable leagueId={leagueID}
+    return <MockTable leagueId={leagueId}
         draftName={draftName}
         auctionBudget={tableData.auctionBudget}
         positions={tableData.positions}
@@ -46,8 +42,8 @@ const MockDraft: React.FC<MockDraftProps> = ({ leagueId, draftName }) => {
 
 export default MockDraft;
 
-async function fetchData(leagueID: number,
-    draftYear: number,
+async function fetchData(leagueID: LeagueId,
+    draftYear: SeasonId,
     setTableData: (data: MockTableProps) => void,
     setError: (error: string) => void,
     setLoading: (loading: boolean) => void,
@@ -92,7 +88,7 @@ async function fetchData(leagueID: number,
         const draftAnalyses = new Map(Array.from(draftHistory.entries()).map(([draftInfo, players]) =>
             [draftInfo.season,
                  analyzeDraft(mergeDraftAndPlayerInfo(draftInfo.picks, players))] as
-            [number, DraftAnalysis]));
+            [SeasonId, DraftAnalysis]));
 
         const latestInfo = leagueHistory.data![CURRENT_SEASON]!;
         const playerData = await playerResponse;

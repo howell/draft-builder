@@ -1,18 +1,40 @@
-export const CURRENT_MOCKS_SCHEMA_VERSION = 3;
+import { LeagueId, SeasonId } from "@/platforms/common";
 
-export type StoredDataCurrent = StoredDataV3;
-export type StoredMocksDataCurrent = StoredMocksDataV3;
-export type StoredDraftDataCurrent = StoredDraftDataV3;
+export const CURRENT_MOCKS_SCHEMA_VERSION = 4;
 
-export type StoredData =  StoredDataV2 | StoredDataV3;
+export type StoredDataCurrent = StoredDataV4;
+export type StoredMocksDataCurrent = StoredMocksDataV4;
+export type StoredDraftDataCurrent = StoredDraftDataV4;
+
+export type StoredData =  StoredDataV2 | StoredDataV3 | StoredDataV4;
+
+export type StoredDataV4 = {
+    schemaVersion: 4;
+    mocks: { [leagueId: LeagueId]: StoredMocksDataV4 }
+}
 
 export type StoredDataV3 = {
     schemaVersion: 3;
     [leagueId: number] : StoredMocksDataV3
 }
 
+export type StoredMocksDataV4 = {
+    drafts: { [draftName: string]: StoredDraftDataV4 }
+}
+
 export type StoredMocksDataV3 = {
     drafts: { [draftName: string]: StoredDraftDataV3 }
+}
+
+export type StoredDraftDataV4 = {
+    year: SeasonId;
+    notes: string;
+    created: number;
+    modified: number;
+    rosterSelections: RosterSelections;
+    estimationSettings: EstimationSettingsStateV4;
+    searchSettings: SearchSettingsState;
+    costAdjustments: Record<string, number>;
 }
 
 export type StoredDraftDataV3 = StoredDraftDataV2 & {
@@ -34,7 +56,7 @@ export type StoredDraftDataV2 = {
     created: number;
     modified: number;
     rosterSelections: RosterSelections;
-    estimationSettings: EstimationSettingsState;
+    estimationSettings: EstimationSettingsStateV2;
     searchSettings: SearchSettingsState;
 }
 
@@ -80,8 +102,14 @@ export type SearchSettingsState = {
     showOnlyAvailable: boolean;
 };
 
-export type EstimationSettingsState = {
-    years: number[];
+export type EstimationSettingsState = EstimationSettingsStateV4;
+
+export type EstimationSettingsStateV4 = {
+    years: SeasonId[];
     weight: number;
 };
 
+export type EstimationSettingsStateV2 = {
+    years: number[];
+    weight: number;
+};

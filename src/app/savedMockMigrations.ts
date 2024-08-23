@@ -1,9 +1,11 @@
-import { CURRENT_MOCKS_SCHEMA_VERSION, StoredDataV2, StoredDataV3, StoredDraftDataV3 } from "./savedMockTypes";
+import { CURRENT_MOCKS_SCHEMA_VERSION, StoredDataCurrent, StoredDataV2, StoredDataV3, StoredDataV4, StoredDraftDataV3, StoredDraftDataV4, StoredMocksDataV3, StoredMocksDataV4 } from "./savedMockTypes";
 
-export default function migrate(data: any): StoredDataV3 | undefined {
+export default function migrate(data: any): StoredDataCurrent | undefined {
     while (data && data?.schemaVersion !== CURRENT_MOCKS_SCHEMA_VERSION) {
         if (data?.schemaVersion === 2) {
             data = migrateV2toV3(data);
+        } else if (data?.schemaVersion === 3) {
+            data = migrateV3toV4(data);
         } else {
             data = undefined;
         }
@@ -11,7 +13,7 @@ export default function migrate(data: any): StoredDataV3 | undefined {
     return data;
 }
 
-function migrateV2toV3(data: StoredDataV2): StoredDataV3 {
+export function migrateV2toV3(data: StoredDataV2): StoredDataV3 {
     const base: StoredDataV3 = {
         schemaVersion: 3,
     };
@@ -24,4 +26,35 @@ function migrateV2toV3(data: StoredDataV2): StoredDataV3 {
         base[parseInt(leagueKey)] = { drafts };
     }
     return base;
+}
+
+export function migrateV3toV4(data: StoredDataV3): StoredDataV4 {
+    const mocks: StoredDataV4["mocks"] = {};
+    for (const leagueKey in data) {
+        if (leagueKey === "schemaVersion") continue;
+        mocks[leagueKey] = migrateMocksV3toV4(data[leagueKey]);
+    }
+    return {
+        schemaVersion: 4,
+        mocks
+    };
+}
+
+export function migrateMocksV3toV4(data: StoredMocksDataV3): StoredMocksDataV4 {
+    const drafts: StoredMocksDataV4["drafts"] = {};
+    for (const draftKey in data.drafts) {
+        drafts[draftKey] = migrateDraftV3toV4(data.drafts[draftKey]);
+    }
+    return { drafts };
+}
+
+export function migrateDraftV3toV4(data: StoredDraftDataV3): StoredDraftDataV4 {
+    return {
+        ...data,
+        year: data.year.toString(),
+        estimationSettings: {
+            ...data.estimationSettings,
+            years: data.estimationSettings.years.map(year => year.toString())
+        }
+    };
 }

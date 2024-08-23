@@ -13,14 +13,15 @@ export type LeagueInfo = {
     league_id: string;
     draft_id: string;
     avatar: string;
+    metadata?: Record<string, any>;
+    [more: string]: any;
 };
 
-export type LeagueSettings = {
-};
+export type LeagueStatus = 'pre_draft' | 'drafting' | 'in_season' | 'complete';
 
-export type ScoringSettings = {
+export type LeagueSettings = Record<string, any>;
 
-};
+export type ScoringSettings = Record<string, number>;
 
 export type RosterPosition = {
 };
@@ -30,19 +31,7 @@ export type DraftInfo = {
     status: string;
     start_time: number;
     sport: string;
-    settings: {
-        teams: number;
-        slots_wr: number;
-        slots_te: number;
-        slots_rb: number;
-        slots_qb: number;
-        slots_k: number;
-        slots_flex: number;
-        slots_def: number;
-        slots_bn: number;
-        rounds: number;
-        pick_timer: number;
-    };
+    settings: DraftSettings;
     season_type: string;
     season: string;
     metadata: {
@@ -54,11 +43,19 @@ export type DraftInfo = {
     last_picked: number;
     last_message_time: number;
     last_message_id: string;
-    draft_order: Record<string, number>;
+    draft_order: Record<string, number> | null;
     slot_to_roster_id: Record<string, number>;
     draft_id: string;
-    creators: null;
+    creators: null | string[];
     created: number;
+};
+
+export type DraftSettings = {
+    teams: number;
+    budget?: number;
+    rounds: number;
+    pick_timer: number;
+    [more: string]: any;
 };
 
 export type DraftPick = {

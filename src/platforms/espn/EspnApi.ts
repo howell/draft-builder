@@ -1,8 +1,8 @@
 import { CURRENT_SEASON } from "@/constants";
-import { DraftDetail, DraftInfo, DraftPick, DraftType, LeagueHistory, LeagueInfo, LeagueTeam, PlatformApi, Player, ScoringType } from "../PlatformApi";
+import { convertBy, DraftDetail, DraftInfo, DraftPick, DraftType, LeagueHistory, LeagueInfo, LeagueTeam, PlatformApi, Player, ScoringType } from "../PlatformApi";
 import { fetchAllPlayerInfo, fetchDraftInfo, fetchLeagueHistory, fetchLeagueInfo, fetchTeamsAtWeek } from "./league";
 import type * as EspnT from './types';
-import { EspnLeague } from "../common";
+import { EspnLeague, SeasonId } from "../common";
 import { leagueLineupSettings, positionName, slotName } from "./utils";
 
 export class EspnApi extends PlatformApi {
@@ -13,44 +13,35 @@ export class EspnApi extends PlatformApi {
         this.league = league;
     }
 
-    public fetchLeague(season?: number): Promise<LeagueInfo | number> {
+    public fetchLeague(season?: SeasonId): Promise<LeagueInfo | number> {
         season = season || CURRENT_SEASON;
         return fetchLeagueInfo(this.league.id, season, this.league.auth)
             .then(convertBy(importEspnLeagueInfo));
     }
 
-    public fetchLeagueHistory(startYear?: number): Promise<LeagueHistory> {
+    public fetchLeagueHistory(startYear?: SeasonId): Promise<LeagueHistory> {
         startYear = startYear || CURRENT_SEASON;
         return fetchLeagueHistory(this.league.id, startYear, this.league.auth)
             .then(importEspnLeagueHistory);
     }
 
-    public fetchDraft(season?: number): Promise<DraftDetail | number> {
+    public fetchDraft(season?: SeasonId): Promise<DraftDetail | number> {
         season = season || CURRENT_SEASON;
         return fetchDraftInfo(this.league.id, season, this.league.auth)
             .then(convertBy(importEspnDraftDetail));
     }
 
-    public fetchLeagueTeams(season?: number): Promise<LeagueTeam[] | number> {
+    public fetchLeagueTeams(season?: SeasonId): Promise<LeagueTeam[] | number> {
         season = season || CURRENT_SEASON;
         return fetchTeamsAtWeek(this.league.id, season, 0, this.league.auth)
             .then(convertBy((info: EspnT.TeamInfo) => info.teams.map(importEspnTeamInfo)));
     }
 
-    public fetchPlayers(season?: number): Promise<Player[] | number> {
+    public fetchPlayers(season?: SeasonId): Promise<Player[] | number> {
         season = season || CURRENT_SEASON;
         return fetchAllPlayerInfo(this.league.id, season, this.league.auth)
             .then(convertBy(importEspnPlayersInfo));
     }
-}
-
-export function convertBy<T, U>(fn: (arg: T) => U): (arg: T | number) => U | number {
-    return (arg: T | number) => {
-        if (typeof arg === 'number') {
-            return arg;
-        }
-        return fn(arg);
-    };
 }
 
 export function importEspnLeagueInfo(info: EspnT.LeagueInfo): LeagueInfo {
@@ -66,7 +57,7 @@ export function importEspnLeagueInfo(info: EspnT.LeagueInfo): LeagueInfo {
     };
 }
 
-export function importEspnLeagueHistory(history: Map<number, EspnT.LeagueInfo>): LeagueHistory {
+export function importEspnLeagueHistory(history: Map<SeasonId, EspnT.LeagueInfo>): LeagueHistory {
     return new Map(
         Array.from(
             history.entries()
@@ -103,7 +94,7 @@ export function importEspnDraftInfo(arg: EspnT.DraftInfo): DraftInfo {
 
 export function importEspnDraftDetail(arg: EspnT.DraftInfo): DraftDetail {
     return {
-        season: arg.seasonId,
+        season: arg.seasonId.toString(),
         picks: arg.draftDetail.picks.map(importEspnDraftPick)
     };
 }

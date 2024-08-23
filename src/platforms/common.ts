@@ -10,9 +10,30 @@ export function isPlatform(str: any): str is Platform {
     return ['espn', 'yahoo', 'sleeper'].includes(str);
 }
 
+export function isPlatformLeague(league: any): league is PlatformLeague {
+    return typeof league === 'object' &&
+        isPlatform(league.platform) &&
+        isLeagueId(league.id);
+}
+
+export type LeagueId = string;
+const numericRegex = /^[0-9]+$/;
+
+export function isLeagueId(str: any): str is LeagueId {
+    return typeof str === 'string' &&
+        numericRegex.test(str);
+}
+
+export type SeasonId = string;
+
+export function isSeasonId(str: any): str is SeasonId {
+    return typeof str === 'string' &&
+        numericRegex.test(str);
+}
+
 export type PlatformLeague = {
     platform: Platform;
-    id: number;
+    id: LeagueId;
 };
 
 export type EspnLeague = PlatformLeague & {

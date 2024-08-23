@@ -1,6 +1,5 @@
 "use client";
 import PlayerTable, { ColumnName } from './PlayerTable';
-import { positionName } from "@/platforms/espn/utils";
 import { DraftedPlayer, LeagueTeam, mergeDraftAndPlayerInfo } from "@/platforms/PlatformApi";
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
@@ -12,6 +11,7 @@ import SearchSettings from '../../mocks/SearchSettings';
 import CollapsibleComponent from '@/ui/Collapsible';
 import TabContainer, { TabChild, TabTitle } from '@/ui/TabContainer';
 import { loadLeague } from '@/app/localStorage';
+import { isLeagueId, isSeasonId, LeagueId, SeasonId } from '@/platforms/common';
 // Dynamically import PlayerScatterChart with no SSR
 const PlayerScatterChart = dynamic(() => import('./PlayerScatterChart'), { ssr: false });
 
@@ -33,9 +33,8 @@ const tableColumns: [keyof(TableData), ColumnName][] = [
 ];
 
 const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: string} }>) => {
-    const leagueID = parseInt(params.leagueID);
-    const draftYear = parseInt(params.draftYear);
-
+    const leagueID = params.leagueID;
+    const draftYear = params.draftYear;
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>({});
@@ -47,6 +46,16 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
     const [searchSettings, setSearchSettings] = useState<SearchSettingsState>(defaultSearchSettings);
     const [positionGraphs, setPositionGraphs] = useState<TabChild[]>([]);
 
+    useEffect(() => {
+        if (!isLeagueId(leagueID)) {
+            setError('Invalid league ID');
+        }
+    }, [leagueID]);
+    useEffect(() => {
+        if (!isSeasonId(draftYear)) {
+            setError('Invalid draft year');
+        }
+    }, [draftYear]);
 
     useEffect(() => {
         fetchData(leagueID,
@@ -72,12 +81,13 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
         setShowing(nextShowing);
     }, [searchSettings, tableData]);
 
-    if (loading) {
-        return <LoadingScreen tasks={loadingTasks} />;
-    }
-
     if (error) {
         return <ErrorScreen message={error} />;
+    }
+
+
+    if (loading) {
+        return <LoadingScreen tasks={loadingTasks} />;
     }
 
     const resetSearchSettings = () => setSearchSettings(defaultSearchSettings);
@@ -131,8 +141,8 @@ function teamName(team: string | number | LeagueTeam): string {
             team.name;
 }
 
-async function fetchData(leagueID: number,
-    draftYear: number,
+async function fetchData(leagueID: LeagueId,
+    draftYear: SeasonId,
     defaultSearchSettings: SearchSettingsState,
     setLoadingTasks: (tasks: LoadingTasks) => void,
     setTableData: (data: TableData[]) => void,

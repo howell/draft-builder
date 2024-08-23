@@ -37,9 +37,8 @@ const EspnLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
       const actualSwid = providedSwid === "" ? undefined : providedSwid;
       const actualEspnS2 = providedEspnS2 === "" ? undefined : providedEspnS2;
 
-      const id = parseInt(leagueID);
       const auth = actualSwid && actualEspnS2 ? { swid: actualSwid, espnS2: actualEspnS2 } : undefined;
-      const league: EspnLeague = { platform: 'espn', id, auth };
+      const league: EspnLeague = { platform: 'espn', id: leagueID, auth };
       await submitLeague(league);
     };
 

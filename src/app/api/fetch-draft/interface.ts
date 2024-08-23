@@ -1,9 +1,9 @@
-import { PlatformLeague } from "@/platforms/common";
+import { PlatformLeague, SeasonId } from "@/platforms/common";
 import { DraftDetail } from "@/platforms/PlatformApi";
 
 export type FetchDraftRequest = {
     league: PlatformLeague;
-    season: number;
+    season: SeasonId;
 }
 
 export type FetchDraftResponse = {

@@ -23,3 +23,4 @@
 * Draft page: Show overall and position rank columns
 
 ## Fixes
+- should league select dropdown allow horizontal scrolling?

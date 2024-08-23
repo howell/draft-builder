@@ -2,17 +2,24 @@
 import ApiClient from '@/app/api/ApiClient';
 import { loadLeague } from '@/app/localStorage';
 import { CURRENT_SEASON } from '@/constants';
+import { isLeagueId } from '@/platforms/common';
 import { LeagueInfo } from '@/platforms/PlatformApi';
 import ErrorScreen from '@/ui/ErrorScreen';
 import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
 import { useState, useEffect } from 'react';
 
 export default function LeaguePage({ params }: Readonly<{ params: { leagueID: string } }>) {
-    const leagueID = parseInt(params.leagueID);
+    const leagueID = params.leagueID;
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [leagueInfo, setLeagueInfo] = useState<LeagueInfo | null>(null);
     const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>({});
+
+    useEffect(() => {
+        if (!isLeagueId(leagueID)) {
+            setError('Invalid league ID');
+        }
+    }, [leagueID]);
 
     useEffect(() => {
         const fetchData = async () => {

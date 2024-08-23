@@ -1,6 +1,7 @@
 import axios from "axios";
 import { buildRoute } from "./api";
 import { DraftInfo, LeagueInfo, PlayersInfo, TeamInfo } from "./types";
+import { LeagueId, SeasonId } from "../common";
 
 
 export type EspnAuth = {
@@ -12,7 +13,7 @@ export function authCookies(auth?: EspnAuth): string {
     return `espn_s2=${auth?.espnS2 || ''}; SWID=${auth?.swid || ''}`;
 }
 
-export async function fetchLeagueInfo(leagueID: number, season: number, auth?: EspnAuth): Promise<number | LeagueInfo> {
+export async function fetchLeagueInfo(leagueID: LeagueId, season: SeasonId, auth?: EspnAuth): Promise<number | LeagueInfo> {
     try {
         const leagueResponse = await axios.get(buildLeagueInfoRoute(leagueID, season), {
             headers: {
@@ -28,12 +29,12 @@ export async function fetchLeagueInfo(leagueID: number, season: number, auth?: E
     }
 }
 
-function buildLeagueInfoRoute(leagueID: number, seasonID: number) {
+function buildLeagueInfoRoute(leagueID: LeagueId, seasonID: SeasonId) {
     return buildRoute(`${seasonID}/segments/0/leagues/${leagueID}`, '?view=mSettings');
 }
 
-export async function fetchLeagueHistory(leagueID: number, latestYear: number, auth?: EspnAuth): Promise<Map<number, LeagueInfo>> {
-    const map = new Map<number, LeagueInfo>();
+export async function fetchLeagueHistory(leagueID: LeagueId, latestYear: SeasonId, auth?: EspnAuth): Promise<Map<SeasonId, LeagueInfo>> {
+    const map = new Map<SeasonId, LeagueInfo>();
     const latestInfo = await fetchLeagueInfo(leagueID, latestYear, auth);
     if (typeof latestInfo === 'number') {
         return map;
@@ -41,8 +42,8 @@ export async function fetchLeagueHistory(leagueID: number, latestYear: number, a
     map.set(latestYear, latestInfo);
 
     const historyResponse = await Promise.all(latestInfo.status.previousSeasons.map(async (season) => {
-        const leagueResponse = await fetchLeagueInfo(leagueID, season, auth);
-        return { season, leagueResponse };
+        const leagueResponse = await fetchLeagueInfo(leagueID, season.toString(), auth);
+        return { season: season.toString(), leagueResponse };
     }));
 
     for (const { season, leagueResponse } of historyResponse) {
@@ -54,7 +55,7 @@ export async function fetchLeagueHistory(leagueID: number, latestYear: number, a
     return map;
 }
 
-export async function fetchDraftInfo(leagueID: number, season: number, auth?: EspnAuth): Promise<number | DraftInfo> {
+export async function fetchDraftInfo(leagueID: LeagueId, season: SeasonId, auth?: EspnAuth): Promise<number | DraftInfo> {
     try {
         const draftResponse = await axios.get(buildDraftRoute(leagueID, season), {
             headers: {
@@ -70,13 +71,13 @@ export async function fetchDraftInfo(leagueID: number, season: number, auth?: Es
     }
 }
 
-function buildDraftRoute(leagueID: number, season: number, scoringPeriodId = 0) {
+function buildDraftRoute(leagueID: LeagueId, season: SeasonId, scoringPeriodId = 0) {
     return buildRoute(`${season}/segments/0/leagues/${leagueID}`,
         `?view=mDraftDetail&view=mMatchup&view=mMatchupScore&scoringPeriodId=${scoringPeriodId}`
     );
 }
 
-export async function fetchAllPlayerInfo(leagueID: number, season: number, auth?: EspnAuth, scoringPeriodId = 0, maxPlayers = 1000): Promise<number | PlayersInfo> {
+export async function fetchAllPlayerInfo(leagueID: LeagueId, season: SeasonId, auth?: EspnAuth, scoringPeriodId = 0, maxPlayers = 1000): Promise<number | PlayersInfo> {
     try {
         const playerResponse = await axios.get(buildPlayerRoute(leagueID, season, scoringPeriodId), {
             headers: {
@@ -102,13 +103,13 @@ export async function fetchAllPlayerInfo(leagueID: number, season: number, auth?
     }
 }
 
-function buildPlayerRoute(leagueID: number, season: number, scoringPeriodId = 0) {
+function buildPlayerRoute(leagueID: LeagueId, season: SeasonId, scoringPeriodId = 0) {
     return buildRoute(`${season}/segments/0/leagues/${leagueID}`,
         `?scoringPeriodId=${scoringPeriodId}&view=kona_player_info`
     );
 }
 
-export async function fetchTeamsAtWeek(leagueID: number, season: number, scoringPeriodId: number, auth?: EspnAuth): Promise<number | TeamInfo> {
+export async function fetchTeamsAtWeek(leagueID: LeagueId, season: SeasonId, scoringPeriodId: number, auth?: EspnAuth): Promise<number | TeamInfo> {
     try {
         const teamsResponse = await axios.get(buildTeamsRoute(leagueID, season, scoringPeriodId), {
             headers: {
@@ -125,7 +126,7 @@ export async function fetchTeamsAtWeek(leagueID: number, season: number, scoring
     }
 }
 
-function buildTeamsRoute(leagueID: number, season: number, scoringPeriodId: number) {
+function buildTeamsRoute(leagueID: LeagueId, season: SeasonId, scoringPeriodId: number) {
     return buildRoute(`${season}/segments/0/leagues/${leagueID}`,
         `?scoringPeriodId=${scoringPeriodId}&view=mRoster&view=mTeam`
     );

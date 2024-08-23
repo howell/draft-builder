@@ -11,14 +11,15 @@ import { DarkLightText } from '@/ui/basicComponents';
 import CollapsibleComponent from '@/ui/Collapsible';
 import Tooltip from '@/ui/Tooltip';
 import { RosterSettings } from '@/platforms/PlatformApi';
+import { LeagueId, SeasonId } from '@/platforms/common';
 
 export interface MockTableProps {
-    leagueId: number;
+    leagueId: LeagueId;
     draftName?: string;
     auctionBudget: number;
     positions: RosterSettings;
     players: MockPlayer[];
-    draftHistory: Map<number, DraftAnalysis>;
+    draftHistory: Map<SeasonId, DraftAnalysis>;
     playerPositions: string[];
 }
 
@@ -341,7 +342,7 @@ export function playerAvailable(p: CostEstimatedPlayer, searchSettings: SearchSe
     return ans;
 }
 
-function predictCostWithSettings(player: MockPlayer, settings: EstimationSettingsState, draftHistory: Map<number, DraftAnalysis>) {
+function predictCostWithSettings(player: MockPlayer, settings: EstimationSettingsState, draftHistory: Map<SeasonId, DraftAnalysis>) {
     const estimates = [];
     for (const year of settings.years) {
         const yearCoeffs = draftHistory.get(year)!;
@@ -380,7 +381,7 @@ function serializeRosterSlot(slot: RosterSlot): string {
     return JSON.stringify(slot);
 };
 
-function loadStoredDraftData(leagueID: number, draftName: string | undefined): StoredDraftDataCurrent | undefined {
+function loadStoredDraftData(leagueID: LeagueId, draftName: string | undefined): StoredDraftDataCurrent | undefined {
     const name = draftName === '' ? IN_PROGRESS_SELECTIONS_KEY : (draftName || IN_PROGRESS_SELECTIONS_KEY);
     return loadDraftByName(leagueID, name);
 }

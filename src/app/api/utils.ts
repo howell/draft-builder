@@ -1,5 +1,4 @@
-import { EspnAuth } from '@/platforms/espn/league';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import axios from 'axios';
 
 export const DEFAULT_CACHE_LENGTH = 60 * 60 * 24; // 1 day
@@ -36,6 +35,9 @@ export function makeResponse<T>(resp: T, status: number, cache: boolean = true, 
     return new NextResponse(JSON.stringify(resp), { status: status, headers: headers });
 }
 
-export function decodeSearchParams<T>(params: URLSearchParams, key: string, defaultValue?: T) : T {
-    return params.has(key) ? JSON.parse(params.get(key)! ?? '') : defaultValue;
+export function isNumber(v: any): v is number {
+    return typeof v === 'number' && !isNaN(v);
 }
+
+
+

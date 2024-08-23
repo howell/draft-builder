@@ -3,20 +3,20 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DropdownMenu from '@/ui/DropdownMenu';
-import { PlatformLeague, platformLogo } from '@/platforms/common';
+import { LeagueId, PlatformLeague, platformLogo } from '@/platforms/common';
 import { activateLeague } from '../app/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 
 interface SidebarProps {
-    leagueID?: number;
+    leagueID?: LeagueId;
     availableLeagues?: PlatformLeague[];
     children?: React.ReactNode;
 }
 
 
 const Sidebar: React.FC<SidebarProps> = ({leagueID, availableLeagues = [], children }) => {
-    availableLeagues.sort((a, b) => a.id - b.id);
+    availableLeagues.sort((a, b) => a.id.localeCompare(b.id));
 	const [isOpen, setIsOpen] = useState(true);
 	const toggleSidebar = () => { setIsOpen(!isOpen); };
     const router = useRouter();

@@ -1,3 +1,5 @@
+import { SeasonId } from "./common";
+
 export type DraftType = 'snake' | 'auction' | 'other';
 export type ScoringType = 'standard' | 'ppr' | 'half-ppr';
 
@@ -12,7 +14,7 @@ export type LeagueInfo = {
 export type RosterSettings = Record<string, number>;
 
 
-export type LeagueHistory = Map<number, LeagueInfo>;
+export type LeagueHistory = Map<SeasonId, LeagueInfo>;
 
 export type DraftInfo = {
     type: DraftType;
@@ -20,7 +22,7 @@ export type DraftInfo = {
 };
 
 export type DraftDetail = {
-    season: number
+    season: SeasonId;
     picks: DraftPick[];
 };
 
@@ -49,18 +51,19 @@ export type DraftedPlayer = DraftPick & Player & { draftedBy: LeagueTeam | strin
 
 export abstract class PlatformApi {
 
-    public abstract fetchLeague(season?: number): Promise<LeagueInfo | number>;
+    public abstract fetchLeague(season?: SeasonId): Promise<LeagueInfo | number>;
 
-    public abstract fetchLeagueHistory(startYear?: number): Promise<LeagueHistory>;
+    public abstract fetchLeagueHistory(startYear?: SeasonId): Promise<LeagueHistory>;
 
-    public abstract fetchDraft(draftId?: number): Promise<DraftDetail | number>;
+    public abstract fetchDraft(draftId?: string): Promise<DraftDetail | number>;
 
-    public abstract fetchLeagueTeams(season?: number): Promise<LeagueTeam[] | number>;
+    public abstract fetchLeagueTeams(season?: SeasonId): Promise<LeagueTeam[] | number>;
 
-    public abstract fetchPlayers(season?: number): Promise<Player[] | number>;
+    public abstract fetchPlayers(season?: SeasonId): Promise<Player[] | number>;
 
     public async findLeague(): Promise<string | 'ok'> {
         const league = await this.fetchLeague();
+        console.log("findLeague result:", league);
         return (typeof league === 'number') ? `${league}` : 'ok';
     }
 }
@@ -83,4 +86,12 @@ export function mergeDraftAndPlayerInfo(draftData: DraftPick[], playerData: Play
             draftedBy: team || pick.team
         };
     });
+}export function convertBy<T, U>(fn: (arg: T) => U): (arg: T | number) => U | number {
+    return (arg: T | number) => {
+        if (typeof arg === 'number') {
+            return arg;
+        }
+        return fn(arg);
+    };
 }
+

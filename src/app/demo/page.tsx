@@ -1,10 +1,10 @@
 'use client'
-import { PlatformLeague } from '@/platforms/common';
+import { PlatformLeague, SeasonId } from '@/platforms/common';
 import React, { useEffect, useState } from 'react';
 import { loadLeagues } from '../localStorage';
 import Sidebar from '@/ui/Sidebar';
 import MockTable, { MockTableProps } from '../league/[leagueID]/mocks/MockTable';
-import { DraftAnalysis, MockPlayer } from '../savedMockTypes';
+import { DraftAnalysis, } from '../savedMockTypes';
 
 
 export default function Demo() {
@@ -33,9 +33,9 @@ const demoPlayerPositions = ['QB', 'RB', 'WR', 'TE'];
 const analysis23: DraftAnalysis = {overall: [67.45, -0.03], positions: new Map([['QB', [48.61, -0.1]], ['RB', [76.17, -0.08]], ['WR', [52.79, -0.07]], ['TE', [34.83, -0.32]]])};
 const analysis22: DraftAnalysis = {overall: [80.97, -0.03], positions: new Map([['QB', [65.39, -0.11]], ['RB', [90.86, -0.08]], ['WR', [72.18, -0.08]], ['TE', [46.31, -0.35]]])};
 
-const demoDraftHistory: Map<number, DraftAnalysis> = new Map([
-    [2023, analysis23],
-    [2022, analysis22]
+const demoDraftHistory: Map<SeasonId, DraftAnalysis> = new Map([
+    ['2023', analysis23],
+    ['2022', analysis22]
     ]);
 
 export type DemoPlayer = {
@@ -88,7 +88,7 @@ const demoPlayers = includedPlayers.map(player => ({
 
 
 const demoTableProps: MockTableProps = {
-    leagueId: 42,
+    leagueId: '42',
     auctionBudget: 100,
     positions: demoRoster,
     players: demoPlayers,

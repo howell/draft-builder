@@ -1,6 +1,7 @@
-import { EspnLeague, PlatformLeague } from "./common";
+import { EspnLeague, PlatformLeague, SleeperLeague } from "./common";
 import { EspnApi } from "./espn/EspnApi";
 import { PlatformApi } from "./PlatformApi";
+import { SleeperApi } from "./sleeper/SleeperApi";
 
 export function apiFor(league: PlatformLeague): PlatformApi {
     switch (league.platform) {
@@ -9,7 +10,7 @@ export function apiFor(league: PlatformLeague): PlatformApi {
         case 'yahoo':
             throw new Error('Yahoo not yet implemented');
         case 'sleeper':
-            throw new Error('Sleeper not yet implemented');
+            return new SleeperApi(league as SleeperLeague);
         default:
             throw new Error(`Unknown platform: ${league.platform}`);
     }

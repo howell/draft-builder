@@ -4,7 +4,7 @@ import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.
 import { useCallback, useEffect, useState } from "react";
 import ApiClient from './api/ApiClient';
 import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
-import { Platform, PlatformLeague, platformLogo } from '@/platforms/common';
+import { LeagueId, Platform, PlatformLeague, platformLogo } from '@/platforms/common';
 import { loadLeagues, saveLeague } from './localStorage';
 import Sidebar from '../ui/Sidebar';
 import { LeagueSubmitCallback } from './leagueInputs';
@@ -63,7 +63,7 @@ export default function Home() {
 async function submitLeague(league: PlatformLeague,
   router: AppRouterInstance,
   setLoadingTasks: (tasks: LoadingTasks) => void,
-  saveLeague: (id: number, league: PlatformLeague) => void)
+  saveLeague: (id: LeagueId, league: PlatformLeague) => void)
    {
   const client = new ApiClient(league);
   const request = client.findLeague();

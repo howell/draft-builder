@@ -1,13 +1,13 @@
-import { PlatformLeague } from "@/platforms/common";
+import { PlatformLeague, SeasonId } from "@/platforms/common";
 import { LeagueInfo } from "@/platforms/PlatformApi";
 
 export type FetchLeagueHistoryRequest = {
     league: PlatformLeague;
-    startSeason: number;
+    startSeason: SeasonId;
 }
 
 export type LeagueInfoHistory = {
-    [ key: number ]: LeagueInfo;
+    [ key: SeasonId ]: LeagueInfo;
 }
 
 export type FetchLeagueHistoryResponse = {

@@ -1,14 +1,16 @@
 'use server'
 import { NextRequest } from 'next/server';
 import { FetchPlayersRequest, FetchPlayersResponse } from './interface';
-import { decodeSearchParams, makeResponse } from '@/app/api/utils';
-import { isPlatform, PlatformLeague } from "@/platforms/common";
+import { isNumber, makeResponse } from '@/app/api/utils';
+import { DecodeFailure } from '../Decoder';
+import { Decoder } from '../Decoder';
+import { isPlatformLeague, isSeasonId, } from "@/platforms/common";
 import { apiFor } from '@/platforms/ApiClient';
 
 export async function GET(req: NextRequest) {
     const body = decodeRequest(req.nextUrl.searchParams);
-    if (!body) {
-        return makeResponse<FetchPlayersResponse>({ status: 'Invalid request' }, 400);
+    if (body instanceof DecodeFailure) {
+        return makeResponse<FetchPlayersResponse>({ status: `Invalid request, malformed parameter ${body.getKey()}` }, 400);
     }
     const api = apiFor(body.league);
     const playersInfo = await api.fetchPlayers(body.season);
@@ -23,21 +25,13 @@ export async function GET(req: NextRequest) {
 
 }
 
-function decodeRequest(searchParams: URLSearchParams): FetchPlayersRequest | undefined {
-    const league = decodeSearchParams<PlatformLeague | undefined>(searchParams, 'league');
-    const season = parseInt(decodeSearchParams(searchParams, 'season'));
-    const scoringPeriodId = parseInt(decodeSearchParams(searchParams, 'scoringPeriodId'));
-    const maxPlayers = parseInt(decodeSearchParams(searchParams, 'maxPlayers'));
-
-    if (!isPlatform(league?.platform) || isNaN(season) || isNaN(scoringPeriodId) || isNaN(maxPlayers) || !isPlatform(league?.platform) || typeof(league?.id) !== 'number') {
-        return undefined;
-    }
-    return {
-        league,
-        season,
-        scoringPeriodId,
-        maxPlayers
-    }
+function decodeRequest(searchParams: URLSearchParams): FetchPlayersRequest | DecodeFailure {
+    return Decoder.create(searchParams)
+        .decode('league', isPlatformLeague)
+        .decode('season', isSeasonId)
+        .decode('scoringPeriodId', isNumber)
+        .decode('maxPlayers', isNumber)
+        .finalize();
 }
 
 

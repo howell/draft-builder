@@ -1,4 +1,6 @@
-export const CURRENT_SEASON = 2024;
+import { SeasonId } from "./platforms/common";
+
+export const CURRENT_SEASON: SeasonId = "2024";
 
 export const LINEUP_POSITION_ORDER = [
     'QB',

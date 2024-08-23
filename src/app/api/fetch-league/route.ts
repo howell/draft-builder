@@ -1,16 +1,18 @@
 'use server'
 import { NextRequest } from 'next/server';
 import { FetchLeagueRequest, FetchLeagueResponse } from './interface';
-import { decodeSearchParams, makeResponse } from '@/app/api/utils';
-import { isPlatform, PlatformLeague } from "@/platforms/common";
+import { makeResponse } from '@/app/api/utils';
+import { DecodeFailure } from '../Decoder';
+import { Decoder } from '../Decoder';
+import { isPlatformLeague, isSeasonId, } from "@/platforms/common";
 import { apiFor } from '@/platforms/ApiClient';
 
 export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const body = decodeRequest(searchParams);
 
-    if (!body) {
-        return makeResponse<FetchLeagueResponse>({ status: 'Invalid request' }, 400);
+    if (body instanceof DecodeFailure) {
+        return makeResponse<FetchLeagueResponse>({ status: `Invalid request, malformed parameter ${body.getKey()}` }, 400);
     }
 
     const api = apiFor(body.league);
@@ -21,14 +23,9 @@ export async function GET(req: NextRequest) {
      return makeResponse<FetchLeagueResponse>({ status: 'ok', data: leagueInfo }, 200);
 }
 
-function decodeRequest(searchParams: URLSearchParams): FetchLeagueRequest | undefined {
-    const league = decodeSearchParams<PlatformLeague | undefined>(searchParams, 'league');
-    const season = parseInt(decodeSearchParams(searchParams, 'season'));
-    if (!league || isNaN(season)|| !isPlatform(league?.platform) || typeof(league?.id) !== 'number') {
-        return undefined;
-    }
-    return {
-        league,
-        season
-    }
+function decodeRequest(searchParams: URLSearchParams): FetchLeagueRequest | DecodeFailure {
+    return Decoder.create(searchParams)
+        .decode('league', isPlatformLeague)
+        .decode('season', isSeasonId)
+        .finalize();
 }

@@ -1,16 +1,24 @@
 import axios from "axios";
 import { LeagueInfo, DraftInfo, DraftPick, Players, LeagueUser } from "./types";
+import { LeagueId } from "../common";
 
 export const baseURL = 'https://api.sleeper.app/v1/';
+
+"https://api.sleeper.app/v1/league/1050568427330465800"
+"https://api.sleeper.app/v1/league/1050568427330465792"
 
 export function buildRoute(route: any, params: any) : string{
     return `${baseURL}${route}${params}`;
 }
 
-export async function fetchLeagueInfo(leagueID: number): Promise<LeagueInfo | number> {
+export async function fetchLeagueInfo(leagueID: LeagueId): Promise<LeagueInfo | number> {
+    console.log("fetch sleeper league", leagueID);
     const route = buildRoute(`league/${leagueID}`, '');
+    console.log("fetch sleeper league route", route);
     try {
         const leagueResponse = await axios.get(route);
+        console.log("league response");
+        console.log(JSON.stringify(leagueResponse.data, null, 2));
         return leagueResponse.data;
     } catch (error) {
         if (axios.isAxiosError(error) && error.response) {
@@ -20,7 +28,7 @@ export async function fetchLeagueInfo(leagueID: number): Promise<LeagueInfo | nu
     }
 }
 
-export async function fetchLeagueHistory(leagueID: number): Promise<Map<number, LeagueInfo>> {
+export async function fetchLeagueHistory(leagueID: LeagueId): Promise<Map<number, LeagueInfo>> {
     const map = new Map<number, LeagueInfo>();
     const latestInfo = await fetchLeagueInfo(leagueID);
     if (typeof latestInfo === 'number') {
@@ -30,7 +38,7 @@ export async function fetchLeagueHistory(leagueID: number): Promise<Map<number, 
 
     let league: LeagueInfo | number = latestInfo;
     while (league.previous_league_id && league.previous_league_id !== '') {
-        league = await fetchLeagueInfo(parseInt(latestInfo.previous_league_id));
+        league = await fetchLeagueInfo(latestInfo.previous_league_id);
         if (typeof league === 'number') {
             break;
         }
@@ -40,10 +48,12 @@ export async function fetchLeagueHistory(leagueID: number): Promise<Map<number, 
     return map;
 }
 
-export async function fetchDraftInfo(draftId: number): Promise<number | DraftInfo> {
+export async function fetchDraftInfo(draftId: string): Promise<number | DraftInfo> {
     const route = buildRoute(`draft/${draftId}`, '');
+    console.log("fetchDraftInfo route", route);
     try {
         const draftResponse = await axios.get(route);
+        console.log("draft response", JSON.stringify(draftResponse.data, null, 2));
         return draftResponse.data;
     } catch (error) {
         if (axios.isAxiosError(error) && error.response) {
@@ -53,7 +63,7 @@ export async function fetchDraftInfo(draftId: number): Promise<number | DraftInf
     }
 }
 
-export async function fetchDraftPicks(draftId: number): Promise<number | [DraftPick]> {
+export async function fetchDraftPicks(draftId: string): Promise<number | [DraftPick]> {
     const route = buildRoute(`draft/${draftId}/picks`, '');
     try {
         const draftResponse = await axios.get(route);
@@ -79,7 +89,7 @@ export async function fetchPlayers(): Promise<number | Players> {
     }
 }
 
-export async function fetchUsers(leagueID: number): Promise<number | [LeagueUser]> {
+export async function fetchLeagueTeams(leagueID: LeagueId): Promise<number | [LeagueUser]> {
     const route = buildRoute(`league/${leagueID}/users`, '');
     try {
         const teamsResponse = await axios.get(route);

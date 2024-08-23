@@ -1,9 +1,9 @@
-import { PlatformLeague } from "@/platforms/common";
+import { PlatformLeague, SeasonId } from "@/platforms/common";
 import { Player } from "@/platforms/PlatformApi";
 
 export type FetchPlayersRequest = {
     league: PlatformLeague;
-    season: number;
+    season: SeasonId;
     scoringPeriodId: number;
     maxPlayers: number;
 }

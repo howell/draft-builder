@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import ApiClient from '@/app/api/ApiClient';
 import { CURRENT_SEASON } from '@/constants';
-import { PlatformLeague } from '@/platforms/common';
+import { PlatformLeague, SeasonId } from '@/platforms/common';
 import { IN_PROGRESS_SELECTIONS_KEY, loadLeagues, loadSavedMocks } from '@/app/localStorage';
 import Link from 'next/link';
 import CollapsibleComponent from '@/ui/Collapsible';
@@ -13,9 +13,8 @@ import Cookies from 'js-cookie'; // Import the Cookies module
 const NEW_MOCK_NAME = '##New##';
 
 const LeagueLayout = ({ children, params } : { children: React.ReactNode, params: {leagueID: string, draftYear?: string } }) => {
-    const leagueID = parseInt(params.leagueID);
-
-    const [savedDraftNames, setSavedDraftNames] = useState<[number, string[]][]>([]);
+    const leagueID = params.leagueID;
+    const [savedDraftNames, setSavedDraftNames] = useState<[SeasonId, string[]][]>([]);
     const currentYear = parseDraftYear(usePathname())
     const currentMock = parseMockName(usePathname())
 
@@ -25,7 +24,7 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
     const router = useRouter();
 
     useEffect(() => {
-        if (leagueID === 781060 && Cookies.get('magic word') !== process.env.NEXT_PUBLIC_MAGIC_WORD) {
+        if (leagueID === '781060' && Cookies.get('magic word') !== process.env.NEXT_PUBLIC_MAGIC_WORD) {
             router.replace('/newman.gif');
         }
     });
@@ -36,14 +35,14 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
             const savedDrafts = locallyStored.drafts;
             delete savedDrafts[IN_PROGRESS_SELECTIONS_KEY];
             const years = new Set(Object.values(savedDrafts).map((draft) => draft.year));
-            const prevDrafts: [number, string[]][] = [];
+            const prevDrafts: [SeasonId, string[]][] = [];
             for (const year of years) {
                 const drafts = Object.entries(savedDrafts).
                     filter(([draftName, draftData]) => draftName !== IN_PROGRESS_SELECTIONS_KEY && draftData.year === year)
                     .map(([draftName, draftData]) => draftName);
                 prevDrafts.push([year, drafts]);
             }
-            prevDrafts.sort((a, b) => a[0] - b[0]);
+            prevDrafts.sort((a, b) => a[0].localeCompare(b[0]));
             if (savedDraftNames.length !== prevDrafts.length) {
                 setSavedDraftNames(prevDrafts);
             }

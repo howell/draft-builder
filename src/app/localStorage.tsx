@@ -1,8 +1,9 @@
 'use client'
-import { PlatformLeague } from '@/platforms/common';
+import { LeagueId, PlatformLeague } from '@/platforms/common';
 import { RosterSelections, StoredData, StoredMocksDataV3, CURRENT_MOCKS_SCHEMA_VERSION, EstimationSettingsState, SearchSettingsState, StoredDataCurrent, StoredDraftDataV3, StoredMocksDataCurrent, StoredDraftDataCurrent } from './savedMockTypes';
 import migrateMocks from './savedMockMigrations';
-import { CURRENT_LEAGUES_SCHEMA_VERSION, StoredLeaguesData } from './savedLeagueTypes';
+import migrateLeagues from './savedLeagueMigrations'
+import { CURRENT_LEAGUES_SCHEMA_VERSION, StoredLeaguesData, StoredLeaguesDataCurrent, StoredLeaguesDataV2 } from './savedLeagueTypes';
 import { CURRENT_SEASON } from '@/constants';
 
 export const IN_PROGRESS_SELECTIONS_KEY = '##IN_PROGRESS_SELECTIONS##';
@@ -11,13 +12,13 @@ const isClient = typeof window !== 'undefined';
 
 export const SAVED_LEAGUES_KEY = 'leagues';
 
-export function emptyData(leagueID: number): StoredMocksDataV3 {
+export function emptyData(leagueID: LeagueId): StoredMocksDataCurrent {
     return { drafts: {} };
 }
 
-const emptyLeagues: StoredLeaguesData = { schemaVersion: CURRENT_MOCKS_SCHEMA_VERSION, leagues: {} };
+const emptyLeagues: StoredLeaguesDataCurrent = { schemaVersion: CURRENT_LEAGUES_SCHEMA_VERSION, leagues: {} };
 
-export function loadSavedMocks(leagueID: number): StoredMocksDataCurrent {
+export function loadSavedMocks(leagueID: LeagueId): StoredMocksDataCurrent {
     if (!isClient) return emptyData(leagueID);
     const stored = localStorage.getItem(leagueID.toString());
     if (!stored) return emptyData(leagueID);
@@ -28,19 +29,19 @@ export function loadSavedMocks(leagueID: number): StoredMocksDataCurrent {
         if (leagueData) {
             localStorage.setItem(leagueID.toString(), JSON.stringify(leagueData));
         }
-        
     }
     if (!leagueData) {
         localStorage.removeItem(leagueID.toString());
         return emptyData(leagueID);
     }
-    if (leagueData[leagueID]) {
-        return leagueData[leagueID];
+    const data = leagueData as StoredDataCurrent;
+    if (data.mocks[leagueID]) {
+        return data.mocks[leagueID];
     }
     return emptyData(leagueID);
 }
 
-export function saveMock(leagueID: number, data: StoredMocksDataCurrent): void {
+export function saveMock(leagueID: LeagueId, data: StoredMocksDataCurrent): void {
     if (!isClient) return;
     const stored = localStorage.getItem(leagueID.toString());
     const storedData = stored ? JSON.parse(stored) : undefined;
@@ -51,20 +52,25 @@ export function saveMock(leagueID: number, data: StoredMocksDataCurrent): void {
     if (!leagueData) {
         const toStore: StoredDataCurrent = {
             schemaVersion: CURRENT_MOCKS_SCHEMA_VERSION,
-            [leagueID]: data
+            mocks: {
+                [leagueID]: data
+            }
         };
         localStorage.setItem(leagueID.toString(), JSON.stringify(toStore));
         return;
     }
+    leagueData = leagueData as StoredDataCurrent;
     const toStore: StoredData = {
-        ...leagueData,
-        [leagueID]: data
+        schemaVersion: leagueData.schemaVersion,
+        mocks: {
+            ...leagueData.mocks
+        }
     };
     localStorage.setItem(leagueID.toString(), JSON.stringify(toStore));
     return;
 }
 
-export function loadDraftByName(leagueID: number, rosterName: string): StoredDraftDataCurrent | undefined {
+export function loadDraftByName(leagueID: LeagueId, rosterName: string): StoredDraftDataCurrent | undefined {
     const leagueData = loadSavedMocks(leagueID);
     const savedRosterSelections = leagueData.drafts[rosterName];
     if (savedRosterSelections) {
@@ -74,14 +80,14 @@ export function loadDraftByName(leagueID: number, rosterName: string): StoredDra
 }
 
 
-export function saveSelectedRoster(leagueID: number, rosterName: string, rosterSelections: RosterSelections, costAdjustments: Record<string, number>, estimationSettings: EstimationSettingsState, searchSettings: SearchSettingsState, notes: string = '') {
+export function saveSelectedRoster(leagueID: LeagueId, rosterName: string, rosterSelections: RosterSelections, costAdjustments: Record<string, number>, estimationSettings: EstimationSettingsState, searchSettings: SearchSettingsState, notes: string = '') {
     if (!isClient) return;
     const stored = loadSavedMocks(leagueID);
     const prev = stored.drafts[rosterName];
     const modified = Date.now();
     const created = prev ? prev.created : modified;
     const year = CURRENT_SEASON;
-    const mock: StoredDraftDataV3 = {
+    const mock: StoredDraftDataCurrent = {
         year,
         created,
         modified,
@@ -100,7 +106,7 @@ export function saveSelectedRoster(leagueID: number, rosterName: string, rosterS
     saveMock(leagueID, withRoster);
 }
 
-export function deleteRoster(leagueID: number, rosterName: string) {
+export function deleteRoster(leagueID: LeagueId, rosterName: string) {
     if (!isClient) return;
     const stored = loadSavedMocks(leagueID);
     const drafts = stored.drafts;
@@ -108,19 +114,25 @@ export function deleteRoster(leagueID: number, rosterName: string) {
     saveMock(leagueID, stored);
 }
 
-export function saveLeague(leagueID: number, league: PlatformLeague) {
+export function saveLeague(leagueID: LeagueId, league: PlatformLeague) {
     if (!isClient) return;
     const stored = localStorage.getItem(SAVED_LEAGUES_KEY);
-    const storedLeagues: StoredLeaguesData = stored ? JSON.parse(stored) : undefined;
-    if (!storedLeagues || storedLeagues.schemaVersion !== CURRENT_LEAGUES_SCHEMA_VERSION) {
-        const toStore: StoredLeaguesData = {
+    let storedLeagues: StoredLeaguesData | undefined = stored ? JSON.parse(stored) : undefined;
+    if (storedLeagues && storedLeagues.schemaVersion !== CURRENT_LEAGUES_SCHEMA_VERSION) {
+        storedLeagues = migrateLeagues(storedLeagues);
+        if (storedLeagues) {
+            localStorage.setItem(SAVED_LEAGUES_KEY, JSON.stringify(storedLeagues));
+        }
+    }
+    if (!storedLeagues) {
+        const toStore: StoredLeaguesDataCurrent = {
             schemaVersion: CURRENT_LEAGUES_SCHEMA_VERSION,
             leagues: { [leagueID]: league }
         };
         localStorage.setItem(SAVED_LEAGUES_KEY, JSON.stringify(toStore));
         return;
     }
-    const toStore: StoredLeaguesData = {
+    const toStore: StoredLeaguesDataCurrent = {
         schemaVersion: CURRENT_LEAGUES_SCHEMA_VERSION,
         leagues: {
             ...storedLeagues.leagues,
@@ -130,20 +142,26 @@ export function saveLeague(leagueID: number, league: PlatformLeague) {
     localStorage.setItem(SAVED_LEAGUES_KEY, JSON.stringify(toStore));
 }
 
-export function loadLeagues(): StoredLeaguesData {
+export function loadLeagues(): StoredLeaguesDataCurrent {
     if (!isClient) return emptyLeagues;
     const stored = localStorage.getItem(SAVED_LEAGUES_KEY);
     if (!stored) return emptyLeagues;
 
-    const storedLeagues: StoredLeaguesData = JSON.parse(stored);
-    if (!storedLeagues || storedLeagues.schemaVersion !== CURRENT_LEAGUES_SCHEMA_VERSION) {
+    let storedLeagues: StoredLeaguesData | undefined = JSON.parse(stored);
+    if (storedLeagues && storedLeagues.schemaVersion !== CURRENT_LEAGUES_SCHEMA_VERSION) {
+        storedLeagues = migrateLeagues(storedLeagues);
+        if (storedLeagues) {
+            localStorage.setItem(SAVED_LEAGUES_KEY, JSON.stringify(storedLeagues));
+        }
+    }
+    if (!storedLeagues) {
         localStorage.removeItem(SAVED_LEAGUES_KEY);
         return emptyLeagues;
     }
     return storedLeagues;
 }
 
-export function loadLeague(leagueID: number): PlatformLeague | undefined {
+export function loadLeague(leagueID: LeagueId): PlatformLeague | undefined {
     const stored = loadLeagues();
     return stored.leagues[leagueID];
 }

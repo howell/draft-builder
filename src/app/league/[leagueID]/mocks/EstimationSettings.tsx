@@ -1,9 +1,10 @@
 import React from 'react';
 import { EstimationSettingsState } from '@/app/savedMockTypes';
 import Tooltip from '@/ui/Tooltip';
+import { SeasonId } from '@/platforms/common';
 
 export interface EstimationSettingsProps {
-    years: number[];
+    years: SeasonId[];
     currentSettings: EstimationSettingsState;
     onEstimationSettingsChanged?: (settings: EstimationSettingsState) => void;
     children?: React.ReactNode;
@@ -16,7 +17,7 @@ const EstimationSettings: React.FC<EstimationSettingsProps> = ({
     children
 }) => {
 
-    const handleYearToggle = (year: number) => {
+    const handleYearToggle = (year: SeasonId) => {
         if (currentSettings.years.includes(year)) {
             onEstimationSettingsChanged({
                 ...currentSettings,
