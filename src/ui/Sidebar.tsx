@@ -68,11 +68,13 @@ const OpenSidebar: React.FC<SidebarProps & { handleLeagueChange: (league: Platfo
 const LeagueOption: React.FC<{ league: PlatformLeague }> = ({ league }) => {
     const logo = platformLogo(league.platform);
     return (
-        <div className="flex flex-row items-center relative">
-            <div className='w-5 mr-2 relative object-cover'> 
+        <div className="flex flex-row items-center relative w-full">
+            <div className='w-8 mr-2 relative object-cover'> 
                 <Image src={logo} alt={league.platform + " logo"} />
             </div>
-            {league.id}
+            <span className='text-ellipsis overflow-x-clip'>
+                {league.id}
+            </span>
         </div>
     )
 
