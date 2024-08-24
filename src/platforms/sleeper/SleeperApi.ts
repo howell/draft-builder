@@ -138,7 +138,8 @@ export function importSleeperTeamInfo(arg: SleeperT.LeagueUser): LeagueTeam {
 
 export function importSleeperPlayer(id: string, player: SleeperT.Player): Player {
     return {
-        espnId: player.espn_id,
+        platformId: player.player_id,
+        espnId: (player.espn_id ?? '').toString(),
         fullName: player.first_name + ' ' + player.last_name,
         position: player.position,
         eligiblePositions: player.fantasy_positions,

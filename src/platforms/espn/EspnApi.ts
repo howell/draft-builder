@@ -110,7 +110,7 @@ export function importEspnDraftPick(arg: EspnT.DraftPick): DraftPick {
 
 export function importEspnTeamInfo(info: EspnT.Team): LeagueTeam {
     return {
-        id: info.id,
+        id: info.id.toString(),
         name: info.name
     };
 }
@@ -121,6 +121,7 @@ export function importEspnPlayersInfo(info: EspnT.PlayersInfo): Player[] {
 
 export function importEspnPlayerInfo(info: EspnT.PlayerInfo): Player {
     return {
+        platformId: info.id.toString(),
         espnId: info.id.toString(),
         fullName: info.player.fullName,
         position: positionName(info.player.defaultPositionId),

@@ -46,10 +46,8 @@ export async function fetchLeagueHistory(leagueID: LeagueId): Promise<Map<number
 
 export async function fetchDraftInfo(draftId: string): Promise<number | DraftInfo> {
     const route = buildRoute(`draft/${draftId}`, '');
-    console.log("fetchDraftInfo route", route);
     try {
         const draftResponse = await axios.get(route);
-        console.log("draft response", JSON.stringify(draftResponse.data, null, 2));
         return draftResponse.data;
     } catch (error) {
         if (axios.isAxiosError(error) && error.response) {
@@ -64,7 +62,6 @@ export async function fetchDraftPicks(draftId: string): Promise<number | [DraftP
     const route = buildRoute(`draft/${draftId}/picks`, '');
     try {
         const draftResponse = await axios.get(route);
-        console.log("draft picks response", JSON.stringify(draftResponse.data, null, 2));
         return draftResponse.data;
     } catch (error) {
         if (axios.isAxiosError(error) && error.response) {

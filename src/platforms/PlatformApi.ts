@@ -34,13 +34,14 @@ export type DraftPick = {
 };
 
 export type LeagueTeam = {
-    id: string | number;
+    id: string;
     name: string;
 };
 
 export type Player = {
     fullName: string;
-    espnId: string;
+    platformId: string;
+    espnId?: string;
     position: string;
     eligiblePositions: string[];
     platformPrice?: number
@@ -70,12 +71,12 @@ export abstract class PlatformApi {
 
 export function mergeDraftAndPlayerInfo(draftData: DraftPick[], playerData: Player[], teams: LeagueTeam[] = []): DraftedPlayer[] {
     return draftData.map((pick) => {
-        const player = playerData.find((player) => player.espnId === pick.playerId);
-        const team = teams.find((team) => team.id === pick.team);
+        const player = playerData.find((player) => player.platformId === pick.playerId);
         if (!player) {
             console.error('Player not found for pick:', pick);
             throw new Error('Player not found for pick');
         }
+        const team = teams.find((team) => team.id === pick.team);
         if (teams.length > 0 && !team) {
             console.error('Team not found for pick:', pick);
             throw new Error('Team not found for pick');

@@ -124,13 +124,13 @@ async function fetchData(leagueID: LeagueId,
 function buildPlayerDb(players: Player[], scoringType: ScoringType, draftAnalyses: DraftAnalysis[]): MockPlayer[] {
     const rankings = rankPlayers(players, scoringType);
     return players.map(player => ({
-        id: player.espnId,
+        id: player.platformId,
         name: player.fullName,
         defaultPosition: player.position,
         positions: player.eligiblePositions,
         suggestedCost: player.platformPrice,
-        overallRank: 1 + (rankings.overall.get(player.espnId) as number),
-        positionRank: 1 + (rankings.positional.get(player.position)?.get(player.espnId) as number)
+        overallRank: 1 + (rankings.overall.get(player.platformId) as number),
+        positionRank: 1 + (rankings.positional.get(player.position)?.get(player.platformId) as number)
     }));
 }
 
@@ -172,13 +172,13 @@ function rankPlayers(players: Player[], scoringType: ScoringType): Rankings {
     const positionRankings = new Map<string, Map<string, number>>();
 
     players.forEach((player, index) => {
-        overallRankings.set(player.espnId, index);
+        overallRankings.set(player.platformId, index);
         const position = player.position;
         if (!positionRankings.has(position)) {
             positionRankings.set(position, new Map<string, number>());
         }
         const positionRank = positionOrder.get(position)?.indexOf(player) as number;
-        positionRankings.get(position)?.set(player.espnId, positionRank);
+        positionRankings.get(position)?.set(player.platformId, positionRank);
     });
 
     return {
