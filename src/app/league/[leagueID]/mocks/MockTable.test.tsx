@@ -3,7 +3,7 @@ import { playerAvailable, calculateAmountSpent, computeRosterSlots   } from './M
 
 describe('playerAvailable', () => {
     const mockPlayer: CostEstimatedPlayer = {
-        id: 1,
+        id: '1',
         name: "Sam Brady",
         positions: ["QB", "TE"],
         defaultPosition: "QB",
@@ -26,8 +26,8 @@ describe('playerAvailable', () => {
     };
 
     const mockSelectedPlayers = [
-        { id: 2, defaultPosition: 'RB', suggestedCost: 20 },
-        { id: 3, defaultPosition: 'WR', suggestedCost: 15 },
+        { id: '2', defaultPosition: 'RB', suggestedCost: 20 },
+        { id: '3', defaultPosition: 'WR', suggestedCost: 15 },
     ] as MockPlayer[];
 
     const mockAuctionBudget = 100;
@@ -47,7 +47,7 @@ describe('playerAvailable', () => {
 
     it('should return false when player is already selected', () => {
         const result = playerAvailable(
-            { ...mockPlayer, id: 2 },
+            { ...mockPlayer, id: '2' },
             mockSearchSettings,
             mockSelectedPlayers,
             mockAuctionBudget,
@@ -160,9 +160,9 @@ describe('calculateAmountSpent', () => {
     it('should calculate the correct amount spent when there are selected players and no adjustments', () => {
         const rosterSpots = 10;
         const selectedPlayers = [
-            { id: 1, suggestedCost: 20 },
-            { id: 2, suggestedCost: 30 },
-            { id: 3, suggestedCost: 40 },
+            { id: '1', suggestedCost: 20 },
+            { id: '2', suggestedCost: 30 },
+            { id: '3', suggestedCost: 40 },
         ] as MockPlayer[];
         const adjustments = new Map<string, number>();
 
@@ -191,9 +191,9 @@ describe('calculateAmountSpent', () => {
     it('should calculate the correct amount spent when there are selected players and adjustments', () => {
         const rosterSpots = 10;
         const selectedPlayers = [
-            { id: 1, suggestedCost: 20 },
-            { id: 2, suggestedCost: 30 },
-            { id: 3, suggestedCost: 40 },
+            { id: '1', suggestedCost: 20 },
+            { id: '2', suggestedCost: 30 },
+            { id: '3', suggestedCost: 40 },
         ] as MockPlayer[];
         const adjustments = new Map<string, number>([
             ['QB', 5],

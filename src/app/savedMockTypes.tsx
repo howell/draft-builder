@@ -1,4 +1,5 @@
 import { LeagueId, SeasonId } from "@/platforms/common";
+import exp from "constants";
 
 export const CURRENT_MOCKS_SCHEMA_VERSION = 4;
 
@@ -62,8 +63,8 @@ export type StoredDraftDataV2 = {
 
 
 export type Rankings = {
-    overall: Map<number, number>, // playerId -> rank
-    positional: Map<string, Map<number, number>> // position -> playerId -> rank
+    overall: Map<string, number>, // playerId -> rank
+    positional: Map<string, Map<string, number>> // position -> playerId -> rank
 }
 
 export type ExponentialCoefficients = [number, number];
@@ -73,7 +74,19 @@ export type DraftAnalysis = {
     positions: Map<string, ExponentialCoefficients>;
 }
 
-export type MockPlayer = {
+export type MockPlayer = MockPlayerV4;
+
+export type MockPlayerV4 = {
+    id: string;
+    name: string;
+    defaultPosition: string;
+    positions: string[];
+    suggestedCost?: number,
+    overallRank: number;
+    positionRank: number;
+}
+
+export type MockPlayerV2 = {
     id: number;
     name: string;
     defaultPosition: string;

@@ -101,8 +101,8 @@ export function importEspnDraftDetail(arg: EspnT.DraftInfo): DraftDetail {
 
 export function importEspnDraftPick(arg: EspnT.DraftPick): DraftPick {
     return {
-        playerId: arg.playerId,
-        team: arg.teamId,
+        playerId: arg.playerId.toString(),
+        team: arg.teamId.toString(),
         price: arg.bidAmount,
         overallPickNumber: arg.overallPickNumber
     };
@@ -121,7 +121,7 @@ export function importEspnPlayersInfo(info: EspnT.PlayersInfo): Player[] {
 
 export function importEspnPlayerInfo(info: EspnT.PlayerInfo): Player {
     return {
-        espnId: info.id,
+        espnId: info.id.toString(),
         fullName: info.player.fullName,
         position: positionName(info.player.defaultPositionId),
         eligiblePositions: info.player.eligibleSlots.map(slotName),

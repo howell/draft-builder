@@ -27,8 +27,8 @@ export type DraftDetail = {
 };
 
 export type DraftPick = {
-    playerId: string | number;
-    team: string | number;
+    playerId: string;
+    team: string;
     price: number;
     overallPickNumber: number;
 };
@@ -40,7 +40,7 @@ export type LeagueTeam = {
 
 export type Player = {
     fullName: string;
-    espnId: number;
+    espnId: string;
     position: string;
     eligiblePositions: string[];
     platformPrice?: number

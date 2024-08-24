@@ -39,7 +39,7 @@ const demoDraftHistory: Map<SeasonId, DraftAnalysis> = new Map([
     ]);
 
 export type DemoPlayer = {
-    id: number;
+    id: string;
     name: string;
     defaultPosition: string;
     positions: string[];
@@ -47,26 +47,26 @@ export type DemoPlayer = {
 }
 
 const includedPlayers: DemoPlayer[] = [
-    {id: 1, name: 'Brett Favre', defaultPosition: 'QB', positions: ['QB'], suggestedCost: 10 },
-    {id: 2, name: 'Marshall Faulk', defaultPosition: 'RB', positions: ['RB', 'FLEX'], suggestedCost: 34 },
-    {id: 3, name: 'Randy Moss', defaultPosition: 'WR', positions: ['WR', 'FLEX'], suggestedCost: 28 },
-    {id: 4, name: 'Rob Gronkowski', defaultPosition: 'TE', positions: ['TE', 'FLEX'], suggestedCost: 17 },
-    {id: 5, name: 'Daunte Culpepper', defaultPosition: 'QB', positions: ['QB'], suggestedCost: 29 },
-    {id: 6, name: 'Shaun Alexander', defaultPosition: 'RB', positions: ['RB', 'FLEX'], suggestedCost: 36 },
-    {id: 7, name: 'Marvin Harrison', defaultPosition: 'WR', positions: ['WR', 'FLEX'], suggestedCost: 18 },
-    {id: 8, name: 'Tony Gonzalez', defaultPosition: 'TE', positions: ['TE', 'FLEX'], suggestedCost: 9 },
-    {id: 9, name: 'Donovan McNabb', defaultPosition: 'QB', positions: ['QB'], suggestedCost: 15 },
-    {id: 10, name: 'LaDanian Tomlinson', defaultPosition: 'RB', positions: ['RB', 'FLEX'], suggestedCost: 22 },
-    {id: 11, name: 'Terell Owens', defaultPosition: 'WR', positions: ['WR', 'FLEX'], suggestedCost: 10 },
-    {id: 12, name: 'Shannon Sharpe', defaultPosition: 'TE', positions: ['TE', 'FLEX'], suggestedCost: 7 },
-    {id: 13, name: 'Dan Merino', defaultPosition: 'QB', positions: ['QB'], suggestedCost: 4 },
-    {id: 14, name: 'Barry Sanders', defaultPosition: 'RB', positions: ['RB', 'FLEX'], suggestedCost: 39 },
-    {id: 15, name: 'Torry Holt', defaultPosition: 'WR', positions: ['WR', 'FLEX'], suggestedCost: 16 },
-    {id: 16, name: 'Travis Kelce', defaultPosition: 'TE', positions: ['TE', 'FLEX'], suggestedCost: 13 },
-    {id: 17, name: 'Lamar Jackson', defaultPosition: 'QB', positions: ['QB'], suggestedCost: 11 },
-    {id: 18, name: 'Priest Holmes', defaultPosition: 'RB', positions: ['RB', 'FLEX'], suggestedCost: 33 },
-    {id: 19, name: 'Jimmy Smith', defaultPosition: 'WR', positions: ['WR', 'FLEX'], suggestedCost: 9 },
-    {id: 20, name: 'Kyle Pitts', defaultPosition: 'TE', positions: ['TE', 'FLEX'], suggestedCost: 15 },
+    {id: '1', name: 'Brett Favre', defaultPosition: 'QB', positions: ['QB'], suggestedCost: 10 },
+    {id: '2', name: 'Marshall Faulk', defaultPosition: 'RB', positions: ['RB', 'FLEX'], suggestedCost: 34 },
+    {id: '3', name: 'Randy Moss', defaultPosition: 'WR', positions: ['WR', 'FLEX'], suggestedCost: 28 },
+    {id: '4', name: 'Rob Gronkowski', defaultPosition: 'TE', positions: ['TE', 'FLEX'], suggestedCost: 17 },
+    {id: '5', name: 'Daunte Culpepper', defaultPosition: 'QB', positions: ['QB'], suggestedCost: 29 },
+    {id: '6', name: 'Shaun Alexander', defaultPosition: 'RB', positions: ['RB', 'FLEX'], suggestedCost: 36 },
+    {id: '7', name: 'Marvin Harrison', defaultPosition: 'WR', positions: ['WR', 'FLEX'], suggestedCost: 18 },
+    {id: '8', name: 'Tony Gonzalez', defaultPosition: 'TE', positions: ['TE', 'FLEX'], suggestedCost: 9 },
+    {id: '9', name: 'Donovan McNabb', defaultPosition: 'QB', positions: ['QB'], suggestedCost: 15 },
+    {id: '10', name: 'LaDanian Tomlinson', defaultPosition: 'RB', positions: ['RB', 'FLEX'], suggestedCost: 22 },
+    {id: '11', name: 'Terell Owens', defaultPosition: 'WR', positions: ['WR', 'FLEX'], suggestedCost: 10 },
+    {id: '12', name: 'Shannon Sharpe', defaultPosition: 'TE', positions: ['TE', 'FLEX'], suggestedCost: 7 },
+    {id: '13', name: 'Dan Merino', defaultPosition: 'QB', positions: ['QB'], suggestedCost: 4 },
+    {id: '14', name: 'Barry Sanders', defaultPosition: 'RB', positions: ['RB', 'FLEX'], suggestedCost: 39 },
+    {id: '15', name: 'Torry Holt', defaultPosition: 'WR', positions: ['WR', 'FLEX'], suggestedCost: 16 },
+    {id: '16', name: 'Travis Kelce', defaultPosition: 'TE', positions: ['TE', 'FLEX'], suggestedCost: 13 },
+    {id: '17', name: 'Lamar Jackson', defaultPosition: 'QB', positions: ['QB'], suggestedCost: 11 },
+    {id: '18', name: 'Priest Holmes', defaultPosition: 'RB', positions: ['RB', 'FLEX'], suggestedCost: 33 },
+    {id: '19', name: 'Jimmy Smith', defaultPosition: 'WR', positions: ['WR', 'FLEX'], suggestedCost: 9 },
+    {id: '20', name: 'Kyle Pitts', defaultPosition: 'TE', positions: ['TE', 'FLEX'], suggestedCost: 15 },
 ];
 
 includedPlayers.sort((a, b) => b.suggestedCost - a.suggestedCost);

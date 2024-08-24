@@ -1,4 +1,4 @@
-import { CostEstimatedPlayer, EstimationSettingsState, EstimationSettingsStateV2, EstimationSettingsStateV4, RosterSelections, SearchSettingsState, StoredDataV2, StoredDataV3, StoredDataV4, StoredDraftDataV3 } from "./savedMockTypes";
+import { CostEstimatedPlayer, EstimationSettingsState, EstimationSettingsStateV2, EstimationSettingsStateV4, MockPlayerV2, RosterSelections, SearchSettingsState, StoredDataV2, StoredDataV3, StoredDataV4, StoredDraftDataV3 } from "./savedMockTypes";
 import { migrateV2toV3, migrateV3toV4 } from "./savedMockMigrations";
 
 const estimationSettings: EstimationSettingsStateV2 = {
@@ -19,7 +19,7 @@ const searchSettings: SearchSettingsState = {
     showOnlyAvailable: true
 };
 
-const aPlayer: CostEstimatedPlayer = {
+const aPlayerV2: MockPlayerV2 & {estimatedCost: number} = {
     id: 1,
     name: "Player 1",
     defaultPosition: "RB",
@@ -30,8 +30,17 @@ const aPlayer: CostEstimatedPlayer = {
     estimatedCost: 100,
 };
 
-const rosterSelections: RosterSelections = {
-    "RB0": aPlayer,
+const aPlayerV4: CostEstimatedPlayer = {
+    ...aPlayerV2,
+    id: '1'
+};
+
+const rosterSelectionsV2: any = {
+    "RB0": aPlayerV2,
+}
+
+const rosterSelectionsV4: RosterSelections = {
+    "RB0": aPlayerV4,
 }
 
 describe("migrateV2toV3", () => {
@@ -45,7 +54,7 @@ describe("migrateV2toV3", () => {
                         notes: "this gonna be good",
                         created: 123456,
                         modified: 123457,
-                        rosterSelections,
+                        rosterSelections: rosterSelectionsV2,
                         estimationSettings,
                         searchSettings,
                     },
@@ -124,7 +133,7 @@ describe("migrateV3toV4", () => {
                         notes: "this gonna be better",
                         created: 13456,
                         modified: 13457,
-                        rosterSelections: {},
+                        rosterSelections: rosterSelectionsV2,
                         estimationSettings,
                         searchSettings,
                         costAdjustments: {},
@@ -160,6 +169,7 @@ describe("migrateV3toV4", () => {
                         draft2: {
                             ...data[1].drafts.draft2,
                             estimationSettings: estimationSettingsV4,
+                            rosterSelections: rosterSelectionsV4,
                             year: "2023",
                         },
                     },

@@ -168,14 +168,14 @@ function rankPlayers(players: Player[], scoringType: ScoringType): Rankings {
         }
     }
 
-    const overallRankings = new Map<number, number>();
-    const positionRankings = new Map<string, Map<number, number>>();
+    const overallRankings = new Map<string, number>();
+    const positionRankings = new Map<string, Map<string, number>>();
 
     players.forEach((player, index) => {
         overallRankings.set(player.espnId, index);
         const position = player.position;
         if (!positionRankings.has(position)) {
-            positionRankings.set(position, new Map<number, number>());
+            positionRankings.set(position, new Map<string, number>());
         }
         const positionRank = positionOrder.get(position)?.indexOf(player) as number;
         positionRankings.get(position)?.set(player.espnId, positionRank);

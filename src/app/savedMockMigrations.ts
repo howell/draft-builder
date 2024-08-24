@@ -49,9 +49,12 @@ export function migrateMocksV3toV4(data: StoredMocksDataV3): StoredMocksDataV4 {
 }
 
 export function migrateDraftV3toV4(data: StoredDraftDataV3): StoredDraftDataV4 {
+    const rosterSelections = Object.entries(data.rosterSelections)
+        .map(([slot, selection]) => [slot, selection && { ...selection, id: selection.id.toString() }]);
     return {
         ...data,
         year: data.year.toString(),
+        rosterSelections: Object.fromEntries(rosterSelections),
         estimationSettings: {
             ...data.estimationSettings,
             years: data.estimationSettings.years.map(year => year.toString())
