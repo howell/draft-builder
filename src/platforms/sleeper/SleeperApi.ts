@@ -61,8 +61,13 @@ export class SleeperApi extends PlatformApi {
         return importSleeperDraftDetail(info, picks);
 
     }
-    public fetchLeagueTeams(season?: SeasonId): Promise<LeagueTeam[] | number> {
-        return fetchLeagueTeams(this.league.id)
+    public async fetchLeagueTeams(seasonId?: SeasonId): Promise<LeagueTeam[] | number> {
+        seasonId = seasonId ?? CURRENT_SEASON;
+        const seasonInfo = await this.infoForSeason(seasonId);
+        if (typeof seasonInfo === 'number') {
+            return seasonInfo;
+        }
+        return fetchLeagueTeams(seasonInfo.league_id)
             .then(convertBy((info: SleeperT.LeagueUser[]) => info.map(importSleeperTeamInfo)));
     }
 
@@ -114,16 +119,22 @@ export function importSleeperLeagueInfo(leagueInfo: SleeperT.LeagueInfo, draftIn
 }
 
 export function importSleeperDraftDetail(info: SleeperT.DraftInfo, picks: SleeperT.DraftPick[]): DraftDetail {
+    function rosterIdToUser(rosterId: string): string {
+        const draftSlot = Object.entries(info.slot_to_roster_id).find(([_, id]) => id === parseInt(rosterId))![0];
+        const userId = Object.entries(info.draft_order ?? []).find(([_, slot]) => slot === parseInt(draftSlot))![0];
+        return userId
+    }
     return {
         season: info.season,
-        picks: picks.map(importSleeperDraftPick)
+        picks: picks.map(p => importSleeperDraftPick(p, rosterIdToUser))
     };
 }
 
-export function importSleeperDraftPick(pick: SleeperT.DraftPick): DraftPick {
+export function importSleeperDraftPick(pick: SleeperT.DraftPick, lookupRoster: (r: string) => string): DraftPick {
+    const team = pick.picked_by === '' ? lookupRoster(pick.roster_id!.toString()) : pick.picked_by;
     return {
         playerId: pick.player_id,
-        team: pick.picked_by,
+        team: team,
         price: parseInt(pick.metadata?.amount ?? '-1'),
         overallPickNumber: pick.pick_no
     };

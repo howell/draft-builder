@@ -92,10 +92,11 @@ describe("SleeperApi", () => {
                 { id: "2", name: "Team 2" },
             ];
 
+            (fetchLeagueInfo as jest.Mock).mockResolvedValue({league_id: league.id, season: '2024', draft_id: '123'} as any);
             (fetchLeagueTeams as jest.Mock).mockResolvedValue(leagueTeams);
 
             const sleeperApi = new SleeperApi(league);
-            const result = await sleeperApi.fetchLeagueTeams();
+            const result = await sleeperApi.fetchLeagueTeams('2024');
 
             expect(fetchLeagueTeams).toHaveBeenCalledWith(league.id);
             expect(result).toEqual(expectedLeagueTeams);
@@ -140,7 +141,8 @@ describe("importSleeperTeamInfo", () => {
 });
 describe("importSleeperDraftPick", () => {
     it("should import Sleeper draft pick", () => {
-        expect(importSleeperDraftPick(realDraftPick)).toEqual(
+        const lookupRoster = jest.fn().mockReturnValue("777");
+        expect(importSleeperDraftPick(realDraftPick, lookupRoster)).toEqual(
             {
                 playerId: "KC",
                 team: "739615909098000384",
@@ -149,12 +151,25 @@ describe("importSleeperDraftPick", () => {
             }
         );
 
-        expect(importSleeperDraftPick(realDraftPick2)).toEqual(
+        expect(importSleeperDraftPick(realDraftPick2, lookupRoster)).toEqual(
             {
                 playerId: "7569",
                 team: "73448567356145664",
                 price: 1,
                 overallPickNumber: 144,
+            }
+        );
+    });
+
+    it ("should handle empty picked_by", () => {
+        const lookupRoster = jest.fn().mockReturnValue("777");
+        const pick = {...realDraftPick, picked_by: ''};
+        expect(importSleeperDraftPick(pick, lookupRoster)).toEqual(
+            {
+                playerId: "KC",
+                team: "777",
+                price: 1,
+                overallPickNumber: 180,
             }
         );
     });
