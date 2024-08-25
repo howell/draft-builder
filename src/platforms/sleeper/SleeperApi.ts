@@ -120,9 +120,15 @@ export function importSleeperLeagueInfo(leagueInfo: SleeperT.LeagueInfo, draftIn
 
 export function importSleeperDraftDetail(info: SleeperT.DraftInfo, picks: SleeperT.DraftPick[]): DraftDetail {
     function rosterIdToUser(rosterId: string): string {
-        const draftSlot = Object.entries(info.slot_to_roster_id).find(([_, id]) => id === parseInt(rosterId))![0];
-        const userId = Object.entries(info.draft_order ?? []).find(([_, slot]) => slot === parseInt(draftSlot))![0];
-        return userId
+        const draftSlot = Object.entries(info.slot_to_roster_id).find(([_, id]) => id === parseInt(rosterId));
+        if (!draftSlot) {
+            return `Roster ${rosterId}`;
+        }
+        const userId = Object.entries(info.draft_order ?? []).find(([_, slot]) => slot === parseInt(draftSlot[0]));
+        if (!userId) {
+            return `Team ${rosterId}`;
+        }
+        return userId[0];
     }
     return {
         season: info.season,

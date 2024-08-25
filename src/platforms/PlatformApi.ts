@@ -78,8 +78,7 @@ export function mergeDraftAndPlayerInfo(draftData: DraftPick[], playerData: Play
         }
         const team = teams.find((team) => team.id === pick.team);
         if (teams.length > 0 && !team) {
-            console.error('Team not found for pick:', pick);
-            throw new Error('Team not found for pick');
+            console.log('Team not found for pick:', pick, teams);
         }
         return {
             ...pick,
