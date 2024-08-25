@@ -28,9 +28,17 @@ const availablePlayerColumns: [(keyof CostEstimatedPlayer), ColumnName][] = [
     ['defaultPosition', {name: 'Position', shortName: 'Pos'}],
     ['overallRank', {name: 'Overall Rank', shortName: 'OvrR'}],
     ['positionRank', {name: 'Position Rank', shortName: 'PosR'}],
-    ['suggestedCost', {name: 'Platform Cost', shortName: '$Sug', tooltip: 'The price the platform puts next to the player in the draft room'}],
     ['estimatedCost', {name: 'Estimated Cost', shortName: '$Est', tooltip: "The price the player will go for based on your league history"}],
 ];
+
+const platformCostColumn: [(keyof CostEstimatedPlayer), ColumnName] = ['suggestedCost', {name: 'Platform Cost', shortName: '$Sug', tooltip: 'The price the platform puts next to the player in the draft room'}];
+
+function columnsFor(players: MockPlayer[]): [(keyof CostEstimatedPlayer), ColumnName][] {
+    if (players.some(p => p.suggestedCost !== undefined)) {
+        return [...availablePlayerColumns, platformCostColumn];
+    }
+    return availablePlayerColumns;
+}
 
 type CostPredictor = {
     predict: (player: MockPlayer) => number;
@@ -59,6 +67,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     const [lastFocusedRosterSlot, setLastFocusedRosterSlot] = useState<RosterSlot | undefined>(undefined);
     const [rosterSlots, _setRosterSlots] = useState<RosterSlot[]>(computeRosterSlots(positions));
     const [rosterSpots, _setRosterSpots] = useState(rosterSlots.length);
+    const [playerTableColumns, _setPlayerTableColumns] = useState(columnsFor(players));
 
     useEffect(() => { 
         const loadedDraft = loadStoredDraftData(leagueId, draftName);
@@ -309,7 +318,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                 </div>
                 <PlayerTable
                     players={availablePlayers}
-                    columns={availablePlayerColumns}
+                    columns={playerTableColumns}
                     onPlayerClick={onPlayerClick}
                     defaultSortColumn='estimatedCost'
                     defaultSortDirection='desc' />
