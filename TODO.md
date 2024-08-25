@@ -25,3 +25,4 @@
 
 ## Fixes
 - should league select dropdown allow horizontal scrolling?
+- is there an off by one bug in determining remaining budget?
