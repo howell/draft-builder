@@ -21,6 +21,7 @@
 
 ## Improvements
 * Draft page: Show overall and position rank columns
+* Handle Keepers
 
 ## Fixes
 - should league select dropdown allow horizontal scrolling?
