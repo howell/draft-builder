@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { loadLeagues } from '../localStorage';
 import Sidebar from '@/ui/Sidebar';
 import MockTable, { MockTableProps } from '../league/[leagueID]/mocks/MockTable';
-import { DraftAnalysis, } from '../savedMockTypes';
+import { DraftAnalysis, Rankings, } from '../savedMockTypes';
 
 
 export default function Demo() {
@@ -80,6 +80,11 @@ for (const player of includedPlayers) {
     }
 }
 
+const demoRanks: Rankings = {
+    overall: new Map(includedPlayers.map((player, index) => [player.id, index])),
+    positional: new Map([...positionOrder.entries()].map(([position, players]) => [position, new Map(players.map((player, index) => [player.id, index]))]))
+};
+
 const demoPlayers = includedPlayers.map(player => ({
     ...player,
     overallRank: 1 + includedPlayers.indexOf(player),
@@ -93,5 +98,6 @@ const demoTableProps: MockTableProps = {
     positions: demoRoster,
     players: demoPlayers,
     draftHistory: demoDraftHistory,
-    playerPositions: demoPlayerPositions
+    playerPositions: demoPlayerPositions,
+    availableRankings: [{name: "Ranks", shortName: "Ranks", value: demoRanks}]
 };

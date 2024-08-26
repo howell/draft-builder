@@ -1,0 +1,5929 @@
+{
+  "spreadsheetId": "1wmjxi3K5rjIYME_lskUvquLbN331YV0vi-kg5VakpdY",
+  "properties": {
+    "title": "Sleeper ADP [Official]",
+    "locale": "en_US",
+    "autoRecalc": "ON_CHANGE",
+    "timeZone": "America/Los_Angeles",
+    "defaultFormat": {
+      "backgroundColor": {
+        "red": 1,
+        "green": 1,
+        "blue": 1
+      },
+      "padding": {
+        "top": 2,
+        "right": 3,
+        "bottom": 2,
+        "left": 3
+      },
+      "verticalAlignment": "BOTTOM",
+      "wrapStrategy": "OVERFLOW_CELL",
+      "textFormat": {
+        "foregroundColor": {},
+        "fontFamily": "arial,sans,sans-serif",
+        "fontSize": 10,
+        "bold": false,
+        "italic": false,
+        "strikethrough": false,
+        "underline": false,
+        "foregroundColorStyle": {
+          "rgbColor": {}
+        }
+      },
+      "backgroundColorStyle": {
+        "rgbColor": {
+          "red": 1,
+          "green": 1,
+          "blue": 1
+        }
+      }
+    },
+    "spreadsheetTheme": {
+      "primaryFontFamily": "Arial",
+      "themeColors": [
+        {
+          "colorType": "TEXT",
+          "color": {
+            "rgbColor": {}
+          }
+        },
+        {
+          "colorType": "BACKGROUND",
+          "color": {
+            "rgbColor": {
+              "red": 1,
+              "green": 1,
+              "blue": 1
+            }
+          }
+        },
+        {
+          "colorType": "ACCENT1",
+          "color": {
+            "rgbColor": {
+              "red": 0.25882354,
+              "green": 0.52156866,
+              "blue": 0.95686275
+            }
+          }
+        },
+        {
+          "colorType": "ACCENT2",
+          "color": {
+            "rgbColor": {
+              "red": 0.91764706,
+              "green": 0.2627451,
+              "blue": 0.20784314
+            }
+          }
+        },
+        {
+          "colorType": "ACCENT3",
+          "color": {
+            "rgbColor": {
+              "red": 0.9843137,
+              "green": 0.7372549,
+              "blue": 0.015686275
+            }
+          }
+        },
+        {
+          "colorType": "ACCENT4",
+          "color": {
+            "rgbColor": {
+              "red": 0.20392157,
+              "green": 0.65882355,
+              "blue": 0.3254902
+            }
+          }
+        },
+        {
+          "colorType": "ACCENT5",
+          "color": {
+            "rgbColor": {
+              "red": 1,
+              "green": 0.42745098,
+              "blue": 0.003921569
+            }
+          }
+        },
+        {
+          "colorType": "ACCENT6",
+          "color": {
+            "rgbColor": {
+              "red": 0.27450982,
+              "green": 0.7411765,
+              "blue": 0.7764706
+            }
+          }
+        },
+        {
+          "colorType": "LINK",
+          "color": {
+            "rgbColor": {
+              "red": 0.06666667,
+              "green": 0.33333334,
+              "blue": 0.8
+            }
+          }
+        }
+      ]
+    }
+  },
+  "sheets": [
+    {
+      "properties": {
+        "sheetId": 1171234637,
+        "title": "Instructions",
+        "index": 0,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 26
+        }
+      },
+      "merges": [
+        {
+          "sheetId": 1171234637,
+          "startRowIndex": 0,
+          "endRowIndex": 1,
+          "startColumnIndex": 0,
+          "endColumnIndex": 14
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 1621001830,
+        "title": "August 21, 2024 ADP",
+        "index": 1,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 26
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 1621001830,
+              "startRowIndex": 1,
+              "endRowIndex": 555,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1621001830,
+              "startRowIndex": 1,
+              "endRowIndex": 555,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1621001830,
+              "startRowIndex": 1,
+              "endRowIndex": 555,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1621001830,
+              "startRowIndex": 1,
+              "endRowIndex": 555,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 241172256,
+        "title": "August 14, 2024 ADP",
+        "index": 2,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 26
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 241172256,
+              "startRowIndex": 1,
+              "endRowIndex": 229,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 241172256,
+              "startRowIndex": 1,
+              "endRowIndex": 229,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 241172256,
+              "startRowIndex": 1,
+              "endRowIndex": 229,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 241172256,
+              "startRowIndex": 1,
+              "endRowIndex": 229,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 79509694,
+        "title": "August 2, 2024 ADP",
+        "index": 3,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 26
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 79509694,
+              "startRowIndex": 1,
+              "endRowIndex": 229,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 79509694,
+              "startRowIndex": 1,
+              "endRowIndex": 229,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 79509694,
+              "startRowIndex": 1,
+              "endRowIndex": 229,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 79509694,
+              "startRowIndex": 1,
+              "endRowIndex": 229,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 207537475,
+        "title": "July 24, 2024 ADP",
+        "index": 4,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 26
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 207537475,
+              "startRowIndex": 1,
+              "endRowIndex": 229,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 207537475,
+              "startRowIndex": 1,
+              "endRowIndex": 229,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 207537475,
+              "startRowIndex": 1,
+              "endRowIndex": 229,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 207537475,
+              "startRowIndex": 1,
+              "endRowIndex": 229,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 1711147897,
+        "title": "July 12, 2024 ADP",
+        "index": 5,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 14
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 1711147897,
+              "startRowIndex": 1,
+              "endRowIndex": 485,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1711147897,
+              "startRowIndex": 1,
+              "endRowIndex": 485,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1711147897,
+              "startRowIndex": 1,
+              "endRowIndex": 485,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1711147897,
+              "startRowIndex": 1,
+              "endRowIndex": 485,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 1208927791,
+        "title": "July 2, 2024 ADP",
+        "index": 6,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 14
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 1208927791,
+              "startRowIndex": 1,
+              "endRowIndex": 488,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1208927791,
+              "startRowIndex": 1,
+              "endRowIndex": 488,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1208927791,
+              "startRowIndex": 1,
+              "endRowIndex": 488,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1208927791,
+              "startRowIndex": 1,
+              "endRowIndex": 488,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 1732367418,
+        "title": "June 14, 2024 ADP",
+        "index": 7,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 14
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 1732367418,
+              "startRowIndex": 1,
+              "endRowIndex": 521,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1732367418,
+              "startRowIndex": 1,
+              "endRowIndex": 521,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1732367418,
+              "startRowIndex": 1,
+              "endRowIndex": 521,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1732367418,
+              "startRowIndex": 1,
+              "endRowIndex": 521,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 2049389934,
+        "title": "May 23, 2024 ADP",
+        "index": 8,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 14,
+          "frozenRowCount": 1
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 2049389934,
+              "startRowIndex": 1,
+              "endRowIndex": 534,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 2049389934,
+              "startRowIndex": 1,
+              "endRowIndex": 534,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 2049389934,
+              "startRowIndex": 1,
+              "endRowIndex": 534,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 2049389934,
+              "startRowIndex": 1,
+              "endRowIndex": 534,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 592047508,
+        "title": "May 17, 2024 ADP",
+        "index": 9,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 14,
+          "frozenRowCount": 1
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 592047508,
+              "startRowIndex": 1,
+              "endRowIndex": 534,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 592047508,
+              "startRowIndex": 1,
+              "endRowIndex": 534,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 592047508,
+              "startRowIndex": 1,
+              "endRowIndex": 534,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 592047508,
+              "startRowIndex": 1,
+              "endRowIndex": 534,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 1560833269,
+        "title": "May 10, 2024 ADP",
+        "index": 10,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 14,
+          "frozenRowCount": 1
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 1560833269,
+              "startRowIndex": 1,
+              "endRowIndex": 553,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1560833269,
+              "startRowIndex": 1,
+              "endRowIndex": 553,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1560833269,
+              "startRowIndex": 1,
+              "endRowIndex": 553,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1560833269,
+              "startRowIndex": 1,
+              "endRowIndex": 553,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 274229542,
+        "title": "May 2, 2024 ADP",
+        "index": 11,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 14,
+          "frozenRowCount": 1
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 274229542,
+              "startRowIndex": 1,
+              "endRowIndex": 553,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 274229542,
+              "startRowIndex": 1,
+              "endRowIndex": 553,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 274229542,
+              "startRowIndex": 1,
+              "endRowIndex": 553,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 274229542,
+              "startRowIndex": 1,
+              "endRowIndex": 553,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 788278195,
+        "title": "March 29, 2024 ADP",
+        "index": 12,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 593,
+          "columnCount": 14,
+          "frozenRowCount": 1
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 788278195,
+              "startRowIndex": 1,
+              "endRowIndex": 590,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 788278195,
+              "startRowIndex": 1,
+              "endRowIndex": 590,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 788278195,
+              "startRowIndex": 1,
+              "endRowIndex": 590,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 788278195,
+              "startRowIndex": 1,
+              "endRowIndex": 590,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 300332650,
+        "title": "September 7, 2023 ADP",
+        "index": 13,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 26,
+          "frozenRowCount": 1
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 300332650,
+              "startRowIndex": 1,
+              "endRowIndex": 583,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 300332650,
+              "startRowIndex": 1,
+              "endRowIndex": 583,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 300332650,
+              "startRowIndex": 1,
+              "endRowIndex": 583,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 300332650,
+              "startRowIndex": 1,
+              "endRowIndex": 583,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 1284953037,
+        "title": "September 1, 2023 ADP",
+        "index": 14,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 26,
+          "frozenRowCount": 1
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 1284953037,
+              "startRowIndex": 1,
+              "endRowIndex": 584,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1284953037,
+              "startRowIndex": 1,
+              "endRowIndex": 584,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1284953037,
+              "startRowIndex": 1,
+              "endRowIndex": 584,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1284953037,
+              "startRowIndex": 1,
+              "endRowIndex": 584,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 996214340,
+        "title": "August 23, 2023 ADP",
+        "index": 15,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 26,
+          "frozenRowCount": 1
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 996214340,
+              "startRowIndex": 1,
+              "endRowIndex": 546,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 996214340,
+              "startRowIndex": 1,
+              "endRowIndex": 546,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 996214340,
+              "startRowIndex": 1,
+              "endRowIndex": 546,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 996214340,
+              "startRowIndex": 1,
+              "endRowIndex": 546,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 19275779,
+        "title": "August 18, 2023 ADP",
+        "index": 16,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 529,
+          "columnCount": 14,
+          "frozenRowCount": 1
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 19275779,
+              "startRowIndex": 1,
+              "endRowIndex": 529,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 19275779,
+              "startRowIndex": 1,
+              "endRowIndex": 529,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 19275779,
+              "startRowIndex": 1,
+              "endRowIndex": 529,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 19275779,
+              "startRowIndex": 1,
+              "endRowIndex": 529,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 1976098470,
+        "title": "August 10, 2023 ADP",
+        "index": 17,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 26,
+          "frozenRowCount": 1
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 1976098470,
+              "startRowIndex": 1,
+              "endRowIndex": 507,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1976098470,
+              "startRowIndex": 1,
+              "endRowIndex": 507,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1976098470,
+              "startRowIndex": 1,
+              "endRowIndex": 507,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1976098470,
+              "startRowIndex": 1,
+              "endRowIndex": 507,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 1735511700,
+        "title": "August 4, 2023 ADP",
+        "index": 18,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 26,
+          "frozenRowCount": 1
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 1735511700,
+              "startRowIndex": 1,
+              "endRowIndex": 504,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1735511700,
+              "startRowIndex": 1,
+              "endRowIndex": 504,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1735511700,
+              "startRowIndex": 1,
+              "endRowIndex": 504,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1735511700,
+              "startRowIndex": 1,
+              "endRowIndex": 504,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 504959809,
+        "title": "July 27, 2023 ADP",
+        "index": 19,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 26,
+          "frozenRowCount": 1
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 504959809,
+              "startRowIndex": 1,
+              "endRowIndex": 1000,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 504959809,
+              "startRowIndex": 1,
+              "endRowIndex": 1000,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 504959809,
+              "startRowIndex": 1,
+              "endRowIndex": 1000,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 504959809,
+              "startRowIndex": 1,
+              "endRowIndex": 1000,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 1717391537,
+        "title": "July 20, 2023 ADP",
+        "index": 20,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 26,
+          "frozenRowCount": 1
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 1717391537,
+              "startRowIndex": 1,
+              "endRowIndex": 1000,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1717391537,
+              "startRowIndex": 1,
+              "endRowIndex": 1000,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1717391537,
+              "startRowIndex": 1,
+              "endRowIndex": 1000,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1717391537,
+              "startRowIndex": 1,
+              "endRowIndex": 1000,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 908539582,
+        "title": "July 13, 2023 ADP",
+        "index": 21,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 26,
+          "frozenRowCount": 1
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 908539582,
+              "startRowIndex": 1,
+              "endRowIndex": 506,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 908539582,
+              "startRowIndex": 1,
+              "endRowIndex": 506,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 908539582,
+              "startRowIndex": 1,
+              "endRowIndex": 506,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 908539582,
+              "startRowIndex": 1,
+              "endRowIndex": 506,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 2100193371,
+        "title": "July 6, 2023 ADP",
+        "index": 22,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 26,
+          "frozenRowCount": 1
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 2100193371,
+              "startRowIndex": 1,
+              "endRowIndex": 509,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 2100193371,
+              "startRowIndex": 1,
+              "endRowIndex": 509,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 2100193371,
+              "startRowIndex": 1,
+              "endRowIndex": 509,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 2100193371,
+              "startRowIndex": 1,
+              "endRowIndex": 509,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 731718771,
+        "title": "June 22, 2023 ADP",
+        "index": 23,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 499,
+          "columnCount": 26,
+          "frozenRowCount": 1
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 731718771,
+              "startRowIndex": 1,
+              "endRowIndex": 499,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 731718771,
+              "startRowIndex": 1,
+              "endRowIndex": 499,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 731718771,
+              "startRowIndex": 1,
+              "endRowIndex": 499,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 731718771,
+              "startRowIndex": 1,
+              "endRowIndex": 499,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 1618849107,
+        "title": "June 15, 2023 ADP",
+        "index": 24,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1832,
+          "columnCount": 26,
+          "frozenRowCount": 1
+        }
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 1618849107,
+              "startRowIndex": 1,
+              "endRowIndex": 499,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1618849107,
+              "startRowIndex": 1,
+              "endRowIndex": 499,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1618849107,
+              "startRowIndex": 1,
+              "endRowIndex": 499,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1618849107,
+              "startRowIndex": 1,
+              "endRowIndex": 499,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "sheetId": 1620039715,
+        "title": "September 7, 2022 ADP",
+        "index": 25,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 27
+        },
+        "hidden": true
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 1620039715,
+              "startRowIndex": 1,
+              "endRowIndex": 1000,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1620039715,
+              "startRowIndex": 1,
+              "endRowIndex": 1000,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1620039715,
+              "startRowIndex": 1,
+              "endRowIndex": 1000,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1620039715,
+              "startRowIndex": 1,
+              "endRowIndex": 1000,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ],
+      "basicFilter": {
+        "range": {
+          "sheetId": 1620039715,
+          "startRowIndex": 0,
+          "endRowIndex": 532,
+          "startColumnIndex": 0,
+          "endColumnIndex": 14
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 49008746,
+        "title": "August 31, 2022 ADP",
+        "index": 26,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 26,
+          "frozenRowCount": 1
+        },
+        "hidden": true
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 49008746,
+              "startRowIndex": 1,
+              "endRowIndex": 1000,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 49008746,
+              "startRowIndex": 1,
+              "endRowIndex": 1000,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 49008746,
+              "startRowIndex": 1,
+              "endRowIndex": 1000,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 49008746,
+              "startRowIndex": 1,
+              "endRowIndex": 1000,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ],
+      "basicFilter": {
+        "range": {
+          "sheetId": 49008746,
+          "startRowIndex": 0,
+          "endRowIndex": 1000,
+          "startColumnIndex": 0,
+          "endColumnIndex": 14
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 787885422,
+        "title": "August 24, 2022 ADP",
+        "index": 27,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 2609,
+          "columnCount": 27,
+          "frozenRowCount": 1
+        },
+        "hidden": true
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 787885422,
+              "startRowIndex": 1,
+              "endRowIndex": 2609,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 787885422,
+              "startRowIndex": 1,
+              "endRowIndex": 2609,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 787885422,
+              "startRowIndex": 1,
+              "endRowIndex": 2609,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 787885422,
+              "startRowIndex": 1,
+              "endRowIndex": 2609,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ],
+      "basicFilter": {
+        "range": {
+          "sheetId": 787885422,
+          "startRowIndex": 0,
+          "endRowIndex": 2609,
+          "startColumnIndex": 0,
+          "endColumnIndex": 14
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 1567082114,
+        "title": "August 17, 2022 ADP",
+        "index": 28,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 26
+        },
+        "hidden": true
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 1567082114,
+              "startRowIndex": 1,
+              "endRowIndex": 1000,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1567082114,
+              "startRowIndex": 1,
+              "endRowIndex": 1000,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1567082114,
+              "startRowIndex": 1,
+              "endRowIndex": 1000,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1567082114,
+              "startRowIndex": 1,
+              "endRowIndex": 1000,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ],
+      "basicFilter": {
+        "range": {
+          "sheetId": 1567082114,
+          "startRowIndex": 0,
+          "endRowIndex": 1000,
+          "startColumnIndex": 0,
+          "endColumnIndex": 14
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 207763432,
+        "title": "August 10, 2022 ADP",
+        "index": 29,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 2566,
+          "columnCount": 26
+        },
+        "hidden": true
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 207763432,
+              "startRowIndex": 1,
+              "endRowIndex": 997,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            },
+            {
+              "sheetId": 207763432,
+              "startRowIndex": 1000,
+              "endRowIndex": 1996,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 207763432,
+              "startRowIndex": 1,
+              "endRowIndex": 997,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            },
+            {
+              "sheetId": 207763432,
+              "startRowIndex": 1000,
+              "endRowIndex": 1996,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 207763432,
+              "startRowIndex": 1,
+              "endRowIndex": 997,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            },
+            {
+              "sheetId": 207763432,
+              "startRowIndex": 1000,
+              "endRowIndex": 1996,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 207763432,
+              "startRowIndex": 1,
+              "endRowIndex": 997,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            },
+            {
+              "sheetId": 207763432,
+              "startRowIndex": 1000,
+              "endRowIndex": 1996,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ],
+      "basicFilter": {
+        "range": {
+          "sheetId": 207763432,
+          "startRowIndex": 0,
+          "endRowIndex": 2566,
+          "startColumnIndex": 0,
+          "endColumnIndex": 14
+        },
+        "sortSpecs": [
+          {
+            "dimensionIndex": 1,
+            "sortOrder": "ASCENDING"
+          }
+        ]
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 990551028,
+        "title": "August 3, 2022 ADP",
+        "index": 30,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 2566,
+          "columnCount": 26
+        },
+        "hidden": true
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 990551028,
+              "startRowIndex": 1,
+              "endRowIndex": 997,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            },
+            {
+              "sheetId": 990551028,
+              "startRowIndex": 1000,
+              "endRowIndex": 1996,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 990551028,
+              "startRowIndex": 1,
+              "endRowIndex": 997,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            },
+            {
+              "sheetId": 990551028,
+              "startRowIndex": 1000,
+              "endRowIndex": 1996,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 990551028,
+              "startRowIndex": 1,
+              "endRowIndex": 997,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            },
+            {
+              "sheetId": 990551028,
+              "startRowIndex": 1000,
+              "endRowIndex": 1996,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 990551028,
+              "startRowIndex": 1,
+              "endRowIndex": 997,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            },
+            {
+              "sheetId": 990551028,
+              "startRowIndex": 1000,
+              "endRowIndex": 1996,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ],
+      "basicFilter": {
+        "range": {
+          "sheetId": 990551028,
+          "startRowIndex": 0,
+          "endRowIndex": 1999,
+          "startColumnIndex": 0,
+          "endColumnIndex": 14
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 1739873048,
+        "title": "July 27, 2022 ADP",
+        "index": 31,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 26
+        },
+        "hidden": true
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 1739873048,
+              "startRowIndex": 1,
+              "endRowIndex": 997,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1739873048,
+              "startRowIndex": 1,
+              "endRowIndex": 997,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1739873048,
+              "startRowIndex": 1,
+              "endRowIndex": 997,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1739873048,
+              "startRowIndex": 1,
+              "endRowIndex": 997,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ],
+      "basicFilter": {
+        "range": {
+          "sheetId": 1739873048,
+          "startRowIndex": 0,
+          "endRowIndex": 997,
+          "startColumnIndex": 0,
+          "endColumnIndex": 14
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 369815227,
+        "title": "July 13, 2022 ADP",
+        "index": 32,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 2584,
+          "columnCount": 26
+        },
+        "hidden": true
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 369815227,
+              "startRowIndex": 1,
+              "endRowIndex": 2581,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 369815227,
+              "startRowIndex": 1,
+              "endRowIndex": 2581,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 369815227,
+              "startRowIndex": 1,
+              "endRowIndex": 2581,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 369815227,
+              "startRowIndex": 1,
+              "endRowIndex": 2581,
+              "startColumnIndex": 13,
+              "endColumnIndex": 14
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ],
+      "basicFilter": {
+        "range": {
+          "sheetId": 369815227,
+          "startRowIndex": 0,
+          "endRowIndex": 2581,
+          "startColumnIndex": 0,
+          "endColumnIndex": 14
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 1901527897,
+        "title": "June 30, 2022 ADP",
+        "index": 33,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 489,
+          "columnCount": 26,
+          "frozenRowCount": 1
+        },
+        "hidden": true
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 1901527897,
+              "startRowIndex": 1,
+              "endRowIndex": 489,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1901527897,
+              "startRowIndex": 1,
+              "endRowIndex": 489,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1901527897,
+              "startRowIndex": 1,
+              "endRowIndex": 489,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1901527897,
+              "startRowIndex": 1,
+              "endRowIndex": 489,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ],
+      "basicFilter": {
+        "range": {
+          "sheetId": 1901527897,
+          "startRowIndex": 0,
+          "endRowIndex": 489,
+          "startColumnIndex": 0,
+          "endColumnIndex": 12
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 1374578018,
+        "title": "June 21, 2022 ADP",
+        "index": 34,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 496,
+          "columnCount": 26,
+          "frozenRowCount": 1
+        },
+        "hidden": true
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 1374578018,
+              "startRowIndex": 1,
+              "endRowIndex": 496,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1374578018,
+              "startRowIndex": 1,
+              "endRowIndex": 496,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1374578018,
+              "startRowIndex": 1,
+              "endRowIndex": 496,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1374578018,
+              "startRowIndex": 1,
+              "endRowIndex": 496,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ],
+      "basicFilter": {
+        "range": {
+          "sheetId": 1374578018,
+          "startRowIndex": 0,
+          "endRowIndex": 496,
+          "startColumnIndex": 0,
+          "endColumnIndex": 12
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 356556672,
+        "title": "June 2, 2022 ADP",
+        "index": 35,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 2590,
+          "columnCount": 26,
+          "frozenRowCount": 1
+        },
+        "hidden": true
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 356556672,
+              "startRowIndex": 1,
+              "endRowIndex": 2590,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 356556672,
+              "startRowIndex": 1,
+              "endRowIndex": 2590,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 356556672,
+              "startRowIndex": 1,
+              "endRowIndex": 2590,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 356556672,
+              "startRowIndex": 1,
+              "endRowIndex": 2590,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ],
+      "basicFilter": {
+        "range": {
+          "sheetId": 356556672,
+          "startRowIndex": 0,
+          "endRowIndex": 2590,
+          "startColumnIndex": 0,
+          "endColumnIndex": 12
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 1423992671,
+        "title": "May 23, 2022 ADP",
+        "index": 36,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 2582,
+          "columnCount": 26,
+          "frozenRowCount": 1
+        },
+        "hidden": true
+      },
+      "conditionalFormats": [
+        {
+          "ranges": [
+            {
+              "sheetId": 1423992671,
+              "startRowIndex": 0,
+              "endRowIndex": 2582,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "QB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.95686275,
+                "green": 0.8,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.95686275,
+                  "green": 0.8,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1423992671,
+              "startRowIndex": 0,
+              "endRowIndex": 2582,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "WR"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.7882353,
+                "green": 0.85490197,
+                "blue": 0.972549
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.7882353,
+                  "green": 0.85490197,
+                  "blue": 0.972549
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1423992671,
+              "startRowIndex": 0,
+              "endRowIndex": 2582,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "RB"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 0.8509804,
+                "green": 0.91764706,
+                "blue": 0.827451
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 0.8509804,
+                  "green": 0.91764706,
+                  "blue": 0.827451
+                }
+              }
+            }
+          }
+        },
+        {
+          "ranges": [
+            {
+              "sheetId": 1423992671,
+              "startRowIndex": 0,
+              "endRowIndex": 2582,
+              "startColumnIndex": 11,
+              "endColumnIndex": 12
+            }
+          ],
+          "booleanRule": {
+            "condition": {
+              "type": "TEXT_CONTAINS",
+              "values": [
+                {
+                  "userEnteredValue": "TE"
+                }
+              ]
+            },
+            "format": {
+              "backgroundColor": {
+                "red": 1,
+                "green": 0.9490196,
+                "blue": 0.8
+              },
+              "backgroundColorStyle": {
+                "rgbColor": {
+                  "red": 1,
+                  "green": 0.9490196,
+                  "blue": 0.8
+                }
+              }
+            }
+          }
+        }
+      ],
+      "basicFilter": {
+        "range": {
+          "sheetId": 1423992671,
+          "startRowIndex": 0,
+          "endRowIndex": 485,
+          "startColumnIndex": 0,
+          "endColumnIndex": 12
+        },
+        "sortSpecs": [
+          {
+            "dimensionIndex": 4,
+            "sortOrder": "ASCENDING"
+          },
+          {
+            "dimensionIndex": 1,
+            "sortOrder": "ASCENDING"
+          },
+          {
+            "dimensionIndex": 3,
+            "sortOrder": "ASCENDING"
+          },
+          {
+            "dimensionIndex": 2,
+            "sortOrder": "ASCENDING"
+          },
+          {
+            "dimensionIndex": 5,
+            "sortOrder": "ASCENDING"
+          }
+        ]
+      }
+    }
+  ],
+  "spreadsheetUrl": "https://docs.google.com/spreadsheets/d/1wmjxi3K5rjIYME_lskUvquLbN331YV0vi-kg5VakpdY/edit"
+}

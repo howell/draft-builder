@@ -1,6 +1,7 @@
 'use client';
 import { DraftedPlayer, mergeDraftAndPlayerInfo, Player, ScoringType } from "@/platforms/PlatformApi";
-import MockTable, { MockTableProps, Ranking } from './MockTable';
+import MockTable, { MockTableProps } from './MockTable';
+import { Ranking } from '@/app/savedMockTypes';
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer, Rankings } from '@/app/savedMockTypes';
 import React, { useState, useEffect } from 'react';
 import ApiClient from '@/app/api/ApiClient';
@@ -10,6 +11,7 @@ import { CURRENT_SEASON } from "@/constants";
 import { findBestRegression } from "../../analytics";
 import { loadLeague } from "@/app/localStorage";
 import { LeagueId, PlatformLeague, SeasonId } from "@/platforms/common";
+import RankingsClient from "@/rankings/RankingsClient";
 
 export type MockDraftProps = {
     leagueId: LeagueId;
@@ -224,15 +226,23 @@ export async function loadRankingsFor(league: PlatformLeague,
     scoringType: ScoringType,
     players: Player[]): Promise<Ranking[]>
 {
+
+    const client = new RankingsClient(scoringType);
+    const rankingsReq = client.fetchRanks();
+
     const rankings: Ranking[] = [];
     const hasPlatformPrice = players.some(player => player.platformPrice !== undefined);
     if (hasPlatformPrice) {
         const platformRanking: Ranking = {
             name: 'Platform',
             shortName: 'Rnk',
-            rankings: rankByPlatformPrice(players, scoringType)
+            value: rankByPlatformPrice(players, scoringType)
         };
         rankings.push(platformRanking);
+    }
+    const rankingsResp = await rankingsReq;
+    if (rankingsResp) {
+        rankings.push(...rankingsResp);
     }
     return rankings;
 }

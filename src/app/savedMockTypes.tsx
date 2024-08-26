@@ -1,5 +1,5 @@
 import { LeagueId, SeasonId } from "@/platforms/common";
-import exp from "constants";
+import { Titled } from "@/ui/basicComponents";
 
 export const CURRENT_MOCKS_SCHEMA_VERSION = 4;
 
@@ -131,3 +131,4 @@ export type EstimationSettingsStateV2 = {
     years: number[];
     weight: number;
 };
+export type Ranking = Titled<Rankings>;

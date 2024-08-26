@@ -2,7 +2,7 @@
 import React, { useState, useEffect, } from 'react';
 import MockRosterEntry from './MockRosterEntry';
 import PlayerTable, { ColumnName } from '../drafts/[draftYear]/PlayerTable';
-import { DraftAnalysis, ExponentialCoefficients, MockPlayer, CostEstimatedPlayer, RosterSlot, RosterSelections, SearchSettingsState, EstimationSettingsState, StoredDraftDataCurrent, Rankings, RankedPlayer  } from '@/app/savedMockTypes';
+import { DraftAnalysis, ExponentialCoefficients, MockPlayer, CostEstimatedPlayer, RosterSlot, RosterSelections, SearchSettingsState, EstimationSettingsState, StoredDraftDataCurrent, Rankings, RankedPlayer, Ranking  } from '@/app/savedMockTypes';
 import { loadDraftByName, saveSelectedRoster, deleteRoster, IN_PROGRESS_SELECTIONS_KEY } from '@/app/localStorage';
 import SearchSettings, { SearchLabel } from './SearchSettings';
 import EstimationSettings from './EstimationSettings';
@@ -23,13 +23,6 @@ export interface MockTableProps {
     draftHistory: Map<SeasonId, DraftAnalysis>;
     playerPositions: string[];
     availableRankings: Ranking[];
-}
-
-export type Ranking = {
-    name: React.ReactNode;
-    shortName: React.ReactNode;
-    tooltip?: string;
-    rankings: Rankings;
 }
 
 const availablePlayerColumns: [(keyof CostEstimatedPlayer), ColumnName][] = [
@@ -78,7 +71,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     const [rosterSpots, _setRosterSpots] = useState(rosterSlots.length);
     const [playerTableColumns, _setPlayerTableColumns] = useState(columnsFor(players));
     const [currentRanking, setCurrentRanking] = useState<Ranking>(availableRankings[0]);
-    const [rankedPlayers, setRankedPlayers] = useState<RankedPlayer[]>(() => rankPlayers(playerDb, currentRanking.rankings));
+    const [rankedPlayers, setRankedPlayers] = useState<RankedPlayer[]>(() => rankPlayers(playerDb, currentRanking.value));
 
     useEffect(() => { 
         const loadedDraft = loadStoredDraftData(leagueId, draftName);
@@ -100,9 +93,10 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     }, [leagueId, rosterSelections, costAdjustments, estimationSettings, searchSettings, finishedLoading]);
 
     useEffect(() => {
-        const nextPlayers = rankPlayers(playerDb, currentRanking.rankings);
+        console.log("Ranking changed", currentRanking)
+        const nextPlayers = rankPlayers(playerDb, currentRanking.value);
         setRankedPlayers(nextPlayers);
-    }, [currentRanking]);
+    }, [currentRanking, playerDb]);
 
 
     useEffect(() => {
@@ -130,13 +124,18 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
 
     useEffect(() => {
         const pricedPlayers = rankedPlayers.map(p => ({ ...p, estimatedCost: costPredictor.predict(p) }));
+        const displayRankedPlayers = pricedPlayers.map(p => ({
+             ...p,
+             overallRank: p.overallRank === UNRANKED ? UNRANKED : p.overallRank + 1,
+             positionRank: p.positionRank === UNRANKED ? UNRANKED : p.positionRank + 1
+        }));
         const nextPositionallyAvailablePlayers = new Map<string, CostEstimatedPlayer[]>();
         const includePlayer = (s: SearchSettingsState) => (p: CostEstimatedPlayer) => playerAvailable(p, s, selectedPlayers, auctionBudget, budgetSpent);
         for (const position of playerPositions) {
             const settingsWithPosition = { ...searchSettings, positions: [position] };
-            nextPositionallyAvailablePlayers.set(position, pricedPlayers.filter(includePlayer(settingsWithPosition)));
+            nextPositionallyAvailablePlayers.set(position, displayRankedPlayers.filter(includePlayer(settingsWithPosition)));
         }
-        const nextPlayers = pricedPlayers.filter(includePlayer(searchSettings))
+        const nextPlayers = displayRankedPlayers.filter(includePlayer(searchSettings))
             .sort((a, b) => b.estimatedCost - a.estimatedCost)
             .slice(0, searchSettings.playerCount);
         setPositionallyAvailablePlayers(nextPositionallyAvailablePlayers);
@@ -477,12 +476,20 @@ const RankingsMenu: React.FC<RankingsMenuProps> = ({ rankings, selectedRanking, 
         border: '',
     };
     return <DropdownMenu
-        options={rankings.map(r => ({ name: r.name, value: r}))}
+        options={rankings.map(r => ({ name: <RankingOption ranking={r} />, value: r}))}
         selectedOption={selectedRanking}
         onSelect={(name, value) => onRankingSelected(value)}
         styles={styles}
         />;
 };
+
+const RankingOption: React.FC<{ ranking: Ranking }> = ({ ranking }) => (
+    <div className="flex flex-row items-center relative w-full">
+        <span className='text-nowrap text-ellipsis overflow-x-clip mr-1'>
+            {ranking.name}
+        </span>
+    </div>
+);
 
 export const UNRANKED = 99999999999;
 
