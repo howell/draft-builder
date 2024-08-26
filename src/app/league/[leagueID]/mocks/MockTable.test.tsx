@@ -1,5 +1,5 @@
-import { CostEstimatedPlayer, MockPlayer, SearchSettingsState } from '@/app/savedMockTypes';
-import { playerAvailable, calculateAmountSpent, computeRosterSlots   } from './MockTable';
+import { CostEstimatedPlayer, MockPlayer, RankedPlayer, SearchSettingsState } from '@/app/savedMockTypes';
+import { playerAvailable, calculateAmountSpent, computeRosterSlots, CostPredictor   } from './MockTable';
 
 describe('playerAvailable', () => {
     const mockPlayer: CostEstimatedPlayer = {
@@ -145,11 +145,11 @@ describe('computeRosterSlots', () => {
 });
 
 describe('calculateAmountSpent', () => {
-    const mockCostEstimator = jest.fn((player: MockPlayer) => player.suggestedCost!);
+    const mockCostEstimator: CostPredictor  = { predict: jest.fn((player: RankedPlayer) => player.suggestedCost!) };
 
     it('should calculate the correct amount spent when there are no selected players and no adjustments', () => {
         const rosterSpots = 10;
-        const selectedPlayers: MockPlayer[] = [];
+        const selectedPlayers: RankedPlayer[] = [];
         const adjustments = new Map<string, number>();
 
         const result = calculateAmountSpent(mockCostEstimator, rosterSpots, selectedPlayers, adjustments);
@@ -163,19 +163,19 @@ describe('calculateAmountSpent', () => {
             { id: '1', suggestedCost: 20 },
             { id: '2', suggestedCost: 30 },
             { id: '3', suggestedCost: 40 },
-        ] as MockPlayer[];
+        ] as RankedPlayer[];
         const adjustments = new Map<string, number>();
 
         const result = calculateAmountSpent(mockCostEstimator, rosterSpots, selectedPlayers, adjustments);
 
-        const expectedCost = selectedPlayers.reduce((total, player) => total + mockCostEstimator(player), 0);
+        const expectedCost = selectedPlayers.reduce((total, player) => total + mockCostEstimator.predict(player), 0);
         const unusedCost = rosterSpots - selectedPlayers.length;
         expect(result).toBe(expectedCost + unusedCost);
     });
 
     it('should calculate the correct amount spent when there are adjustments', () => {
         const rosterSpots = 10;
-        const selectedPlayers: MockPlayer[] = [];
+        const selectedPlayers: RankedPlayer[] = [];
         const adjustments = new Map<string, number>([
             ['QB', 5],
             ['RB', 10],
@@ -194,7 +194,7 @@ describe('calculateAmountSpent', () => {
             { id: '1', suggestedCost: 20 },
             { id: '2', suggestedCost: 30 },
             { id: '3', suggestedCost: 40 },
-        ] as MockPlayer[];
+        ] as RankedPlayer[];
         const adjustments = new Map<string, number>([
             ['QB', 5],
             ['RB', 10],

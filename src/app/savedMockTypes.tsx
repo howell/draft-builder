@@ -82,8 +82,6 @@ export type MockPlayerV4 = {
     defaultPosition: string;
     positions: string[];
     suggestedCost?: number,
-    overallRank: number;
-    positionRank: number;
 }
 
 export type MockPlayerV2 = {
@@ -96,7 +94,14 @@ export type MockPlayerV2 = {
     positionRank: number;
 }
 
-export type CostEstimatedPlayer = MockPlayer & { estimatedCost: number };
+export type Rank = {
+    overallRank: number;
+    positionRank: number;
+}
+
+export type RankedPlayer = MockPlayer & Rank;
+
+export type CostEstimatedPlayer = RankedPlayer & { estimatedCost: number };
 
 export type RosterSlot = {
     position: string;

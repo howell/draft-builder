@@ -1,8 +1,8 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, } from 'react';
 import MockRosterEntry from './MockRosterEntry';
 import PlayerTable, { ColumnName } from '../drafts/[draftYear]/PlayerTable';
-import { DraftAnalysis, ExponentialCoefficients, MockPlayer, CostEstimatedPlayer, RosterSlot, RosterSelections, SearchSettingsState, EstimationSettingsState, StoredDraftDataCurrent  } from '@/app/savedMockTypes';
+import { DraftAnalysis, ExponentialCoefficients, MockPlayer, CostEstimatedPlayer, RosterSlot, RosterSelections, SearchSettingsState, EstimationSettingsState, StoredDraftDataCurrent, Rankings, RankedPlayer  } from '@/app/savedMockTypes';
 import { loadDraftByName, saveSelectedRoster, deleteRoster, IN_PROGRESS_SELECTIONS_KEY } from '@/app/localStorage';
 import SearchSettings, { SearchLabel } from './SearchSettings';
 import EstimationSettings from './EstimationSettings';
@@ -12,6 +12,7 @@ import CollapsibleComponent from '@/ui/Collapsible';
 import Tooltip from '@/ui/Tooltip';
 import { RosterSettings } from '@/platforms/PlatformApi';
 import { LeagueId, SeasonId } from '@/platforms/common';
+import DropdownMenu, { DropdownStyleOptions } from '@/ui/DropdownMenu';
 
 export interface MockTableProps {
     leagueId: LeagueId;
@@ -21,6 +22,14 @@ export interface MockTableProps {
     players: MockPlayer[];
     draftHistory: Map<SeasonId, DraftAnalysis>;
     playerPositions: string[];
+    availableRankings: Ranking[];
+}
+
+export type Ranking = {
+    name: React.ReactNode;
+    shortName: React.ReactNode;
+    tooltip?: string;
+    rankings: Rankings;
 }
 
 const availablePlayerColumns: [(keyof CostEstimatedPlayer), ColumnName][] = [
@@ -40,15 +49,15 @@ function columnsFor(players: MockPlayer[]): [(keyof CostEstimatedPlayer), Column
     return availablePlayerColumns;
 }
 
-type CostPredictor = {
-    predict: (player: MockPlayer) => number;
+export type CostPredictor = {
+    predict: (player: RankedPlayer) => number;
 }
 
 const defaultCostPredictor: CostPredictor = {
-    predict: (player: MockPlayer) => 1
+    predict: (player: RankedPlayer) => 1
 };
 
-const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, auctionBudget, players, draftHistory, playerPositions }) => {
+const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, auctionBudget, players, draftHistory, playerPositions, availableRankings }) => {
     const defaultSearchSettings: SearchSettingsState = { positions: playerPositions, playerCount: 200, minPrice: 1, maxPrice: auctionBudget, showOnlyAvailable: true };
     const defaultEstimationSettings: EstimationSettingsState = { years: Array.from(draftHistory.keys()), weight: 50 };
     const [playerDb, _setPlayerDb] = useState<MockPlayer[]>(players);
@@ -57,7 +66,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     const [availablePlayers, setAvailablePlayers] = useState<CostEstimatedPlayer[]>([]);
     const [positionallyAvailablePlayers, setPositionallyAvailablePlayers] = useState<Map<string, CostEstimatedPlayer[]>>(new Map());
     const [budgetSpent, setBudgetSpent] = useState(0);
-    const [selectedPlayers, setSelectedPlayers] = useState<MockPlayer[]>([]);
+    const [selectedPlayers, setSelectedPlayers] = useState<RankedPlayer[]>([]);
     const [rosterSelections, setRosterSelections] = useState<RosterSelections>({});
     const [costAdjustedRosterSelections, setCostAdjustedRosterSelections] = useState<RosterSelections>({});
     const [rosterName, setRosterName] = useState<string>(draftName || '');
@@ -68,6 +77,8 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     const [rosterSlots, _setRosterSlots] = useState<RosterSlot[]>(computeRosterSlots(positions));
     const [rosterSpots, _setRosterSpots] = useState(rosterSlots.length);
     const [playerTableColumns, _setPlayerTableColumns] = useState(columnsFor(players));
+    const [currentRanking, setCurrentRanking] = useState<Ranking>(availableRankings[0]);
+    const [rankedPlayers, setRankedPlayers] = useState<RankedPlayer[]>(() => rankPlayers(playerDb, currentRanking.rankings));
 
     useEffect(() => { 
         const loadedDraft = loadStoredDraftData(leagueId, draftName);
@@ -88,13 +99,18 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
         }
     }, [leagueId, rosterSelections, costAdjustments, estimationSettings, searchSettings, finishedLoading]);
 
+    useEffect(() => {
+        const nextPlayers = rankPlayers(playerDb, currentRanking.rankings);
+        setRankedPlayers(nextPlayers);
+    }, [currentRanking]);
+
 
     useEffect(() => {
-        setBudgetSpent(calculateAmountSpent(costPredictor.predict, rosterSpots, selectedPlayers, costAdjustments))
+        setBudgetSpent(calculateAmountSpent(costPredictor, rosterSpots, selectedPlayers, costAdjustments))
     }, [costPredictor, selectedPlayers, costAdjustments, rosterSpots]);
 
     useEffect(() => {
-        const nextCostEstimator = { predict: (player: MockPlayer) => predictCostWithSettings(player, estimationSettings, draftHistory) };
+        const nextCostEstimator = { predict: (player: RankedPlayer) => predictCostWithSettings(player, estimationSettings, draftHistory) };
         setCostPredictor(nextCostEstimator);
     }, [estimationSettings, draftHistory]);
 
@@ -113,7 +129,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     }, [finishedLoading, costPredictor, rosterSelections]);
 
     useEffect(() => {
-        const pricedPlayers = playerDb.map(p => ({ ...p, estimatedCost: costPredictor.predict(p) }));
+        const pricedPlayers = rankedPlayers.map(p => ({ ...p, estimatedCost: costPredictor.predict(p) }));
         const nextPositionallyAvailablePlayers = new Map<string, CostEstimatedPlayer[]>();
         const includePlayer = (s: SearchSettingsState) => (p: CostEstimatedPlayer) => playerAvailable(p, s, selectedPlayers, auctionBudget, budgetSpent);
         for (const position of playerPositions) {
@@ -121,10 +137,11 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
             nextPositionallyAvailablePlayers.set(position, pricedPlayers.filter(includePlayer(settingsWithPosition)));
         }
         const nextPlayers = pricedPlayers.filter(includePlayer(searchSettings))
+            .sort((a, b) => b.estimatedCost - a.estimatedCost)
             .slice(0, searchSettings.playerCount);
         setPositionallyAvailablePlayers(nextPositionallyAvailablePlayers);
         setAvailablePlayers(nextPlayers);
-    }, [costPredictor, searchSettings, playerDb, selectedPlayers, budgetSpent, auctionBudget, playerPositions]);
+    }, [costPredictor, searchSettings, rankedPlayers, selectedPlayers, budgetSpent, auctionBudget, playerPositions]);
 
     useEffect(() => {
         const nextSelected = Object.values(rosterSelections).filter(p => p !== undefined) as CostEstimatedPlayer[];
@@ -287,6 +304,11 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                 </PrimaryHeading>
                 <div className='grid md:grid-cols-2 w-full'>
                     <div className='items-start md:w-1/2'>
+                        Use Rankings From:
+                        <RankingsMenu
+                            rankings={availableRankings}
+                            selectedRanking={currentRanking}
+                            onRankingSelected={setCurrentRanking} />
                         <CollapsibleComponent label={<h2 className='text-lg'>Search Settings</h2>}>
                             <SearchSettings
                                 onSettingsChanged={onSettingsChanged}
@@ -351,7 +373,7 @@ export function playerAvailable(p: CostEstimatedPlayer, searchSettings: SearchSe
     return ans;
 }
 
-function predictCostWithSettings(player: MockPlayer, settings: EstimationSettingsState, draftHistory: Map<SeasonId, DraftAnalysis>) {
+function predictCostWithSettings(player: RankedPlayer, settings: EstimationSettingsState, draftHistory: Map<SeasonId, DraftAnalysis>) {
     const estimates = [];
     for (const year of settings.years) {
         const yearCoeffs = draftHistory.get(year)!;
@@ -363,14 +385,14 @@ function predictCostWithSettings(player: MockPlayer, settings: EstimationSetting
     return Math.max(1, Math.ceil(prediction));
 }
 
-function weightedPrediction(player: MockPlayer, analysis: DraftAnalysis, weight: number): number {
+function weightedPrediction(player: RankedPlayer, analysis: DraftAnalysis, weight: number): number {
     const [overallPrediction, positionPrediction] = costPredictions(player, analysis);
     const positionWeight = weight / 100;
     const overallWeight = 1 - positionWeight;
     return overallWeight * overallPrediction + positionWeight * positionPrediction;
 }
 
-function costPredictions(player: MockPlayer, analysis: DraftAnalysis): [number, number] {
+function costPredictions(player: RankedPlayer, analysis: DraftAnalysis): [number, number] {
     const positionName = player.defaultPosition;
     const overallPrediction = predictExponential(player.overallRank, analysis.overall);
     const coeffs = analysis.positions.get(positionName) as ExponentialCoefficients;
@@ -395,9 +417,9 @@ function loadStoredDraftData(leagueID: LeagueId, draftName: string | undefined):
     return loadDraftByName(leagueID, name);
 }
 
-export function calculateAmountSpent(costEstimator: (player: MockPlayer) => number, rosterSpots: number, selectedPlayers: MockPlayer[], adjustments: Map<string, number>): number {
+export function calculateAmountSpent(costEstimator: CostPredictor, rosterSpots: number, selectedPlayers: RankedPlayer[], adjustments: Map<string, number>): number {
     const unSelectedCost = rosterSpots - selectedPlayers.length;
-    const selectionsCost = sum(selectedPlayers.map(costEstimator));
+    const selectionsCost = sum(selectedPlayers.map(costEstimator.predict));
     const costAdjustments = sum(Array.from(adjustments.values()));
     return unSelectedCost + selectionsCost + costAdjustments;
 }
@@ -439,3 +461,37 @@ const ResetButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
 const PrimaryHeading: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <h1 className="text-2xl font-bold">{children}</h1>
 );
+
+export type RankingsMenuProps = {
+    rankings: Ranking[];
+    selectedRanking: Ranking;
+    onRankingSelected: (ranking: Ranking) => void;
+};
+
+const RankingsMenu: React.FC<RankingsMenuProps> = ({ rankings, selectedRanking, onRankingSelected }) => {
+    const styles: DropdownStyleOptions = {
+        bgColor: 'bg-gray-500',
+        textColor: 'text-white',
+        hoverBgColor: 'bg-gray-100',
+        hoverTextColor: 'text-black',
+        border: '',
+    };
+    return <DropdownMenu
+        options={rankings.map(r => ({ name: r.name, value: r}))}
+        selectedOption={selectedRanking}
+        onSelect={(name, value) => onRankingSelected(value)}
+        styles={styles}
+        />;
+};
+
+export const UNRANKED = 99999999999;
+
+export function rankPlayers(players: MockPlayer[], rankings: Rankings): RankedPlayer[] {
+    const rankedPlayers = players.map(p => {
+        const overall = rankings.overall.get(p.id);
+        const position = p.defaultPosition;
+        const positionRank = rankings.positional.get(position)?.get(p.id);
+        return { ...p, overallRank: overall ?? UNRANKED, positionRank: positionRank ?? UNRANKED };
+    });
+    return rankedPlayers;
+}
