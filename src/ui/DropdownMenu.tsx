@@ -71,7 +71,7 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ options, selectedOption, on
 
 
     return (
-        <div className={`relative inline-block w-full h-9 border p-1 ${styles.border} `}
+        <div className={`relative inline-block w-full h-9 p-1 ${styles.border} `}
             ref={parentRef}>
             <div className={`w-full h-full p-2 cursor-pointer flex justify-between items-center
              ${styles.bgColor} ${styles.textColor} `}
