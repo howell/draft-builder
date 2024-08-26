@@ -22,6 +22,7 @@
 ## Improvements
 * Draft page: Show overall and position rank columns
 * Handle Keepers
+* Should have option to log out of a league
 
 ## Fixes
 - should league select dropdown allow horizontal scrolling?
