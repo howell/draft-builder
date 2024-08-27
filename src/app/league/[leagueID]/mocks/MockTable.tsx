@@ -25,17 +25,19 @@ export interface MockTableProps {
     availableRankings: Ranking[];
 }
 
-const availablePlayerColumns: [(keyof CostEstimatedPlayer), ColumnName][] = [
+export type DisplayPlayer = & CostEstimatedPlayer & { displayOverallRank: number, displayPositionRank: number };
+
+const availablePlayerColumns: [(keyof DisplayPlayer), ColumnName][] = [
     ['name', 'Player'],
     ['defaultPosition', {name: 'Position', shortName: 'Pos'}],
-    ['overallRank', {name: 'Overall Rank', shortName: 'OvrR'}],
-    ['positionRank', {name: 'Position Rank', shortName: 'PosR'}],
+    ['displayOverallRank', {name: 'Overall Rank', shortName: 'OvrR'}],
+    ['displayPositionRank', {name: 'Position Rank', shortName: 'PosR'}],
     ['estimatedCost', {name: 'Estimated Cost', shortName: '$Est', tooltip: "The price the player will go for based on your league history"}],
 ];
 
 const platformCostColumn: [(keyof CostEstimatedPlayer), ColumnName] = ['suggestedCost', {name: 'Platform Cost', shortName: '$Sug', tooltip: 'The price the platform puts next to the player in the draft room'}];
 
-function columnsFor(players: MockPlayer[]): [(keyof CostEstimatedPlayer), ColumnName][] {
+function columnsFor(players: MockPlayer[]): [(keyof DisplayPlayer), ColumnName][] {
     if (players.some(p => p.suggestedCost !== undefined)) {
         return [...availablePlayerColumns, platformCostColumn];
     }
@@ -56,7 +58,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     const [playerDb, _setPlayerDb] = useState<MockPlayer[]>(players);
     const [estimationSettings, setEstimationSettings] = useState<EstimationSettingsState>(defaultEstimationSettings);
     const [searchSettings, setSearchSettings] = useState<SearchSettingsState>(defaultSearchSettings);
-    const [availablePlayers, setAvailablePlayers] = useState<CostEstimatedPlayer[]>([]);
+    const [availablePlayers, setAvailablePlayers] = useState<DisplayPlayer[]>([]);
     const [positionallyAvailablePlayers, setPositionallyAvailablePlayers] = useState<Map<string, CostEstimatedPlayer[]>>(new Map());
     const [budgetSpent, setBudgetSpent] = useState(0);
     const [selectedPlayers, setSelectedPlayers] = useState<RankedPlayer[]>([]);
@@ -121,10 +123,10 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
 
     useEffect(() => {
         const pricedPlayers = rankedPlayers.map(p => ({ ...p, estimatedCost: costPredictor.predict(p) }));
-        const displayRankedPlayers = pricedPlayers.map(p => ({
+        const displayRankedPlayers: DisplayPlayer[] = pricedPlayers.map(p => ({
              ...p,
-             overallRank: p.overallRank === UNRANKED ? UNRANKED : p.overallRank + 1,
-             positionRank: p.positionRank === UNRANKED ? UNRANKED : p.positionRank + 1
+             displayOverallRank: p.overallRank === UNRANKED ? UNRANKED : p.overallRank + 1,
+             displayPositionRank: p.positionRank === UNRANKED ? UNRANKED : p.positionRank + 1
         }));
         const nextPositionallyAvailablePlayers = new Map<string, CostEstimatedPlayer[]>();
         const includePlayer = (s: SearchSettingsState) => (p: CostEstimatedPlayer) => playerAvailable(p, s, selectedPlayers, auctionBudget, budgetSpent);
