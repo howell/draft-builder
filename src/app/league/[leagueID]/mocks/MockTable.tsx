@@ -236,7 +236,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
 
 
     return (
-        <div className="flex flex-col md:flex-row justify-between gap-8 p-2 mx-auto">
+        <div className="flex flex-col md:flex-row justify-evenly gap-8 p-2 mx-auto">
             <div className="md:ml-8">
                 <PrimaryHeading>Your Roster</PrimaryHeading>
                 <table>
