@@ -85,7 +85,6 @@ describe('latestSheetName', () => {
     beforeAll(() => {
         const sheetStr = readFileSync('src/rankings/sources/examples/sleeper_sheets.json', 'utf-8');
         sheet = JSON.parse(sheetStr);
-        console.log(sheet.properties)
     });
 
     it('should return the latest sheet name', () => {

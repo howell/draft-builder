@@ -15,7 +15,6 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ tasks = {} }) => {
 
 	setupTasks(tasks, completedTasks, pendingTasks, setPendingTasks, setCompletedTasks);
 	useEffect(() => {
-		console.log('Loading Screen', currentMessage, Array.from(pendingTasks.entries()));
 		let nextMessage: string | undefined;
 		for (const [message, task] of pendingTasks.entries()) {
 			if (typeof task === 'function') {

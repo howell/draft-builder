@@ -12,9 +12,7 @@ export default function Demo() {
 
   useEffect(() => {
     const availableLeagues = loadLeagues();
-    console.log(availableLeagues);
     setAvailableLeagues(Object.values(availableLeagues.leagues));
-    console.log("Demo", demoTableProps.players);
   }, []);
 
   return (

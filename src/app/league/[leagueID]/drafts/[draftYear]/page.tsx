@@ -169,7 +169,6 @@ async function fetchData(leagueID: LeagueId,
             'Fetching Players': playerResponse,
         };
         setLoadingTasks(tasks);
-        console.log('tasks:', tasks);
 
         const draftData = await draftResponse;
         if (typeof draftData === 'string') {

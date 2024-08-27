@@ -108,26 +108,12 @@ async function fetchData(leagueID: LeagueId,
         setLoadingTasks(tasks);
 
         const rankings = await rankingsTask;
-
         const scoringType = latestInfo.scoringType;
         const lineupSettings = latestInfo.rosterSettings;
         delete lineupSettings['IR'];
         const playerDb = buildPlayerDb(league.platform, playerData.data!, rankings.map(r => r.value), lineupSettings, scoringType);
         const positions = Array.from(new Set(playerDb.map(player => player.defaultPosition)));
-        const aPlayer = playerData.data![playerData.data!.length - 100];
-        console.log(aPlayer);
-        console.log(aPlayer.eligiblePositions.some(pos =>
-            !['BN', 'Bench'].includes(pos) &&
-            lineupSettings[pos] > 0));
-        console.log("Positions", positions);
-        // overallRank: 1 + (rankings.overall.get(player.platformId) as number),
-        // positionRank: 1 + (rankings.positional.get(player.position)?.get(player.platformId) as number)
-
-        console.log(playerDb.find(player => player.positions.includes('FB')));
-
-
         const auctionBudget = latestInfo.draft.auctionBudget;
-        console.log("Draft Analysis", draftAnalyses);
         setTableData({
             leagueId: leagueID,
             auctionBudget,

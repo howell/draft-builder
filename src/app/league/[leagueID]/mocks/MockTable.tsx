@@ -76,7 +76,6 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     useEffect(() => { 
         const loadedDraft = loadStoredDraftData(leagueId, draftName);
         if (loadedDraft && loadedDraft.rosterSelections && loadedDraft.costAdjustments && loadedDraft.estimationSettings && loadedDraft.searchSettings) {
-            console.log("Loaded adjustments", loadedDraft.costAdjustments, new Map(Object.entries(loadedDraft.costAdjustments)))
             setRosterSelections(loadedDraft.rosterSelections);
             setCostAdjustments(new Map(Object.entries(loadedDraft.costAdjustments)));
             setEstimationSettings(loadedDraft.estimationSettings);
@@ -87,13 +86,11 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
 
     useEffect(() => {
         if (finishedLoading) {
-            console.log("Saving adjustments", Object.fromEntries(costAdjustments.entries()))
             saveSelectedRoster(leagueId, IN_PROGRESS_SELECTIONS_KEY, rosterSelections, Object.fromEntries(costAdjustments.entries()), estimationSettings, searchSettings);
         }
     }, [leagueId, rosterSelections, costAdjustments, estimationSettings, searchSettings, finishedLoading]);
 
     useEffect(() => {
-        console.log("Ranking changed", currentRanking)
         const nextPlayers = rankPlayers(playerDb, currentRanking.value);
         setRankedPlayers(nextPlayers);
     }, [currentRanking, playerDb]);
@@ -163,7 +160,6 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     };
 
     const onPlayerClick = (player:CostEstimatedPlayer) => {
-        console.log('Player clicked', player);
         if (lastFocusedRosterSlot && player.positions.includes(lastFocusedRosterSlot.position)) {
             onPlayerSelected(lastFocusedRosterSlot, player);
             return;

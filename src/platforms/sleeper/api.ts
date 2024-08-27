@@ -55,7 +55,6 @@ export async function fetchDraftInfo(draftId: string): Promise<number | DraftInf
 }
 
 export async function fetchDraftPicks(draftId: string): Promise<number | [DraftPick]> {
-    console.log("fetchDraftPicks draftId", draftId);
     const route = buildRoute(`draft/${draftId}/picks`, '');
     try {
         const draftResponse = await axios.get(route);
@@ -69,7 +68,6 @@ export async function fetchDraftPicks(draftId: string): Promise<number | [DraftP
 }
 
 export async function fetchPlayers(): Promise<number | Players> {
-    console.log("sleeper fetchPlayers");
     const route = buildRoute(`players/nfl`, '');
     try {
         const playersResponse = await axios.get(route);

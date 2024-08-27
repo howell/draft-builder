@@ -20,8 +20,6 @@ const SleeperLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
         return;
       }
 
-      console.log("League input", leagueID);
-      console.log("Submitting league", leagueID);
       const league: SleeperLeague = { platform: 'sleeper', id: leagueID };
       await submitLeague(league);
     };

@@ -54,7 +54,6 @@ export async function getLatestAdpRanks(): Promise<Map<SleeperScoringAdp, Rankin
     const latest = latestSheetName(main);
     const csv = await downloadSheet(latest);
     const rows = parseSleeperCsv(csv).data;
-    console.log("Got sleeper rows", rows);
     return buildRanks(rows);
 }
 
@@ -85,7 +84,6 @@ export function buildRanks(adp: SleeperRow[]): Map<SleeperScoringAdp, Rankings> 
             positional: positionalRanks
         });
     }
-    console.log("Built ranks", ranks);
     return ranks;
 }
 

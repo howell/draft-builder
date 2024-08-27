@@ -72,22 +72,16 @@ export class SleeperApi extends PlatformApi {
     }
 
     public async fetchPlayers(season?: SeasonId): Promise<Player[] | number> {
-        console.log("client api wants to fetch sleeper players");
         const cached = await redis.get(PLAYERS_CACHE_KEY);
-        console.log("cached", typeof cached);
         const cached_data = cached && JSON.parse(cached);
-        console.log("cached_data", typeof cached_data);
         if (cached_data) {
             return cached_data
         }
         const sleeperPlayers = await fetchPlayers();
-        console.log("fetched players type", typeof sleeperPlayers);
         if (typeof sleeperPlayers === 'number') {
             return sleeperPlayers;
         }
-        console.log('first fetched player', sleeperPlayers[Object.keys(sleeperPlayers)[0]]);
         const players = Object.entries(sleeperPlayers).map(([id, player]) => importSleeperPlayer(id, player));
-        console.log('first player', players[0]);
         redis.set(PLAYERS_CACHE_KEY, JSON.stringify(players));
         return players;
     }

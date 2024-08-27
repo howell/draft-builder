@@ -31,9 +31,7 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
 
     useEffect(() => {
         const updateSavedDraftNames = () => {
-            console.log('updating saved drafts');
             const locallyStored = loadSavedMocks(leagueID);
-            console.log('locallyStored', locallyStored);
             const savedDrafts = locallyStored // locallyStored.mocks;
             delete savedDrafts[IN_PROGRESS_SELECTIONS_KEY];
             const years = new Set(Object.values(savedDrafts).map((draft) => draft.year));
@@ -45,7 +43,6 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
                 prevDrafts.push([year, drafts]);
             }
             prevDrafts.sort((a, b) => a[0].localeCompare(b[0]));
-            console.log('prevDrafts', prevDrafts);
             if (savedDraftNames.length !== prevDrafts.length) {
                 setSavedDraftNames(prevDrafts);
             }

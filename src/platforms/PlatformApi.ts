@@ -65,7 +65,6 @@ export abstract class PlatformApi {
 
     public async findLeague(): Promise<string | 'ok'> {
         const league = await this.fetchLeague();
-        console.log("findLeague result:", league);
         return (typeof league === 'number') ? `${league}` : 'ok';
     }
 }
@@ -78,9 +77,6 @@ export function mergeDraftAndPlayerInfo(draftData: DraftPick[], playerData: Play
             throw new Error('Player not found for pick');
         }
         const team = teams.find((team) => team.id === pick.team);
-        if (teams.length > 0 && !team) {
-            console.log('Team not found for pick:', pick, teams);
-        }
         return {
             ...pick,
             ...player,

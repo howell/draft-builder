@@ -21,19 +21,16 @@ const emptyLeagues: StoredLeaguesDataCurrent = { schemaVersion: CURRENT_LEAGUES_
 export function loadSavedMocks(leagueID: LeagueId): StoredMocksDataCurrent {
     if (!isClient) return emptyData(leagueID);
     const stored = localStorage.getItem(leagueID.toString());
-    console.log('loading', leagueID, stored);
     if (!stored) return emptyData(leagueID);
 
     let leagueData: StoredData | undefined = JSON.parse(stored);
     if (leagueData && leagueData.schemaVersion !== CURRENT_MOCKS_SCHEMA_VERSION) {
-        console.log('load: migrating');
         leagueData = migrateMocks(leagueData);
         if (leagueData) {
             localStorage.setItem(leagueID.toString(), JSON.stringify(leagueData));
         }
     }
     if (!leagueData) {
-        console.log('load: migration failed');
         localStorage.removeItem(leagueID.toString());
         return emptyData(leagueID);
     }
@@ -41,22 +38,18 @@ export function loadSavedMocks(leagueID: LeagueId): StoredMocksDataCurrent {
     if (data.mocks) {
         return data.mocks;
     }
-    console.log('load: no data');
     return emptyData(leagueID);
 }
 
 export function saveMock(leagueID: LeagueId, data: StoredMocksDataCurrent): void {
     if (!isClient) return;
-    console.log('saving mock');
     const stored = localStorage.getItem(leagueID.toString());
     const storedData = stored ? JSON.parse(stored) : undefined;
     let leagueData: StoredData | undefined = storedData;
     if (leagueData && leagueData.schemaVersion !== CURRENT_MOCKS_SCHEMA_VERSION) {
-        console.log('migrating');
         leagueData = migrateMocks(leagueData);
     }
     if (!leagueData) {
-        console.log('migration failed');
         const toStore: StoredDataCurrent = {
             schemaVersion: CURRENT_MOCKS_SCHEMA_VERSION,
             mocks: {
@@ -115,7 +108,6 @@ export function saveSelectedRoster(leagueID: LeagueId,
     const withRoster = {
         [rosterName]: mock
     };
-    console.log('saving', leagueID, withRoster);
     saveMock(leagueID, withRoster);
 }
 
