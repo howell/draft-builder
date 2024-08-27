@@ -28,5 +28,4 @@
 
 ## Fixes
 - is there an off by one bug in determining remaining budget?
-- should player rankings start at 0 or 1? And is this being treated consistently atm?
 - DropdownMenu options are slightly misaligned
