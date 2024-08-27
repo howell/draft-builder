@@ -1,5 +1,5 @@
 import { SeasonId, SleeperLeague } from '../common';
-import { PlatformApi, LeagueInfo, DraftDetail, LeagueHistory, LeagueTeam, Player, convertBy, DraftPick } from '../PlatformApi';
+import { PlatformApi, LeagueInfo, DraftDetail, LeagueHistory, LeagueTeam, Player, convertBy, DraftPick, RosterSettings } from '../PlatformApi';
 import { fetchDraftInfo, fetchDraftPicks, fetchLeagueHistory, fetchLeagueInfo, fetchLeagueTeams, fetchPlayers } from './api';
 import type * as SleeperT from './types';
 import { CURRENT_SEASON } from '@/constants';
@@ -114,8 +114,16 @@ export function importSleeperLeagueInfo(leagueInfo: SleeperT.LeagueInfo, draftIn
             type: draftInfo.type === 'snake' ? 'snake' : 'auction',
             auctionBudget: draftInfo.settings.budget ?? 0,
         },
-        rosterSettings: {}
+        rosterSettings: importSleeperRosterSettings(leagueInfo.roster_positions),
     };
+}
+
+export function importSleeperRosterSettings(settings: string[]): RosterSettings {
+    const rosterSettings: RosterSettings = {};
+    settings.forEach(pos => {
+        rosterSettings[pos] = (rosterSettings[pos] ?? 0) + 1;
+    });
+    return rosterSettings;
 }
 
 export function importSleeperDraftDetail(info: SleeperT.DraftInfo, picks: SleeperT.DraftPick[]): DraftDetail {

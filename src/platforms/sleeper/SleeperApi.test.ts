@@ -23,6 +23,7 @@ describe("SleeperApi", () => {
                 name: "Test League",
                 status: "complete",
                 draft_id: '972738',
+                roster_positions: [],
                 scoring_settings: { rec: 1 } as any,
             } as any;
             const draftInfo: SleeperT.DraftInfo = {
@@ -114,7 +115,17 @@ describe("importSleeperLeagueInfo", () => {
                 type: "auction",
                 auctionBudget: 200,
             },
-            rosterSettings: {},
+            rosterSettings: {
+                QB: 1,
+                RB: 2,
+                WR: 2,
+                TE: 1,
+                FLEX: 1,
+                REC_FLEX: 1,
+                SUPER_FLEX: 1,
+                DEF: 1,
+                BN: 5
+            },
         };
 
         const result = importSleeperLeagueInfo(realLeague, realDraftInfo);
@@ -139,6 +150,7 @@ describe("importSleeperTeamInfo", () => {
         expect(result).toEqual(expectedTeamInfo);
     });
 });
+
 describe("importSleeperDraftPick", () => {
     it("should import Sleeper draft pick", () => {
         const lookupRoster = jest.fn().mockReturnValue("777");

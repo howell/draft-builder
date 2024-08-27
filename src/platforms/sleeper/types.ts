@@ -7,7 +7,7 @@ export type LeagueInfo = {
     season_type: string;
     season: string;
     scoring_settings: ScoringSettings;
-    roster_positions: RosterPosition[];
+    roster_positions: string[];
     previous_league_id: string;
     name: string;
     league_id: string;

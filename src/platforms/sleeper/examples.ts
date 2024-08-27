@@ -2,7 +2,7 @@ import * as T from './types';
 
 const exampleSettings: T.LeagueSettings = {};
 const exampleScoringSettings: T.ScoringSettings = {};
-const exampleRosterPositions: T.RosterPosition[] = [];
+const exampleRosterPositions: string[] = ['QB', 'RB', 'WR', 'FLEX', 'BN', 'BN'];
 
 const exampleLeague: T.LeagueInfo = {
     "total_rosters": 12,
