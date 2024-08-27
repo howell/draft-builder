@@ -61,7 +61,7 @@ function initializeData(data: TableData[]): ChartData {
         return {
             ...v,
             prediction,
-            tooltip: `${i}: ${v.name} (${v.position}), \$${v.auctionPrice}`,
+            tooltip: `${i + 1}: ${v.name} (${v.position}), \$${v.auctionPrice}`,
             desc: `predicted: ${prediction} (err=${delta})`
         }
     });
