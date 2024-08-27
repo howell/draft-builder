@@ -12,20 +12,25 @@ export type DropdownStyleOptions = {
     textColor: string;
     hoverBgColor: string;
     hoverTextColor: string;
+    highlightBgColor: string;
+    highlightTextColor: string;
     border: string;
 }
 
 export const DEFAULT_DROPDOWN_STYLE: DropdownStyleOptions = {
     bgColor: 'bg-gray-800',
     textColor: 'text-white',
-    hoverBgColor: 'bg-gray-500',
-    hoverTextColor: 'text-black',
+    hoverBgColor: 'hover:bg-gray-500',
+    hoverTextColor: 'hover:text-black',
+    highlightBgColor: 'bg-gray-500',
+    highlightTextColor: 'text-black',
     border: 'border border-gray-300',
 };
 
 const DropdownMenu: React.FC<DropdownMenuProps> = ({ options, selectedOption, onSelect, styles }) => {
     styles = styles ?? DEFAULT_DROPDOWN_STYLE;
-    const hoverStyle = `hover:${styles.hoverBgColor} hover:${styles.hoverTextColor}`;
+    const hoverStyle = `${styles.hoverBgColor} ${styles.hoverTextColor}`;
+    const highlightedStyle = `${styles.highlightBgColor} ${styles.highlightTextColor}`;
     const [isOpen, setIsOpen] = useState(false);
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
     const [isFocused, setIsFocused] = useState(false);
@@ -71,15 +76,14 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ options, selectedOption, on
 
 
     return (
-        <div className={`relative inline-block w-full h-9 p-1 ${styles.border} `}
+        <div className={`relative inline-block w-full h-9 p-1 ${styles.border}`}
+            tabIndex={0}
+            onBlur={() => { setIsOpen(false); setIsFocused(false); }}
             ref={parentRef}>
             <div className={`w-full h-full p-2 cursor-pointer flex justify-between items-center
              ${styles.bgColor} ${styles.textColor} `}
-                tabIndex={0}
                 onClick={() => { setIsOpen(!isOpen); setIsFocused(true); }}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => { setIsOpen(false); setIsFocused(false); }}
-                >
+                onFocus={() => setIsFocused(true)} >
                 {options.find(option => option.value === selectedOption)?.name || ''}
                     <div className="absolute top-1 right-2">
                         <i className={`fas fa-chevron-down`} />
@@ -95,7 +99,7 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ options, selectedOption, on
                             <li key={`option-${i}`}
                                 className={`p-1 cursor-pointer
                                     ${hoverStyle}
-                                    ${highlightedIndex === options.indexOf(option) ? `${styles.hoverBgColor} ${styles.hoverTextColor}` : ''}`}
+                                    ${highlightedIndex === options.indexOf(option) ? highlightedStyle : ''}`}
                                 onClick={() => handleSelect(option.name, option.value)}>
                                 {option.name}
                             </li>

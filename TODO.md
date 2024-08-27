@@ -23,13 +23,11 @@
 * Draft page: Show overall and position rank columns
 * Handle Keepers
 * Should have option to log out of a league
+* Search Settings positions should have all and none shortcuts
 * Search Settings positions should have flex options
 
 ## Fixes
-- should league select dropdown allow horizontal scrolling?
 - is there an off by one bug in determining remaining budget?
 - should player rankings start at 0 or 1? And is this being treated consistently atm?
 - DropdownMenu options are slightly misaligned
-- DropdownMenu not including hover styles bc Tailwind doesn't see them statically
-- Clicking on DropdownMenu items not working
 - MockDraft- players are not going into the right spot when clicked

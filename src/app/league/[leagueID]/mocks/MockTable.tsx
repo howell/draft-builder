@@ -477,8 +477,10 @@ const RankingsMenu: React.FC<RankingsMenuProps> = ({ rankings, selectedRanking, 
     const styles: DropdownStyleOptions = {
         bgColor: 'bg-gray-500',
         textColor: 'text-white',
-        hoverBgColor: 'bg-gray-100',
-        hoverTextColor: 'text-black',
+        hoverBgColor: 'hover:bg-gray-100',
+        hoverTextColor: 'hover:text-black',
+        highlightBgColor: 'bg-gray-100',
+        highlightTextColor: 'text-black',
         border: '',
     };
     return <DropdownMenu
