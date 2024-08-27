@@ -22,8 +22,8 @@
 ## Improvements
 * Draft page: Show overall and position rank columns
 * Handle Keepers
+* Handle IDP
 * Should have option to log out of a league
-* Search Settings positions should have all and none shortcuts
 * Search Settings positions should have flex options
 
 ## Fixes

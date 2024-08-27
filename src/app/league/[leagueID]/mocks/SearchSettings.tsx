@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useCallback } from 'react';
 import { SearchSettingsState } from '@/app/savedMockTypes';
 
 export interface SearchSettingsProps {
@@ -50,10 +50,28 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
         });
     }
 
+    const selectAllPositions = useCallback(() => {
+        onSettingsChanged({
+            ...currentSettings,
+            positions: positions,
+        }); 
+    }, [positions, onSettingsChanged, currentSettings]);
+
+    const deselectAllPositions = useCallback(() => {
+        onSettingsChanged({
+            ...currentSettings,
+            positions: [],
+        });
+    }, [onSettingsChanged, currentSettings]);
+
     return (
         <div>
             <div>
-                <h3>Positions</h3>
+                <h3>Positions:</h3>
+                <div className='flex flex-row flex-wrap'>
+                    <SearchButton onClick={selectAllPositions}>All</SearchButton>
+                    <SearchButton onClick={deselectAllPositions}>None</SearchButton>
+                </div>
                 <div className='flex flex-wrap items-center min-w-fit max-w-full'>
                     {positions.map((position) => (
                         <SearchLabel label={position} key={position}>
@@ -120,4 +138,17 @@ const SearchNumber: React.FC<{ value: number, onChange: (value: number) => void 
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
     />
+);
+
+const SearchButton: React.FC<{ onClick: () => void, children: ReactNode }> = ({ onClick, children }) => (
+    <button
+        className='bg-gray-500 text-white
+         hover:bg-gray-100 hover:text-black
+         text-sm 
+         mr-2
+         px-4 py-1 rounded-lg'
+        onClick={onClick}
+    >
+        {children}
+    </button>
 );
