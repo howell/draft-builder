@@ -81,6 +81,7 @@ for (const player of includedPlayers) {
 }
 
 const demoRanks: Rankings = {
+    platform: 'demo' as unknown as 'sleeper',
     overall: new Map(includedPlayers.map((player, index) => [player.id, index])),
     positional: new Map([...positionOrder.entries()].map(([position, players]) => [position, new Map(players.map((player, index) => [player.id, index]))]))
 };

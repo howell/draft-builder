@@ -1,7 +1,7 @@
 import { Rankings } from '@/app/savedMockTypes';
-import { ScoringType } from '@/platforms/PlatformApi';
 import axios from 'axios';
 import Papa, { ParseResult } from 'papaparse';
+import { SleeperScoringAdp } from "../types";
 
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY!;
 const SPREADSHEET_ID = '1wmjxi3K5rjIYME_lskUvquLbN331YV0vi-kg5VakpdY';
@@ -58,14 +58,14 @@ export async function getLatestAdpRanks(): Promise<Map<SleeperScoringAdp, Rankin
     return buildRanks(rows);
 }
 
-export type SleeperScoringAdp = ScoringType & ('ppr' | 'half-ppr');
-
 export function headerFor(scoringType: SleeperScoringAdp): keyof SleeperRow {
     switch (scoringType) {
         case 'ppr':
             return 'Redraft PPR ADP';
         case 'half-ppr':
             return 'Redraft Half PPR ADP';
+        case 'sf':
+            return 'Redraft SF ADP';
         default:
             throw new Error(`Unknown scoring type: ${scoringType}`);
     }
@@ -78,12 +78,17 @@ export function buildRanks(adp: SleeperRow[]): Map<SleeperScoringAdp, Rankings> 
     const parsed: ParsedRow[] = adp.map(row => ({
         ...row,
         'ppr': parseFloat(row[headerFor('ppr')]),
-        'half-ppr': parseFloat(row[headerFor('half-ppr')])
+        'half-ppr': parseFloat(row[headerFor('half-ppr')]),
+        'sf': parseFloat(row[headerFor('sf')]),
     }));
     const positionalRanks: Map<string, Map<string, number>> = rankInPosition(parsed);
-    for (const scoringType of ['ppr', 'half-ppr'] as SleeperScoringAdp[]) {
+    for (const scoringType of ['ppr', 'half-ppr', 'sf'] as SleeperScoringAdp[]) {
         const overallRanks = rankByAdp(parsed, scoringType);
-        ranks.set(scoringType, { overall: overallRanks, positional: positionalRanks });
+        ranks.set(scoringType, {
+            platform: 'sleeper',
+            overall: overallRanks,
+            positional: positionalRanks
+        });
     }
     console.log("Built ranks", ranks);
     return ranks;

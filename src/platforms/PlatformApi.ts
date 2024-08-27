@@ -1,4 +1,4 @@
-import { SeasonId } from "./common";
+import { Platform, SeasonId } from "./common";
 
 export type DraftType = 'snake' | 'auction' | 'other';
 export type ScoringType = 'standard' | 'ppr' | 'half-ppr';
@@ -40,13 +40,14 @@ export type LeagueTeam = {
 
 export type Player = {
     fullName: string;
-    platformId: string;
-    espnId?: string;
+    ids: { [id in Platform]: PlayerId };
     position: string;
     eligiblePositions: string[];
     platformPrice?: number
 
 };
+
+export type PlayerId = string;
 
 export type DraftedPlayer = DraftPick & Player & { draftedBy: LeagueTeam | string | number };
 
@@ -69,9 +70,9 @@ export abstract class PlatformApi {
     }
 }
 
-export function mergeDraftAndPlayerInfo(draftData: DraftPick[], playerData: Player[], teams: LeagueTeam[] = []): DraftedPlayer[] {
+export function mergeDraftAndPlayerInfo(draftData: DraftPick[], playerData: Player[], teams: LeagueTeam[] = [], platform: Platform): DraftedPlayer[] {
     return draftData.map((pick) => {
-        const player = playerData.find((player) => player.platformId === pick.playerId);
+        const player = playerData.find((player) => player.ids[platform] === pick.playerId);
         if (!player) {
             console.error('Player not found for pick:', pick);
             throw new Error('Player not found for pick');

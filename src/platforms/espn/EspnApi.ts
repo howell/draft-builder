@@ -121,8 +121,11 @@ export function importEspnPlayersInfo(info: EspnT.PlayersInfo): Player[] {
 
 export function importEspnPlayerInfo(info: EspnT.PlayerInfo): Player {
     return {
-        platformId: info.id.toString(),
-        espnId: info.id.toString(),
+        ids: {
+            espn: info.id.toString(),
+            sleeper: '',
+            yahoo: ''
+        },
         fullName: info.player.fullName,
         position: positionName(info.player.defaultPositionId),
         eligiblePositions: info.player.eligibleSlots.map(slotName),

@@ -189,7 +189,7 @@ async function fetchData(leagueID: LeagueId,
             return;
         }
 
-        const resultData = mergeDraftAndPlayerInfo(draftData.data!.picks, playerData.data!, teamsData.data!);
+        const resultData = mergeDraftAndPlayerInfo(draftData.data!.picks, playerData.data!, teamsData.data!, league.platform);
         const tableData = resultData.map(makeTableRow);
         const positions = Array.from(new Set(tableData.map(player => player.position)));
         const settings = { ...defaultSearchSettings, positions };

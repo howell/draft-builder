@@ -302,12 +302,16 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                     Available Players
                 </PrimaryHeading>
                 <div className='grid md:grid-cols-2 w-full'>
-                    <div className='items-start md:w-1/2'>
-                        Use Rankings From:
-                        <RankingsMenu
-                            rankings={availableRankings}
-                            selectedRanking={currentRanking}
-                            onRankingSelected={setCurrentRanking} />
+                    <div className='items-start md:min-w-min md:w-1/2'>
+                        {availableRankings.length > 1 &&
+                            <span>
+                                Use Rankings From:
+                                <RankingsMenu
+                                    rankings={availableRankings}
+                                    selectedRanking={currentRanking}
+                                    onRankingSelected={setCurrentRanking} />
+                            </span>
+                        }
                         <CollapsibleComponent label={<h2 className='text-lg'>Search Settings</h2>}>
                             <SearchSettings
                                 onSettingsChanged={onSettingsChanged}
@@ -485,7 +489,7 @@ const RankingsMenu: React.FC<RankingsMenuProps> = ({ rankings, selectedRanking, 
 
 const RankingOption: React.FC<{ ranking: Ranking }> = ({ ranking }) => (
     <div className="flex flex-row items-center relative w-full">
-        <span className='text-nowrap text-ellipsis overflow-x-clip mr-1'>
+        <span className='text-nowrap text-ellipsis overflow-x-clip md:mr-4'>
             {ranking.name}
         </span>
     </div>

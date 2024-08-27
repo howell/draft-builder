@@ -4,9 +4,6 @@ import { LeagueId } from "../common";
 
 export const baseURL = 'https://api.sleeper.app/v1/';
 
-"https://api.sleeper.app/v1/league/1050568427330465800"
-"https://api.sleeper.app/v1/league/1050568427330465792"
-
 export function buildRoute(route: any, params: any) : string{
     return `${baseURL}${route}${params}`;
 }

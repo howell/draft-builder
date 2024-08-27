@@ -10,7 +10,7 @@ import ErrorScreen from "@/ui/ErrorScreen";
 import { CURRENT_SEASON } from "@/constants";
 import { findBestRegression } from "../../analytics";
 import { loadLeague } from "@/app/localStorage";
-import { LeagueId, PlatformLeague, SeasonId } from "@/platforms/common";
+import { LeagueId, Platform, PlatformLeague, SeasonId } from "@/platforms/common";
 import RankingsClient from "@/rankings/RankingsClient";
 
 export type MockDraftProps = {
@@ -90,7 +90,7 @@ async function fetchData(leagueID: LeagueId,
         }
         const draftAnalyses = new Map(Array.from(draftHistory.entries()).map(([draftInfo, players]) =>
             [draftInfo.season,
-                 analyzeDraft(mergeDraftAndPlayerInfo(draftInfo.picks, players))] as
+                 analyzeDraft(mergeDraftAndPlayerInfo(draftInfo.picks, players, undefined, league.platform))] as
             [SeasonId, DraftAnalysis]));
 
         const latestInfo = leagueHistory.data![CURRENT_SEASON]!;
@@ -108,7 +108,7 @@ async function fetchData(leagueID: LeagueId,
         setLoadingTasks(tasks);
 
         const scoringType = latestInfo.scoringType;
-        const playerDb = buildPlayerDb(playerData.data!, scoringType);
+        const playerDb = buildPlayerDb(league.platform, playerData.data!, scoringType);
         const positions = Array.from(new Set(playerDb.map(player => player.defaultPosition)));
         // overallRank: 1 + (rankings.overall.get(player.platformId) as number),
         // positionRank: 1 + (rankings.positional.get(player.position)?.get(player.platformId) as number)
@@ -136,9 +136,9 @@ async function fetchData(leagueID: LeagueId,
     }
 }
 
-function buildPlayerDb(players: Player[], scoringType: ScoringType): MockPlayer[] {
+function buildPlayerDb(platform: Platform, players: Player[], scoringType: ScoringType): MockPlayer[] {
     return players.map(player => ({
-        id: player.platformId,
+        id: player.ids[platform],
         name: player.fullName,
         defaultPosition: player.position,
         positions: player.eligiblePositions,
@@ -146,7 +146,7 @@ function buildPlayerDb(players: Player[], scoringType: ScoringType): MockPlayer[
     }));
 }
 
-function rankByPlatformPrice(players: Player[], scoringType: ScoringType): Rankings {
+function rankByPlatformPrice(platform: Platform, players: Player[], scoringType: ScoringType): Rankings {
     const comparePlayers = (a: Player, b: Player) => {
         const aCost = a.platformPrice;
         const bCost = b.platformPrice;
@@ -184,16 +184,17 @@ function rankByPlatformPrice(players: Player[], scoringType: ScoringType): Ranki
     const positionRankings = new Map<string, Map<string, number>>();
 
     players.forEach((player, index) => {
-        overallRankings.set(player.platformId, index);
+        overallRankings.set(player.ids[platform], index);
         const position = player.position;
         if (!positionRankings.has(position)) {
             positionRankings.set(position, new Map<string, number>());
         }
         const positionRank = positionOrder.get(position)?.indexOf(player) as number;
-        positionRankings.get(position)?.set(player.platformId, positionRank);
+        positionRankings.get(position)?.set(player.ids[platform], positionRank);
     });
 
     return {
+        platform: platform,
         overall: overallRankings,
         positional: positionRankings
     };
@@ -227,7 +228,7 @@ export async function loadRankingsFor(league: PlatformLeague,
     players: Player[]): Promise<Ranking[]>
 {
 
-    const client = new RankingsClient(scoringType);
+    const client = new RankingsClient(league, scoringType);
     const rankingsReq = client.fetchRanks();
 
     const rankings: Ranking[] = [];
@@ -236,7 +237,7 @@ export async function loadRankingsFor(league: PlatformLeague,
         const platformRanking: Ranking = {
             name: 'Platform',
             shortName: 'Rnk',
-            value: rankByPlatformPrice(players, scoringType)
+            value: rankByPlatformPrice(league.platform, players, scoringType)
         };
         rankings.push(platformRanking);
     }

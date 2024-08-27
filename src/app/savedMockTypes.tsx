@@ -1,4 +1,4 @@
-import { LeagueId, SeasonId } from "@/platforms/common";
+import { LeagueId, Platform, SeasonId } from "@/platforms/common";
 import { Titled } from "@/ui/basicComponents";
 
 export const CURRENT_MOCKS_SCHEMA_VERSION = 4;
@@ -63,6 +63,7 @@ export type StoredDraftDataV2 = {
 
 
 export type Rankings = {
+    platform: Platform;
     overall: Map<string, number>, // playerId -> rank
     positional: Map<string, Map<string, number>> // position -> playerId -> rank
 }
