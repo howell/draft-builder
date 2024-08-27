@@ -89,7 +89,7 @@ const Tooltip: React.FC<TooltipProps> = ({ text, children }) => {
             {isVisible && createPortal(
                 <div
                     ref={tooltipRef}
-                    className={`absolute z-50 w-32 p-2 text-center text-white bg-black rounded shadow-lg`}
+                    className={`absolute z-50 min-w-32 max-w-min p-2 text-center text-white bg-black rounded shadow-lg`}
                     style={position ?? {}}
                     onMouseEnter={showTooltip}
                     onMouseLeave={hideTooltip}
