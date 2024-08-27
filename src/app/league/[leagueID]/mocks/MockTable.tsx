@@ -168,15 +168,15 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
             onPlayerSelected(lastFocusedRosterSlot, player);
             return;
         }
+        const openSlots = rosterSlots.filter(slot => !rosterSelections[serializeRosterSlot(slot)]);
         const eligibleSlots = rosterSlots.filter(slot => player.positions.includes(slot.position));
-        const exactSlot = eligibleSlots.find(slot => slot.position === player.defaultPosition);
+        const exactSlot = eligibleSlots.find(slot => slot.position === player.defaultPosition && openSlots.includes(slot));
         if (exactSlot) {
             onPlayerSelected(exactSlot, player);
             return;
         }
         for (const slot of eligibleSlots) {
-            const slotName = serializeRosterSlot(slot);
-            if (!rosterSelections[slotName]) {
+            if (openSlots.includes(slot)) {
                 onPlayerSelected(slot, player);
                 return;
             }
