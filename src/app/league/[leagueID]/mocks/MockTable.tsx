@@ -305,7 +305,9 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                     <div className='items-start md:min-w-min md:w-1/2'>
                         {availableRankings.length > 1 &&
                             <span>
-                                Use Rankings From:
+                                <Tooltip text='Sleeper ADP provided courtesy of Sleeper. Check out https://sleeper.app/'>
+                                    Use Rankings From:
+                                </Tooltip>
                                 <RankingsMenu
                                     rankings={availableRankings}
                                     selectedRanking={currentRanking}
