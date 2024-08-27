@@ -31,3 +31,4 @@
 - DropdownMenu options are slightly misaligned
 - DropdownMenu not including hover styles bc Tailwind doesn't see them statically
 - Clicking on DropdownMenu items not working
+- MockDraft- players are not going into the right spot when clicked
