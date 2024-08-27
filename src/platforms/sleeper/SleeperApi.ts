@@ -170,6 +170,21 @@ export function importSleeperPlayer(id: string, player: SleeperT.Player): Player
         },
         fullName: player.first_name + ' ' + player.last_name,
         position: player.position,
-        eligiblePositions: player.fantasy_positions,
+        eligiblePositions: player.fantasy_positions.concat(sleeperFlexEligibility(player.position)),
     };
+}
+
+export function sleeperFlexEligibility(position: string): string[] {
+    switch (position) {
+        case 'QB':
+            return ['SUPER_FLEX'];
+        case 'RB':
+            return ['SUPER_FLEX', 'FLEX', ];
+        case 'WR':
+            return ['SUPER_FLEX', 'FLEX', 'REC_FLEX'];
+        case 'TE':
+            return ['SUPER_FLEX', 'FLEX', 'REC_FLEX'];
+        default:
+            return [];
+    }
 }
