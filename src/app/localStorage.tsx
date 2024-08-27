@@ -13,7 +13,7 @@ const isClient = typeof window !== 'undefined';
 export const SAVED_LEAGUES_KEY = 'leagues';
 
 export function emptyData(leagueID: LeagueId): StoredMocksDataCurrent {
-    return { drafts: {} };
+    return { };
 }
 
 const emptyLeagues: StoredLeaguesDataCurrent = { schemaVersion: CURRENT_LEAGUES_SCHEMA_VERSION, leagues: {} };
@@ -21,39 +21,46 @@ const emptyLeagues: StoredLeaguesDataCurrent = { schemaVersion: CURRENT_LEAGUES_
 export function loadSavedMocks(leagueID: LeagueId): StoredMocksDataCurrent {
     if (!isClient) return emptyData(leagueID);
     const stored = localStorage.getItem(leagueID.toString());
+    console.log('loading', leagueID, stored);
     if (!stored) return emptyData(leagueID);
 
     let leagueData: StoredData | undefined = JSON.parse(stored);
     if (leagueData && leagueData.schemaVersion !== CURRENT_MOCKS_SCHEMA_VERSION) {
+        console.log('load: migrating');
         leagueData = migrateMocks(leagueData);
         if (leagueData) {
             localStorage.setItem(leagueID.toString(), JSON.stringify(leagueData));
         }
     }
     if (!leagueData) {
+        console.log('load: migration failed');
         localStorage.removeItem(leagueID.toString());
         return emptyData(leagueID);
     }
     const data = leagueData as StoredDataCurrent;
-    if (data.mocks[leagueID]) {
-        return data.mocks[leagueID];
+    if (data.mocks) {
+        return data.mocks;
     }
+    console.log('load: no data');
     return emptyData(leagueID);
 }
 
 export function saveMock(leagueID: LeagueId, data: StoredMocksDataCurrent): void {
     if (!isClient) return;
+    console.log('saving mock');
     const stored = localStorage.getItem(leagueID.toString());
     const storedData = stored ? JSON.parse(stored) : undefined;
     let leagueData: StoredData | undefined = storedData;
     if (leagueData && leagueData.schemaVersion !== CURRENT_MOCKS_SCHEMA_VERSION) {
+        console.log('migrating');
         leagueData = migrateMocks(leagueData);
     }
     if (!leagueData) {
+        console.log('migration failed');
         const toStore: StoredDataCurrent = {
             schemaVersion: CURRENT_MOCKS_SCHEMA_VERSION,
             mocks: {
-                [leagueID]: data
+                ...data
             }
         };
         localStorage.setItem(leagueID.toString(), JSON.stringify(toStore));
@@ -63,7 +70,8 @@ export function saveMock(leagueID: LeagueId, data: StoredMocksDataCurrent): void
     const toStore: StoredData = {
         schemaVersion: leagueData.schemaVersion,
         mocks: {
-            ...leagueData.mocks
+            ...leagueData.mocks,
+            ...data
         }
     };
     localStorage.setItem(leagueID.toString(), JSON.stringify(toStore));
@@ -72,7 +80,7 @@ export function saveMock(leagueID: LeagueId, data: StoredMocksDataCurrent): void
 
 export function loadDraftByName(leagueID: LeagueId, rosterName: string): StoredDraftDataCurrent | undefined {
     const leagueData = loadSavedMocks(leagueID);
-    const savedRosterSelections = leagueData.drafts[rosterName];
+    const savedRosterSelections = leagueData[rosterName];
     if (savedRosterSelections) {
         return savedRosterSelections
     }
@@ -80,10 +88,17 @@ export function loadDraftByName(leagueID: LeagueId, rosterName: string): StoredD
 }
 
 
-export function saveSelectedRoster(leagueID: LeagueId, rosterName: string, rosterSelections: RosterSelections, costAdjustments: Record<string, number>, estimationSettings: EstimationSettingsState, searchSettings: SearchSettingsState, notes: string = '') {
+export function saveSelectedRoster(leagueID: LeagueId,
+    rosterName: string,
+    rosterSelections: RosterSelections,
+    costAdjustments: Record<string, number>,
+    estimationSettings: EstimationSettingsState,
+    searchSettings: SearchSettingsState,
+    notes: string = '')
+{
     if (!isClient) return;
     const stored = loadSavedMocks(leagueID);
-    const prev = stored.drafts[rosterName];
+    const prev = stored[rosterName];
     const modified = Date.now();
     const created = prev ? prev.created : modified;
     const year = CURRENT_SEASON;
@@ -98,20 +113,17 @@ export function saveSelectedRoster(leagueID: LeagueId, rosterName: string, roste
         notes
     }
     const withRoster = {
-        drafts: {
-            ...stored.drafts,
-            [rosterName]: mock
-        }
+        [rosterName]: mock
     };
+    console.log('saving', leagueID, withRoster);
     saveMock(leagueID, withRoster);
 }
 
 export function deleteRoster(leagueID: LeagueId, rosterName: string) {
     if (!isClient) return;
     const stored = loadSavedMocks(leagueID);
-    const drafts = stored.drafts;
-    delete drafts[rosterName];
-    saveMock(leagueID, stored);
+    delete stored[rosterName];
+    localStorage.setItem(leagueID.toString(), JSON.stringify(stored));
 }
 
 export function saveLeague(leagueID: LeagueId, league: PlatformLeague) {

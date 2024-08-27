@@ -29,10 +29,13 @@ export function migrateV2toV3(data: StoredDataV2): StoredDataV3 {
 }
 
 export function migrateV3toV4(data: StoredDataV3): StoredDataV4 {
-    const mocks: StoredDataV4["mocks"] = {};
+    let mocks: StoredDataV4["mocks"] = {};
     for (const leagueKey in data) {
         if (leagueKey === "schemaVersion") continue;
-        mocks[leagueKey] = migrateMocksV3toV4(data[leagueKey]);
+        mocks = {
+            ...mocks,
+            ...migrateMocksV3toV4(data[leagueKey])
+        };
     }
     return {
         schemaVersion: 4,
@@ -41,11 +44,11 @@ export function migrateV3toV4(data: StoredDataV3): StoredDataV4 {
 }
 
 export function migrateMocksV3toV4(data: StoredMocksDataV3): StoredMocksDataV4 {
-    const drafts: StoredMocksDataV4["drafts"] = {};
+    const drafts: StoredMocksDataV4 = {};
     for (const draftKey in data.drafts) {
         drafts[draftKey] = migrateDraftV3toV4(data.drafts[draftKey]);
     }
-    return { drafts };
+    return drafts;
 }
 
 export function migrateDraftV3toV4(data: StoredDraftDataV3): StoredDraftDataV4 {

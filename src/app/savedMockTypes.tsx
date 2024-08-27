@@ -11,21 +11,21 @@ export type StoredData =  StoredDataV2 | StoredDataV3 | StoredDataV4;
 
 export type StoredDataV4 = {
     schemaVersion: 4;
-    mocks: { [leagueId: LeagueId]: StoredMocksDataV4 }
-}
+    mocks: StoredMocksDataV4;
+};
 
 export type StoredDataV3 = {
     schemaVersion: 3;
     [leagueId: number] : StoredMocksDataV3
-}
+};
 
 export type StoredMocksDataV4 = {
-    drafts: { [draftName: string]: StoredDraftDataV4 }
-}
+     [draftName: string]: StoredDraftDataV4
+};
 
 export type StoredMocksDataV3 = {
     drafts: { [draftName: string]: StoredDraftDataV3 }
-}
+};
 
 export type StoredDraftDataV4 = {
     year: SeasonId;

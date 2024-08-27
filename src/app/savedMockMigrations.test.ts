@@ -1,5 +1,6 @@
 import { CostEstimatedPlayer, EstimationSettingsState, EstimationSettingsStateV2, EstimationSettingsStateV4, MockPlayerV2, RosterSelections, SearchSettingsState, StoredDataV2, StoredDataV3, StoredDataV4, StoredDraftDataV3 } from "./savedMockTypes";
 import { migrateV2toV3, migrateV3toV4 } from "./savedMockMigrations";
+import { readFileSync } from "fs";
 
 const estimationSettings: EstimationSettingsStateV2 = {
     years: [2022, 2023, 2024],
@@ -159,34 +160,49 @@ describe("migrateV3toV4", () => {
         const expectedData: StoredDataV4 = {
             schemaVersion: 4,
             mocks: {
-                "1": {
-                    drafts: {
-                        draft1: {
-                            ...data[1].drafts.draft1,
-                            estimationSettings: estimationSettingsV4,
-                            year: "2024",
-                        },
-                        draft2: {
-                            ...data[1].drafts.draft2,
-                            estimationSettings: estimationSettingsV4,
-                            rosterSelections: rosterSelectionsV4,
-                            year: "2023",
-                        },
-                    },
+                draft1: {
+                    ...data[1].drafts.draft1,
+                    estimationSettings: estimationSettingsV4,
+                    year: "2024",
                 },
-                "2": {
-                    drafts: {
-                        draft3: {
-                            ...data[2].drafts.draft3,
-                            estimationSettings: estimationSettingsV4,
-                            year: "2024",
-                        },
-                    },
+                draft2: {
+                    ...data[1].drafts.draft2,
+                    estimationSettings: estimationSettingsV4,
+                    rosterSelections: rosterSelectionsV4,
+                    year: "2023",
+                },
+                draft3: {
+                    ...data[2].drafts.draft3,
+                    estimationSettings: estimationSettingsV4,
+                    year: "2024",
                 },
             },
         };
 
         const migratedData = migrateV3toV4(data);
         expect(migratedData).toEqual(expectedData);
+    });
+});
+
+describe("migrate production v3 data to v4", () => {
+
+    it("should migrate production v3 data to v4", () => {
+        // const data: StoredDataV3 = JSON.parse(rawData);
+        const rawData = readFileSync('src/app/tests/v3-mock-data.json', 'utf-8')
+        const data: StoredDataV3 = JSON.parse(rawData);
+        const migratedData = migrateV3toV4(data);
+        expect(migratedData).toBeDefined();
+        expect(migratedData.schemaVersion).toBe(4);
+        expect(migratedData.mocks).toBeDefined();
+        expect(migratedData.mocks["##IN_PROGRESS_SELECTIONS##"]).toBeDefined();
+        expect(migratedData.mocks["##IN_PROGRESS_SELECTIONS##"].year).toBe("2024");
+        expect(migratedData.mocks["##IN_PROGRESS_SELECTIONS##"].rosterSelections).toBeDefined();
+        expect(migratedData.mocks["##IN_PROGRESS_SELECTIONS##"].rosterSelections["{\"position\":\"WR\",\"index\":0}"]).toBeDefined();
+        expect(migratedData.mocks["Ball hogs"]).toBeDefined();
+        expect(migratedData.mocks["Ball hogs"].year).toBe("2024");
+        expect(migratedData.mocks["Ball hogs"].rosterSelections).toBeDefined();
+        expect(migratedData.mocks["Ball hogs"].rosterSelections["{\"position\":\"WR\",\"index\":0}"]).toBeDefined();
+        expect(migratedData.mocks["Ball hogs"].costAdjustments).toBeDefined();
+        expect(migratedData.mocks["Ball hogs"].costAdjustments).toEqual({});
     });
 });
