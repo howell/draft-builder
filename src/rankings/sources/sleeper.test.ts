@@ -1,5 +1,4 @@
-import Papa from 'papaparse';
-import { SleeperRow, parseDate, latestSheetName, Spreadsheet, parseSleeperCsv, parsePositionalRank } from './sleeper';
+import { parseDate, latestSheetName, Spreadsheet, parseSleeperCsv, parsePositionalRank, rankByAdp, parseRowAdps } from './sleeper';
 import { readFileSync } from 'fs';
 
 
@@ -7,7 +6,8 @@ export const exampleSheet = [
     'Date,Redraft PPR ADP,Redraft SF ADP,Redraft Half PPR ADP,Dynasty PPR ADP,Dynasty SF ADP,Dynasty Half PPR ADP,IDP ADP,Player Team,Player First Name,Player Last Name,Fantasy Player Position,Player Id,Positional Rank',
     '"August 21, 2024",1.2,2.8,1.5,4.8,15.4,6.5,4.8,SF,Christian,McCaffrey,RB,4034,RB1',
     '"August 21, 2024",2.7,6.1,2.1,9,22,10.2,12.3,MIA,Tyreek,Hill,WR,3321,WR1',
-    '"August 21, 2024",3.1,5.1,3.9,2.6,7.3,2.4,5.9,DAL,CeeDee,Lamb,WR,6786,WR2'
+    '"August 21, 2024",3.1,5.1,3.9,2.6,7.3,2.4,5.9,DAL,CeeDee,Lamb,WR,6786,WR2',
+    '"August 21, 2024",,,,,,,150.5,CHI,Montez,Sweat,DE,6124,DE6'
 ].join('\n');
 
 describe('exampleSheet parsing', () => {
@@ -31,7 +31,7 @@ describe('exampleSheet parsing', () => {
         expect(headers).toContain('Positional Rank');
 
         const data = parsedData.data;
-        expect(data.length).toBe(3);
+        expect(data.length).toBe(4);
 
         const firstRow = data[0];
         expect(firstRow['Date']).toBe('August 21, 2024');
@@ -111,5 +111,16 @@ describe('parsePositionalRank', () => {
         const rank = 'InvalidRank';
 
         expect(() => parsePositionalRank(rank)).toThrowError('Invalid positional rank: InvalidRank');
+    });
+});
+
+describe('rankByAdp', () => {
+    it('should exclude Montez Sweat from PPR formats', () => {
+        const parsedData = parseSleeperCsv(exampleSheet); 
+        const data = parseRowAdps(parsedData.data);
+        const pprData = rankByAdp(data, 'ppr');
+        const sweatId = data.find((row) => row['Player Last Name'] === 'Sweat')!['Player Id'];
+        expect(sweatId).toBeDefined();
+        expect(pprData.has(sweatId)).toBeFalsy();
     });
 });

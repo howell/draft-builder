@@ -75,12 +75,7 @@ export type ParsedRow  = SleeperRow & Record<SleeperScoringAdp, number>;
 
 export function buildRanks(adp: SleeperRow[]): Map<SleeperScoringAdp, Rankings> {
     const ranks = new Map<SleeperScoringAdp, Rankings>();
-    const parsed: ParsedRow[] = adp.map(row => ({
-        ...row,
-        'ppr': parseFloat(row[headerFor('ppr')]),
-        'half-ppr': parseFloat(row[headerFor('half-ppr')]),
-        'sf': parseFloat(row[headerFor('sf')]),
-    }));
+    const parsed = parseRowAdps(adp);
     const positionalRanks: Map<string, Map<string, number>> = rankInPosition(parsed);
     for (const scoringType of ['ppr', 'half-ppr', 'sf'] as SleeperScoringAdp[]) {
         const overallRanks = rankByAdp(parsed, scoringType);
@@ -94,9 +89,23 @@ export function buildRanks(adp: SleeperRow[]): Map<SleeperScoringAdp, Rankings> 
     return ranks;
 }
 
+export function parseRowAdps(rows: SleeperRow[]): ParsedRow[] {
+    return rows.map(parseOneRow);
+}
+
+export function parseOneRow(row: SleeperRow): ParsedRow {
+    return {
+        ...row,
+        'ppr': parseFloat(row[headerFor('ppr')]),
+        'half-ppr': parseFloat(row[headerFor('half-ppr')]),
+        'sf': parseFloat(row[headerFor('sf')]),
+    };
+}
+
 export function rankByAdp(adp: ParsedRow[], scoringType: SleeperScoringAdp): Map<string, number> {
     const ranks = new Map<string, number>();
-    const sorted = adp.slice().sort((a, b) => a[scoringType] - b[scoringType]);
+    const sorted = adp.filter(row => row[scoringType] > 0)
+        .sort((a, b) => a[scoringType] - b[scoringType]);
     sorted.forEach((row, index) => {
         ranks.set(row['Player Id'], index);
     });

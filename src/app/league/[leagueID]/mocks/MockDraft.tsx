@@ -1,5 +1,5 @@
 'use client';
-import { DraftedPlayer, mergeDraftAndPlayerInfo, Player, ScoringType } from "@/platforms/PlatformApi";
+import { DraftedPlayer, mergeDraftAndPlayerInfo, Player, RosterSettings, ScoringType } from "@/platforms/PlatformApi";
 import MockTable, { MockTableProps } from './MockTable';
 import { Ranking } from '@/app/savedMockTypes';
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer, Rankings } from '@/app/savedMockTypes';
@@ -107,17 +107,26 @@ async function fetchData(leagueID: LeagueId,
         }
         setLoadingTasks(tasks);
 
+        const rankings = await rankingsTask;
+
         const scoringType = latestInfo.scoringType;
-        const playerDb = buildPlayerDb(league.platform, playerData.data!, scoringType);
+        const lineupSettings = latestInfo.rosterSettings;
+        delete lineupSettings['IR'];
+        const playerDb = buildPlayerDb(league.platform, playerData.data!, rankings.map(r => r.value), lineupSettings, scoringType);
         const positions = Array.from(new Set(playerDb.map(player => player.defaultPosition)));
+        const aPlayer = playerData.data![playerData.data!.length - 100];
+        console.log(aPlayer);
+        console.log(aPlayer.eligiblePositions.some(pos =>
+            !['BN', 'Bench'].includes(pos) &&
+            lineupSettings[pos] > 0));
+        console.log("Positions", positions);
         // overallRank: 1 + (rankings.overall.get(player.platformId) as number),
         // positionRank: 1 + (rankings.positional.get(player.position)?.get(player.platformId) as number)
 
-        const rankings = await rankingsTask;
+        console.log(playerDb.find(player => player.positions.includes('FB')));
+
 
         const auctionBudget = latestInfo.draft.auctionBudget;
-        const lineupSettings = latestInfo.rosterSettings;
-        delete lineupSettings['IR'];
         console.log("Draft Analysis", draftAnalyses);
         setTableData({
             leagueId: leagueID,
@@ -136,14 +145,21 @@ async function fetchData(leagueID: LeagueId,
     }
 }
 
-function buildPlayerDb(platform: Platform, players: Player[], scoringType: ScoringType): MockPlayer[] {
-    return players.map(player => ({
-        id: player.ids[platform],
-        name: player.fullName,
-        defaultPosition: player.position,
-        positions: player.eligiblePositions,
-        suggestedCost: player.platformPrice,
-    }));
+function buildPlayerDb(platform: Platform, players: Player[], rankings: Rankings[], lineupSettings: RosterSettings, scoringType: ScoringType): MockPlayer[] {
+    return players.filter(player =>
+        rankings.some(ranking =>
+            ranking.overall.has(player.ids[platform])))
+        .filter(player =>
+            player.eligiblePositions.some(pos =>
+                !['BN', 'Bench'].includes(pos) &&
+                lineupSettings[pos] > 0))
+        .map(player => ({
+            id: player.ids[platform],
+            name: player.fullName,
+            defaultPosition: player.position,
+            positions: player.eligiblePositions,
+            suggestedCost: player.platformPrice,
+        }));
 }
 
 function rankByPlatformPrice(platform: Platform, players: Player[], scoringType: ScoringType): Rankings {

@@ -504,5 +504,5 @@ export function rankPlayers(players: MockPlayer[], rankings: Rankings): RankedPl
         const positionRank = rankings.positional.get(position)?.get(p.id);
         return { ...p, overallRank: overall ?? UNRANKED, positionRank: positionRank ?? UNRANKED };
     });
-    return rankedPlayers;
+    return rankedPlayers.filter(p => p.overallRank !== UNRANKED);
 }

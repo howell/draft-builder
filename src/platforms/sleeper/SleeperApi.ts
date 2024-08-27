@@ -162,6 +162,9 @@ export function importSleeperTeamInfo(arg: SleeperT.LeagueUser): LeagueTeam {
 }
 
 export function importSleeperPlayer(id: string, player: SleeperT.Player): Player {
+    const positions = [player.position, 'BN'].concat(
+        (player.fantasy_positions ?? []).flatMap(p =>
+            sleeperFlexEligibility(p)));
     return {
         ids: {
             sleeper: id,
@@ -170,7 +173,7 @@ export function importSleeperPlayer(id: string, player: SleeperT.Player): Player
         },
         fullName: player.first_name + ' ' + player.last_name,
         position: player.position,
-        eligiblePositions: player.fantasy_positions.concat(sleeperFlexEligibility(player.position)),
+        eligiblePositions: positions
     };
 }
 
