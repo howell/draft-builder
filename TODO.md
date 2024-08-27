@@ -23,6 +23,7 @@
 * Draft page: Show overall and position rank columns
 * Handle Keepers
 * Should have option to log out of a league
+* Search Settings positions should have flex options
 
 ## Fixes
 - should league select dropdown allow horizontal scrolling?
