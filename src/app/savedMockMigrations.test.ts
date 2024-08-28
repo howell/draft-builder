@@ -1,6 +1,9 @@
 import { CostEstimatedPlayer, EstimationSettingsState, EstimationSettingsStateV2, EstimationSettingsStateV4, MockPlayerV2, RosterSelections, SearchSettingsState, StoredDataCurrent, StoredDataV2, StoredDataV3, StoredDataV4, StoredDraftDataV3 } from "./savedMockTypes";
 import migrate, { migrateV2toV3, migrateV3toV4 } from "./savedMockMigrations";
 import { readFileSync } from "fs";
+import { mock } from "node:test";
+import { IN_PROGRESS_SELECTIONS_KEY } from "./localStorage";
+import exp from "constants";
 
 const estimationSettings: EstimationSettingsStateV2 = {
     years: [2022, 2023, 2024],
@@ -195,10 +198,10 @@ describe("migrate production v3 data to v4", () => {
         migratedData = migratedData as StoredDataCurrent;
         expect(migratedData.schemaVersion).toBe(4);
         expect(migratedData.mocks).toBeDefined();
-        expect(migratedData.mocks["##IN_PROGRESS_SELECTIONS##"]).toBeDefined();
-        expect(migratedData.mocks["##IN_PROGRESS_SELECTIONS##"].year).toBe("2024");
-        expect(migratedData.mocks["##IN_PROGRESS_SELECTIONS##"].rosterSelections).toBeDefined();
-        expect(migratedData.mocks["##IN_PROGRESS_SELECTIONS##"].rosterSelections["{\"position\":\"WR\",\"index\":0}"]).toBeDefined();
+        expect(migratedData.mocks[IN_PROGRESS_SELECTIONS_KEY]).toBeDefined();
+        expect(migratedData.mocks[IN_PROGRESS_SELECTIONS_KEY].year).toBe("2024");
+        expect(migratedData.mocks[IN_PROGRESS_SELECTIONS_KEY].rosterSelections).toBeDefined();
+        expect(migratedData.mocks[IN_PROGRESS_SELECTIONS_KEY].rosterSelections["{\"position\":\"WR\",\"index\":0}"]).toBeDefined();
         expect(migratedData.mocks["Ball hogs"]).toBeDefined();
         expect(migratedData.mocks["Ball hogs"].year).toBe("2024");
         expect(migratedData.mocks["Ball hogs"].rosterSelections).toBeDefined();
@@ -216,8 +219,8 @@ describe("migrate production v3 data to v4", () => {
         migratedData = migratedData as StoredDataCurrent;
         expect(migratedData.schemaVersion).toBe(4);
         expect(migratedData.mocks).toBeDefined();
-        expect(migratedData.mocks["##IN_PROGRESS_SELECTIONS##"]).toBeDefined();
-        expect(migratedData.mocks["##IN_PROGRESS_SELECTIONS##"].year).toBe("2024");
+        expect(migratedData.mocks[IN_PROGRESS_SELECTIONS_KEY]).toBeDefined();
+        expect(migratedData.mocks[IN_PROGRESS_SELECTIONS_KEY].year).toBe("2024");
         expect(migratedData.mocks["Bargain WRs"]).toBeDefined();
         expect(migratedData.mocks["Bargain WRs"].year).toBe("2024");
         expect(migratedData.mocks["Bargain WRs"].rosterSelections).toBeDefined();
@@ -228,5 +231,21 @@ describe("migrate production v3 data to v4", () => {
         expect(migratedData.mocks["Straight Ceiling Plays"].estimationSettings).toBeDefined();
         expect(migratedData.mocks["Straight Ceiling Plays"].estimationSettings.years).toEqual(["2022", "2023"]);
 
+    });
+});
+
+describe("8-28-24 regression test", () => {
+    it("should find all of the drafts", () => {
+        const rawData = readFileSync('src/app/tests/mock-regression-data-8-28-24.json', 'utf-8')
+        let data = JSON.parse(rawData);
+        expect(data?.schemaVersion).toBe(4);
+        data = data as StoredDataV4;
+        expect(data.mocks).toBeDefined();
+        const mockKeys = Object.keys(data.mocks);
+        expect(mockKeys.length).toBe(4);
+        expect(mockKeys).toContain(IN_PROGRESS_SELECTIONS_KEY);
+        expect(mockKeys).toContain("aaaaaa");
+        expect(mockKeys).toContain("bbbbbb");
+        expect(mockKeys).toContain("bbbbbbb");
     });
 });

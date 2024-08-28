@@ -24,6 +24,7 @@
 * Handle IDP
 * Should have option to log out of a league
 * Search Settings positions should have flex options
+* navigating between mocks should be done client side
 
 ## Fixes
 - is there an off by one bug in determining remaining budget?

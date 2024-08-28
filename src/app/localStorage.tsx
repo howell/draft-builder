@@ -115,7 +115,11 @@ export function deleteRoster(leagueID: LeagueId, rosterName: string) {
     if (!isClient) return;
     const stored = loadSavedMocks(leagueID);
     delete stored[rosterName];
-    localStorage.setItem(leagueID.toString(), JSON.stringify(stored));
+    const toStore: StoredDataCurrent = {
+        schemaVersion: CURRENT_MOCKS_SCHEMA_VERSION,
+        mocks: stored
+    };
+    localStorage.setItem(leagueID.toString(), JSON.stringify(toStore));
 }
 
 export function saveLeague(leagueID: LeagueId, league: PlatformLeague) {
