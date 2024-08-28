@@ -2,7 +2,6 @@
 
 ## Major Updates
 * Support additional platforms
-    - Sleeper
     - Yahoo
     - CBS?
     - Manual data import?
