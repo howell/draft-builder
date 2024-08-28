@@ -1,1 +1,611 @@
-{"781060":{"drafts":{"##IN_PROGRESS_SELECTIONS##":{"year":2024,"created":1723592713779,"modified":1724789471215,"rosterSelections":{"{\"position\":\"WR\",\"index\":0}":{"id":4569618,"name":"Garrett Wilson","defaultPosition":"WR","positions":["RB/WR","WR","WR/TE","RB/WR/TE","OP","Bench","IR"],"suggestedCost":61,"overallRank":13,"positionRank":8,"estimatedCost":48},"{\"position\":\"WR\",\"index\":1}":{"id":4258173,"name":"Nico Collins","defaultPosition":"WR","positions":["RB/WR","WR","WR/TE","RB/WR/TE","OP","Bench","IR"],"suggestedCost":41,"overallRank":26,"positionRank":15,"estimatedCost":31},"{\"position\":\"WR\",\"index\":2}":{"id":3126486,"name":"Deebo Samuel Sr.","defaultPosition":"WR","positions":["RB/WR","WR","WR/TE","RB/WR/TE","OP","Bench","IR"],"suggestedCost":34,"overallRank":32,"positionRank":18,"estimatedCost":25},"{\"position\":\"TE\",\"index\":0}":{"id":4361307,"name":"Trey McBride","defaultPosition":"TE","positions":["WR/TE","TE","RB/WR/TE","OP","Bench","IR"],"suggestedCost":14,"overallRank":54,"positionRank":4,"estimatedCost":12},"{\"position\":\"QB\",\"index\":0}":{"id":3917315,"name":"Kyler Murray","defaultPosition":"QB","positions":["QB","OP","Bench","IR"],"suggestedCost":4,"overallRank":83,"positionRank":9,"estimatedCost":18},"{\"position\":\"OP\",\"index\":0}":{"id":3046779,"name":"Jared Goff","defaultPosition":"QB","positions":["QB","OP","Bench","IR"],"suggestedCost":0,"overallRank":146,"positionRank":18,"estimatedCost":6},"{\"position\":\"RB\",\"index\":1}":{"id":4035538,"name":"David Montgomery","defaultPosition":"RB","positions":["RB","RB/WR","RB/WR/TE","OP","Bench","IR"],"suggestedCost":5,"overallRank":78,"positionRank":25,"estimatedCost":10},"{\"position\":\"RB\",\"index\":0}":{"id":4430737,"name":"Kyren Williams","defaultPosition":"RB","positions":["RB","RB/WR","RB/WR/TE","OP","Bench","IR"],"suggestedCost":57,"overallRank":15,"positionRank":7,"estimatedCost":50},"{\"position\":\"RB/WR/TE\",\"index\":0}":{"id":3915416,"name":"DJ Moore","defaultPosition":"WR","positions":["RB/WR","WR","WR/TE","RB/WR/TE","OP","Bench","IR"],"suggestedCost":33,"overallRank":33,"positionRank":19,"estimatedCost":24},"{\"position\":\"Bench\",\"index\":0}":{"id":4241416,"name":"Chuba Hubbard","defaultPosition":"RB","positions":["RB","RB/WR","RB/WR/TE","OP","Bench","IR"],"suggestedCost":1,"overallRank":125,"positionRank":44,"estimatedCost":3},"{\"position\":\"Bench\",\"index\":1}":{"id":4682745,"name":"Jaylen Wright","defaultPosition":"RB","positions":["Rookie","RB","RB/WR","RB/WR/TE","OP","Bench","IR"],"suggestedCost":0,"overallRank":175,"positionRank":52,"estimatedCost":1},"{\"position\":\"Bench\",\"index\":2}":{"id":4035886,"name":"Khalil Herbert","defaultPosition":"RB","positions":["RB","RB/WR","RB/WR/TE","OP","Bench","IR"],"suggestedCost":0,"overallRank":200,"positionRank":57,"estimatedCost":1},"{\"position\":\"Bench\",\"index\":3}":{"id":4362238,"name":"Chase Brown","defaultPosition":"RB","positions":["RB","RB/WR","RB/WR/TE","OP","Bench","IR"],"suggestedCost":1,"overallRank":117,"positionRank":40,"estimatedCost":3},"{\"position\":\"Bench\",\"index\":4}":{"id":4248528,"name":"Christian Watson","defaultPosition":"WR","positions":["RB/WR","WR","WR/TE","RB/WR/TE","OP","Bench","IR"],"suggestedCost":5,"overallRank":81,"positionRank":39,"estimatedCost":6},"{\"position\":\"Bench\",\"index\":5}":{"id":16731,"name":"Brandin Cooks","defaultPosition":"WR","positions":["RB/WR","WR","WR/TE","RB/WR/TE","OP","Bench","IR"],"suggestedCost":0,"overallRank":163,"positionRank":63,"estimatedCost":1},"{\"position\":\"Bench\",\"index\":6}":{"id":4428850,"name":"Dontayvion Wicks","defaultPosition":"WR","positions":["RB/WR","WR","WR/TE","RB/WR/TE","OP","Bench","IR"],"suggestedCost":0,"overallRank":181,"positionRank":68,"estimatedCost":1}},"costAdjustments":{},"estimationSettings":{"years":[2022,2023],"weight":57},"searchSettings":{"positions":["RB","WR"],"playerCount":200,"minPrice":1,"maxPrice":240,"showOnlyAvailable":false},"notes":""},"Ball hogs":{"year":2024,"created":1723643018379,"modified":1723643018379,"rosterSelections":{"{\"position\":\"WR\",\"index\":0}":{"id":4569618,"name":"Garrett Wilson","defaultPosition":"WR","positions":["RB/WR","WR","WR/TE","RB/WR/TE","OP","Bench","IR"],"suggestedCost":61,"overallRank":13,"positionRank":8,"estimatedCost":48},"{\"position\":\"WR\",\"index\":1}":{"id":4258173,"name":"Nico Collins","defaultPosition":"WR","positions":["RB/WR","WR","WR/TE","RB/WR/TE","OP","Bench","IR"],"suggestedCost":41,"overallRank":26,"positionRank":15,"estimatedCost":31},"{\"position\":\"WR\",\"index\":2}":{"id":3126486,"name":"Deebo Samuel Sr.","defaultPosition":"WR","positions":["RB/WR","WR","WR/TE","RB/WR/TE","OP","Bench","IR"],"suggestedCost":34,"overallRank":32,"positionRank":18,"estimatedCost":25},"{\"position\":\"TE\",\"index\":0}":{"id":4361307,"name":"Trey McBride","defaultPosition":"TE","positions":["WR/TE","TE","RB/WR/TE","OP","Bench","IR"],"suggestedCost":14,"overallRank":54,"positionRank":4,"estimatedCost":12},"{\"position\":\"QB\",\"index\":0}":{"id":3917315,"name":"Kyler Murray","defaultPosition":"QB","positions":["QB","OP","Bench","IR"],"suggestedCost":4,"overallRank":83,"positionRank":9,"estimatedCost":18},"{\"position\":\"OP\",\"index\":0}":{"id":3046779,"name":"Jared Goff","defaultPosition":"QB","positions":["QB","OP","Bench","IR"],"suggestedCost":0,"overallRank":146,"positionRank":18,"estimatedCost":6},"{\"position\":\"RB\",\"index\":1}":{"id":4035538,"name":"David Montgomery","defaultPosition":"RB","positions":["RB","RB/WR","RB/WR/TE","OP","Bench","IR"],"suggestedCost":5,"overallRank":78,"positionRank":25,"estimatedCost":10},"{\"position\":\"RB\",\"index\":0}":{"id":4430737,"name":"Kyren Williams","defaultPosition":"RB","positions":["RB","RB/WR","RB/WR/TE","OP","Bench","IR"],"suggestedCost":57,"overallRank":15,"positionRank":7,"estimatedCost":50},"{\"position\":\"RB/WR/TE\",\"index\":0}":{"id":3915416,"name":"DJ Moore","defaultPosition":"WR","positions":["RB/WR","WR","WR/TE","RB/WR/TE","OP","Bench","IR"],"suggestedCost":33,"overallRank":33,"positionRank":19,"estimatedCost":24},"{\"position\":\"Bench\",\"index\":0}":{"id":4241416,"name":"Chuba Hubbard","defaultPosition":"RB","positions":["RB","RB/WR","RB/WR/TE","OP","Bench","IR"],"suggestedCost":1,"overallRank":125,"positionRank":44,"estimatedCost":3},"{\"position\":\"Bench\",\"index\":1}":{"id":4682745,"name":"Jaylen Wright","defaultPosition":"RB","positions":["Rookie","RB","RB/WR","RB/WR/TE","OP","Bench","IR"],"suggestedCost":0,"overallRank":175,"positionRank":52,"estimatedCost":1},"{\"position\":\"Bench\",\"index\":2}":{"id":4035886,"name":"Khalil Herbert","defaultPosition":"RB","positions":["RB","RB/WR","RB/WR/TE","OP","Bench","IR"],"suggestedCost":0,"overallRank":200,"positionRank":57,"estimatedCost":1},"{\"position\":\"Bench\",\"index\":3}":{"id":4362238,"name":"Chase Brown","defaultPosition":"RB","positions":["RB","RB/WR","RB/WR/TE","OP","Bench","IR"],"suggestedCost":1,"overallRank":117,"positionRank":40,"estimatedCost":3},"{\"position\":\"Bench\",\"index\":4}":{"id":4248528,"name":"Christian Watson","defaultPosition":"WR","positions":["RB/WR","WR","WR/TE","RB/WR/TE","OP","Bench","IR"],"suggestedCost":5,"overallRank":81,"positionRank":39,"estimatedCost":6},"{\"position\":\"Bench\",\"index\":5}":{"id":16731,"name":"Brandin Cooks","defaultPosition":"WR","positions":["RB/WR","WR","WR/TE","RB/WR/TE","OP","Bench","IR"],"suggestedCost":0,"overallRank":163,"positionRank":63,"estimatedCost":1},"{\"position\":\"Bench\",\"index\":6}":{"id":4428850,"name":"Dontayvion Wicks","defaultPosition":"WR","positions":["RB/WR","WR","WR/TE","RB/WR/TE","OP","Bench","IR"],"suggestedCost":0,"overallRank":181,"positionRank":68,"estimatedCost":1}},"estimationSettings":{"years":[2022,2023],"weight":57},"searchSettings":{"positions":["RB","WR"],"playerCount":200,"minPrice":1,"maxPrice":240,"showOnlyAvailable":true},"notes":"","costAdjustments":{}}}},"schemaVersion":3}
+{
+    "781060": {
+        "drafts": {
+            "##IN_PROGRESS_SELECTIONS##": {
+                "year": 2024,
+                "created": 1723592713779,
+                "modified": 1724789471215,
+                "rosterSelections": {
+                    "{\"position\":\"WR\",\"index\":0}": {
+                        "id": 4569618,
+                        "name": "Garrett Wilson",
+                        "defaultPosition": "WR",
+                        "positions": [
+                            "RB/WR",
+                            "WR",
+                            "WR/TE",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 61,
+                        "overallRank": 13,
+                        "positionRank": 8,
+                        "estimatedCost": 48
+                    },
+                    "{\"position\":\"WR\",\"index\":1}": {
+                        "id": 4258173,
+                        "name": "Nico Collins",
+                        "defaultPosition": "WR",
+                        "positions": [
+                            "RB/WR",
+                            "WR",
+                            "WR/TE",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 41,
+                        "overallRank": 26,
+                        "positionRank": 15,
+                        "estimatedCost": 31
+                    },
+                    "{\"position\":\"WR\",\"index\":2}": {
+                        "id": 3126486,
+                        "name": "Deebo Samuel Sr.",
+                        "defaultPosition": "WR",
+                        "positions": [
+                            "RB/WR",
+                            "WR",
+                            "WR/TE",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 34,
+                        "overallRank": 32,
+                        "positionRank": 18,
+                        "estimatedCost": 25
+                    },
+                    "{\"position\":\"TE\",\"index\":0}": {
+                        "id": 4361307,
+                        "name": "Trey McBride",
+                        "defaultPosition": "TE",
+                        "positions": [
+                            "WR/TE",
+                            "TE",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 14,
+                        "overallRank": 54,
+                        "positionRank": 4,
+                        "estimatedCost": 12
+                    },
+                    "{\"position\":\"QB\",\"index\":0}": {
+                        "id": 3917315,
+                        "name": "Kyler Murray",
+                        "defaultPosition": "QB",
+                        "positions": [
+                            "QB",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 4,
+                        "overallRank": 83,
+                        "positionRank": 9,
+                        "estimatedCost": 18
+                    },
+                    "{\"position\":\"OP\",\"index\":0}": {
+                        "id": 3046779,
+                        "name": "Jared Goff",
+                        "defaultPosition": "QB",
+                        "positions": [
+                            "QB",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 0,
+                        "overallRank": 146,
+                        "positionRank": 18,
+                        "estimatedCost": 6
+                    },
+                    "{\"position\":\"RB\",\"index\":1}": {
+                        "id": 4035538,
+                        "name": "David Montgomery",
+                        "defaultPosition": "RB",
+                        "positions": [
+                            "RB",
+                            "RB/WR",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 5,
+                        "overallRank": 78,
+                        "positionRank": 25,
+                        "estimatedCost": 10
+                    },
+                    "{\"position\":\"RB\",\"index\":0}": {
+                        "id": 4430737,
+                        "name": "Kyren Williams",
+                        "defaultPosition": "RB",
+                        "positions": [
+                            "RB",
+                            "RB/WR",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 57,
+                        "overallRank": 15,
+                        "positionRank": 7,
+                        "estimatedCost": 50
+                    },
+                    "{\"position\":\"RB/WR/TE\",\"index\":0}": {
+                        "id": 3915416,
+                        "name": "DJ Moore",
+                        "defaultPosition": "WR",
+                        "positions": [
+                            "RB/WR",
+                            "WR",
+                            "WR/TE",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 33,
+                        "overallRank": 33,
+                        "positionRank": 19,
+                        "estimatedCost": 24
+                    },
+                    "{\"position\":\"Bench\",\"index\":0}": {
+                        "id": 4241416,
+                        "name": "Chuba Hubbard",
+                        "defaultPosition": "RB",
+                        "positions": [
+                            "RB",
+                            "RB/WR",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 1,
+                        "overallRank": 125,
+                        "positionRank": 44,
+                        "estimatedCost": 3
+                    },
+                    "{\"position\":\"Bench\",\"index\":1}": {
+                        "id": 4682745,
+                        "name": "Jaylen Wright",
+                        "defaultPosition": "RB",
+                        "positions": [
+                            "Rookie",
+                            "RB",
+                            "RB/WR",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 0,
+                        "overallRank": 175,
+                        "positionRank": 52,
+                        "estimatedCost": 1
+                    },
+                    "{\"position\":\"Bench\",\"index\":2}": {
+                        "id": 4035886,
+                        "name": "Khalil Herbert",
+                        "defaultPosition": "RB",
+                        "positions": [
+                            "RB",
+                            "RB/WR",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 0,
+                        "overallRank": 200,
+                        "positionRank": 57,
+                        "estimatedCost": 1
+                    },
+                    "{\"position\":\"Bench\",\"index\":3}": {
+                        "id": 4362238,
+                        "name": "Chase Brown",
+                        "defaultPosition": "RB",
+                        "positions": [
+                            "RB",
+                            "RB/WR",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 1,
+                        "overallRank": 117,
+                        "positionRank": 40,
+                        "estimatedCost": 3
+                    },
+                    "{\"position\":\"Bench\",\"index\":4}": {
+                        "id": 4248528,
+                        "name": "Christian Watson",
+                        "defaultPosition": "WR",
+                        "positions": [
+                            "RB/WR",
+                            "WR",
+                            "WR/TE",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 5,
+                        "overallRank": 81,
+                        "positionRank": 39,
+                        "estimatedCost": 6
+                    },
+                    "{\"position\":\"Bench\",\"index\":5}": {
+                        "id": 16731,
+                        "name": "Brandin Cooks",
+                        "defaultPosition": "WR",
+                        "positions": [
+                            "RB/WR",
+                            "WR",
+                            "WR/TE",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 0,
+                        "overallRank": 163,
+                        "positionRank": 63,
+                        "estimatedCost": 1
+                    },
+                    "{\"position\":\"Bench\",\"index\":6}": {
+                        "id": 4428850,
+                        "name": "Dontayvion Wicks",
+                        "defaultPosition": "WR",
+                        "positions": [
+                            "RB/WR",
+                            "WR",
+                            "WR/TE",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 0,
+                        "overallRank": 181,
+                        "positionRank": 68,
+                        "estimatedCost": 1
+                    }
+                },
+                "costAdjustments": {},
+                "estimationSettings": {
+                    "years": [
+                        2022,
+                        2023
+                    ],
+                    "weight": 57
+                },
+                "searchSettings": {
+                    "positions": [
+                        "RB",
+                        "WR"
+                    ],
+                    "playerCount": 200,
+                    "minPrice": 1,
+                    "maxPrice": 240,
+                    "showOnlyAvailable": false
+                },
+                "notes": ""
+            },
+            "Ball hogs": {
+                "year": 2024,
+                "created": 1723643018379,
+                "modified": 1723643018379,
+                "rosterSelections": {
+                    "{\"position\":\"WR\",\"index\":0}": {
+                        "id": 4569618,
+                        "name": "Garrett Wilson",
+                        "defaultPosition": "WR",
+                        "positions": [
+                            "RB/WR",
+                            "WR",
+                            "WR/TE",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 61,
+                        "overallRank": 13,
+                        "positionRank": 8,
+                        "estimatedCost": 48
+                    },
+                    "{\"position\":\"WR\",\"index\":1}": {
+                        "id": 4258173,
+                        "name": "Nico Collins",
+                        "defaultPosition": "WR",
+                        "positions": [
+                            "RB/WR",
+                            "WR",
+                            "WR/TE",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 41,
+                        "overallRank": 26,
+                        "positionRank": 15,
+                        "estimatedCost": 31
+                    },
+                    "{\"position\":\"WR\",\"index\":2}": {
+                        "id": 3126486,
+                        "name": "Deebo Samuel Sr.",
+                        "defaultPosition": "WR",
+                        "positions": [
+                            "RB/WR",
+                            "WR",
+                            "WR/TE",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 34,
+                        "overallRank": 32,
+                        "positionRank": 18,
+                        "estimatedCost": 25
+                    },
+                    "{\"position\":\"TE\",\"index\":0}": {
+                        "id": 4361307,
+                        "name": "Trey McBride",
+                        "defaultPosition": "TE",
+                        "positions": [
+                            "WR/TE",
+                            "TE",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 14,
+                        "overallRank": 54,
+                        "positionRank": 4,
+                        "estimatedCost": 12
+                    },
+                    "{\"position\":\"QB\",\"index\":0}": {
+                        "id": 3917315,
+                        "name": "Kyler Murray",
+                        "defaultPosition": "QB",
+                        "positions": [
+                            "QB",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 4,
+                        "overallRank": 83,
+                        "positionRank": 9,
+                        "estimatedCost": 18
+                    },
+                    "{\"position\":\"OP\",\"index\":0}": {
+                        "id": 3046779,
+                        "name": "Jared Goff",
+                        "defaultPosition": "QB",
+                        "positions": [
+                            "QB",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 0,
+                        "overallRank": 146,
+                        "positionRank": 18,
+                        "estimatedCost": 6
+                    },
+                    "{\"position\":\"RB\",\"index\":1}": {
+                        "id": 4035538,
+                        "name": "David Montgomery",
+                        "defaultPosition": "RB",
+                        "positions": [
+                            "RB",
+                            "RB/WR",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 5,
+                        "overallRank": 78,
+                        "positionRank": 25,
+                        "estimatedCost": 10
+                    },
+                    "{\"position\":\"RB\",\"index\":0}": {
+                        "id": 4430737,
+                        "name": "Kyren Williams",
+                        "defaultPosition": "RB",
+                        "positions": [
+                            "RB",
+                            "RB/WR",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 57,
+                        "overallRank": 15,
+                        "positionRank": 7,
+                        "estimatedCost": 50
+                    },
+                    "{\"position\":\"RB/WR/TE\",\"index\":0}": {
+                        "id": 3915416,
+                        "name": "DJ Moore",
+                        "defaultPosition": "WR",
+                        "positions": [
+                            "RB/WR",
+                            "WR",
+                            "WR/TE",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 33,
+                        "overallRank": 33,
+                        "positionRank": 19,
+                        "estimatedCost": 24
+                    },
+                    "{\"position\":\"Bench\",\"index\":0}": {
+                        "id": 4241416,
+                        "name": "Chuba Hubbard",
+                        "defaultPosition": "RB",
+                        "positions": [
+                            "RB",
+                            "RB/WR",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 1,
+                        "overallRank": 125,
+                        "positionRank": 44,
+                        "estimatedCost": 3
+                    },
+                    "{\"position\":\"Bench\",\"index\":1}": {
+                        "id": 4682745,
+                        "name": "Jaylen Wright",
+                        "defaultPosition": "RB",
+                        "positions": [
+                            "Rookie",
+                            "RB",
+                            "RB/WR",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 0,
+                        "overallRank": 175,
+                        "positionRank": 52,
+                        "estimatedCost": 1
+                    },
+                    "{\"position\":\"Bench\",\"index\":2}": {
+                        "id": 4035886,
+                        "name": "Khalil Herbert",
+                        "defaultPosition": "RB",
+                        "positions": [
+                            "RB",
+                            "RB/WR",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 0,
+                        "overallRank": 200,
+                        "positionRank": 57,
+                        "estimatedCost": 1
+                    },
+                    "{\"position\":\"Bench\",\"index\":3}": {
+                        "id": 4362238,
+                        "name": "Chase Brown",
+                        "defaultPosition": "RB",
+                        "positions": [
+                            "RB",
+                            "RB/WR",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 1,
+                        "overallRank": 117,
+                        "positionRank": 40,
+                        "estimatedCost": 3
+                    },
+                    "{\"position\":\"Bench\",\"index\":4}": {
+                        "id": 4248528,
+                        "name": "Christian Watson",
+                        "defaultPosition": "WR",
+                        "positions": [
+                            "RB/WR",
+                            "WR",
+                            "WR/TE",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 5,
+                        "overallRank": 81,
+                        "positionRank": 39,
+                        "estimatedCost": 6
+                    },
+                    "{\"position\":\"Bench\",\"index\":5}": {
+                        "id": 16731,
+                        "name": "Brandin Cooks",
+                        "defaultPosition": "WR",
+                        "positions": [
+                            "RB/WR",
+                            "WR",
+                            "WR/TE",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 0,
+                        "overallRank": 163,
+                        "positionRank": 63,
+                        "estimatedCost": 1
+                    },
+                    "{\"position\":\"Bench\",\"index\":6}": {
+                        "id": 4428850,
+                        "name": "Dontayvion Wicks",
+                        "defaultPosition": "WR",
+                        "positions": [
+                            "RB/WR",
+                            "WR",
+                            "WR/TE",
+                            "RB/WR/TE",
+                            "OP",
+                            "Bench",
+                            "IR"
+                        ],
+                        "suggestedCost": 0,
+                        "overallRank": 181,
+                        "positionRank": 68,
+                        "estimatedCost": 1
+                    }
+                },
+                "estimationSettings": {
+                    "years": [
+                        2022,
+                        2023
+                    ],
+                    "weight": 57
+                },
+                "searchSettings": {
+                    "positions": [
+                        "RB",
+                        "WR"
+                    ],
+                    "playerCount": 200,
+                    "minPrice": 1,
+                    "maxPrice": 240,
+                    "showOnlyAvailable": true
+                },
+                "notes": "",
+                "costAdjustments": {}
+            }
+        }
+    },
+    "schemaVersion": 3
+}

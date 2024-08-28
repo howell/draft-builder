@@ -1,5 +1,5 @@
-import { CostEstimatedPlayer, EstimationSettingsState, EstimationSettingsStateV2, EstimationSettingsStateV4, MockPlayerV2, RosterSelections, SearchSettingsState, StoredDataV2, StoredDataV3, StoredDataV4, StoredDraftDataV3 } from "./savedMockTypes";
-import { migrateV2toV3, migrateV3toV4 } from "./savedMockMigrations";
+import { CostEstimatedPlayer, EstimationSettingsState, EstimationSettingsStateV2, EstimationSettingsStateV4, MockPlayerV2, RosterSelections, SearchSettingsState, StoredDataCurrent, StoredDataV2, StoredDataV3, StoredDataV4, StoredDraftDataV3 } from "./savedMockTypes";
+import migrate, { migrateV2toV3, migrateV3toV4 } from "./savedMockMigrations";
 import { readFileSync } from "fs";
 
 const estimationSettings: EstimationSettingsStateV2 = {
@@ -186,12 +186,13 @@ describe("migrateV3toV4", () => {
 
 describe("migrate production v3 data to v4", () => {
 
-    it("should migrate production v3 data to v4", () => {
-        // const data: StoredDataV3 = JSON.parse(rawData);
+    it("should migrate production v3 data to v4 -- case 1", () => {
         const rawData = readFileSync('src/app/tests/v3-mock-data.json', 'utf-8')
         const data: StoredDataV3 = JSON.parse(rawData);
-        const migratedData = migrateV3toV4(data);
+        expect(data?.schemaVersion).toBe(3);
+        let migratedData = migrate(data);
         expect(migratedData).toBeDefined();
+        migratedData = migratedData as StoredDataCurrent;
         expect(migratedData.schemaVersion).toBe(4);
         expect(migratedData.mocks).toBeDefined();
         expect(migratedData.mocks["##IN_PROGRESS_SELECTIONS##"]).toBeDefined();
@@ -204,5 +205,28 @@ describe("migrate production v3 data to v4", () => {
         expect(migratedData.mocks["Ball hogs"].rosterSelections["{\"position\":\"WR\",\"index\":0}"]).toBeDefined();
         expect(migratedData.mocks["Ball hogs"].costAdjustments).toBeDefined();
         expect(migratedData.mocks["Ball hogs"].costAdjustments).toEqual({});
+    });
+
+    it("should migrate production v3 data to v4 -- case 2", () => {
+        const rawData = readFileSync('src/app/tests/v3-mock-data2.json', 'utf-8')
+        const data: StoredDataV3 = JSON.parse(rawData);
+        expect(data?.schemaVersion).toBe(3);
+        let migratedData = migrate(data);
+        expect(migratedData).toBeDefined();
+        migratedData = migratedData as StoredDataCurrent;
+        expect(migratedData.schemaVersion).toBe(4);
+        expect(migratedData.mocks).toBeDefined();
+        expect(migratedData.mocks["##IN_PROGRESS_SELECTIONS##"]).toBeDefined();
+        expect(migratedData.mocks["##IN_PROGRESS_SELECTIONS##"].year).toBe("2024");
+        expect(migratedData.mocks["Bargain WRs"]).toBeDefined();
+        expect(migratedData.mocks["Bargain WRs"].year).toBe("2024");
+        expect(migratedData.mocks["Bargain WRs"].rosterSelections).toBeDefined();
+        expect(migratedData.mocks["Bargain WRs"].rosterSelections["{\"position\":\"WR\",\"index\":0}"]).toBeDefined();
+        expect(migratedData.mocks["Bargain WRs"].rosterSelections["{\"position\":\"WR\",\"index\":0}"]?.name).toBe("Jaylen Waddle");
+        expect(migratedData.mocks["Bargain WRs"].rosterSelections["{\"position\":\"WR\",\"index\":0}"]?.id).toBe("4372016");
+        expect(migratedData.mocks["Straight Ceiling Plays"]).toBeDefined();
+        expect(migratedData.mocks["Straight Ceiling Plays"].estimationSettings).toBeDefined();
+        expect(migratedData.mocks["Straight Ceiling Plays"].estimationSettings.years).toEqual(["2022", "2023"]);
+
     });
 });
