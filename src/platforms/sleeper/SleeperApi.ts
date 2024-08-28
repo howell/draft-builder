@@ -89,7 +89,7 @@ export class SleeperApi extends PlatformApi {
             }
             console.log('sleeper: fetched players');
             const players = Object.entries(sleeperPlayers).map(([id, player]) => importSleeperPlayer(id, player));
-            redis.set(PLAYERS_CACHE_KEY, JSON.stringify(players));
+            await redis.set(PLAYERS_CACHE_KEY, JSON.stringify(players));
             console.log('sleeper: cached players');
             return players;
         } finally {
