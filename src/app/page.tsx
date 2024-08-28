@@ -51,7 +51,7 @@ export default function Home() {
         <div className='min-w-full w-full'>
           <TabContainer pages={[
             { title: headerFor('espn'), content: <LeagueLogin><EspnLogin submitLeague={handleSubmit} /></LeagueLogin> },
-            // { title: headerFor('sleeper'), content: <LeagueLogin><SleeperLogin submitLeague={handleSubmit} /></LeagueLogin> },
+            { title: headerFor('sleeper'), content: <LeagueLogin><SleeperLogin submitLeague={handleSubmit} /></LeagueLogin> },
           ]} />
         </div>
       </div>
