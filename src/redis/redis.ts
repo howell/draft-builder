@@ -2,13 +2,13 @@ import Redis from 'ioredis';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
-const redis = isDevelopment ?
-    new Redis(process.env.KV_URL!)
-    : new Redis(process.env.KV_URL!, {
+export default function connect() {
+    if (isDevelopment) {
+        return new Redis(process.env.KV_URL!);
+    }
+    return new Redis(process.env.KV_URL!, {
         tls: {
             rejectUnauthorized: true
         }
-    }
-    );
-
-export default redis;
+    });
+}

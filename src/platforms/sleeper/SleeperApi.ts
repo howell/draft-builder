@@ -3,7 +3,7 @@ import { PlatformApi, LeagueInfo, DraftDetail, LeagueHistory, LeagueTeam, Player
 import { fetchDraftInfo, fetchDraftPicks, fetchLeagueHistory, fetchLeagueInfo, fetchLeagueTeams, fetchPlayers } from './api';
 import type * as SleeperT from './types';
 import { CURRENT_SEASON } from '@/constants';
-import redis from '@/redis/redis';
+import connectRedis from '@/redis/redis';
 
 const PLAYERS_CACHE_KEY = 'sleeper-players';
 
@@ -72,18 +72,24 @@ export class SleeperApi extends PlatformApi {
     }
 
     public async fetchPlayers(season?: SeasonId): Promise<Player[] | number> {
-        const cached = await redis.get(PLAYERS_CACHE_KEY);
-        const cached_data = cached && JSON.parse(cached);
-        if (cached_data) {
-            return cached_data
+        let redis: ReturnType<typeof connectRedis> | undefined;
+        try {
+            redis = connectRedis();
+            const cached = await redis.get(PLAYERS_CACHE_KEY);
+            const cached_data = cached && JSON.parse(cached);
+            if (cached_data) {
+                return cached_data
+            }
+            const sleeperPlayers = await fetchPlayers();
+            if (typeof sleeperPlayers === 'number') {
+                return sleeperPlayers;
+            }
+            const players = Object.entries(sleeperPlayers).map(([id, player]) => importSleeperPlayer(id, player));
+            redis.set(PLAYERS_CACHE_KEY, JSON.stringify(players));
+            return players;
+        } finally {
+            if (redis) redis.quit();
         }
-        const sleeperPlayers = await fetchPlayers();
-        if (typeof sleeperPlayers === 'number') {
-            return sleeperPlayers;
-        }
-        const players = Object.entries(sleeperPlayers).map(([id, player]) => importSleeperPlayer(id, player));
-        redis.set(PLAYERS_CACHE_KEY, JSON.stringify(players));
-        return players;
     }
 
     private async infoForSeason(season: SeasonId): Promise<SleeperT.LeagueInfo | number> {
