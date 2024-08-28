@@ -1,6 +1,6 @@
 import axios from "axios";
 import { LeagueInfo, DraftInfo, DraftPick, Players, LeagueUser } from "./types";
-import { LeagueId } from "../common";
+import { LeagueId, logRequestError } from "../common";
 
 export const baseURL = 'https://api.sleeper.app/v1/';
 
@@ -17,6 +17,7 @@ export async function fetchLeagueInfo(leagueID: LeagueId): Promise<LeagueInfo | 
         if (axios.isAxiosError(error) && error.response) {
             return error.response!.status
         }
+        logRequestError("Error fetching league info:", error);
         throw error;
     }
 }
@@ -50,6 +51,7 @@ export async function fetchDraftInfo(draftId: string): Promise<number | DraftInf
         if (axios.isAxiosError(error) && error.response) {
             return error.response!.status
         }
+        logRequestError("Error fetching draft info:", error);
         throw error;
     }
 }
@@ -63,6 +65,7 @@ export async function fetchDraftPicks(draftId: string): Promise<number | [DraftP
         if (axios.isAxiosError(error) && error.response) {
             return error.response!.status
         }
+        logRequestError("Error fetching draft picks:", error);
         throw error;
     }
 }
@@ -76,6 +79,7 @@ export async function fetchPlayers(): Promise<number | Players> {
         if (axios.isAxiosError(error) && error.response) {
             return error.response!.status
         }
+        logRequestError("Error fetching players:", error);
         throw error;
     }
 }
@@ -90,6 +94,7 @@ export async function fetchLeagueTeams(leagueID: LeagueId): Promise<number | [Le
             console.error("Issue fetching teams:", error);
             return error.response!.status
         }
+        logRequestError("Error fetching teams:", error);
         throw error;
     }
 }

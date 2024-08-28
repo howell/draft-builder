@@ -59,3 +59,9 @@ export function platformLogo(platform: Platform): StaticImageData {
             return sleeperLogo;
     }
 }
+
+export function logRequestError(message: string, error: any): void {
+    console.error("Error with", message);
+    console.error("Error type:", typeof error);
+    console.error("Error prefix:", JSON.stringify(error).substring(0, 500));
+}

@@ -1,7 +1,7 @@
 import axios from "axios";
 import { buildRoute } from "./api";
 import { DraftInfo, LeagueInfo, PlayersInfo, TeamInfo } from "./types";
-import { LeagueId, SeasonId } from "../common";
+import { LeagueId, logRequestError, SeasonId } from "../common";
 
 
 export type EspnAuth = {
@@ -25,6 +25,7 @@ export async function fetchLeagueInfo(leagueID: LeagueId, season: SeasonId, auth
         if (axios.isAxiosError(error) && error.response) {
             return error.response!.status
         }
+        logRequestError("Error fetching league info:", error);
         throw error;
     }
 }
@@ -67,6 +68,7 @@ export async function fetchDraftInfo(leagueID: LeagueId, season: SeasonId, auth?
         if (axios.isAxiosError(error) && error.response) {
             return error.response!.status
         }
+        logRequestError("Error fetching draft info:", error);
         throw error;
     }
 }
@@ -99,6 +101,7 @@ export async function fetchAllPlayerInfo(leagueID: LeagueId, season: SeasonId, a
         if (axios.isAxiosError(error) && error.response) {
             return error.response!.status
         }
+        logRequestError("Error fetching player info:", error);
         throw error;
     }
 }
@@ -122,6 +125,7 @@ export async function fetchTeamsAtWeek(leagueID: LeagueId, season: SeasonId, sco
             console.error("Issue fetching teams:", error);
             return error.response!.status
         }
+        logRequestError("Error fetching teams:", error);
         throw error;
     }
 }
