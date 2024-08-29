@@ -3,7 +3,6 @@ import axios from 'axios';
 import Papa, { ParseResult } from 'papaparse';
 import { SleeperScoringAdp } from "../types";
 
-const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY!;
 const SPREADSHEET_ID = '1wmjxi3K5rjIYME_lskUvquLbN331YV0vi-kg5VakpdY';
 
 export interface SheetProperties {
@@ -48,13 +47,34 @@ export type SleeperRow = {
     'Player Id': string;
     'Positional Rank': string;
 };
-
-export async function getLatestAdpRanks(): Promise<Map<SleeperScoringAdp, Rankings>> {
-    const main = await getMainSheet();
+export async function getLatestAdpRanks(apiKey: string): Promise<Map<SleeperScoringAdp, Rankings>> {
+    const main = await getMainSheet(apiKey);
     const latest = latestSheetName(main);
-    const csv = await downloadSheet(latest);
+    const csv = await downloadSheet(latest, apiKey);
     const rows = parseSleeperCsv(csv).data;
     return buildRanks(rows);
+}
+
+async function getMainSheet(apiKey: string): Promise<Spreadsheet> {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?key=${apiKey}`;
+    try {
+        const response = await axios.get<Spreadsheet>(url);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching sheet names:', error);
+        throw error;
+    }
+}
+
+async function downloadSheet(sheetName: string, apiKey: string): Promise<string> {
+    const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${sheetName}&key=${apiKey}`;
+    try {
+        const response = await axios.get(url, { responseType: 'text' });
+        return response.data;
+    } catch (error) {
+        console.error(`Failed to download ${sheetName}:`, error);
+        throw error;
+    }
 }
 
 export function headerFor(scoringType: SleeperScoringAdp): keyof SleeperRow {
@@ -132,28 +152,6 @@ export const parsePositionalRank = (rank: string): [string, number] => {
         throw new Error(`Invalid positional rank: ${rank}`);
     }
     return [match[1], parseInt(match[2]) - 1];
-}
-
-async function getMainSheet(): Promise<Spreadsheet> {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?key=${API_KEY}`;
-    try {
-        const response = await axios.get<Spreadsheet>(url);
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching sheet names:', error);
-        throw error;
-    }
-}
-
-async function downloadSheet(sheetName: string): Promise<string> {
-    const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${sheetName}&key=${API_KEY}`;
-    try {
-        const response = await axios.get(url, { responseType: 'text' });
-        return response.data;
-    } catch (error) {
-        console.error(`Failed to download ${sheetName}:`, error);
-        throw error;
-    }
 }
 
 export function latestSheetName(sheet: Spreadsheet): string {

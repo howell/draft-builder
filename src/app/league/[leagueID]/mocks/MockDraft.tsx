@@ -15,18 +15,19 @@ import RankingsClient from "@/rankings/RankingsClient";
 
 export type MockDraftProps = {
     leagueId: LeagueId;
+    googleApiKey: string;
     draftName?: string;
 }
 
-const MockDraft: React.FC<MockDraftProps> = ({ leagueId, draftName }) => {
+const MockDraft: React.FC<MockDraftProps> = ({ leagueId, draftName, googleApiKey }) => {
     const [loading, setLoading] = useState(true);
     const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>({});
     const [error, setError] = useState<string | null>(null);
     const [tableData, setTableData] = useState<MockTableProps | null>(null);
 
     useEffect(() => {
-        fetchData(leagueId, CURRENT_SEASON, setTableData, setError, setLoading, setLoadingTasks);
-    }, [leagueId]);
+        fetchData(leagueId, CURRENT_SEASON, googleApiKey, setTableData, setError, setLoading, setLoadingTasks);
+    }, [leagueId, googleApiKey]);
 
     if (error) {
         return <ErrorScreen message={error} />;
@@ -47,6 +48,7 @@ export default MockDraft;
 
 async function fetchData(leagueID: LeagueId,
     draftYear: SeasonId,
+    googleApiKey: string,
     setTableData: (data: MockTableProps) => void,
     setError: (error: string) => void,
     setLoading: (loading: boolean) => void,
@@ -100,7 +102,7 @@ async function fetchData(leagueID: LeagueId,
             return;
         }
 
-        const rankingsTask = loadRankingsFor(league, latestInfo.scoringType, playerData.data!);
+        const rankingsTask = loadRankingsFor(league, googleApiKey, latestInfo.scoringType, playerData.data!);
         tasks = {
             ...tasks,
             'Fetching Rankings': rankingsTask
@@ -226,11 +228,12 @@ function analyzeDraft(draftedPlayers: DraftedPlayer[]): DraftAnalysis {
 }
 
 export async function loadRankingsFor(league: PlatformLeague,
+    googleApiKey: string,
     scoringType: ScoringType,
     players: Player[]): Promise<Ranking[]>
 {
 
-    const client = new RankingsClient(league, scoringType);
+    const client = new RankingsClient(league, scoringType, googleApiKey);
     const rankingsReq = client.fetchRanks();
 
     const rankings: Ranking[] = [];

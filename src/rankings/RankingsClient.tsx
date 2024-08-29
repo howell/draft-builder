@@ -7,17 +7,19 @@ import { PlatformLeague } from "@/platforms/common";
 export default class RankingsClient {
     private league: PlatformLeague;
     private scoringType: ScoringType;
+    private googleApiKey: string;
 
-    constructor(league: PlatformLeague, scoringType: ScoringType) {
+    constructor(league: PlatformLeague, scoringType: ScoringType, googleApiKey: string) {
         this.league = league;
         this.scoringType = scoringType;
+        this.googleApiKey = googleApiKey;
     }
 
     public async fetchRanks(): Promise<Ranking[] | undefined> {
         if (this.league.platform !== 'sleeper') {
             return;
         }
-        const sleeperRanks = await getLatestAdpRanks();
+        const sleeperRanks = await getLatestAdpRanks(this.googleApiKey);
         const ranks: Ranking[] = [];
         for (const [scoring, ranking] of sleeperRanks) {
             ranks.push({
