@@ -31,3 +31,4 @@
 ## Fixes
 - is there an off by one bug in determining remaining budget?
 - DropdownMenu options are slightly misaligned
+- DEF not showing up as a position on sleeper
