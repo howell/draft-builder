@@ -1,5 +1,5 @@
 import React from 'react';
-import { EstimationSettingsState } from '@/app/savedMockTypes';
+import { EstimationSettingsState } from '@/app/storage/savedMockTypes';
 import Tooltip from '@/ui/Tooltip';
 import { SeasonId } from '@/platforms/common';
 

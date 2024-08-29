@@ -1,10 +1,10 @@
 'use client'
 import { PlatformLeague, SeasonId } from '@/platforms/common';
 import React, { useEffect, useState } from 'react';
-import { loadLeagues } from '../localStorage';
+import { loadLeagues } from '../storage/localStorage';
 import Sidebar from '@/ui/Sidebar';
 import MockTable, { MockTableProps } from '../league/[leagueID]/mocks/MockTable';
-import { DraftAnalysis, Rankings, } from '../savedMockTypes';
+import { DraftAnalysis, Rankings, } from '../storage/savedMockTypes';
 
 
 export default function Demo() {

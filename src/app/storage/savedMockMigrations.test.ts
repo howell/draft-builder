@@ -190,7 +190,7 @@ describe("migrateV3toV4", () => {
 describe("migrate production v3 data to v4", () => {
 
     it("should migrate production v3 data to v4 -- case 1", () => {
-        const rawData = readFileSync('src/app/tests/v3-mock-data.json', 'utf-8')
+        const rawData = readFileSync('src/app/storage/tests/v3-mock-data.json', 'utf-8')
         const data: StoredDataV3 = JSON.parse(rawData);
         expect(data?.schemaVersion).toBe(3);
         let migratedData = migrate(data);
@@ -211,7 +211,7 @@ describe("migrate production v3 data to v4", () => {
     });
 
     it("should migrate production v3 data to v4 -- case 2", () => {
-        const rawData = readFileSync('src/app/tests/v3-mock-data2.json', 'utf-8')
+        const rawData = readFileSync('src/app/storage/tests/v3-mock-data2.json', 'utf-8')
         const data: StoredDataV3 = JSON.parse(rawData);
         expect(data?.schemaVersion).toBe(3);
         let migratedData = migrate(data);
@@ -236,7 +236,7 @@ describe("migrate production v3 data to v4", () => {
 
 describe("8-28-24 regression test", () => {
     it("should find all of the drafts", () => {
-        const rawData = readFileSync('src/app/tests/mock-regression-data-8-28-24.json', 'utf-8')
+        const rawData = readFileSync('src/app/storage/tests/mock-regression-data-8-28-24.json', 'utf-8')
         let data = JSON.parse(rawData);
         expect(data?.schemaVersion).toBe(4);
         data = data as StoredDataV4;

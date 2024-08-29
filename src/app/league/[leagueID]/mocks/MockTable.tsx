@@ -2,8 +2,8 @@
 import React, { useState, useEffect, } from 'react';
 import MockRosterEntry from './MockRosterEntry';
 import PlayerTable, { ColumnName } from '../drafts/[draftYear]/PlayerTable';
-import { DraftAnalysis, ExponentialCoefficients, MockPlayer, CostEstimatedPlayer, RosterSlot, RosterSelections, SearchSettingsState, EstimationSettingsState, StoredDraftDataCurrent, Rankings, RankedPlayer, Ranking  } from '@/app/savedMockTypes';
-import { loadDraftByName, saveSelectedRoster, deleteRoster, IN_PROGRESS_SELECTIONS_KEY } from '@/app/localStorage';
+import { DraftAnalysis, ExponentialCoefficients, MockPlayer, CostEstimatedPlayer, RosterSlot, RosterSelections, SearchSettingsState, EstimationSettingsState, StoredDraftDataCurrent, Rankings, RankedPlayer, Ranking } from '@/app/storage/savedMockTypes';
+import { loadDraftByName, saveSelectedRoster, deleteRoster, IN_PROGRESS_SELECTIONS_KEY } from '@/app/storage/localStorage';
 import SearchSettings, { SearchLabel } from './SearchSettings';
 import EstimationSettings from './EstimationSettings';
 import { compareLineupPositions } from '@/constants';

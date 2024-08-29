@@ -1,4 +1,4 @@
-import { Rankings } from '@/app/savedMockTypes';
+import { Rankings } from '@/app/storage/savedMockTypes';
 import axios from 'axios';
 import Papa, { ParseResult } from 'papaparse';
 import { SleeperScoringAdp } from "../types";

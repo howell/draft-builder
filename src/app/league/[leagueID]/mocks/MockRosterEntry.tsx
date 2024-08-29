@@ -1,5 +1,5 @@
 import React, { ReactNode, useCallback, useEffect, useState, } from 'react';
-import { RosterSlot, CostEstimatedPlayer  } from '@/app/savedMockTypes';
+import { RosterSlot, CostEstimatedPlayer  } from '@/app/storage/savedMockTypes';
 import { DarkLightText } from '@/ui/basicComponents';
 
 export interface MockRosterEntryProps {

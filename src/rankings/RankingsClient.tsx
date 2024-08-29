@@ -1,6 +1,6 @@
 import { ScoringType } from "@/platforms/PlatformApi";
 import { getLatestAdpRanks, headerFor } from "./sources/sleeper";
-import { Ranking } from '@/app/savedMockTypes';
+import { Ranking } from '@/app/storage/savedMockTypes';
 import { SleeperScoringAdp } from "./types";
 import { PlatformLeague } from "@/platforms/common";
 

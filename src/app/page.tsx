@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import ApiClient from './api/ApiClient';
 import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
 import { LeagueId, Platform, PlatformLeague, platformLogo } from '@/platforms/common';
-import { loadLeagues, saveLeague } from './localStorage';
+import { loadLeagues, saveLeague } from './storage/localStorage';
 import Sidebar from '../ui/Sidebar';
 import { LeagueSubmitCallback } from './leagueInputs';
 import { activateLeague } from './navigation';

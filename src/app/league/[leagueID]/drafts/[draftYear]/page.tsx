@@ -6,11 +6,11 @@ import dynamic from 'next/dynamic';
 import ApiClient from '@/app/api/ApiClient';
 import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
 import ErrorScreen from '@/ui/ErrorScreen';
-import { SearchSettingsState } from '@/app/savedMockTypes';
+import { SearchSettingsState } from '@/app/storage/savedMockTypes';
 import SearchSettings from '../../mocks/SearchSettings';
 import CollapsibleComponent from '@/ui/Collapsible';
 import TabContainer, { TabChild, TabTitle } from '@/ui/TabContainer';
-import { loadLeague } from '@/app/localStorage';
+import { loadLeague } from '@/app/storage/localStorage';
 import { isLeagueId, isSeasonId, LeagueId, SeasonId } from '@/platforms/common';
 // Dynamically import PlayerScatterChart with no SSR
 const PlayerScatterChart = dynamic(() => import('./PlayerScatterChart'), { ssr: false });

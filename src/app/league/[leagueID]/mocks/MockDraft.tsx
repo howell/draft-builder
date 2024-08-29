@@ -1,15 +1,15 @@
 'use client';
 import { DraftedPlayer, mergeDraftAndPlayerInfo, Player, RosterSettings, ScoringType } from "@/platforms/PlatformApi";
 import MockTable, { MockTableProps } from './MockTable';
-import { Ranking } from '@/app/savedMockTypes';
-import { DraftAnalysis, ExponentialCoefficients, MockPlayer, Rankings } from '@/app/savedMockTypes';
+import { Ranking } from '@/app/storage/savedMockTypes';
+import { DraftAnalysis, ExponentialCoefficients, MockPlayer, Rankings } from '@/app/storage/savedMockTypes';
 import React, { useState, useEffect } from 'react';
 import ApiClient from '@/app/api/ApiClient';
 import LoadingScreen, { LoadingTasks } from "@/ui/LoadingScreen";
 import ErrorScreen from "@/ui/ErrorScreen";
 import { CURRENT_SEASON } from "@/constants";
 import { findBestRegression } from "../../analytics";
-import { loadLeague } from "@/app/localStorage";
+import { loadLeague } from "@/app/storage/localStorage";
 import { LeagueId, Platform, PlatformLeague, SeasonId } from "@/platforms/common";
 import RankingsClient from "@/rankings/RankingsClient";
 

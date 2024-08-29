@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import ApiClient from '@/app/api/ApiClient';
 import { CURRENT_SEASON } from '@/constants';
 import { PlatformLeague, SeasonId } from '@/platforms/common';
-import { IN_PROGRESS_SELECTIONS_KEY, loadLeagues, loadSavedMocks } from '@/app/localStorage';
+import { IN_PROGRESS_SELECTIONS_KEY, loadLeagues, loadSavedMocks } from '@/app/storage/localStorage';
 import Link from 'next/link';
 import CollapsibleComponent from '@/ui/Collapsible';
 import Cookies from 'js-cookie'; // Import the Cookies module

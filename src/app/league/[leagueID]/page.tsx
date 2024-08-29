@@ -1,6 +1,6 @@
 'use client';
 import ApiClient from '@/app/api/ApiClient';
-import { loadLeague } from '@/app/localStorage';
+import { loadLeague } from '@/app/storage/localStorage';
 import { CURRENT_SEASON } from '@/constants';
 import { isLeagueId } from '@/platforms/common';
 import { LeagueInfo } from '@/platforms/PlatformApi';

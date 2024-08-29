@@ -1,5 +1,5 @@
 import React, { ReactNode, useCallback } from 'react';
-import { SearchSettingsState } from '@/app/savedMockTypes';
+import { SearchSettingsState } from '@/app/storage/savedMockTypes';
 
 export interface SearchSettingsProps {
     positions: string[];
