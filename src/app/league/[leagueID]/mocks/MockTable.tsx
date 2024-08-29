@@ -367,7 +367,7 @@ export function playerAvailable(p: CostEstimatedPlayer, searchSettings: SearchSe
     let playerAvailable = true;
     if (searchSettings.showOnlyAvailable) {
         const playerSelected = selectedPlayers.find(sp => sp.id === p.id);
-        playerAvailable = !playerSelected && (cost <= auctionBudget - budgetSpent)
+        playerAvailable = !playerSelected && (cost - 1 <= auctionBudget - budgetSpent)
     }
     const ans = playerAvailable &&
         searchSettings.positions.includes(p.defaultPosition) &&
