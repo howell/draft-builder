@@ -1,4 +1,4 @@
-import { CostEstimatedPlayer, MockPlayer, RankedPlayer, SearchSettingsState } from '@/app/savedMockTypes';
+import { CostEstimatedPlayer, MockPlayer, RankedPlayer, SearchSettingsState } from '@/app/storage/savedMockTypes';
 import { playerAvailable, calculateAmountSpent, computeRosterSlots, CostPredictor   } from './MockTable';
 
 describe('playerAvailable', () => {
@@ -110,6 +110,19 @@ describe('playerAvailable', () => {
         );
 
         expect(result).toBe(false);
+    });
+
+    it('should account for the cost of the roster spot when determining if player is available', () => {
+        const testPlayer = { ...mockPlayer, estimatedCost: 5 };
+        const result = playerAvailable(
+            testPlayer,
+            mockSearchSettings,
+            [],
+            5,
+            0
+        );
+
+        expect(result).toBe(true);
     });
 });
 
