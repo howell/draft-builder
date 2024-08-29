@@ -43,7 +43,6 @@ const LeagueLayout = ({ children, params } : { children: React.ReactNode, params
                 prevDrafts.push([year, drafts]);
             }
             prevDrafts.sort((a, b) => a[0].localeCompare(b[0]));
-            console.log("Found saved drafts", prevDrafts);
             setSavedDraftNames(prevDrafts);
         }
 

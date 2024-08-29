@@ -1,9 +1,15 @@
+import { decode } from 'punycode';
 import { SeasonId, SleeperLeague } from '../common';
 import { PlatformApi, LeagueInfo, DraftDetail, LeagueHistory, LeagueTeam, Player, convertBy, DraftPick, RosterSettings } from '../PlatformApi';
 import { fetchDraftInfo, fetchDraftPicks, fetchLeagueHistory, fetchLeagueInfo, fetchLeagueTeams, fetchPlayers } from './api';
 import type * as SleeperT from './types';
 import { CURRENT_SEASON } from '@/constants';
 import connectRedis from '@/redis/redis';
+import { promisify } from 'util';
+import { gzip, gunzip } from 'zlib';
+
+const gzipAsync = promisify(gzip);
+const gunzipAsync = promisify(gunzip);
 
 const PLAYERS_CACHE_KEY = 'sleeper-players';
 
@@ -78,7 +84,7 @@ export class SleeperApi extends PlatformApi {
             redis = connectRedis();
             const cached = await redis.get(PLAYERS_CACHE_KEY);
             console.log('sleeper: cached?', !!cached);
-            const cached_data = cached && JSON.parse(cached);
+            const cached_data = cached && decodeFromRedis(cached);
             if (cached_data) {
                 return cached_data
             }
@@ -89,7 +95,8 @@ export class SleeperApi extends PlatformApi {
             }
             console.log('sleeper: fetched players');
             const players = Object.entries(sleeperPlayers).map(([id, player]) => importSleeperPlayer(id, player));
-            await redis.set(PLAYERS_CACHE_KEY, JSON.stringify(players));
+            const playersString = await encodeForRedis(players);
+            await redis.set(PLAYERS_CACHE_KEY, playersString);
             console.log('sleeper: cached players');
             return players;
         } finally {
@@ -104,8 +111,16 @@ export class SleeperApi extends PlatformApi {
         }
         return currentLeagueInfo;
     }
+}
 
+export async function encodeForRedis(data: any): Promise<string> {
+    const zipped = await gzipAsync(JSON.stringify(data))
+    return zipped.toString('base64');
+}
 
+export async function decodeFromRedis(data: string): Promise<any> {
+    const unzipped = await gunzipAsync(Buffer.from(data, 'base64'));
+    return JSON.parse(unzipped.toString());
 }
 
 export function importSleeperLeagueInfo(leagueInfo: SleeperT.LeagueInfo, draftInfo: SleeperT.DraftInfo): LeagueInfo {
