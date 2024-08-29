@@ -4,11 +4,14 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { LeagueDataInput, LeagueLoginProps, PrivateLeagueInput, PrivateLeagueLabel, SubmitButton } from './leagueInputs';
 import { EspnLeague } from '@/platforms/common';
+import { useRouter } from 'next/navigation';
+import Cookies from 'js-cookie'; // Import the Cookies module
 
 const EspnLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
     const [leagueID, setLeagueID] = useState("");
     const [swid, setSwid] = useState("");
     const [espnS2, setEspnS2] = useState("");
+    const router = useRouter();
 
     const handleSubmit = async () => {
 
@@ -17,7 +20,14 @@ const EspnLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
         return;
       }
 
-      if (isNaN(parseInt(leagueID))) {
+      const providedLeagueId = leagueID.trim();
+
+      if (providedLeagueId === '781060' && Cookies.get('magic word') !== process.env.NEXT_PUBLIC_MAGIC_WORD) {
+        router.push('/newman.gif');
+        return;
+      }
+
+      if (isNaN(parseInt(providedLeagueId))) {
         alert("League ID must be a number");
         return;
       }
@@ -38,7 +48,7 @@ const EspnLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
       const actualEspnS2 = providedEspnS2 === "" ? undefined : providedEspnS2;
 
       const auth = actualSwid && actualEspnS2 ? { swid: actualSwid, espnS2: actualEspnS2 } : undefined;
-      const league: EspnLeague = { platform: 'espn', id: leagueID, auth };
+      const league: EspnLeague = { platform: 'espn', id: providedLeagueId, auth };
       await submitLeague(league);
     };
 
