@@ -14,8 +14,8 @@ export async function GET(req: NextRequest) {
     }
     const api = apiFor(body.league);
     const leagueInfo = await api.findLeague();
-    if (typeof leagueInfo === 'number') {
-        return makeResponse<FindLeagueResponse>({ status: 'Failed to fetch league info' }, 404, false);
+    if (leagueInfo !== 'ok') {
+        return makeResponse<FindLeagueResponse>({ status: 'Failed to find league' }, 404, false);
     } else {
         return makeResponse<FindLeagueResponse>({ status: 'ok' }, 200);
     }
