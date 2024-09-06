@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation'
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { useCallback, useEffect, useState } from "react";
 import ApiClient from './api/ApiClient';
-import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
+import LoadingScreen, { LoadingTask, LoadingTasks } from '@/ui/LoadingScreen';
 import { LeagueId, Platform, PlatformLeague, platformLogo } from '@/platforms/common';
 import { loadLeagues, saveLeague } from './storage/localStorage';
 import Sidebar from '../ui/Sidebar';
@@ -18,7 +18,7 @@ import SleeperLogin from './SleeperLogin';
 export default function Home() {
   const router = useRouter();
   const [submissionInProgress, setSubmissionInProgress] = useState(false);
-  const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>({});
+  const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>(new Set());
   const [availableLeagues, setAvailableLeagues] = useState<PlatformLeague[]>([]);
 
   useEffect(() => {
@@ -36,26 +36,27 @@ export default function Home() {
     }
   }, [submissionInProgress, router]);
 
-  if (submissionInProgress) {
-    return <LoadingScreen tasks={loadingTasks} />;
-  }
-
+  // if (submissionInProgress) {
+  //   return <LoadingScreen tasks={loadingTasks} />;
+  // }
   return (
-    <main className="flex min-h-screen flex-col items-center pt-24 px-12 md:ml-44 ">
-      {availableLeagues.length > 0 && <Sidebar availableLeagues={availableLeagues} />}
-      <div className="flex flex-col w-full">
-        <h1 className="text-4xl text-center mb-4">Login With:</h1>
-        <div className="mt-2 items-center max-w-prose">
-          Curious? Try the <Link href="/demo"><span className='text-sky-600'>demo</span></Link>.
+  <LoadingScreen tasks={loadingTasks}>
+      <main className="flex min-h-screen flex-col items-center pt-24 px-12 md:ml-44 ">
+        {availableLeagues.length > 0 && <Sidebar availableLeagues={availableLeagues} />}
+        <div className="flex flex-col w-full">
+          <h1 className="text-4xl text-center mb-4">Login With:</h1>
+          <div className="mt-2 items-center max-w-prose">
+            Curious? Try the <Link href="/demo"><span className='text-sky-600'>demo</span></Link>.
+          </div>
+          <div className='min-w-full w-full'>
+            <TabContainer pages={[
+              { title: headerFor('espn'), content: <LeagueLogin><EspnLogin submitLeague={handleSubmit} /></LeagueLogin> },
+              { title: headerFor('sleeper'), content: <LeagueLogin><SleeperLogin submitLeague={handleSubmit} /></LeagueLogin> },
+            ]} />
+          </div>
         </div>
-        <div className='min-w-full w-full'>
-          <TabContainer pages={[
-            { title: headerFor('espn'), content: <LeagueLogin><EspnLogin submitLeague={handleSubmit} /></LeagueLogin> },
-            { title: headerFor('sleeper'), content: <LeagueLogin><SleeperLogin submitLeague={handleSubmit} /></LeagueLogin> },
-          ]} />
-        </div>
-      </div>
-    </main>
+      </main>
+    </LoadingScreen>
   );
 }
 
@@ -66,7 +67,7 @@ async function submitLeague(league: PlatformLeague,
    {
   const client = new ApiClient(league);
   const request = client.findLeague();
-  setLoadingTasks({ 'Finding League': request });
+  setLoadingTasks(new Set([new LoadingTask(request, 'Finding League')]));
   const result = await request;
 
   if (typeof result === 'string') {

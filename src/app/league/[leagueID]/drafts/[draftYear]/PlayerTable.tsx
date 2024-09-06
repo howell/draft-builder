@@ -123,6 +123,6 @@ const ColumnHeader: React.FC<{name: ColumnName, onClick: () => void}> = ({ name,
         }
         return inner;
     };
-    return [<span key={name.shortName} className='inline md:hidden'>{withTooltip(name.shortName ?? name.name)}</span>,
+    return [<span key={`short ${name.shortName}`} className='inline md:hidden'>{withTooltip(name.shortName ?? name.name)}</span>,
         <span key={name.name} className='hidden md:inline'>{withTooltip(name.name)}</span>];
 }

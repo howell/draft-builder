@@ -1,10 +1,10 @@
 "use client";
 import PlayerTable, { ColumnName } from './PlayerTable';
 import { DraftedPlayer, LeagueTeam, mergeDraftAndPlayerInfo } from "@/platforms/PlatformApi";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import ApiClient from '@/app/api/ApiClient';
-import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
+import LoadingScreen, { LoadingTask, LoadingTasks, TaskStatusChecker } from '@/ui/LoadingScreen';
 import ErrorScreen from '@/ui/ErrorScreen';
 import { SearchSettingsState } from '@/app/storage/savedMockTypes';
 import SearchSettings from '../../mocks/SearchSettings';
@@ -27,7 +27,7 @@ export type TableData = {
 const tableColumns: [keyof(TableData), ColumnName][] = [
     ['numberDrafted', { name: 'Nominated', shortName: '#' }],
     ['auctionPrice', { name: 'Price', shortName: '$' }],
-    ['name', 'Name'],
+    ['name', {name: 'Name', shortName: 'Name'}],
     ['position', { name: 'Position', shortName: 'Pos' }],
     ['teamDrafted', { name: 'Drafted By', shortName: 'To' }],
 ];
@@ -35,9 +35,8 @@ const tableColumns: [keyof(TableData), ColumnName][] = [
 const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: string} }>) => {
     const leagueID = params.leagueID;
     const draftYear = params.draftYear;
-    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>({});
+    const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>(new Set());
     const [tableData, setTableData] = useState<TableData[]>([]);
     const [showing, setShowing] = useState<TableData[]>([]);
     const [allPositions, setAllPositions] = useState<string[]>([]);
@@ -63,7 +62,6 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
             initialSearchSettings,
             setLoadingTasks,
             setTableData,
-            setLoading,
             setError,
             setAllPositions,
             setSearchSettings,
@@ -81,41 +79,41 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
         setShowing(nextShowing);
     }, [searchSettings, tableData]);
 
+    const resetSearchSettings = useCallback(() => setSearchSettings(defaultSearchSettings), [defaultSearchSettings]);
+
     if (error) {
         return <ErrorScreen message={error} />;
     }
 
 
-    if (loading) {
-        return <LoadingScreen tasks={loadingTasks} />;
-    }
-
-    const resetSearchSettings = () => setSearchSettings(defaultSearchSettings);
-
     return (
-        <div className='flex flex-col pl-4 mt-2'>
-            <div className='flex flex-col justify-center m-auto'>
-                <h1 className='text-left md:text-center text-2xl font-bold'>Your {draftYear} Draft Recap!</h1>
-                <div className='flex flex-col w-auto items-start'>
-                    <div className='flex-start'>
-                        <CollapsibleComponent label='Settings'>
-                            <SearchSettings positions={allPositions} currentSettings={searchSettings} onSettingsChanged={setSearchSettings}>
-                                <button className="mt-2 px-4 py-2 bg-white text-black rounded hover:bg-slate-300 focus:outline-none focus:ring-2"
-                                    onClick={resetSearchSettings}>
-                                    Reset
-                                </button>
-                            </SearchSettings>
-                        </CollapsibleComponent>
+        <LoadingScreen tasks={loadingTasks}>
+            <div className='flex flex-col pl-4 mt-2'>
+                <div className='flex flex-col justify-center m-auto'>
+                    <h1 className='text-left md:text-center text-2xl font-bold'>Your {draftYear} Draft Recap!</h1>
+                    <div className='flex flex-col w-auto items-start'>
+                        <div className='flex-start'>
+                            <CollapsibleComponent label='Settings'>
+                                <SearchSettings positions={allPositions} currentSettings={searchSettings} onSettingsChanged={setSearchSettings}>
+                                    <button className="mt-2 px-4 py-2 bg-white text-black rounded hover:bg-slate-300 focus:outline-none focus:ring-2"
+                                        onClick={resetSearchSettings}>
+                                        Reset
+                                    </button>
+                                </SearchSettings>
+                            </CollapsibleComponent>
+                        </div>
+                        <PlayerTable players={showing} columns={tableColumns} defaultSortColumn='auctionPrice' />
                     </div>
-                    <PlayerTable players={showing} columns={tableColumns} defaultSortColumn='auctionPrice' />
+                </div>
+                <div className='w-[90dvw] m-auto items-center'>
+                    <h1 className='text-center text-2xl'>Price Analysis</h1>
+                    <TabContainer pages={positionGraphs} />
                 </div>
             </div>
-            <div className='w-[90dvw] m-auto items-center'>
-                <h1 className='text-center text-2xl'>Price Analysis</h1>
-                <TabContainer pages={positionGraphs} />
-            </div>
-        </div>
+        </LoadingScreen>
     );
+
+
 };
 
 export default Page;
@@ -146,7 +144,6 @@ async function fetchData(leagueID: LeagueId,
     defaultSearchSettings: SearchSettingsState,
     setLoadingTasks: (tasks: LoadingTasks) => void,
     setTableData: (data: TableData[]) => void,
-    setLoading: (loading: boolean) => void,
     setError: (error: string) => void,
     setAllPositions: (positions: string[]) => void,
     setSearchSettings: (settings: SearchSettingsState) => void,
@@ -163,11 +160,11 @@ async function fetchData(leagueID: LeagueId,
         const draftResponse = client.fetchDraft(draftYear);
         const teamsResponse = client.fetchLeagueTeams(draftYear, 0);
 
-        const tasks = {
-            'Fetching Draft': draftResponse,
-            'Fetching Team History': teamsResponse,
-            'Fetching Players': playerResponse,
-        };
+        const tasks: LoadingTasks = new Set([
+            new LoadingTask(draftResponse, 'Fetching Draft'),
+            new LoadingTask(teamsResponse, 'Fetching Team History'),
+            new LoadingTask(playerResponse, 'Fetching Players')
+        ]);
         setLoadingTasks(tasks);
 
         const draftData = await draftResponse;
@@ -205,7 +202,6 @@ async function fetchData(leagueID: LeagueId,
     } catch (error: any) {
         setError(error.message);
     } finally {
-        setLoading(false);
     }
 }
 

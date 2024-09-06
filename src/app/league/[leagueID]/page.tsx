@@ -5,7 +5,7 @@ import { CURRENT_SEASON } from '@/constants';
 import { isLeagueId } from '@/platforms/common';
 import { LeagueInfo } from '@/platforms/PlatformApi';
 import ErrorScreen from '@/ui/ErrorScreen';
-import LoadingScreen, { LoadingTasks } from '@/ui/LoadingScreen';
+import LoadingScreen, { LoadingTask, LoadingTasks } from '@/ui/LoadingScreen';
 import { useState, useEffect } from 'react';
 
 export default function LeaguePage({ params }: Readonly<{ params: { leagueID: string } }>) {
@@ -13,7 +13,7 @@ export default function LeaguePage({ params }: Readonly<{ params: { leagueID: st
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [leagueInfo, setLeagueInfo] = useState<LeagueInfo | null>(null);
-    const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>({});
+    const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>(new Set());
 
     useEffect(() => {
         if (!isLeagueId(leagueID)) {
@@ -31,7 +31,7 @@ export default function LeaguePage({ params }: Readonly<{ params: { leagueID: st
                 }
                 const client = new ApiClient(league);
                 const request = client.fetchLeague(CURRENT_SEASON);
-                setLoadingTasks({ 'Fetching League': request });
+                setLoadingTasks(new Set([new LoadingTask(request, 'Fetching League')]));
                 const response = await request;
                 if (typeof response === 'string') {
                     setError(`Failed to load league: ${response}`);

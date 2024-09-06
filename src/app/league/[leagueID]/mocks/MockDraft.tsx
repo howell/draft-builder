@@ -3,9 +3,9 @@ import { DraftedPlayer, mergeDraftAndPlayerInfo, Player, RosterSettings, Scoring
 import MockTable, { MockTableProps } from './MockTable';
 import { Ranking } from '@/app/storage/savedMockTypes';
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer, Rankings } from '@/app/storage/savedMockTypes';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ApiClient from '@/app/api/ApiClient';
-import LoadingScreen, { LoadingTasks } from "@/ui/LoadingScreen";
+import LoadingScreen, { LoadingTask, LoadingTasks, TaskStatusChecker } from "@/ui/LoadingScreen";
 import ErrorScreen from "@/ui/ErrorScreen";
 import { CURRENT_SEASON } from "@/constants";
 import { findBestRegression } from "../../analytics";
@@ -20,39 +20,44 @@ export type MockDraftProps = {
 }
 
 const MockDraft: React.FC<MockDraftProps> = ({ leagueId, draftName, googleApiKey }) => {
-    const [loading, setLoading] = useState(true);
-    const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>({});
     const [error, setError] = useState<string | null>(null);
     const [tableData, setTableData] = useState<MockTableProps | null>(null);
+    const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>(new Set());
+
 
     useEffect(() => {
-        fetchData(leagueId, CURRENT_SEASON, googleApiKey, setTableData, setError, setLoading, setLoadingTasks);
+        fetchData(leagueId, googleApiKey, setTableData, setError, setLoadingTasks);
     }, [leagueId, googleApiKey]);
 
     if (error) {
         return <ErrorScreen message={error} />;
-    } else if (loading || !tableData) {
-        return <LoadingScreen tasks={loadingTasks}/>;
     }
-    return <MockTable leagueId={leagueId}
-        draftName={draftName}
-        auctionBudget={tableData.auctionBudget}
-        positions={tableData.positions}
-        players={tableData.players}
-        playerPositions={tableData.playerPositions}
-        draftHistory={tableData.draftHistory}
-        availableRankings={tableData.availableRankings} />
+    
+    return (
+        <LoadingScreen tasks={loadingTasks}>
+            {tableData &&
+                <MockTable leagueId={leagueId}
+                    draftName={draftName}
+                    auctionBudget={tableData.auctionBudget}
+                    positions={tableData.positions}
+                    players={tableData.players}
+                    playerPositions={tableData.playerPositions}
+                    draftHistory={tableData.draftHistory}
+                    availableRankings={tableData.availableRankings} />
+            }
+        </LoadingScreen>
+    );
 };
 
 export default MockDraft;
 
 async function fetchData(leagueID: LeagueId,
-    draftYear: SeasonId,
     googleApiKey: string,
     setTableData: (data: MockTableProps) => void,
     setError: (error: string) => void,
-    setLoading: (loading: boolean) => void,
-    setLoadingTasks: (tasks: LoadingTasks) => void) {
+    setLoadingTasks: (tasks: LoadingTasks) => void)
+{
+    let finished = false;
     try {
         const league = loadLeague(leagueID);
         if (!league) {
@@ -63,11 +68,10 @@ async function fetchData(leagueID: LeagueId,
         const playerResponse = client.fetchPlayers(CURRENT_SEASON);
         const leagueHistoryResponse = client.fetchLeagueHistory(CURRENT_SEASON);
 
-        let tasks: LoadingTasks = {
-            'Fetching Players': playerResponse,
-            'Fetching League History': leagueHistoryResponse,
-            'Analyzing Draft': () => false
-        };
+        let tasks: LoadingTasks = new Set();
+        tasks.add(new LoadingTask(playerResponse, 'Fetching Players'));
+        tasks.add(new LoadingTask(leagueHistoryResponse, 'Fetching League History'));
+        tasks.add(new LoadingTask(() => finished, 'Analyzing Draft'));
         setLoadingTasks(tasks);
 
         const leagueHistory = await leagueHistoryResponse;
@@ -80,10 +84,8 @@ async function fetchData(leagueID: LeagueId,
             return;
         }
         const draftHistoryTask = client.buildDraftHistory(leagueHistory.data!);
-        tasks = {
-            ...tasks,
-            'Fetching Draft History': draftHistoryTask
-        }
+        tasks = new Set(tasks);
+        tasks.add(new LoadingTask(draftHistoryTask, 'Fetching Draft History'));
         setLoadingTasks(tasks);
         const draftHistory = await draftHistoryTask;
         if (typeof draftHistory === 'string') {
@@ -103,10 +105,8 @@ async function fetchData(leagueID: LeagueId,
         }
 
         const rankingsTask = loadRankingsFor(league, googleApiKey, latestInfo.scoringType, playerData.data!);
-        tasks = {
-            ...tasks,
-            'Fetching Rankings': rankingsTask
-        }
+        tasks = new Set(tasks);
+        tasks.add(new LoadingTask(rankingsTask, 'Fetching Rankings'));
         setLoadingTasks(tasks);
 
         const rankings = await rankingsTask;
@@ -129,7 +129,7 @@ async function fetchData(leagueID: LeagueId,
         setError(`Failed to load data: ${error}`);
     }
     finally {
-        setLoading(false);
+        finished = true;
     }
 }
 
