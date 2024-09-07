@@ -113,7 +113,6 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ tasks = new Set(), childr
 export default LoadingScreen;
 
 export function setupTasks(tasks: LoadingTasks, completedTasks: Set<LoadingTask>, finishTask: (task: LoadingTask) => void) {
-	console.log('Setting up tasks', tasks);
 	for (const task of tasks) {
 		if (!completedTasks.has(task)) {
 			task.setup(finishTask);
