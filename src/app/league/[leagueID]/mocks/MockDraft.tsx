@@ -232,7 +232,6 @@ export async function loadRankingsFor(league: PlatformLeague,
     scoringType: ScoringType,
     players: Player[]): Promise<Ranking[]>
 {
-
     const client = new RankingsClient(league, scoringType, googleApiKey);
     const rankingsReq = client.fetchRanks();
 

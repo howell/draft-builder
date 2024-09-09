@@ -67,7 +67,7 @@ async function getMainSheet(apiKey: string): Promise<Spreadsheet> {
 }
 
 async function downloadSheet(sheetName: string, apiKey: string): Promise<string> {
-    const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${sheetName}&key=${apiKey}`;
+    const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&key=${apiKey}`;
     try {
         const response = await axios.get(url, { responseType: 'text' });
         return response.data;
