@@ -1,6 +1,6 @@
 import { SeasonId } from "./platforms/common";
 
-export const CURRENT_SEASON: SeasonId = "2024";
+export const CURRENT_SEASON: SeasonId = "2025";
 
 export const LINEUP_POSITION_ORDER = [
     'QB',
