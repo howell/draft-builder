@@ -11,7 +11,7 @@ import CollapsibleComponent from '@/ui/Collapsible';
 
 const NEW_MOCK_NAME = '##New##';
 
-const LeagueLayout = ({ children, params } : { children: React.ReactNode, params: {leagueID: string, draftYear?: string } }) => {
+const LeagueLayout = ({ children, params } : { children: React.ReactNode, params: any }) => {
     const leagueID = params.leagueID;
     const [savedDraftNames, setSavedDraftNames] = useState<[SeasonId, string[]][]>([]);
     const currentYear = parseDraftYear(usePathname())

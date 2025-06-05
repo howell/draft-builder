@@ -32,7 +32,7 @@ const tableColumns: [keyof(TableData), ColumnName][] = [
     ['teamDrafted', { name: 'Drafted By', shortName: 'To' }],
 ];
 
-const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: string} }>) => {
+const Page = ({ params }: any) => {
     const leagueID = params.leagueID;
     const draftYear = params.draftYear;
     const [error, setError] = useState<string | null>(null);

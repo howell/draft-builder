@@ -8,7 +8,7 @@ import ErrorScreen from '@/ui/ErrorScreen';
 import LoadingScreen, { LoadingTask, LoadingTasks } from '@/ui/LoadingScreen';
 import { useState, useEffect } from 'react';
 
-export default function LeaguePage({ params }: Readonly<{ params: { leagueID: string } }>) {
+export default function LeaguePage({ params }: any) {
     const leagueID = params.leagueID;
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);

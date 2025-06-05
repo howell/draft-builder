@@ -5,9 +5,10 @@ import ErrorScreen from "@/ui/ErrorScreen";
 
 const API_KEY = process.env.GOOGLE_API_KEY!;
 
-export default async function MockPage({ params }: Readonly<{ params: { leagueID: string } }>) {
-    if (!isLeagueId(params.leagueID)) {
+export default async function MockPage({ params }: Readonly<{ params: Promise<{ leagueID: string }> }>) {
+    const { leagueID } = await params;
+    if (!isLeagueId(leagueID)) {
         return <ErrorScreen message='Invalid league ID' />;
     }
-    return <MockDraft leagueId={params.leagueID} googleApiKey={API_KEY}/>;
+    return <MockDraft leagueId={leagueID} googleApiKey={API_KEY}/>;
 }

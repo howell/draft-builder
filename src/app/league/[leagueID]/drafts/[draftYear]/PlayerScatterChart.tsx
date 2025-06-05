@@ -36,7 +36,7 @@ const PlayerScatterChart : React.FC<{data: TableData[]}> = ({ data }) => {
                     <YAxis />
                     <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
                     <Line type="linear" dataKey="prediction" stroke="#8884d8" name="Predicted Price" dot={{ r: 1, fill: '#000000' }}/>
-                    <Line type="linear" dataKey="auctionPrice" stroke="#000000" name="Actual Price" dot={dotStyle}  />
+                    <Line type="linear" dataKey="auctionPrice" stroke="#000000" name="Actual Price" dot={dotStyle as any}  />
                     <Legend />
                 </LineChart>
             </ResponsiveContainer>
