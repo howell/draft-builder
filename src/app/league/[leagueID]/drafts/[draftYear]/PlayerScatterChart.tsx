@@ -103,7 +103,7 @@ function positionColors(position: string): string {
     }
 };
 
-function dotStyle(props: any): ReactElement {
+function dotStyle(props: any): ReactElement<SVGElement> {
     const { cx, cy, stroke, payload, value, fill, r, index, strokeWidth } = props;
     return (
         <Dot key={`dot-${index}`}

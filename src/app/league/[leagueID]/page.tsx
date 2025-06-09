@@ -6,9 +6,10 @@ import { isLeagueId } from '@/platforms/common';
 import { LeagueInfo } from '@/platforms/PlatformApi';
 import ErrorScreen from '@/ui/ErrorScreen';
 import LoadingScreen, { LoadingTask, LoadingTasks } from '@/ui/LoadingScreen';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 
-export default function LeaguePage({ params }: Readonly<{ params: { leagueID: string } }>) {
+export default function LeaguePage(props: Readonly<{ params: Promise<{ leagueID: string }> }>) {
+    const params = use(props.params);
     const leagueID = params.leagueID;
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);

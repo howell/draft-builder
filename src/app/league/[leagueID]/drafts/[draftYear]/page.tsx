@@ -1,7 +1,7 @@
 "use client";
 import PlayerTable, { ColumnName } from './PlayerTable';
 import { DraftedPlayer, LeagueTeam, mergeDraftAndPlayerInfo } from "@/platforms/PlatformApi";
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, use } from 'react';
 import dynamic from 'next/dynamic';
 import ApiClient from '@/app/api/ApiClient';
 import LoadingScreen, { LoadingTask, LoadingTasks, TaskStatusChecker } from '@/ui/LoadingScreen';
@@ -32,7 +32,8 @@ const tableColumns: [keyof(TableData), ColumnName][] = [
     ['teamDrafted', { name: 'Drafted By', shortName: 'To' }],
 ];
 
-const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: string} }>) => {
+const Page = (props: Readonly<{ params: Promise<{ leagueID: string, draftYear: string}> }>) => {
+    const params = use(props.params);
     const leagueID = params.leagueID;
     const draftYear = params.draftYear;
     const [error, setError] = useState<string | null>(null);
@@ -112,8 +113,6 @@ const Page = ({ params }: Readonly<{ params: { leagueID: string, draftYear: stri
             </div>
         </LoadingScreen>
     );
-
-
 };
 
 export default Page;

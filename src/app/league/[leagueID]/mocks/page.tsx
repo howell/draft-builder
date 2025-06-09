@@ -5,7 +5,8 @@ import ErrorScreen from "@/ui/ErrorScreen";
 
 const API_KEY = process.env.GOOGLE_API_KEY!;
 
-export default async function MockPage({ params }: Readonly<{ params: { leagueID: string } }>) {
+export default async function MockPage(props: Readonly<{ params: Promise<{ leagueID: string }> }>) {
+    const params = await props.params;
     if (!isLeagueId(params.leagueID)) {
         return <ErrorScreen message='Invalid league ID' />;
     }

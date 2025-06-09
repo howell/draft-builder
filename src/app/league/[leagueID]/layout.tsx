@@ -1,6 +1,6 @@
 'use client';
 import Sidebar from '@/ui/Sidebar';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import ApiClient from '@/app/api/ApiClient';
 import { CURRENT_SEASON } from '@/constants';
@@ -11,7 +11,15 @@ import CollapsibleComponent from '@/ui/Collapsible';
 
 const NEW_MOCK_NAME = '##New##';
 
-const LeagueLayout = ({ children, params } : { children: React.ReactNode, params: {leagueID: string, draftYear?: string } }) => {
+const LeagueLayout = (
+    props: { children: React.ReactNode, params: Promise<{leagueID: string, draftYear?: string }> }
+) => {
+    const params = use(props.params);
+
+    const {
+        children
+    } = props;
+
     const leagueID = params.leagueID;
     const [savedDraftNames, setSavedDraftNames] = useState<[SeasonId, string[]][]>([]);
     const currentYear = parseDraftYear(usePathname())
