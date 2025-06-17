@@ -3,14 +3,24 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--inspect' next dev",
+    "dev:db": "supabase start",
+    "dev": "supabase start && NODE_OPTIONS='--inspect' next dev",
+    "dev:stop": "supabase stop",
+    "dev:reset": "supabase db reset",
+    "db:push": "supabase db push",
+    "db:types": "supabase gen types typescript --local > src/lib/database.types.ts",
+    "db:types:remote": "supabase gen types typescript --project-id your_project_ref > src/lib/database.types.ts",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "migrate:and:build": "npm run db:migrate:prod && npm run build",
+    "db:migrate:prod": "supabase link --project-ref $SUPABASE_PROJECT_ID && supabase db push"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.50.0",
     "@types/js-cookie": "^3.0.6",
     "@types/regression": "^2.0.6",
     "@vercel/analytics": "^1.3.1",

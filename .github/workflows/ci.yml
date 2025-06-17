@@ -14,6 +14,22 @@ jobs:
       matrix:
         node-version: [18.18.0, 20.x, 22.x]
 
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 54322:5432
+        # Health check to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -26,8 +42,36 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase services
+        env:
+          POSTGRES_PASSWORD: postgres
+        run: |
+          # Start Supabase services
+          supabase start
+          
+          # Wait for services to be ready
+          sleep 10
+          
+          # Apply migrations to test database
+          supabase db reset
+
+      - name: Set up test environment variables
+        run: |
+          echo "NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(supabase status | grep anon | awk '{print $3}')" >> $GITHUB_ENV
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status | grep service_role | awk '{print $3}')" >> $GITHUB_ENV
+
       - name: Build the application
         run: npm run build
 
       - name: Run tests
         run: npm test
+
+      - name: Stop Supabase services
+        if: always()
+        run: supabase stop
