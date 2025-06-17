@@ -7,16 +7,12 @@
     "dev": "supabase start && NODE_OPTIONS='--inspect' next dev",
     "dev:stop": "supabase stop",
     "dev:reset": "supabase db reset",
-    "db:push": "supabase db push",
     "db:types": "supabase gen types typescript --local > src/lib/database.types.ts",
-    "db:types:remote": "supabase gen types typescript --project-id your_project_ref > src/lib/database.types.ts",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
-    "type-check": "tsc --noEmit",
-    "migrate:and:build": "npm run db:migrate:prod && npm run build",
-    "db:migrate:prod": "supabase link --project-ref $SUPABASE_PROJECT_ID && supabase db push"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
