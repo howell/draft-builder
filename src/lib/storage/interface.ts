@@ -87,49 +87,6 @@ export interface StorageAdapter {
 }
 
 /**
- * Standardized error types for storage operations
- */
-export interface StorageError extends Error {
-  /** Error category for programmatic handling */
-  code: StorageErrorCode;
-  /** Human-readable error message */
-  message: string;
-  /** Original error from underlying storage system */
-  originalError?: any;
-  /** Additional context about the operation that failed */
-  context?: StorageErrorContext;
-}
-
-/**
- * Categories of storage errors for handling different scenarios
- */
-export type StorageErrorCode = 
-  | 'NETWORK_ERROR'     // Network connectivity issues
-  | 'AUTH_ERROR'        // Authentication/authorization failures
-  | 'DATA_ERROR'        // Data validation or corruption issues
-  | 'QUOTA_ERROR'       // Storage quota exceeded
-  | 'PERMISSION_ERROR'  // Insufficient permissions
-  | 'NOT_FOUND_ERROR'   // Requested resource not found
-  | 'CONFLICT_ERROR'    // Data conflict (e.g., optimistic locking)
-  | 'UNKNOWN_ERROR';    // Unexpected errors
-
-/**
- * Additional context for storage errors
- */
-export interface StorageErrorContext {
-  /** The storage operation that failed */
-  operation: string;
-  /** League ID if applicable */
-  leagueId?: LeagueId;
-  /** Roster name if applicable */
-  rosterName?: string;
-  /** User ID if applicable */
-  userId?: string;
-  /** Timestamp when error occurred */
-  timestamp: Date;
-}
-
-/**
  * Factory function type for creating storage adapters
  */
 export type StorageAdapterFactory = () => StorageAdapter;
@@ -151,33 +108,6 @@ export interface StorageConfig {
   };
 }
 
-/**
- * Helper function to create a StorageError with proper typing
- */
-export function createStorageError(
-  code: StorageErrorCode,
-  message: string,
-  originalError?: any,
-  context?: Partial<StorageErrorContext>
-): StorageError {
-  const error = new Error(message) as StorageError;
-  error.code = code;
-  error.originalError = originalError;
-  error.context = {
-    operation: 'unknown',
-    timestamp: new Date(),
-    ...context
-  };
-  error.name = 'StorageError';
-  return error;
-}
-
-/**
- * Type guard to check if an error is a StorageError
- */
-export function isStorageError(error: any): error is StorageError {
-  return error instanceof Error && 
-         'code' in error && 
-         typeof error.code === 'string' &&
-         error.name === 'StorageError';
-} 
+// Re-export error types and utilities from errors module
+export type { StorageErrorCode, StorageErrorContext } from './errors';
+export { StorageError, createStorageError, isStorageError } from './errors'; 

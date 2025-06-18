@@ -3,6 +3,7 @@ import {
   StorageAdapter, 
   createStorageError 
 } from './interface';
+import { deepClone } from './utils/deepClone';
 import {
   StoredLeaguesDataCurrent,
   StoredMocksDataCurrent,
@@ -42,7 +43,7 @@ export class MemoryStorageAdapter implements StorageAdapter {
    */
   async loadLeagues(): Promise<StoredLeaguesDataCurrent> {
     try {
-      return Promise.resolve(JSON.parse(JSON.stringify(this.leagues)));
+      return Promise.resolve(deepClone(this.leagues));
     } catch (error) {
       throw createStorageError(
         'DATA_ERROR',
@@ -58,7 +59,7 @@ export class MemoryStorageAdapter implements StorageAdapter {
    */
   async saveLeague(leagueId: LeagueId, league: PlatformLeague): Promise<void> {
     try {
-      this.leagues.leagues[leagueId] = JSON.parse(JSON.stringify(league));
+      this.leagues.leagues[leagueId] = deepClone(league);
       return Promise.resolve();
     } catch (error) {
       throw createStorageError(
@@ -76,7 +77,7 @@ export class MemoryStorageAdapter implements StorageAdapter {
   async loadLeague(leagueId: LeagueId): Promise<PlatformLeague | undefined> {
     try {
       const league = this.leagues.leagues[leagueId];
-      return Promise.resolve(league ? JSON.parse(JSON.stringify(league)) : undefined);
+      return Promise.resolve(league ? deepClone(league) : undefined);
     } catch (error) {
       throw createStorageError(
         'DATA_ERROR',
@@ -93,7 +94,7 @@ export class MemoryStorageAdapter implements StorageAdapter {
   async loadSavedMocks(leagueId: LeagueId): Promise<StoredMocksDataCurrent> {
     try {
       const mocks = this.mocks.get(leagueId) || {};
-      return Promise.resolve(JSON.parse(JSON.stringify(mocks)));
+      return Promise.resolve(deepClone(mocks));
     } catch (error) {
       throw createStorageError(
         'DATA_ERROR',
@@ -112,7 +113,7 @@ export class MemoryStorageAdapter implements StorageAdapter {
       const existing = this.mocks.get(leagueId) || {};
       const updated = {
         ...existing,
-        ...JSON.parse(JSON.stringify(data))
+        ...deepClone(data)
       };
       this.mocks.set(leagueId, updated);
       return Promise.resolve();
@@ -166,10 +167,10 @@ export class MemoryStorageAdapter implements StorageAdapter {
         year,
         created,
         modified,
-        rosterSelections: JSON.parse(JSON.stringify(rosterSelections)),
-        costAdjustments: JSON.parse(JSON.stringify(costAdjustments)),
-        estimationSettings: JSON.parse(JSON.stringify(estimationSettings)),
-        searchSettings: JSON.parse(JSON.stringify(searchSettings)),
+        rosterSelections: deepClone(rosterSelections),
+        costAdjustments: deepClone(costAdjustments),
+        estimationSettings: deepClone(estimationSettings),
+        searchSettings: deepClone(searchSettings),
         notes
       };
 

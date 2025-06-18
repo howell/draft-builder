@@ -16,12 +16,9 @@ import {
   StoredData,
   StoredDataCurrent
 } from '@/types/storage';
-import migrateMocks from '@/app/storage/savedMockMigrations';
-import migrateLeagues from '@/app/storage/savedLeagueMigrations';
 import { CURRENT_SEASON } from '@/constants';
-
-export const IN_PROGRESS_SELECTIONS_KEY = '##IN_PROGRESS_SELECTIONS##';
-export const SAVED_LEAGUES_KEY = 'leagues';
+import { IN_PROGRESS_SELECTIONS_KEY, SAVED_LEAGUES_KEY } from './constants';
+import { migrateMocks, migrateLeagues } from './migrations';
 
 /**
  * LocalStorageAdapter implements the StorageAdapter interface using localStorage

@@ -85,12 +85,12 @@ export interface StorageError {
 - [x] Move shared storage-related types from `app/storage` to `src/types` (non-breaking re-export to avoid circular deps)
 - [x] Provide an in-memory `MemoryStorageAdapter` for tests
 - [x] Write a contract test that compares the adapter's method list with legacy storage utilities to ensure full coverage
-- **[NEW]** Centralize shared constants (`IN_PROGRESS_SELECTIONS_KEY`, `SAVED_LEAGUES_KEY`) in `src/lib/storage/constants.ts`
-- **[NEW]** Replace JSON-based deep-clone calls with a `deepClone()` helper that falls back to `structuredClone` (adds polyfill for JSDOM)
-- **[NEW]** Move migration helpers to `src/lib/storage/migrations/` to keep layering intact; update imports
-- **[NEW]** Promote `StorageError` to an exported `class` with enumerable fields for richer logging
-- **[NEW]** Add SSR-safe behaviour: when executed server-side, factory returns `MemoryStorageAdapter` or throws `NOT_AVAILABLE_SSR` `StorageError`
-- **[NEW]** Wire unused `StorageConfig` options (`userId`, `encryptionKey`, `retryConfig`) with sensible defaults or TODO notes so dead-code is avoided
+- [x] Centralize shared constants (`IN_PROGRESS_SELECTIONS_KEY`, `SAVED_LEAGUES_KEY`) in `src/lib/storage/constants.ts`
+- [x] Replace JSON-based deep-clone calls with a `deepClone()` helper that falls back to `structuredClone` (adds polyfill for JSDOM)
+- [x] Move migration helpers to `src/lib/storage/migrations/` to keep layering intact; update imports
+- [x] Promote `StorageError` to an exported `class` with enumerable fields for richer logging
+- [x] Add SSR-safe behaviour: when executed server-side, factory returns `MemoryStorageAdapter` or throws `NOT_AVAILABLE_SSR` `StorageError`
+- [x] Wire unused `StorageConfig` options (`userId`, `encryptionKey`, `retryConfig`) with sensible defaults or TODO notes so dead-code is avoided
 
 #### Deliverables
 ```typescript
@@ -122,9 +122,13 @@ export function deepClone<T>(value: T): T {
 - ✅ `src/types/storage.ts` – Centralized storage types with re-exports for backward compatibility
 - ✅ `src/lib/storage/localStorage.ts` – Complete LocalStorageAdapter with async wrapping and error handling
 - ✅ `src/lib/storage/memory.ts` – MemoryStorageAdapter for testing
-- ✅ `src/lib/storage/factory.ts` – Factory functions for adapter creation and type guards
+- ✅ `src/lib/storage/factory.ts` – Factory functions for adapter creation and type guards with SSR-safe behavior
 - ✅ `src/lib/storage/__tests__/adapter-contract.test.ts` – Comprehensive contract & behavioural tests (14/14 tests passing)
 - ✅ `src/lib/storage/index.ts` – Convenient re-exports for all storage components
+- ✅ `src/lib/storage/constants.ts` – Centralized storage constants (`IN_PROGRESS_SELECTIONS_KEY`, `SAVED_LEAGUES_KEY`)
+- ✅ `src/lib/storage/utils/deepClone.ts` – Deep clone utility with `structuredClone` fallback for JSDOM compatibility
+- ✅ `src/lib/storage/migrations/` – Relocated migration utilities with proper type imports
+- ✅ `src/lib/storage/errors.ts` – Enhanced `StorageError` class with enumerable fields and rich logging capabilities
 
 ### Step 1.3: Authentication Foundation
 **Estimated Time**: 6 hours
