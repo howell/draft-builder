@@ -78,45 +78,53 @@ export interface StorageError {
 **Priority**: Critical
 
 #### Tasks
-- [ ] Implement StorageAdapter interface using existing localStorage code
-- [ ] Convert synchronous localStorage calls to async (Promise.resolve)
-- [ ] Add error handling and logging for consistency
-- [ ] Create factory function for storage adapter selection
-- [ ] Move shared storage-related types from `app/storage` to `src/types` (non-breaking re-export to avoid circular deps)
-- [ ] Provide an in-memory `MemoryStorageAdapter` for tests
-- [ ] Write a contract test that compares the adapter's method list with legacy storage utilities to ensure full coverage
+- [x] Implement StorageAdapter interface using existing localStorage code
+- [x] Convert synchronous localStorage calls to async (Promise.resolve)
+- [x] Add error handling and logging for consistency
+- [x] Create factory function for storage adapter selection
+- [x] Move shared storage-related types from `app/storage` to `src/types` (non-breaking re-export to avoid circular deps)
+- [x] Provide an in-memory `MemoryStorageAdapter` for tests
+- [x] Write a contract test that compares the adapter's method list with legacy storage utilities to ensure full coverage
+- **[NEW]** Centralize shared constants (`IN_PROGRESS_SELECTIONS_KEY`, `SAVED_LEAGUES_KEY`) in `src/lib/storage/constants.ts`
+- **[NEW]** Replace JSON-based deep-clone calls with a `deepClone()` helper that falls back to `structuredClone` (adds polyfill for JSDOM)
+- **[NEW]** Move migration helpers to `src/lib/storage/migrations/` to keep layering intact; update imports
+- **[NEW]** Promote `StorageError` to an exported `class` with enumerable fields for richer logging
+- **[NEW]** Add SSR-safe behaviour: when executed server-side, factory returns `MemoryStorageAdapter` or throws `NOT_AVAILABLE_SSR` `StorageError`
+- **[NEW]** Wire unused `StorageConfig` options (`userId`, `encryptionKey`, `retryConfig`) with sensible defaults or TODO notes so dead-code is avoided
 
 #### Deliverables
 ```typescript
-// src/lib/storage/localStorage.ts
-export class LocalStorageAdapter implements StorageAdapter {
-  async loadLeagues(): Promise<StoredLeaguesDataCurrent> {
-    try {
-      // Wrap existing localStorage logic in Promise.resolve
-      return Promise.resolve(existingLoadLeagues());
-    } catch (error) {
-      throw new StorageError('DATA_ERROR', 'Failed to load leagues', error);
-    }
-  }
-  // ... other methods
-}
+// src/lib/storage/constants.ts
+export const IN_PROGRESS_SELECTIONS_KEY = '##IN_PROGRESS_SELECTIONS##';
+export const SAVED_LEAGUES_KEY = 'leagues';
 
-// src/lib/storage/factory.ts
-export function createStorageAdapter(type: 'localStorage' | 'supabase'): StorageAdapter {
-  switch (type) {
-    case 'localStorage': return new LocalStorageAdapter();
-    case 'supabase': return new SupabaseStorageAdapter(); // Will implement later
-  }
+// src/lib/storage/utils/deepClone.ts
+export function deepClone<T>(value: T): T {
+  return typeof structuredClone === 'function'
+    ? structuredClone(value)
+    : JSON.parse(JSON.stringify(value));
 }
 ```
+- `src/lib/storage/migrations/*` – relocated migration utilities
+- `src/lib/storage/errors.ts` – `class StorageError extends Error { … }`
 
 #### Testing Criteria
-- [ ] All localStorage operations work through new interface
-- [ ] Async wrapping doesn't break existing functionality
-- [ ] Error handling provides meaningful messages
-- [ ] Factory function creates correct adapter type
-- [ ] MemoryStorageAdapter passes the same contract tests
-- [ ] Interface coverage test passes (guarantees no missing methods)
+- [x] All localStorage operations work through new interface
+- [x] Async wrapping doesn't break existing functionality
+- [x] Error handling provides meaningful messages
+- [x] Factory function creates correct adapter type
+- [x] MemoryStorageAdapter passes the same contract tests
+- [x] Interface coverage test passes (guarantees no missing methods)
+- **[NEW]** Behavioural round-trip tests pass for each adapter (save→load league)
+- **[NEW]** SSR fallback behaviour tested (factory returns memory adapter when `typeof window === 'undefined'`)
+
+#### Completed Deliverables
+- ✅ `src/types/storage.ts` – Centralized storage types with re-exports for backward compatibility
+- ✅ `src/lib/storage/localStorage.ts` – Complete LocalStorageAdapter with async wrapping and error handling
+- ✅ `src/lib/storage/memory.ts` – MemoryStorageAdapter for testing
+- ✅ `src/lib/storage/factory.ts` – Factory functions for adapter creation and type guards
+- ✅ `src/lib/storage/__tests__/adapter-contract.test.ts` – Comprehensive contract & behavioural tests (14/14 tests passing)
+- ✅ `src/lib/storage/index.ts` – Convenient re-exports for all storage components
 
 ### Step 1.3: Authentication Foundation
 **Estimated Time**: 6 hours

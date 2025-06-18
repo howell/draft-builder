@@ -1,12 +1,12 @@
 import { LeagueId, PlatformLeague } from '@/platforms/common';
-import { StoredLeaguesDataCurrent } from '@/app/storage/savedLeagueTypes';
 import { 
+  StoredLeaguesDataCurrent,
   StoredMocksDataCurrent, 
   StoredDraftDataCurrent,
   RosterSelections,
   EstimationSettingsState,
   SearchSettingsState
-} from '@/app/storage/savedMockTypes';
+} from '@/types/storage';
 
 /**
  * Storage abstraction interface that matches the current localStorage API
