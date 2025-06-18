@@ -27,10 +27,10 @@ This document provides a detailed, step-by-step implementation plan for adding S
 **Priority**: Critical
 
 #### Tasks
-- [ ] Design storage interface matching current localStorage API
-- [ ] Create comprehensive TypeScript types for all storage operations
-- [ ] Define error handling patterns and return types
-- [ ] Plan async conversion strategy for existing code
+- [x] Design storage interface matching current localStorage API
+- [x] Create comprehensive TypeScript types for all storage operations
+- [x] Define error handling patterns and return types
+- [x] Plan async conversion strategy for existing code
 
 #### Deliverables
 ```typescript
@@ -54,9 +54,23 @@ export interface StorageError {
 ```
 
 #### Testing Criteria
-- [ ] Interface covers all existing localStorage operations
-- [ ] TypeScript types prevent compilation errors
-- [ ] Error handling patterns defined consistently
+- [x] Interface covers all existing localStorage operations
+- [x] TypeScript types prevent compilation errors
+- [x] Error handling patterns defined consistently
+
+#### Completed Deliverables
+- ✅ `src/lib/storage/interface.ts` - Complete storage interface with comprehensive error handling
+- ✅ `design-docs/features/supabase-migration/async-conversion-strategy.md` - Detailed conversion strategy and patterns
+
+#### Post-Design Review Backlog (scheduled for later phases)
+- Preserve current function names and signatures during initial migration to minimize churn; dedicate a later **Interface Refinement** step (Phase 2) once test coverage is in place.
+- Track symmetry issues (`loadSavedMocks`/`saveMock`, potential `listDrafts`) for the same **Interface Refinement** step.
+- Evaluate converting `saveSelectedRoster` to an object-parameter signature to eliminate ordering bugs; schedule for the refinement step.
+- Decide on concurrency/optimistic-locking strategy (e.g. `version` or `etag` fields) before Supabase adapter work in **Phase 3**.
+- Determine whether `userId` should be injected via constructor or method context; document decision ahead of Supabase implementation.
+- Plan relocation of shared types now living under `app/storage/*` to a neutral `src/types/` package to avoid layer inversion (Phase 1 → Step 1.2 non-breaking move).
+- Add a lightweight in-memory `MemoryStorageAdapter` for Jest to enable adapter contract tests.
+- Add coverage test that enumerates existing synchronous storage utilities and asserts the Adapter exposes matching async methods (guards against drift).
 
 ### Step 1.2: localStorage-Based Implementation
 **Estimated Time**: 4 hours
@@ -68,6 +82,9 @@ export interface StorageError {
 - [ ] Convert synchronous localStorage calls to async (Promise.resolve)
 - [ ] Add error handling and logging for consistency
 - [ ] Create factory function for storage adapter selection
+- [ ] Move shared storage-related types from `app/storage` to `src/types` (non-breaking re-export to avoid circular deps)
+- [ ] Provide an in-memory `MemoryStorageAdapter` for tests
+- [ ] Write a contract test that compares the adapter's method list with legacy storage utilities to ensure full coverage
 
 #### Deliverables
 ```typescript
@@ -98,6 +115,8 @@ export function createStorageAdapter(type: 'localStorage' | 'supabase'): Storage
 - [ ] Async wrapping doesn't break existing functionality
 - [ ] Error handling provides meaningful messages
 - [ ] Factory function creates correct adapter type
+- [ ] MemoryStorageAdapter passes the same contract tests
+- [ ] Interface coverage test passes (guarantees no missing methods)
 
 ### Step 1.3: Authentication Foundation
 **Estimated Time**: 6 hours
