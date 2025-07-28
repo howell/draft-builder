@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import ApiClient from '@/app/api/ApiClient';
 import { CURRENT_SEASON } from '@/constants';
 import { PlatformLeague, SeasonId } from '@/platforms/common';
-import { IN_PROGRESS_SELECTIONS_KEY, loadLeaguesAsync, loadSavedMocksAsync } from '@/app/storage/localStorage';
+import { IN_PROGRESS_SELECTIONS_KEY, SAVED_LEAGUES_KEY, loadLeaguesAsync, loadSavedMocksAsync } from '@/app/storage/localStorage';
 import Link from 'next/link';
 import CollapsibleComponent from '@/ui/Collapsible';
 
@@ -146,7 +146,7 @@ const LeagueLayout = (
         
         window.addEventListener('storage', handleStorageChange);
         return () => window.removeEventListener('storage', handleStorageChange);
-    }, [loadLayoutData]);
+    }, [loadLayoutData, leagueID]);
 
 
 

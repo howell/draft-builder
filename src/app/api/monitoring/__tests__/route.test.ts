@@ -52,7 +52,10 @@ describe('/api/monitoring', () => {
       expect(response.status).toBe(200);
       expect(data).toEqual({
         timestamp: expect.any(String),
-        application_health: mockHealthData,
+        application_health: {
+          ...mockHealthData,
+          timestamp: mockHealthData.timestamp.toISOString() // Date gets serialized to string
+        },
         alert_system: mockAlertStats,
         note: 'Use Supabase Dashboard for database performance metrics'
       });

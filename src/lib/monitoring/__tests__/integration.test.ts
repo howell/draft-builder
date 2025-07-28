@@ -10,6 +10,12 @@ jest.mock('../../supabase', () => ({
   }
 }));
 
+// Mock fetch for webhook testing
+global.fetch = jest.fn();
+
+// Get the mocked supabase
+const { supabase: mockSupabase } = require('../../supabase');
+
 describe('Monitoring System Integration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -19,11 +25,8 @@ describe('Monitoring System Integration', () => {
     it('should detect and alert on application health issues', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
       
-      // Mock Supabase to simulate various failure scenarios
-      const { supabase } = require('../../supabase');
-      
       // Simulate RLS policy failure (potential security issue)
-      supabase.from.mockImplementation((table: string) => {
+      mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'leagues') {
           return {
             select: () => ({
@@ -43,7 +46,7 @@ describe('Monitoring System Integration', () => {
         };
       });
       
-      supabase.auth.getSession.mockResolvedValue({
+      mockSupabase.auth.getSession.mockResolvedValue({
         data: { session: null },
         error: null
       });
@@ -72,16 +75,14 @@ describe('Monitoring System Integration', () => {
     it('should track business operations through monitored client', async () => {
       const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
       
-      const { supabase } = require('../../supabase');
-      
       // Mock successful business operation
-      supabase.from.mockReturnValue({
-        insert: jest.fn().mockReturnValue({
-          then: jest.fn().mockResolvedValue({ 
-            data: [{ id: 'new-draft' }], 
-            error: null 
-          })
-        })
+      const insertPromise = Promise.resolve({ 
+        data: [{ id: 'new-draft' }], 
+        error: null 
+      });
+      
+      mockSupabase.from.mockReturnValue({
+        insert: jest.fn().mockReturnValue(insertPromise)
       });
 
       // Create monitored client
@@ -110,17 +111,15 @@ describe('Monitoring System Integration', () => {
     it('should alert on user experience issues', async () => {
       const alertSpy = jest.spyOn(AppAlertSystem, 'alertUserExperienceIssue');
       
-      const { supabase } = require('../../supabase');
-      
       // Mock slow operation (4 seconds)
       jest.spyOn(performance, 'now')
         .mockReturnValueOnce(0)
         .mockReturnValueOnce(4000);
       
-      supabase.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          then: jest.fn().mockResolvedValue({ data: [], error: null })
-        })
+      const selectPromise = Promise.resolve({ data: [], error: null });
+      
+      mockSupabase.from.mockReturnValue({
+        select: jest.fn().mockReturnValue(selectPromise)
       });
 
       const client = createAppSupabaseClient('test-user');
@@ -143,11 +142,10 @@ describe('Monitoring System Integration', () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
       
       // Simulate complete system failure
-      const { supabase } = require('../../supabase');
-      supabase.from.mockImplementation(() => {
+      mockSupabase.from.mockImplementation(() => {
         throw new Error('Database connection failed');
       });
-      supabase.auth.getSession.mockRejectedValue(new Error('Auth system down'));
+      mockSupabase.auth.getSession.mockRejectedValue(new Error('Auth system down'));
 
       // Health check should still complete and report status
       const health = await AppHealthMonitor.performHealthCheck();
@@ -276,8 +274,8 @@ describe('Monitoring System Integration', () => {
 
       const cleanup = AppHealthMonitor.startApplicationMonitoring(1000);
 
-      // Trigger monitoring cycle
-      jest.advanceTimersByTime(1000);
+      // Wait for initial check to complete
+      await jest.runOnlyPendingTimersAsync();
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
         '[APP_HEALTH_ALERT]',

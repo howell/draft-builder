@@ -33,7 +33,10 @@ describe('/api/health', () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data).toEqual(mockHealthData);
+    expect(data).toEqual({
+      ...mockHealthData,
+      timestamp: mockHealthData.timestamp.toISOString() // Date gets serialized to string in JSON
+    });
     expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
   });
 
@@ -55,7 +58,10 @@ describe('/api/health', () => {
     const data = await response.json();
 
     expect(response.status).toBe(206);
-    expect(data).toEqual(mockHealthData);
+    expect(data).toEqual({
+      ...mockHealthData,
+      timestamp: mockHealthData.timestamp.toISOString()
+    });
   });
 
   it('should return 503 status for unhealthy application', async () => {
@@ -76,7 +82,10 @@ describe('/api/health', () => {
     const data = await response.json();
 
     expect(response.status).toBe(503);
-    expect(data).toEqual(mockHealthData);
+    expect(data).toEqual({
+      ...mockHealthData,
+      timestamp: mockHealthData.timestamp.toISOString()
+    });
   });
 
   it('should return 503 status when health check throws error', async () => {

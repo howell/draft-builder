@@ -10,12 +10,8 @@ jest.mock('../../supabase', () => ({
   }
 }));
 
-const mockSupabase = {
-  from: jest.fn(),
-  auth: {
-    getSession: jest.fn()
-  }
-} as any;
+// Get the mocked supabase
+const { supabase: mockSupabase } = require('../../supabase');
 
 describe('AppHealthMonitor', () => {
   beforeEach(() => {
@@ -157,13 +153,11 @@ describe('AppHealthMonitor', () => {
     });
 
     it('should detect when critical tables are inaccessible', async () => {
-      let callCount = 0;
-      mockSupabase.from.mockReturnValue({
+      mockSupabase.from.mockImplementation((table: string) => ({
         select: jest.fn().mockReturnValue({
           limit: jest.fn().mockImplementation(() => {
-            callCount++;
-            if (callCount <= 2) {
-              // First two tables (users, leagues) work
+            if (table === 'users' || table === 'leagues') {
+              // First two tables work
               return Promise.resolve({ data: [], error: null });
             } else {
               // Remaining tables (draft_sessions, player_selections) fail
@@ -171,7 +165,7 @@ describe('AppHealthMonitor', () => {
             }
           })
         })
-      } as any);
+      } as any));
 
       const health = await AppHealthMonitor.performHealthCheck();
 
@@ -256,8 +250,8 @@ describe('AppHealthMonitor', () => {
       // Start monitoring
       const cleanup = AppHealthMonitor.startApplicationMonitoring(1000);
 
-      // Fast-forward time to trigger monitoring
-      jest.advanceTimersByTime(1000);
+      // Wait for initial check to complete
+      await jest.runOnlyPendingTimersAsync();
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
         '[APP_HEALTH_ALERT]',

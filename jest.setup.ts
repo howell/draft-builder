@@ -1,6 +1,46 @@
 import '@testing-library/jest-dom/matchers';
 import '@testing-library/jest-dom';
 
+// Web API polyfills for Next.js API routes
+import 'whatwg-fetch'; // Provides proper fetch, Request, Response, Headers
+
+// Ensure all Web APIs are available
+if (typeof global.Request === 'undefined') {
+  global.Request = require('whatwg-fetch').Request;
+}
+
+if (typeof global.Response === 'undefined') {
+  global.Response = require('whatwg-fetch').Response;
+}
+
+if (typeof global.Headers === 'undefined') {
+  global.Headers = require('whatwg-fetch').Headers;
+}
+
+// Mock NextResponse to work properly in Jest environment
+jest.mock('next/server', () => ({
+  NextResponse: {
+    json: jest.fn((body: any, init?: any) => {
+      const jsonString = JSON.stringify(body);
+      const mockResponse = new Response(jsonString, {
+        ...init,
+        headers: {
+          'Content-Type': 'application/json',
+          ...init?.headers
+        }
+      });
+      
+      // Add json method to the response instance that properly parses JSON
+      // This simulates the actual browser/Node.js Response.json() behavior
+      (mockResponse as any).json = jest.fn(() => {
+        return Promise.resolve(JSON.parse(jsonString));
+      });
+      
+      return mockResponse;
+    })
+  }
+}));
+
 // Mock global performance API for monitoring tests
 global.performance = {
   now: jest.fn(() => Date.now()),

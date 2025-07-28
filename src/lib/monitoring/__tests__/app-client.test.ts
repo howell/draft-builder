@@ -1,42 +1,53 @@
 import { AppSupabaseClient, createAppSupabaseClient } from '../app-client';
 import { AppAlertSystem } from '../app-alerts';
+import { 
+  createQueryMock, 
+  createQueryMockRejection,
+  createMockSupabaseClient,
+  PerformanceMockHelper,
+  ConsoleMockHelper,
+  setupTestMocks,
+  cleanupTestMocks
+} from '../test-helpers';
+
+// Mock Supabase
+jest.mock('../../supabase', () => ({
+  supabase: {
+    from: jest.fn(),
+    auth: {
+      getSession: jest.fn()
+    }
+  }
+}));
 
 // Mock the alert system
 jest.mock('../app-alerts');
 const mockAppAlertSystem = AppAlertSystem as jest.Mocked<typeof AppAlertSystem>;
 
 // Mock Supabase client
-const mockSupabaseClient = {
-  from: jest.fn(),
-  auth: { mock: 'auth' },
-  storage: { mock: 'storage' }
-};
+const mockSupabaseClient = createMockSupabaseClient();
 
 describe('AppSupabaseClient', () => {
   let client: AppSupabaseClient;
+  let performanceHelper: PerformanceMockHelper;
+  let consoleHelper: ConsoleMockHelper;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    setupTestMocks();
     client = new AppSupabaseClient(mockSupabaseClient as any, 'test-user-id');
-    
-    // Mock performance.now
-    jest.spyOn(performance, 'now')
-      .mockReturnValueOnce(0)
-      .mockReturnValueOnce(100); // 100ms duration
+    performanceHelper = new PerformanceMockHelper();
+    consoleHelper = new ConsoleMockHelper();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    cleanupTestMocks();
+    performanceHelper.restore();
+    consoleHelper.restoreAll();
   });
 
   describe('query wrapping', () => {
     it('should wrap SELECT queries with monitoring', async () => {
-      const mockQuery = {
-        select: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockReturnThis(),
-        then: jest.fn().mockResolvedValue({ data: [], error: null })
-      };
-
+      const mockQuery = createQueryMock({ data: [], error: null });
       mockSupabaseClient.from.mockReturnValue(mockQuery);
 
       const result = await client.from('leagues').select('*');
@@ -46,11 +57,7 @@ describe('AppSupabaseClient', () => {
     });
 
     it('should wrap INSERT queries with monitoring', async () => {
-      const mockQuery = {
-        insert: jest.fn().mockReturnThis(),
-        then: jest.fn().mockResolvedValue({ data: [{ id: 'new-league' }], error: null })
-      };
-
+      const mockQuery = createQueryMock({ data: [{ id: 'new-league' }], error: null });
       mockSupabaseClient.from.mockReturnValue(mockQuery);
 
       const result = await client.from('leagues').insert({ name: 'Test League' });
@@ -60,12 +67,7 @@ describe('AppSupabaseClient', () => {
     });
 
     it('should wrap UPDATE queries with monitoring', async () => {
-      const mockQuery = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        then: jest.fn().mockResolvedValue({ data: [{ id: 'updated-league' }], error: null })
-      };
-
+      const mockQuery = createQueryMock({ data: [{ id: 'updated-league' }], error: null });
       mockSupabaseClient.from.mockReturnValue(mockQuery);
 
       const result = await client.from('leagues').update({ name: 'Updated League' });
@@ -74,12 +76,7 @@ describe('AppSupabaseClient', () => {
     });
 
     it('should wrap DELETE queries with monitoring', async () => {
-      const mockQuery = {
-        delete: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        then: jest.fn().mockResolvedValue({ data: [], error: null })
-      };
-
+      const mockQuery = createQueryMock({ data: [], error: null });
       mockSupabaseClient.from.mockReturnValue(mockQuery);
 
       const result = await client.from('leagues').delete();
@@ -88,11 +85,7 @@ describe('AppSupabaseClient', () => {
     });
 
     it('should wrap UPSERT queries with monitoring', async () => {
-      const mockQuery = {
-        upsert: jest.fn().mockReturnThis(),
-        then: jest.fn().mockResolvedValue({ data: [{ id: 'upserted-league' }], error: null })
-      };
-
+      const mockQuery = createQueryMock({ data: [{ id: 'upserted-league' }], error: null });
       mockSupabaseClient.from.mockReturnValue(mockQuery);
 
       const result = await client.from('leagues').upsert({ id: 'test', name: 'Test League' });
@@ -104,15 +97,9 @@ describe('AppSupabaseClient', () => {
   describe('performance tracking', () => {
     it('should alert on slow operations (>3 seconds)', async () => {
       // Mock slow operation (3.5 seconds)
-      jest.spyOn(performance, 'now')
-        .mockReturnValueOnce(0)
-        .mockReturnValueOnce(3500);
+      performanceHelper.mockDuration(3500);
 
-      const mockQuery = {
-        select: jest.fn().mockReturnThis(),
-        then: jest.fn().mockResolvedValue({ data: [], error: null })
-      };
-
+      const mockQuery = createQueryMock({ data: [], error: null });
       mockSupabaseClient.from.mockReturnValue(mockQuery);
 
       await client.from('draft_sessions').select('*');
@@ -131,15 +118,9 @@ describe('AppSupabaseClient', () => {
 
     it('should not alert on fast operations', async () => {
       // Mock fast operation (100ms)
-      jest.spyOn(performance, 'now')
-        .mockReturnValueOnce(0)
-        .mockReturnValueOnce(100);
+      performanceHelper.mockDuration(100);
 
-      const mockQuery = {
-        select: jest.fn().mockReturnThis(),
-        then: jest.fn().mockResolvedValue({ data: [], error: null })
-      };
-
+      const mockQuery = createQueryMock({ data: [], error: null });
       mockSupabaseClient.from.mockReturnValue(mockQuery);
 
       await client.from('leagues').select('*');
@@ -148,19 +129,13 @@ describe('AppSupabaseClient', () => {
     });
 
     it('should alert on data save failures', async () => {
-      const saveError = new Error('Save failed');
-      const mockQuery = {
-        insert: jest.fn().mockReturnThis(),
-        then: jest.fn().mockRejectedValue(saveError)
-      };
-
+      const errorObj = { message: 'Save failed' };
+      const mockQuery = createQueryMockRejection(errorObj);
       mockSupabaseClient.from.mockReturnValue(mockQuery);
 
-      try {
-        await client.from('player_selections').insert({ player_id: 'test' });
-      } catch (error) {
-        // Expected to throw
-      }
+      await expect(
+        client.from('player_selections').insert({ player_id: 'test' })
+      ).rejects.toEqual(errorObj);
 
       expect(mockAppAlertSystem.alertUserExperienceIssue).toHaveBeenCalledWith({
         type: 'failed_data_save',
@@ -177,13 +152,9 @@ describe('AppSupabaseClient', () => {
 
   describe('business operation tracking', () => {
     it('should track critical business operations', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = consoleHelper.spyOnLog();
 
-      const mockQuery = {
-        insert: jest.fn().mockReturnThis(),
-        then: jest.fn().mockResolvedValue({ data: [{ id: 'new-user' }], error: null })
-      };
-
+      const mockQuery = createQueryMock({ data: [{ id: 'new-user' }], error: null });
       mockSupabaseClient.from.mockReturnValue(mockQuery);
 
       await client.from('users').insert({ email: 'test@example.com' });
@@ -197,8 +168,6 @@ describe('AppSupabaseClient', () => {
           success: true
         })
       );
-
-      consoleSpy.mockRestore();
     });
 
     it('should identify critical business operations correctly', () => {
@@ -217,21 +186,15 @@ describe('AppSupabaseClient', () => {
 
   describe('error handling and logging', () => {
     it('should log significant errors', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      const error = new Error('Database error');
-
-      const mockQuery = {
-        select: jest.fn().mockReturnThis(),
-        then: jest.fn().mockRejectedValue(error)
-      };
+      const consoleSpy = consoleHelper.spyOnLog();
+      const errorObj = { message: 'Database error' };
+      const mockQuery = createQueryMockRejection(errorObj);
 
       mockSupabaseClient.from.mockReturnValue(mockQuery);
 
-      try {
-        await client.from('leagues').select('*');
-      } catch (e) {
-        // Expected to throw
-      }
+      await expect(
+        client.from('leagues').select('*')
+      ).rejects.toEqual(errorObj);
 
       expect(consoleSpy).toHaveBeenCalledWith(
         '[APP_QUERY]',
@@ -243,23 +206,15 @@ describe('AppSupabaseClient', () => {
           error: 'Database error'
         })
       );
-
-      consoleSpy.mockRestore();
     });
 
     it('should log slow operations', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = consoleHelper.spyOnLog();
 
       // Mock slow operation (2.5 seconds)
-      jest.spyOn(performance, 'now')
-        .mockReturnValueOnce(0)
-        .mockReturnValueOnce(2500);
+      performanceHelper.mockDuration(2500);
 
-      const mockQuery = {
-        select: jest.fn().mockReturnThis(),
-        then: jest.fn().mockResolvedValue({ data: [], error: null })
-      };
-
+      const mockQuery = createQueryMock({ data: [], error: null });
       mockSupabaseClient.from.mockReturnValue(mockQuery);
 
       await client.from('leagues').select('*');
@@ -273,23 +228,15 @@ describe('AppSupabaseClient', () => {
           duration: '2500ms'
         })
       );
-
-      consoleSpy.mockRestore();
     });
 
     it('should not log fast successful operations', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = consoleHelper.spyOnLog();
 
       // Mock fast operation (100ms)
-      jest.spyOn(performance, 'now')
-        .mockReturnValueOnce(0)
-        .mockReturnValueOnce(100);
+      performanceHelper.mockDuration(100);
 
-      const mockQuery = {
-        select: jest.fn().mockReturnThis(),
-        then: jest.fn().mockResolvedValue({ data: [], error: null })
-      };
-
+      const mockQuery = createQueryMock({ data: [], error: null });
       mockSupabaseClient.from.mockReturnValue(mockQuery);
 
       await client.from('leagues').select('*');
@@ -299,8 +246,6 @@ describe('AppSupabaseClient', () => {
         '[APP_QUERY]',
         expect.any(Object)
       );
-
-      consoleSpy.mockRestore();
     });
   });
 
