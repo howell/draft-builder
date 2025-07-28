@@ -7,12 +7,14 @@ on:
       - 'src/lib/monitoring/**'
       - 'src/app/api/health/**'
       - 'src/app/api/monitoring/**'
+      - 'src/types/images.d.ts'
   pull_request:
     branches: [ main ]
     paths:
       - 'src/lib/monitoring/**'
       - 'src/app/api/health/**'
       - 'src/app/api/monitoring/**'
+      - 'src/types/images.d.ts'
 
 jobs:
   monitoring-tests:
@@ -56,7 +58,10 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Build application
+    - name: Build application with mock env vars
+      env:
+        NEXT_PUBLIC_SUPABASE_URL: https://mock-project-id.supabase.co
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vY2stcHJvamVjdC1pZCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNjQ0NTUzNjAwLCJleHAiOjE5NjAxMzM2MDB9.mock-signature-for-ci-build-only
       run: npm run build
 
     # Note: In a real CI/CD pipeline, you would:
