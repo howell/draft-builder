@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import ApiClient from './api/ApiClient';
 import LoadingScreen, { LoadingTask, LoadingTasks } from '@/ui/LoadingScreen';
 import { LeagueId, Platform, PlatformLeague, platformLogo } from '@/platforms/common';
-import { loadLeagues, saveLeague } from './storage/localStorage';
+import { loadLeaguesAsync, saveLeagueAsync } from './storage/localStorage';
 import Sidebar from '../ui/Sidebar';
 import { LeagueSubmitCallback } from './leagueInputs';
 import { activateLeague } from './navigation';
@@ -20,17 +20,29 @@ export default function Home() {
   const [submissionInProgress, setSubmissionInProgress] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>(new Set());
   const [availableLeagues, setAvailableLeagues] = useState<PlatformLeague[]>([]);
+  const [isLoadingLeagues, setIsLoadingLeagues] = useState(true);
 
   useEffect(() => {
-    const availableLeagues = loadLeagues();
-    setAvailableLeagues(Object.values(availableLeagues.leagues));
+    const loadData = async () => {
+      try {
+        setIsLoadingLeagues(true);
+        const availableLeagues = await loadLeaguesAsync();
+        setAvailableLeagues(Object.values(availableLeagues.leagues));
+      } catch (error) {
+        console.error('Failed to load leagues:', error);
+        setAvailableLeagues([]);
+      } finally {
+        setIsLoadingLeagues(false);
+      }
+    };
+    loadData();
   }, []);
 
   const handleSubmit: LeagueSubmitCallback = useCallback(async (league: PlatformLeague) => {
     if (submissionInProgress) return;
     try {
       setSubmissionInProgress(true);
-      await submitLeague(league, router, setLoadingTasks, saveLeague);
+      await submitLeague(league, router, setLoadingTasks, saveLeagueAsync);
     } finally {
       setSubmissionInProgress(false);
     }
@@ -42,7 +54,7 @@ export default function Home() {
   return (
   <LoadingScreen tasks={loadingTasks}>
       <main className="flex min-h-screen flex-col items-center pt-24 px-12 md:ml-44 ">
-        {availableLeagues.length > 0 && <Sidebar availableLeagues={availableLeagues} />}
+        {!isLoadingLeagues && availableLeagues.length > 0 && <Sidebar availableLeagues={availableLeagues} />}
         <div className="flex flex-col w-full">
           <h1 className="text-4xl text-center mb-4">Login With:</h1>
           <div className="mt-2 items-center max-w-prose">
@@ -63,7 +75,7 @@ export default function Home() {
 async function submitLeague(league: PlatformLeague,
   router: AppRouterInstance,
   setLoadingTasks: (tasks: LoadingTasks) => void,
-  saveLeague: (id: LeagueId, league: PlatformLeague) => void)
+  saveLeague: (id: LeagueId, league: PlatformLeague) => Promise<void>)
    {
   const client = new ApiClient(league);
   const request = client.findLeague();
@@ -79,7 +91,7 @@ async function submitLeague(league: PlatformLeague,
     return;
   }
 
-  saveLeague(league.id, league);
+  await saveLeague(league.id, league);
   activateLeague(league, router);
 }
 
