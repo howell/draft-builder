@@ -12,6 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Development Server Management
 - **IMPORTANT**: Always cleanly shut down the development server when finished
+- The development server may already be running: check before starting a new one
 - Use Ctrl+C to stop `npm run dev` properly
 - If processes become orphaned, find and kill them: `lsof -ti:3000 | xargs kill`
 - Check for running Next.js processes: `ps aux | grep next-server`
