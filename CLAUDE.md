@@ -10,6 +10,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run dev:stop` - Stop Supabase database
 - `npm run dev:reset` - Reset Supabase database to clean state
 
+### Development Server Management
+- **IMPORTANT**: Always cleanly shut down the development server when finished
+- Use Ctrl+C to stop `npm run dev` properly
+- If processes become orphaned, find and kill them: `lsof -ti:3000 | xargs kill`
+- Check for running Next.js processes: `ps aux | grep next-server`
+
 ### Database Operations
 - `npm run db:types` - Generate TypeScript types from Supabase schema
 - `supabase migration new <name>` - Create new database migration
