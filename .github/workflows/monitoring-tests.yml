@@ -1,0 +1,66 @@
+name: Monitoring System Tests
+
+on:
+  push:
+    branches: [ main, setup_db ]
+    paths:
+      - 'src/lib/monitoring/**'
+      - 'src/app/api/health/**'
+      - 'src/app/api/monitoring/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/lib/monitoring/**'
+      - 'src/app/api/health/**'
+      - 'src/app/api/monitoring/**'
+
+jobs:
+  monitoring-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run monitoring tests
+      run: npm run test:monitoring:basic
+
+    - name: Run type check
+      run: npm run type-check
+
+    - name: Run lint check  
+      run: npm run lint
+
+  health-check-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build application
+      run: npm run build
+
+    # Note: In a real CI/CD pipeline, you would:
+    # 1. Start a test Supabase instance
+    # 2. Run health check endpoint tests against it
+    # 3. Verify monitoring alerts are working
+    # For now, we test the monitoring logic without external dependencies

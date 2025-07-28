@@ -100,6 +100,11 @@ const config: Config = {
   // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader
   // modulePathIgnorePatterns: [],
 
+  // Transform ES modules from node_modules
+  transformIgnorePatterns: [
+    'node_modules/(?!(@supabase|@babel|@jest))'
+  ],
+
   // Activates notifications for test results
   // notify: false,
 

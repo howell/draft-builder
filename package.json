@@ -12,6 +12,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
+    "test:monitoring": "jest --testPathPattern=monitoring --verbose",
+    "test:monitoring:basic": "jest src/lib/monitoring/__tests__/basic-monitoring.test.ts src/lib/monitoring/__tests__/app-alerts.test.ts --verbose",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
