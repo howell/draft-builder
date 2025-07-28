@@ -670,49 +670,64 @@ useEffect(() => {
 - [ ] Error handling doesn't break user flow
 - [ ] No regressions in existing functionality
 
-### Step 2.2: Convert Draft Management Components
+### Step 2.2: Convert Draft Management Components ✅ COMPLETED
 **Estimated Time**: 10 hours
 **Dependencies**: Step 2.1 complete and tested
 **Priority**: High
 
 #### Tasks
-- [ ] Convert `MockTable.tsx` to async storage patterns
-- [ ] Update draft loading and saving logic
-- [ ] Add optimistic updates for better UX
-- [ ] Implement proper error recovery
+- [x] Convert `MockTable.tsx` to async storage patterns
+- [x] Update draft loading and saving logic
+- [x] Add optimistic updates for better UX
+- [x] Implement proper error recovery
 
-#### Target Component: MockTable
+#### Completed Deliverables
+- ✅ `src/app/league/[leagueID]/mocks/MockTable.tsx` - Fully converted to async storage patterns with:
+  - **Async Loading**: Draft data loading with proper loading states and error handling
+  - **Optimistic Updates**: Immediate UI updates with background autosave (500ms debounce)
+  - **Error Recovery**: Exponential backoff retry mechanism (up to 3 attempts)
+  - **Visual Feedback**: Loading spinners, save status indicators, and error messages
+  - **User Experience**: Non-blocking autosave with manual retry options
+
+#### Key Implementation Features
 ```typescript
-// src/app/league/[leagueID]/mocks/MockTable.tsx
-// High complexity conversion - roster selections, cost adjustments, etc.
-const [isLoadingDraft, setIsLoadingDraft] = useState(false);
-const [savingStatus, setSavingStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-
-const loadDraftData = useCallback(async () => {
-  if (!draftName) return;
-  
+// Async draft loading with error handling
+const loadDraftData = async () => {
   setIsLoadingDraft(true);
   try {
-    const draft = await storageAdapter.loadDraftByName(leagueId, draftName);
-    if (draft) {
-      setRosterSelections(draft.rosterSelections);
-      setCostAdjustments(new Map(Object.entries(draft.costAdjustments)));
-      setEstimationSettings(draft.estimationSettings);
-      setSearchSettings(draft.searchSettings);
-    }
+    const loadedDraft = await loadStoredDraftData(leagueId, draftName);
+    // Apply loaded data to state
   } catch (error) {
-    // Error handling
+    setDraftLoadError(error.message);
   } finally {
     setIsLoadingDraft(false);
   }
-}, [leagueId, draftName]);
+};
+
+// Optimistic autosave with retry logic
+const performAutosave = useCallback(async (attempt = 0) => {
+  try {
+    await storageAdapter.saveSelectedRoster(/* ... */);
+    setAutosaveStatus('saved');
+  } catch (error) {
+    if (attempt < 3) {
+      // Exponential backoff retry
+      setTimeout(() => performAutosave(attempt + 1), backoffMs);
+    } else {
+      setAutosaveStatus('error');
+    }
+  }
+}, [/* dependencies */]);
 ```
 
-#### Testing Criteria
-- [ ] Draft loading/saving works correctly
-- [ ] Optimistic updates feel responsive
-- [ ] Error states don't lose user data
-- [ ] All draft functionality preserved
+#### Testing Results
+- ✅ TypeScript compilation passes with no errors
+- ✅ Production build succeeds
+- ✅ Development server starts successfully
+- ✅ Draft loading/saving works correctly with async patterns
+- ✅ Optimistic updates provide responsive UX
+- ✅ Error recovery mechanisms function properly
+- ✅ All existing draft functionality preserved
 
 ### Step 2.3: Supabase Storage Implementation
 **Estimated Time**: 8 hours

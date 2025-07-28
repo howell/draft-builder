@@ -1,9 +1,11 @@
 'use client'
-import React, { useState, useEffect, } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import MockRosterEntry from './MockRosterEntry';
 import PlayerTable, { ColumnName } from '../drafts/[draftYear]/PlayerTable';
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer, CostEstimatedPlayer, RosterSlot, RosterSelections, SearchSettingsState, EstimationSettingsState, StoredDraftDataCurrent, Rankings, RankedPlayer, Ranking } from '@/app/storage/savedMockTypes';
-import { loadDraftByName, saveSelectedRoster, deleteRoster, IN_PROGRESS_SELECTIONS_KEY } from '@/app/storage/localStorage';
+import { getDefaultStorageAdapter } from '@/lib/storage/factory';
+import { IN_PROGRESS_SELECTIONS_KEY } from '@/lib/storage/constants';
+import { StorageError } from '@/lib/storage/interface';
 import SearchSettings, { SearchLabel } from './SearchSettings';
 import EstimationSettings from './EstimationSettings';
 import { compareLineupPositions } from '@/constants';
@@ -68,6 +70,13 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     const [costAdjustments, setCostAdjustments] = useState<Map<string, number>>(new Map())
     const [costPredictor, setCostPredictor] = useState<CostPredictor>(defaultCostPredictor);
     const [finishedLoading, setFinishedLoading] = useState(false);
+    const [isLoadingDraft, setIsLoadingDraft] = useState(false);
+    const [draftLoadError, setDraftLoadError] = useState<string | null>(null);
+    const [savingStatus, setSavingStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+    const [saveError, setSaveError] = useState<string | null>(null);
+    const [autosaveStatus, setAutosaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+    const [retryCount, setRetryCount] = useState(0);
+    const [lastAutosaveError, setLastAutosaveError] = useState<string | null>(null);
     const [lastFocusedRosterSlot, setLastFocusedRosterSlot] = useState<RosterSlot | undefined>(undefined);
     const [rosterSlots, _setRosterSlots] = useState<RosterSlot[]>(computeRosterSlots(positions));
     const [rosterSpots, _setRosterSpots] = useState(rosterSlots.length);
@@ -75,22 +84,107 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     const [currentRanking, setCurrentRanking] = useState<Ranking>(availableRankings[0]);
     const [rankedPlayers, setRankedPlayers] = useState<RankedPlayer[]>(() => rankPlayers(playerDb, currentRanking.value));
 
-    useEffect(() => { 
-        const loadedDraft = loadStoredDraftData(leagueId, draftName);
-        if (loadedDraft && loadedDraft.rosterSelections && loadedDraft.costAdjustments && loadedDraft.estimationSettings && loadedDraft.searchSettings) {
-            setRosterSelections(loadedDraft.rosterSelections);
-            setCostAdjustments(new Map(Object.entries(loadedDraft.costAdjustments)));
-            setEstimationSettings(loadedDraft.estimationSettings);
-            setSearchSettings(loadedDraft.searchSettings);
-        }
-        setFinishedLoading(true);
+    useEffect(() => {
+        const loadDraftData = async () => {
+            if (!draftName) {
+                setFinishedLoading(true);
+                return;
+            }
+            
+            setIsLoadingDraft(true);
+            setDraftLoadError(null);
+            
+            try {
+                const loadedDraft = await loadStoredDraftData(leagueId, draftName);
+                if (loadedDraft && loadedDraft.rosterSelections && loadedDraft.costAdjustments && loadedDraft.estimationSettings && loadedDraft.searchSettings) {
+                    setRosterSelections(loadedDraft.rosterSelections);
+                    setCostAdjustments(new Map(Object.entries(loadedDraft.costAdjustments)));
+                    setEstimationSettings(loadedDraft.estimationSettings);
+                    setSearchSettings(loadedDraft.searchSettings);
+                }
+            } catch (error) {
+                const errorMessage = error instanceof StorageError 
+                    ? error.message 
+                    : 'Failed to load draft data';
+                setDraftLoadError(errorMessage);
+                console.error('Error loading draft data:', error);
+            } finally {
+                setIsLoadingDraft(false);
+                setFinishedLoading(true);
+            }
+        };
+        
+        loadDraftData();
     }, [leagueId, draftName]);
+
+    const performAutosave = useCallback(async (attempt: number = 0) => {
+        const maxRetries = 3;
+        const backoffMs = Math.min(1000 * Math.pow(2, attempt), 8000); // Exponential backoff, max 8s
+        
+        try {
+            const storageAdapter = getDefaultStorageAdapter();
+            await storageAdapter.saveSelectedRoster(
+                leagueId, 
+                IN_PROGRESS_SELECTIONS_KEY, 
+                rosterSelections, 
+                Object.fromEntries(costAdjustments.entries()), 
+                estimationSettings, 
+                searchSettings
+            );
+            
+            // Success - reset retry count and show success
+            setRetryCount(0);
+            setLastAutosaveError(null);
+            setAutosaveStatus('saved');
+            
+            // Clear saved status after a brief moment
+            setTimeout(() => setAutosaveStatus('idle'), 1000);
+        } catch (error) {
+            const errorMessage = error instanceof StorageError 
+                ? error.message 
+                : 'Failed to autosave draft';
+            
+            setLastAutosaveError(errorMessage);
+            console.warn(`Autosave attempt ${attempt + 1} failed:`, error);
+            
+            if (attempt < maxRetries) {
+                // Retry with exponential backoff
+                setRetryCount(attempt + 1);
+                setAutosaveStatus('saving');
+                
+                setTimeout(() => {
+                    performAutosave(attempt + 1);
+                }, backoffMs);
+            } else {
+                // All retries exhausted
+                setAutosaveStatus('error');
+                setRetryCount(0);
+                
+                // Clear error status after longer period
+                setTimeout(() => setAutosaveStatus('idle'), 5000);
+            }
+        }
+    }, [leagueId, rosterSelections, costAdjustments, estimationSettings, searchSettings]);
 
     useEffect(() => {
         if (finishedLoading) {
-            saveSelectedRoster(leagueId, IN_PROGRESS_SELECTIONS_KEY, rosterSelections, Object.fromEntries(costAdjustments.entries()), estimationSettings, searchSettings);
+            // Optimistic update: Show saving status immediately
+            setAutosaveStatus('saving');
+            
+            // Autosave in-progress selections with debouncing
+            const timeoutId = setTimeout(async () => {
+                await performAutosave();
+            }, 500); // 500ms debounce
+            
+            return () => clearTimeout(timeoutId);
         }
-    }, [leagueId, rosterSelections, costAdjustments, estimationSettings, searchSettings, finishedLoading]);
+    }, [leagueId, rosterSelections, costAdjustments, estimationSettings, searchSettings, finishedLoading, performAutosave]);
+
+    const manualRetryAutosave = async () => {
+        setRetryCount(0);
+        setAutosaveStatus('saving');
+        await performAutosave();
+    };
 
     useEffect(() => {
         const nextPlayers = rankPlayers(playerDb, currentRanking.value);
@@ -210,16 +304,67 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
         setRosterSelections({});
     }
 
-    const saveRosterSelections = () => {
-        saveSelectedRoster(leagueId, rosterName, costAdjustedRosterSelections, Object.fromEntries(costAdjustments.entries()), estimationSettings, searchSettings);
-        alert('Roster selections saved!');
+    const saveRosterSelections = async () => {
+        if (!rosterName.trim()) {
+            alert('Please enter a roster name before saving.');
+            return;
+        }
+        
+        setSavingStatus('saving');
+        setSaveError(null);
+        
+        try {
+            const storageAdapter = getDefaultStorageAdapter();
+            await storageAdapter.saveSelectedRoster(
+                leagueId, 
+                rosterName, 
+                costAdjustedRosterSelections, 
+                Object.fromEntries(costAdjustments.entries()), 
+                estimationSettings, 
+                searchSettings
+            );
+            setSavingStatus('saved');
+            
+            // Show success feedback briefly
+            setTimeout(() => setSavingStatus('idle'), 2000);
+        } catch (error) {
+            const errorMessage = error instanceof StorageError 
+                ? error.message 
+                : 'Failed to save roster';
+            setSaveError(errorMessage);
+            setSavingStatus('error');
+            console.error('Error saving roster:', error);
+        }
     };
 
-    const deleteRosterSelections = () => {
-        deleteRoster(leagueId, rosterName);
-        resetRoster();
-        setRosterName('')
-        alert(`Deleted ${rosterName}`)
+    const deleteRosterSelections = async () => {
+        if (!rosterName.trim()) {
+            alert('Please enter a roster name to delete.');
+            return;
+        }
+        
+        if (!confirm(`Are you sure you want to delete "${rosterName}"? This action cannot be undone.`)) {
+            return;
+        }
+        
+        setSavingStatus('saving');
+        setSaveError(null);
+        
+        try {
+            const storageAdapter = getDefaultStorageAdapter();
+            await storageAdapter.deleteRoster(leagueId, rosterName);
+            resetRoster();
+            setRosterName('');
+            setSavingStatus('idle');
+            alert(`Deleted "${rosterName}" successfully.`);
+        } catch (error) {
+            const errorMessage = error instanceof StorageError 
+                ? error.message 
+                : 'Failed to delete roster';
+            setSaveError(errorMessage);
+            setSavingStatus('error');
+            console.error('Error deleting roster:', error);
+        }
     };
 
     const onCostAdjusted = (rosterSlot: RosterSlot, delta: number) => {
@@ -237,10 +382,49 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     }
 
 
+    // Show loading screen while draft is loading
+    if (isLoadingDraft) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-lg">Loading draft data...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Show error state if draft loading failed
+    if (draftLoadError) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="flex flex-col items-center gap-4 text-center">
+                    <div className="text-red-500 text-xl">⚠️</div>
+                    <p className="text-lg text-red-600">Failed to load draft data</p>
+                    <p className="text-sm text-gray-600">{draftLoadError}</p>
+                    <MockButton 
+                        onClick={() => window.location.reload()} 
+                        styles="text-white border-blue-600 bg-blue-600 hover:bg-blue-400"
+                    >
+                        Retry
+                    </MockButton>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col md:flex-row justify-evenly gap-8 p-2 mx-auto">
             <div className="md:ml-8">
-                <PrimaryHeading>Your Roster</PrimaryHeading>
+                <div className="flex items-center justify-between mb-4">
+                    <PrimaryHeading>Your Roster</PrimaryHeading>
+                    <AutosaveIndicator 
+                        status={autosaveStatus} 
+                        retryCount={retryCount}
+                        errorMessage={lastAutosaveError}
+                        onRetry={manualRetryAutosave}
+                    />
+                </div>
                 <table>
                     <thead>
                         <tr>
@@ -284,13 +468,41 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                             placeholder="Enter roster name"
                         />
                     </DarkLightText>
-                    <MockButton onClick={saveRosterSelections} styles="mt-2 text-white border-blue-600 bg-blue-600 hover:bg-blue-400">
-                        Save Roster
-                    </MockButton>
+                    <div className="flex items-center gap-2 mt-2">
+                        <MockButton 
+                            onClick={saveRosterSelections} 
+                            styles={`text-white border-blue-600 bg-blue-600 hover:bg-blue-400 ${
+                                savingStatus === 'saving' ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                            disabled={savingStatus === 'saving'}
+                        >
+                            {savingStatus === 'saving' ? (
+                                <span className="flex items-center gap-2">
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    Saving...
+                                </span>
+                            ) : savingStatus === 'saved' ? (
+                                'Saved ✓'
+                            ) : (
+                                'Save Roster'
+                            )}
+                        </MockButton>
+                    </div>
+                    {saveError && (
+                        <div className="text-red-500 text-sm mt-1">
+                            Error: {saveError}
+                        </div>
+                    )}
                 </div>
                 <div>
                     <ResetButton onClick={resetRoster} />
-                    <MockButton onClick={deleteRosterSelections} styles='border-red-600 bg-red-600 hover:bg-red-400 text-white mt-2 mx-2'>
+                    <MockButton 
+                        onClick={deleteRosterSelections} 
+                        styles={`border-red-600 bg-red-600 hover:bg-red-400 text-white mt-2 mx-2 ${
+                            savingStatus === 'saving' ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                        disabled={savingStatus === 'saving'}
+                    >
                         <i className="fas fa-trash" />
                     </MockButton>
                 </div>
@@ -415,9 +627,10 @@ function serializeRosterSlot(slot: RosterSlot): string {
     return JSON.stringify(slot);
 };
 
-function loadStoredDraftData(leagueID: LeagueId, draftName: string | undefined): StoredDraftDataCurrent | undefined {
+async function loadStoredDraftData(leagueID: LeagueId, draftName: string | undefined): Promise<StoredDraftDataCurrent | undefined> {
     const name = draftName === '' ? IN_PROGRESS_SELECTIONS_KEY : (draftName || IN_PROGRESS_SELECTIONS_KEY);
-    return loadDraftByName(leagueID, name);
+    const storageAdapter = getDefaultStorageAdapter();
+    return await storageAdapter.loadDraftByName(leagueID, name);
 }
 
 export function calculateAmountSpent(costEstimator: CostPredictor, rosterSpots: number, selectedPlayers: RankedPlayer[], adjustments: Map<string, number>): number {
@@ -443,10 +656,13 @@ type MockButtonProps = {
     onClick: () => void;
     styles?: string;
     children: React.ReactNode;
+    disabled?: boolean;
 };
 
 const MockButton: React.FC<MockButtonProps> = (props) => (
-    <button onClick={props.onClick}
+    <button 
+        onClick={props.disabled ? undefined : props.onClick}
+        disabled={props.disabled}
         className={'py-2 px-2 text-lg rounded-lg border-2 ' + (props.styles ?? '')}>
         {props.children}
     </button>
@@ -464,6 +680,77 @@ const ResetButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
 const PrimaryHeading: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <h1 className="text-2xl font-bold">{children}</h1>
 );
+
+interface AutosaveIndicatorProps {
+    status: 'idle' | 'saving' | 'saved' | 'error';
+    retryCount?: number;
+    errorMessage?: string | null;
+    onRetry?: () => void;
+}
+
+const AutosaveIndicator: React.FC<AutosaveIndicatorProps> = ({ 
+    status, 
+    retryCount = 0, 
+    errorMessage, 
+    onRetry 
+}) => {
+    if (status === 'idle') return null;
+    
+    const getStatusConfig = () => {
+        switch (status) {
+            case 'saving':
+                return {
+                    icon: <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>,
+                    text: retryCount > 0 ? `Retrying... (${retryCount}/3)` : 'Saving...',
+                    className: 'text-blue-600',
+                    showRetry: false
+                };
+            case 'saved':
+                return {
+                    icon: '✓',
+                    text: 'Saved',
+                    className: 'text-green-600',
+                    showRetry: false
+                };
+            case 'error':
+                return {
+                    icon: '⚠',
+                    text: 'Save failed',
+                    className: 'text-red-600',
+                    showRetry: true
+                };
+            default:
+                return null;
+        }
+    };
+    
+    const config = getStatusConfig();
+    if (!config) return null;
+    
+    return (
+        <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-1 text-sm ${config.className}`}>
+                {config.icon}
+                <span>{config.text}</span>
+            </div>
+            {config.showRetry && onRetry && (
+                <div className="flex flex-col items-end">
+                    <button
+                        onClick={onRetry}
+                        className="text-xs px-2 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded border"
+                    >
+                        Retry
+                    </button>
+                    {errorMessage && (
+                        <div className="text-xs text-red-500 mt-1 max-w-xs text-right">
+                            {errorMessage}
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
 
 export type RankingsMenuProps = {
     rankings: Ranking[];
