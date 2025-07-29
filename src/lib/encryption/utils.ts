@@ -29,6 +29,18 @@ const ALGORITHM = 'aes-256-cbc';
 const IV_LENGTH = 16; // CBC IV length
 
 /**
+ * Validate encryption setup on app startup
+ */
+function validateEncryptionSetup(): void {
+  if (process.env.NODE_ENV === 'production' && !process.env.ENCRYPTION_KEY) {
+    throw new Error('ENCRYPTION_KEY environment variable is required in production');
+  }
+}
+
+// Run validation when module is imported
+validateEncryptionSetup();
+
+/**
  * Get encryption key from environment or generate a default one
  * In production, this should come from a secure environment variable
  */
