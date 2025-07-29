@@ -1,7 +1,7 @@
 'use client'
 import { PlatformLeague, SeasonId } from '@/platforms/common';
 import React, { useEffect, useState } from 'react';
-import { loadLeagues } from '../storage/localStorage';
+import { loadLeaguesAsync } from '../storage/localStorage';
 import Sidebar from '@/ui/Sidebar';
 import MockTable, { MockTableProps } from '../league/[leagueID]/mocks/MockTable';
 import { DraftAnalysis, Rankings, } from '../storage/savedMockTypes';
@@ -9,16 +9,41 @@ import { DraftAnalysis, Rankings, } from '../storage/savedMockTypes';
 
 export default function Demo() {
   const [availableLeagues, setAvailableLeagues] = useState<PlatformLeague[]>([]);
+  const [isLoadingLeagues, setIsLoadingLeagues] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const availableLeagues = loadLeagues();
-    setAvailableLeagues(Object.values(availableLeagues.leagues));
+    const loadData = async () => {
+      try {
+        setIsLoadingLeagues(true);
+        setError(null);
+        const availableLeaguesData = await loadLeaguesAsync();
+        setAvailableLeagues(Object.values(availableLeaguesData.leagues));
+      } catch (error) {
+        console.error('Failed to load leagues for demo:', error);
+        setError('Failed to load leagues');
+        setAvailableLeagues([]);
+      } finally {
+        setIsLoadingLeagues(false);
+      }
+    };
+    loadData();
   }, []);
 
   return (
         <div className='flex flex-col md:flex-row'>
-            {availableLeagues.length > 0 && <Sidebar availableLeagues={availableLeagues} />}
+            {!isLoadingLeagues && !error && availableLeagues.length > 0 && <Sidebar availableLeagues={availableLeagues} />}
             <main className="flex-1 p-4">
+                {isLoadingLeagues ? (
+                    <div className="text-center p-8">
+                        <div className="text-lg text-gray-600">Loading demo...</div>
+                    </div>
+                ) : error ? (
+                    <div className="text-center p-8">
+                        <div className="text-lg text-red-600">Error: {error}</div>
+                        <div className="text-sm text-gray-500 mt-2">Demo will continue with limited functionality</div>
+                    </div>
+                ) : null}
                 <MockTable {...demoTableProps} />
             </main>
         </div>

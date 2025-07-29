@@ -1,6 +1,6 @@
 'use client';
 import ApiClient from '@/app/api/ApiClient';
-import { loadLeague } from '@/app/storage/localStorage';
+import { loadLeagueAsync } from '@/app/storage/localStorage';
 import { CURRENT_SEASON } from '@/constants';
 import { isLeagueId } from '@/platforms/common';
 import { LeagueInfo } from '@/platforms/PlatformApi';
@@ -25,7 +25,7 @@ export default function LeaguePage(props: Readonly<{ params: Promise<{ leagueID:
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const league = loadLeague(leagueID);
+                const league = await loadLeagueAsync(leagueID);
                 if (!league) {
                     setError('Could not load league; please try logging in again');
                     return;

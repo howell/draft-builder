@@ -10,7 +10,7 @@ import { SearchSettingsState } from '@/app/storage/savedMockTypes';
 import SearchSettings from '../../mocks/SearchSettings';
 import CollapsibleComponent from '@/ui/Collapsible';
 import TabContainer, { TabChild, TabTitle } from '@/ui/TabContainer';
-import { loadLeague } from '@/app/storage/localStorage';
+import { loadLeagueAsync } from '@/app/storage/localStorage';
 import { isLeagueId, isSeasonId, LeagueId, SeasonId } from '@/platforms/common';
 // Dynamically import PlayerScatterChart with no SSR
 const PlayerScatterChart = dynamic(() => import('./PlayerScatterChart'), { ssr: false });
@@ -149,7 +149,7 @@ async function fetchData(leagueID: LeagueId,
     setDefaultSearchSettings: (settings: SearchSettingsState) => void,
     setPositionGraphs: (graphs: TabChild[]) => void) {
     try {
-        const league = loadLeague(leagueID);
+        const league = await loadLeagueAsync(leagueID);
         if (!league) {
             setError('Could not load league; please try logging in again');
             return;

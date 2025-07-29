@@ -9,7 +9,7 @@ import LoadingScreen, { LoadingTask, LoadingTasks, TaskStatusChecker } from "@/u
 import ErrorScreen from "@/ui/ErrorScreen";
 import { CURRENT_SEASON } from "@/constants";
 import { findBestRegression } from "../../analytics";
-import { loadLeague } from "@/app/storage/localStorage";
+import { loadLeagueAsync } from "@/app/storage/localStorage";
 import { LeagueId, Platform, PlatformLeague, SeasonId } from "@/platforms/common";
 import RankingsClient from "@/rankings/RankingsClient";
 
@@ -59,7 +59,7 @@ async function fetchData(leagueID: LeagueId,
 {
     let finished = false;
     try {
-        const league = loadLeague(leagueID);
+        const league = await loadLeagueAsync(leagueID);
         if (!league) {
             setError('Could not load league; please try logging in again');
             return;
