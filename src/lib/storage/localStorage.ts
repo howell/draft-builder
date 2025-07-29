@@ -38,6 +38,23 @@ export class LocalStorageAdapter implements StorageAdapter {
   }
 
   /**
+   * Validate league data structure
+   */
+  private validateLeagueData(data: any): boolean {
+    if (!data || typeof data !== 'object') return false;
+    if (!data.schemaVersion || !data.leagues || typeof data.leagues !== 'object') return false;
+    
+    // Validate each league has required properties
+    for (const [leagueId, league] of Object.entries(data.leagues)) {
+      if (!league || typeof league !== 'object') return false;
+      const l = league as any;
+      if (!l.platform || !l.id || l.platform === null || l.id === null) return false;
+    }
+    
+    return true;
+  }
+
+  /**
    * Load all saved leagues for the current user
    */
   async loadLeagues(): Promise<StoredLeaguesDataCurrent> {
@@ -52,6 +69,12 @@ export class LocalStorageAdapter implements StorageAdapter {
       }
 
       let storedLeagues = JSON.parse(stored);
+      
+      // Validate the parsed data structure
+      if (!this.validateLeagueData(storedLeagues)) {
+        throw new Error('Corrupted league data detected');
+      }
+      
       if (storedLeagues && storedLeagues.schemaVersion !== CURRENT_LEAGUES_SCHEMA_VERSION) {
         storedLeagues = migrateLeagues(storedLeagues);
         if (storedLeagues) {

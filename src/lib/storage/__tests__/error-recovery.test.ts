@@ -315,7 +315,7 @@ describe('Error Scenario and Recovery Tests', () => {
         throw new Error('Transformation failed');
       });
       
-      await expect(adapter.loadLeagues()).rejects.toThrow('Network connection failed');
+      await expect(adapter.loadLeagues()).rejects.toThrow('Database operation failed: loadLeagues');
       
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         expect.stringContaining('[SupabaseStorage] Error in loadLeagues:'),

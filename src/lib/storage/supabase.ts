@@ -63,24 +63,46 @@ export class SupabaseStorageAdapter implements StorageAdapter {
   }
 
   /**
+   * Check if an error is retryable
+   */
+  private isRetryableError(error: any): boolean {
+    // Don't retry on authentication/authorization errors
+    if (error?.code === '42501' || error?.message?.includes('RLS')) {
+      return false;
+    }
+    
+    // Don't retry on JWT errors  
+    if (error?.code === 'PGRST301') {
+      return false;
+    }
+    
+    // Retry on network/connection errors and other transient failures
+    return true;
+  }
+
+  /**
    * Retry wrapper for database operations
    */
   private async withRetry<T>(
     operation: string,
     fn: () => Promise<T>,
+    context?: { leagueId?: LeagueId; rosterName?: string },
     attempt = 0
   ): Promise<T> {
     try {
       return await fn();
     } catch (error) {
-      if (attempt < this.retryConfig.maxRetries) {
+      // Check if error is retryable before attempting retry
+      if (attempt < this.retryConfig.maxRetries && this.isRetryableError(error)) {
         const delay = this.retryConfig.backoffMs * Math.pow(2, attempt);
         console.warn(`[SupabaseStorage] Retrying ${operation} after ${delay}ms (attempt ${attempt + 1}/${this.retryConfig.maxRetries})`);
         
         await new Promise(resolve => setTimeout(resolve, delay));
-        return this.withRetry(operation, fn, attempt + 1);
+        return this.withRetry(operation, fn, context, attempt + 1);
       }
-      throw error;
+      
+      // All retries exhausted or non-retryable error - convert to StorageError
+      this.handleError(operation, error, context);
     }
   }
 
@@ -114,18 +136,14 @@ export class SupabaseStorageAdapter implements StorageAdapter {
    */
   async loadLeagues(): Promise<StoredLeaguesDataCurrent> {
     return this.withRetry('loadLeagues', async () => {
-      try {
-        const { data, error } = await this.supabase
-          .from('leagues')
-          .select('*')
-          .eq('user_id', this.userId);
+      const { data, error } = await this.supabase
+        .from('leagues')
+        .select('*')
+        .eq('user_id', this.userId);
 
-        if (error) throw error;
+      if (error) throw error;
 
-        return transformLeaguesFromDatabase(data || []);
-      } catch (error) {
-        this.handleError('loadLeagues', error);
-      }
+      return transformLeaguesFromDatabase(data || []);
     });
   }
 
@@ -134,34 +152,30 @@ export class SupabaseStorageAdapter implements StorageAdapter {
    */
   async saveLeague(leagueId: LeagueId, league: PlatformLeague): Promise<void> {
     return this.withRetry('saveLeague', async () => {
-      try {
-        const leagueData = transformLeagueToDatabase(leagueId, league, this.userId);
-        
-        // Handle ESPN auth encryption if present
-        let authDataEncrypted: string | null = null;
-        if (league.platform === 'espn' && 'auth' in league && league.auth) {
-          // ESPN auth has espnS2 and swid properties, convert to cookies format
-          const espnAuthData = league.auth as PlatformEspnAuth;
-          const espnAuth: import('../encryption/utils').EspnAuth = { 
-            cookies: `espn_s2=${espnAuthData.espnS2 || ''}; SWID=${espnAuthData.swid || ''}` 
-          };
-          const encrypted = await encryptEspnAuth(espnAuth);
-          authDataEncrypted = encrypted.toString('base64');
-        }
-
-        const { error } = await this.supabase
-          .from('leagues')
-          .upsert({
-            ...leagueData,
-            auth_data_encrypted: authDataEncrypted
-          }, {
-            onConflict: 'user_id,league_id,platform'
-          });
-
-        if (error) throw error;
-      } catch (error) {
-        this.handleError('saveLeague', error, { leagueId });
+      const leagueData = transformLeagueToDatabase(leagueId, league, this.userId);
+      
+      // Handle ESPN auth encryption if present
+      let authDataEncrypted: string | null = null;
+      if (league.platform === 'espn' && 'auth' in league && league.auth) {
+        // ESPN auth has espnS2 and swid properties, convert to cookies format
+        const espnAuthData = league.auth as PlatformEspnAuth;
+        const espnAuth: import('../encryption/utils').EspnAuth = { 
+          cookies: `espn_s2=${espnAuthData.espnS2 || ''}; SWID=${espnAuthData.swid || ''}` 
+        };
+        const encrypted = await encryptEspnAuth(espnAuth);
+        authDataEncrypted = encrypted.toString('base64');
       }
+
+      const { error } = await this.supabase
+        .from('leagues')
+        .upsert({
+          ...leagueData,
+          auth_data_encrypted: authDataEncrypted
+        }, {
+          onConflict: 'user_id,league_id,platform'
+        });
+
+      if (error) throw error;
     });
   }
 
