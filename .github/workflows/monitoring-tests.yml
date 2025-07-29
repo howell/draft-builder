@@ -60,6 +60,7 @@ jobs:
 
     - name: Build application with mock env vars
       env:
+        ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
         NEXT_PUBLIC_SUPABASE_URL: https://mock-project-id.supabase.co
         NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vY2stcHJvamVjdC1pZCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNjQ0NTUzNjAwLCJleHAiOjE5NjAxMzM2MDB9.mock-signature-for-ci-build-only
       run: npm run build
