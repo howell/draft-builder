@@ -70,11 +70,14 @@ export class StorageError extends Error {
    * Returns a JSON representation of the error for logging
    */
   toJSON() {
+    // Handle circular references in context by creating a safe copy
+    const safeContext = this.safeCopyContext(this.context);
+    
     return {
       name: this.name,
       message: this.message,
       code: this.code,
-      context: this.context,
+      context: safeContext,
       originalError: this.originalError ? {
         message: this.originalError.message || String(this.originalError),
         name: this.originalError.name,
@@ -82,6 +85,36 @@ export class StorageError extends Error {
       } : undefined,
       stack: this.stack
     };
+  }
+
+  /**
+   * Creates a safe copy of context, handling circular references
+   */
+  private safeCopyContext(obj: any, seen = new WeakSet()): any {
+    if (obj === null || typeof obj !== 'object') {
+      return obj;
+    }
+    
+    if (seen.has(obj)) {
+      return '[Circular Reference]';
+    }
+    
+    seen.add(obj);
+    
+    if (obj instanceof Date) {
+      return obj.toISOString();
+    }
+    
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.safeCopyContext(item, seen));
+    }
+    
+    const result: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = this.safeCopyContext(value, seen);
+    }
+    
+    return result;
   }
 
   /**

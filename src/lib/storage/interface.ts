@@ -7,6 +7,8 @@ import {
   EstimationSettingsState,
   SearchSettingsState
 } from '@/types/storage';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/database.types';
 
 /**
  * Storage abstraction interface that matches the current localStorage API
@@ -96,8 +98,10 @@ export type StorageAdapterFactory = () => StorageAdapter;
  */
 export interface StorageConfig {
   /** Type of storage backend to use */
-  type: 'localStorage' | 'supabase';
-  /** Optional user ID for multi-user storage backends */
+  type: 'localStorage' | 'supabase' | 'memory';
+  /** Supabase client for database operations (required for supabase type) */
+  supabase?: SupabaseClient<Database>;
+  /** User ID for multi-user storage backends (required for supabase type) */
   userId?: string;
   /** Optional encryption key for sensitive data */
   encryptionKey?: string;

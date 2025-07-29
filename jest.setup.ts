@@ -61,6 +61,14 @@ global.crypto = {
   randomUUID: jest.fn(() => 'test-uuid-12345'),
 } as any;
 
+// Polyfill setImmediate for jsdom environment (used in async tests)
+if (typeof global.setImmediate === 'undefined') {
+  global.setImmediate = jest.fn((fn: Function) => {
+    setTimeout(fn, 0);
+    return {} as any;
+  }) as any;
+}
+
 // Mock Supabase modules to avoid ES module issues
 jest.mock('@supabase/supabase-js', () => ({
   createClient: jest.fn(() => ({

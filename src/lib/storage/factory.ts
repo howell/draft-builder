@@ -1,6 +1,8 @@
 import { StorageAdapter, StorageConfig, createStorageError } from './interface';
 import { LocalStorageAdapter } from './localStorage';
 import { MemoryStorageAdapter } from './memory';
+import { SupabaseStorageAdapter } from './supabase';
+import { supabase } from '@/lib/supabase';
 
 /**
  * Factory function to create storage adapters based on configuration
@@ -20,24 +22,19 @@ export function createStorageAdapter(config?: StorageConfig): StorageAdapter {
     case 'localStorage':
       return new LocalStorageAdapter();
     
+    case 'memory':
+      return new MemoryStorageAdapter();
+    
     case 'supabase':
-      // TODO: Implement in Phase 3
-      // Wire unused config options for future use:
-      if (config?.userId) {
-        console.warn('[Storage] userId will be used in Supabase implementation (Phase 3)');
+      if (!config?.supabase || !config?.userId || typeof config.supabase !== 'object' || typeof config.supabase.from !== 'function') {
+        throw createStorageError(
+          'AUTH_ERROR',
+          'Supabase client and userId are required for supabase adapter',
+          undefined,
+          { operation: 'createStorageAdapter' }
+        );
       }
-      if (config?.encryptionKey) {
-        console.warn('[Storage] encryptionKey will be used for ESPN auth encryption (Phase 3)');
-      }
-      if (config?.retryConfig) {
-        console.warn('[Storage] retryConfig will be used for network error handling (Phase 3)');
-      }
-      throw createStorageError(
-        'NOT_AVAILABLE_SSR',
-        'Supabase storage adapter not yet implemented',
-        undefined,
-        { operation: 'createStorageAdapter' }
-      );
+      return new SupabaseStorageAdapter(config.supabase, config.userId, config);
     
     default:
       throw createStorageError(
@@ -88,4 +85,11 @@ export function isMemoryAdapter(adapter: StorageAdapter): adapter is MemoryStora
  */
 export function isLocalStorageAdapter(adapter: StorageAdapter): adapter is LocalStorageAdapter {
   return adapter instanceof LocalStorageAdapter;
+}
+
+/**
+ * Type guard to check if an adapter is the Supabase adapter
+ */
+export function isSupabaseAdapter(adapter: StorageAdapter): adapter is SupabaseStorageAdapter {
+  return adapter instanceof SupabaseStorageAdapter;
 } 

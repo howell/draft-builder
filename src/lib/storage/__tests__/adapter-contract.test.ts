@@ -1,6 +1,7 @@
 import { StorageAdapter } from '../interface';
 import { LocalStorageAdapter } from '../localStorage';
 import { MemoryStorageAdapter } from '../memory';
+import { SupabaseStorageAdapter } from '../supabase';
 import { createTestStorageAdapter, createStorageAdapter } from '../factory';
 
 // Import the original localStorage functions to check against
@@ -147,8 +148,26 @@ describe('Storage Adapter Contract', () => {
       expect(adapter).toBeInstanceOf(MemoryStorageAdapter);
     });
 
-    it('should throw error for unimplemented supabase adapter', () => {
-      expect(() => createStorageAdapter({ type: 'supabase' })).toThrow();
+    it('should create supabase adapter when properly configured', () => {
+      // Mock Supabase client and user
+      const mockSupabase = { from: jest.fn() };
+      const mockUser = { id: 'test-user' };
+      
+      const adapter = createStorageAdapter({ 
+        type: 'supabase', 
+        supabase: mockSupabase as any,
+        userId: 'test-user'
+      });
+      
+      expect(adapter).toBeInstanceOf(SupabaseStorageAdapter);
+    });
+
+    it('should throw error for supabase adapter without required config', () => {
+      expect(() => createStorageAdapter({ type: 'supabase' })).toThrow(/Supabase client and userId are required/);
+      expect(() => createStorageAdapter({ 
+        type: 'supabase', 
+        supabase: { from: jest.fn() } as any 
+      })).toThrow(/Supabase client and userId are required/);
     });
 
     it('should throw error for unknown adapter type', () => {

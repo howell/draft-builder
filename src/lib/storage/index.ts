@@ -18,9 +18,30 @@ export { migrateMocks, migrateLeagues } from './migrations';
 // Utility functions
 export { deepClone } from './utils/deepClone';
 
+// Encryption utilities (for Supabase adapter)
+export { encryptEspnAuth, decryptEspnAuth, testEncryption, generateEncryptionKey } from '../encryption/utils';
+export type { EspnAuth, EncryptedData } from '../encryption/utils';
+
+// Data transformation utilities (for Supabase adapter)
+export { 
+  transformLeaguesFromDatabase,
+  transformLeagueToDatabase,
+  transformMocksFromDatabase,
+  transformDraftToDatabase,
+  createLeagueQuery
+} from './transforms';
+export type {
+  DatabaseLeague,
+  DatabaseDraftSession,
+  DatabaseDraftSettings,
+  DatabasePlayerSelection,
+  DatabaseCostAdjustment
+} from './transforms';
+
 // Storage adapter implementations
 export { LocalStorageAdapter } from './localStorage';
 export { MemoryStorageAdapter } from './memory';
+export { SupabaseStorageAdapter } from './supabase';
 
 // Factory functions
 export { 
@@ -28,7 +49,8 @@ export {
   createTestStorageAdapter, 
   getDefaultStorageAdapter,
   isMemoryAdapter,
-  isLocalStorageAdapter 
+  isLocalStorageAdapter,
+  isSupabaseAdapter
 } from './factory';
 
 // Re-export storage types for convenience
