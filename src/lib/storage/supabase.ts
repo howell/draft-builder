@@ -11,6 +11,7 @@ import {
   createStorageError,
   type StorageConfig
 } from './interface';
+import { LocalStorageAdapter } from './localStorage';
 import {
   StoredLeaguesDataCurrent,
   StoredMocksDataCurrent,
@@ -53,13 +54,20 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
  */
 export class SupabaseStorageAdapter implements StorageAdapter {
   private readonly retryConfig: RetryConfig;
+  private readonly fallbackAdapter?: LocalStorageAdapter;
 
   constructor(
     private readonly supabase: SupabaseClient<Database>,
     private readonly userId: string,
-    config?: Partial<StorageConfig>
+    private readonly options?: { 
+      fallbackToLocalStorage?: boolean;
+      retryConfig?: Partial<RetryConfig>;
+    }
   ) {
-    this.retryConfig = config?.retryConfig || DEFAULT_RETRY_CONFIG;
+    this.retryConfig = { ...DEFAULT_RETRY_CONFIG, ...options?.retryConfig };
+    if (options?.fallbackToLocalStorage) {
+      this.fallbackAdapter = new LocalStorageAdapter();
+    }
   }
 
   /**
@@ -132,59 +140,104 @@ export class SupabaseStorageAdapter implements StorageAdapter {
   }
 
   /**
+   * Execute operation with fallback to localStorage if enabled
+   */
+  private async withFallback<T>(
+    operation: string,
+    supabaseOperation: () => Promise<T>,
+    fallbackOperation?: () => Promise<T>,
+    context?: { leagueId?: LeagueId; rosterName?: string }
+  ): Promise<T> {
+    try {
+      return await this.withRetry(operation, supabaseOperation, context);
+    } catch (error) {
+      if (this.fallbackAdapter && fallbackOperation) {
+        console.warn(`[SupabaseStorage] Supabase unavailable, falling back to localStorage for ${operation}`);
+        try {
+          return await fallbackOperation();
+        } catch (fallbackError) {
+          console.error(`[SupabaseStorage] Fallback also failed for ${operation}:`, fallbackError);
+          // Throw the original Supabase error, not the fallback error
+          throw error;
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Load all saved leagues for the current user
    */
   async loadLeagues(): Promise<StoredLeaguesDataCurrent> {
-    return this.withRetry('loadLeagues', async () => {
-      const { data, error } = await this.supabase
-        .from('leagues')
-        .select('*')
-        .eq('user_id', this.userId);
+    return this.withFallback(
+      'loadLeagues',
+      async () => {
+        const { data, error } = await this.supabase
+          .from('leagues')
+          .select('*')
+          .eq('user_id', this.userId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      return transformLeaguesFromDatabase(data || []);
-    });
+        return transformLeaguesFromDatabase(data || []);
+      },
+      () => this.fallbackAdapter!.loadLeagues()
+    );
   }
 
   /**
    * Save a league configuration
    */
   async saveLeague(leagueId: LeagueId, league: PlatformLeague): Promise<void> {
-    return this.withRetry('saveLeague', async () => {
-      const leagueData = transformLeagueToDatabase(leagueId, league, this.userId);
-      
-      // Handle ESPN auth encryption if present
-      let authDataEncrypted: string | null = null;
-      if (league.platform === 'espn' && 'auth' in league && league.auth) {
-        // ESPN auth has espnS2 and swid properties, convert to cookies format
-        const espnAuthData = league.auth as PlatformEspnAuth;
-        const espnAuth: import('../encryption/utils').EspnAuth = { 
-          cookies: `espn_s2=${espnAuthData.espnS2 || ''}; SWID=${espnAuthData.swid || ''}` 
-        };
-        const encrypted = await encryptEspnAuth(espnAuth);
-        authDataEncrypted = encrypted.toString('base64');
-      }
+    return this.withFallback(
+      'saveLeague',
+      async () => {
+        const leagueData = transformLeagueToDatabase(leagueId, league, this.userId);
+        
+        // Handle ESPN auth encryption if present
+        let authDataEncrypted: string | null = null;
+        if (league.platform === 'espn' && 'auth' in league && league.auth) {
+          // ESPN auth has espnS2 and swid properties, convert to cookies format
+          const espnAuthData = league.auth as PlatformEspnAuth;
+          const espnAuth: import('../encryption/utils').EspnAuth = { 
+            cookies: `espn_s2=${espnAuthData.espnS2 || ''}; SWID=${espnAuthData.swid || ''}` 
+          };
+          const encrypted = await encryptEspnAuth(espnAuth);
+          authDataEncrypted = encrypted.toString('base64');
+        }
 
-      const { error } = await this.supabase
-        .from('leagues')
-        .upsert({
-          ...leagueData,
-          auth_data_encrypted: authDataEncrypted
-        }, {
-          onConflict: 'user_id,league_id,platform'
-        });
+        const { error } = await this.supabase
+          .from('leagues')
+          .upsert({
+            ...leagueData,
+            auth_data_encrypted: authDataEncrypted
+          }, {
+            onConflict: 'user_id,league_id,platform'
+          });
 
-      if (error) throw error;
-    });
+        if (error) throw error;
+      },
+      () => {
+        // Note: ESPN auth data will be lost in localStorage fallback
+        if (league.platform === 'espn' && 'auth' in league && league.auth) {
+          console.warn('[SupabaseStorage] ESPN auth data cannot be encrypted in localStorage fallback');
+          // Create a copy without auth for localStorage
+          const { auth, ...leagueWithoutAuth } = league as any;
+          return this.fallbackAdapter!.saveLeague(leagueId, leagueWithoutAuth);
+        }
+        return this.fallbackAdapter!.saveLeague(leagueId, league);
+      },
+      { leagueId }
+    );
   }
 
   /**
    * Load a single league by ID
    */
   async loadLeague(leagueId: LeagueId): Promise<PlatformLeague | undefined> {
-    return this.withRetry('loadLeague', async () => {
-      try {
+    return this.withFallback(
+      'loadLeague',
+      async () => {
         const { data, error } = await this.supabase
           .from('leagues')
           .select('*')
@@ -227,18 +280,19 @@ export class SupabaseStorageAdapter implements StorageAdapter {
         }
 
         return league;
-      } catch (error) {
-        this.handleError('loadLeague', error, { leagueId });
-      }
-    });
+      },
+      () => this.fallbackAdapter!.loadLeague(leagueId),
+      { leagueId }
+    );
   }
 
   /**
    * Load all saved mock drafts for a specific league
    */
   async loadSavedMocks(leagueId: LeagueId): Promise<StoredMocksDataCurrent> {
-    return this.withRetry('loadSavedMocks', async () => {
-      try {
+    return this.withFallback(
+      'loadSavedMocks',
+      async () => {
         // First get the league database ID
         const { data: leagues, error: leagueError } = await this.supabase
           .from('leagues')
@@ -300,18 +354,19 @@ export class SupabaseStorageAdapter implements StorageAdapter {
           selections || [],
           adjustments || []
         );
-      } catch (error) {
-        this.handleError('loadSavedMocks', error, { leagueId });
-      }
-    });
+      },
+      () => this.fallbackAdapter!.loadSavedMocks(leagueId),
+      { leagueId }
+    );
   }
 
   /**
    * Save mock draft data for a league
    */
   async saveMock(leagueId: LeagueId, data: StoredMocksDataCurrent): Promise<void> {
-    return this.withRetry('saveMock', async () => {
-      try {
+    return this.withFallback(
+      'saveMock',
+      async () => {
         // Get the league database ID
         const { data: leagues, error: leagueError } = await this.supabase
           .from('leagues')
@@ -335,24 +390,25 @@ export class SupabaseStorageAdapter implements StorageAdapter {
             draft.notes
           );
         }
-      } catch (error) {
-        this.handleError('saveMock', error, { leagueId });
-      }
-    });
+      },
+      () => this.fallbackAdapter!.saveMock(leagueId, data),
+      { leagueId }
+    );
   }
 
   /**
    * Load a specific draft by name within a league
    */
   async loadDraftByName(leagueId: LeagueId, rosterName: string): Promise<StoredDraftDataCurrent | undefined> {
-    return this.withRetry('loadDraftByName', async () => {
-      try {
+    return this.withFallback(
+      'loadDraftByName',
+      async () => {
         const mocks = await this.loadSavedMocks(leagueId);
         return mocks[rosterName];
-      } catch (error) {
-        this.handleError('loadDraftByName', error, { leagueId, rosterName });
-      }
-    });
+      },
+      () => this.fallbackAdapter!.loadDraftByName(leagueId, rosterName),
+      { leagueId, rosterName }
+    );
   }
 
   /**
@@ -367,8 +423,9 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     searchSettings: SearchSettingsState,
     notes: string = ''
   ): Promise<void> {
-    return this.withRetry('saveSelectedRoster', async () => {
-      try {
+    return this.withFallback(
+      'saveSelectedRoster',
+      async () => {
         // Get the league database ID
         const { data: leagues, error: leagueError } = await this.supabase
           .from('leagues')
@@ -472,18 +529,27 @@ export class SupabaseStorageAdapter implements StorageAdapter {
         for (const result of results) {
           if (result.error) throw result.error;
         }
-      } catch (error) {
-        this.handleError('saveSelectedRoster', error, { leagueId, rosterName });
-      }
-    });
+      },
+      () => this.fallbackAdapter!.saveSelectedRoster(
+        leagueId,
+        rosterName,
+        rosterSelections,
+        costAdjustments,
+        estimationSettings,
+        searchSettings,
+        notes
+      ),
+      { leagueId, rosterName }
+    );
   }
 
   /**
    * Delete a specific roster/draft
    */
   async deleteRoster(leagueId: LeagueId, rosterName: string): Promise<void> {
-    return this.withRetry('deleteRoster', async () => {
-      try {
+    return this.withFallback(
+      'deleteRoster',
+      async () => {
         // Get the league database ID
         const { data: leagues, error: leagueError } = await this.supabase
           .from('leagues')
@@ -504,9 +570,9 @@ export class SupabaseStorageAdapter implements StorageAdapter {
           .eq('name', rosterName);
 
         if (error) throw error;
-      } catch (error) {
-        this.handleError('deleteRoster', error, { leagueId, rosterName });
-      }
-    });
+      },
+      () => this.fallbackAdapter!.deleteRoster(leagueId, rosterName),
+      { leagueId, rosterName }
+    );
   }
 }
