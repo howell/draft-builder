@@ -33,6 +33,12 @@ const config: Config = {
 
   // The test environment that will be used for testing
   testEnvironment: "jsdom",
+
+  // Ignore test utility files
+  testPathIgnorePatterns: [
+    '<rootDir>/node_modules/',
+    '<rootDir>/src/.*/__tests__/test-utils/'
+  ],
 };
 
 export default createJestConfig(config);
