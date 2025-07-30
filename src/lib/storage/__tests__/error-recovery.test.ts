@@ -9,7 +9,8 @@ import { LocalStorageAdapter } from '../localStorage';
 import { MemoryStorageAdapter } from '../memory';
 import { StorageError } from '../errors';
 import type { StorageAdapter } from '../interface';
-import type { PlatformLeague, StoredMocksDataCurrent } from '@/types/storage';
+import type { PlatformLeague } from '@/platforms/common';
+import type { StoredMocksDataCurrent } from '@/types/storage';
 
 // Mock Supabase client for error testing
 const mockSupabaseClient = {
@@ -104,8 +105,7 @@ describe('Error Scenario and Recovery Tests', () => {
       );
 
       // Mock setTimeout for faster tests
-      const originalSetTimeout = global.setTimeout;
-      global.setTimeout = jest.fn((fn: Function) => {
+      const setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation((fn: Function) => {
         Promise.resolve().then(() => fn());
         return {} as any;
       });
@@ -116,7 +116,7 @@ describe('Error Scenario and Recovery Tests', () => {
       expect(result).toBeDefined();
       expect(consoleWarnSpy).toHaveBeenCalledTimes(2); // 2 retry warnings
 
-      global.setTimeout = originalSetTimeout;
+      setTimeoutSpy.mockRestore();
     });
 
     it('should give up after max retries and throw appropriate error', async () => {
@@ -133,13 +133,15 @@ describe('Error Scenario and Recovery Tests', () => {
       );
 
       // Mock setTimeout
-      global.setTimeout = jest.fn((fn: Function) => {
+      const setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation((fn: Function) => {
         Promise.resolve().then(() => fn());
         return {} as any;
       });
 
       await expect(adapter.loadLeagues()).rejects.toThrow('Network connection failed');
       expect(consoleWarnSpy).toHaveBeenCalledTimes(2); // 2 retry attempts
+      
+      setTimeoutSpy.mockRestore();
     });
 
     it('should implement exponential backoff correctly', async () => {
@@ -159,8 +161,10 @@ describe('Error Scenario and Recovery Tests', () => {
       });
 
       // Capture setTimeout delays
-      global.setTimeout = jest.fn((fn: Function, delay: number) => {
-        backoffDelays.push(delay);
+      const setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation((fn: Function, delay?: number) => {
+        if (delay !== undefined) {
+          backoffDelays.push(delay);
+        }
         Promise.resolve().then(() => fn());
         return {} as any;
       });
@@ -174,6 +178,8 @@ describe('Error Scenario and Recovery Tests', () => {
       await adapter.loadLeagues();
 
       expect(backoffDelays).toEqual([10, 20, 40]); // 10 * 2^0, 10 * 2^1, 10 * 2^2
+      
+      setTimeoutSpy.mockRestore();
     });
 
     it('should not retry on non-retryable errors', async () => {
@@ -260,8 +266,7 @@ describe('Error Scenario and Recovery Tests', () => {
       // Create league first
       await adapter.saveLeague(leagueId, {
         platform: 'sleeper',
-        id: leagueId,
-        name: 'Corruption Test League'
+        id: leagueId
       });
       
       // Corrupt the mocks data
@@ -531,8 +536,7 @@ describe('Error Scenario and Recovery Tests', () => {
       
       const testLeague = {
         platform: 'sleeper' as const,
-        id: 'quota-test',
-        name: 'Quota Test League'
+        id: 'quota-test'
       };
       
       await expect(adapter.saveLeague('quota-test', testLeague)).rejects.toThrow();
@@ -599,8 +603,7 @@ describe('Error Scenario and Recovery Tests', () => {
       // Create base league
       await adapter.saveLeague(leagueId, {
         platform: 'sleeper',
-        id: leagueId,
-        name: 'Concurrent Test League'
+        id: leagueId
       });
       
       // Simulate concurrent saves to the same draft
@@ -644,8 +647,7 @@ describe('Error Scenario and Recovery Tests', () => {
       // Create league
       await adapter.saveLeague(leagueId, {
         platform: 'sleeper',
-        id: leagueId,
-        name: 'Rapid Operations League'
+        id: leagueId
       });
       
       // Perform rapid consecutive operations
@@ -691,8 +693,7 @@ describe('Error Scenario and Recovery Tests', () => {
           // Create data in each adapter
           await newAdapter.saveLeague(`memory-pressure-${i}`, {
             platform: 'sleeper',
-            id: `memory-pressure-${i}`,
-            name: `Memory Pressure League ${i}`
+            id: `memory-pressure-${i}`
           });
           
           const largeMock: StoredMocksDataCurrent = {
@@ -837,7 +838,7 @@ describe('Error Scenario and Recovery Tests', () => {
       });
       
       // Mock setTimeout
-      global.setTimeout = jest.fn((fn: Function) => {
+      const setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation((fn: Function) => {
         Promise.resolve().then(() => fn());
         return {} as any;
       });
@@ -861,6 +862,8 @@ describe('Error Scenario and Recovery Tests', () => {
       
       // Should have retried the save operation
       expect(saveAttemptCount).toBeGreaterThan(1);
+      
+      setTimeoutSpy.mockRestore();
     });
 
     it('should ensure error recovery does not leave partial state', async () => {
@@ -870,8 +873,7 @@ describe('Error Scenario and Recovery Tests', () => {
       // Save initial valid state
       await adapter.saveLeague(leagueId, {
         platform: 'sleeper',
-        id: leagueId,
-        name: 'Partial State League'
+        id: leagueId
       });
       
       // Attempt to save draft
@@ -916,7 +918,7 @@ describe('Error Scenario and Recovery Tests', () => {
       const mocks = await adapter.loadSavedMocks(leagueId);
       expect(mocks['Test Draft']).toBeDefined();
       expect(mocks['Failed Draft']).toBeUndefined();
-      expect(mocks['Test Draft'].rosterSelections['QB1'].name).toBe('QB 1');
+      expect(mocks['Test Draft']?.rosterSelections['QB1']?.name).toBe('QB 1');
     });
   });
 });

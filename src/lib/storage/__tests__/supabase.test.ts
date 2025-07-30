@@ -426,7 +426,7 @@ describe('SupabaseStorageAdapter', () => {
       const mockTransformedMocks = { 'Test Draft': {} };
 
       // Mock league lookup
-      mockSupabase.from.mockImplementation((table) => {
+      mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'leagues') {
           return {
             select: jest.fn().mockReturnValue({
@@ -495,7 +495,7 @@ describe('SupabaseStorageAdapter', () => {
     it('should handle leagues with no draft sessions', async () => {
       const mockLeagueDbId = 'league-db-1';
 
-      mockSupabase.from.mockImplementation((table) => {
+      mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'leagues') {
           return {
             select: jest.fn().mockReturnValue({
@@ -651,11 +651,11 @@ describe('SupabaseStorageAdapter', () => {
       const loadedMocks = await realAdapter.loadSavedMocks(realTestLeagueId);
       const updatedRoster = loadedMocks[rosterName];
       
-      expect(updatedRoster?.rosterSelections['QB1'].id).toBe('player-2');
-      expect(updatedRoster.costAdjustments['player-2']).toBe(45);
-      expect(updatedRoster.costAdjustments['player-1']).toBeUndefined(); // Old adjustment should be gone
-      expect(updatedRoster.estimationSettings.weight).toBe(0.8);
-      expect(updatedRoster.notes).toBe('Updated notes');
+      expect(updatedRoster?.rosterSelections['QB1']?.id).toBe('player-2');
+      expect(updatedRoster?.costAdjustments['player-2']).toBe(45);
+      expect(updatedRoster?.costAdjustments['player-1']).toBeUndefined(); // Old adjustment should be gone
+      expect(updatedRoster?.estimationSettings.weight).toBe(0.8);
+      expect(updatedRoster?.notes).toBe('Updated notes');
     });
   });
 
@@ -663,7 +663,7 @@ describe('SupabaseStorageAdapter', () => {
     it('should delete roster successfully', async () => {
       const mockLeagueDbId = 'league-db-1';
 
-      mockSupabase.from.mockImplementation((table) => {
+      mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'leagues') {
           return {
             select: jest.fn().mockReturnValue({
@@ -793,7 +793,7 @@ describe('SupabaseStorageAdapter', () => {
       const mockError = new Error('Temporary failure');
       let callCount = 0;
 
-      jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
+      const setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
         // Use Promise.resolve().then() instead of setImmediate for immediate execution
         Promise.resolve().then(fn);
         return null as any;
@@ -821,7 +821,7 @@ describe('SupabaseStorageAdapter', () => {
       expect(callCount).toBe(3); // Initial + 2 retries
       expect(result).toBeDefined();
       
-      (global.setTimeout as jest.Mock).mockRestore();
+      setTimeoutSpy.mockRestore();
     });
 
     it('should give up after max retries', async () => {
@@ -839,7 +839,7 @@ describe('SupabaseStorageAdapter', () => {
       const mockError = new Error('Temporary failure');
       let callCount = 0;
 
-      jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
+      const setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
         // Use Promise.resolve().then() instead of setImmediate for immediate execution
         Promise.resolve().then(fn);
         return null as any;
@@ -869,7 +869,7 @@ describe('SupabaseStorageAdapter', () => {
       );
 
       warnSpy.mockRestore();
-      (global.setTimeout as jest.Mock).mockRestore();
+      setTimeoutSpy.mockRestore();
     });
   });
 
@@ -926,7 +926,7 @@ describe('SupabaseStorageAdapter', () => {
       };
 
       // Mock the league lookup that happens at the start of saveMock
-      mockSupabase.from.mockImplementation((table) => {
+      mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'leagues') {
           return {
             select: jest.fn().mockReturnValue({

@@ -103,6 +103,7 @@ describe('Storage Error Handling', () => {
     let mockSupabase: any;
     let adapter: SupabaseStorageAdapter;
     let consoleWarnSpy: jest.SpyInstance;
+    let setTimeoutSpy: jest.SpyInstance;
 
     beforeEach(() => {
       mockSupabase = {
@@ -119,7 +120,7 @@ describe('Storage Error Handling', () => {
       jest.spyOn(console, 'error').mockImplementation();
 
       // Mock setTimeout to run immediately in tests
-      jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
+      setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
         Promise.resolve().then(fn);
         return null as any;
       });
@@ -127,7 +128,7 @@ describe('Storage Error Handling', () => {
 
     afterEach(() => {
       consoleWarnSpy.mockRestore();
-      (global.setTimeout as jest.Mock).mockRestore();
+      setTimeoutSpy.mockRestore();
     });
 
     it('should retry transient network errors', async () => {
@@ -189,7 +190,7 @@ describe('Storage Error Handling', () => {
       let attemptCount = 0;
 
       // Mock setTimeout to capture delay values
-      (global.setTimeout as jest.Mock).mockImplementation((fn: any, delay: number) => {
+      setTimeoutSpy.mockImplementation((fn: any, delay: number) => {
         delays.push(delay);
         setImmediate(fn);
         return null as any;
@@ -401,6 +402,7 @@ describe('Storage Error Handling', () => {
   describe.skip('Error Recovery Scenarios (complex integration tests)', () => {
     let mockSupabase: any;
     let adapter: SupabaseStorageAdapter;
+    let setTimeoutSpy: jest.SpyInstance;
 
     beforeEach(() => {
       mockSupabase = {
@@ -418,14 +420,14 @@ describe('Storage Error Handling', () => {
       jest.spyOn(console, 'warn').mockImplementation();
       
       // Mock setTimeout for faster tests
-      jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
+      setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
         setImmediate(fn);
         return null as any;
       });
     });
 
     afterEach(() => {
-      (global.setTimeout as jest.Mock).mockRestore();
+      setTimeoutSpy.mockRestore();
     });
 
     it('should recover from intermittent database connection issues', async () => {
@@ -549,9 +551,9 @@ describe('Storage Error Handling', () => {
       });
 
       const mockTransform = require('../transforms');
-      mockTransform.transformLeaguesFromDatabase = jest.fn().mockImplementation((data) => {
+      mockTransform.transformLeaguesFromDatabase = jest.fn().mockImplementation((data: any[]) => {
         // Simulate transform handling corrupted data
-        const validLeagues = data.filter(league => league.league_id && league.platform);
+        const validLeagues = data.filter((league: any) => league.league_id && league.platform);
         const leagues: any = {};
         validLeagues.forEach((league: any) => {
           leagues[league.league_id] = {
@@ -581,7 +583,7 @@ describe('Storage Error Handling', () => {
       // Mock operations to always fail
       const mockOperation = jest.fn().mockRejectedValue(new Error('Always fails'));
       
-      jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
+      const setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
         setImmediate(fn);
         return null as any;
       });
@@ -597,7 +599,7 @@ describe('Storage Error Handling', () => {
       // Verify the operation was called the correct number of times
       expect(mockOperation).toHaveBeenCalledTimes(101); // Initial + 100 retries
 
-      (global.setTimeout as jest.Mock).mockRestore();
+      setTimeoutSpy.mockRestore();
     });
 
     it('should handle high-frequency error scenarios efficiently', async () => {
@@ -607,7 +609,7 @@ describe('Storage Error Handling', () => {
         eq: jest.fn().mockReturnThis()
       };
 
-      const adapter = new SupabaseStorageAdapter(mockSupabase, 'test-user', {
+      const adapter = new SupabaseStorageAdapter(mockSupabase as any, 'test-user', {
         retryConfig: { maxRetries: 0, backoffMs: 1 } // No retries for speed
       });
 

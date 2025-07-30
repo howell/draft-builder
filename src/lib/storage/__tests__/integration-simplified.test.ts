@@ -7,7 +7,7 @@ import { createStorageAdapter, createTestStorageAdapter } from '../factory';
 import { LocalStorageAdapter } from '../localStorage';
 import { MemoryStorageAdapter } from '../memory';
 import { SupabaseStorageAdapter } from '../supabase';
-import type { PlatformLeague } from '@/types/storage';
+import type { PlatformLeague } from '@/platforms/common';
 
 // Simple mock for Supabase client
 const createMockSupabaseClient = () => ({
@@ -57,8 +57,7 @@ describe('Storage Integration Tests (Simplified)', () => {
   describe('Cross-Adapter Data Consistency', () => {
     const testLeague: PlatformLeague = {
       platform: 'sleeper',
-      id: 'test-league',
-      name: 'Test League'
+      id: 'test-league'
     };
 
     it('should maintain data consistency between localStorage and memory', async () => {
@@ -137,8 +136,7 @@ describe('Storage Integration Tests (Simplified)', () => {
       for (let i = 0; i < 10; i++) {
         await adapter.saveLeague(`league-${i}`, {
           platform: 'sleeper',
-          id: `league-${i}`,
-          name: `League ${i}`
+          id: `league-${i}`
         });
       }
 
@@ -156,8 +154,7 @@ describe('Storage Integration Tests (Simplified)', () => {
       for (let i = 0; i < 5; i++) {
         operations.push(adapter.saveLeague(`concurrent-${i}`, {
           platform: 'sleeper',
-          id: `concurrent-${i}`,
-          name: `Concurrent ${i}`
+          id: `concurrent-${i}`
         }));
       }
 
@@ -216,8 +213,7 @@ describe('Storage Integration Tests (Simplified)', () => {
       // Step 1: Create league
       const league: PlatformLeague = {
         platform: 'sleeper',
-        id: 'user-league',
-        name: 'My League'
+        id: 'user-league'
       };
       await adapter.saveLeague('user-league', league);
 
@@ -260,7 +256,7 @@ describe('Storage Integration Tests (Simplified)', () => {
       // Step 4: Verify draft was saved
       const savedMocks = await adapter.loadSavedMocks('user-league');
       expect(savedMocks['My Draft']).toBeDefined();
-      expect(savedMocks['My Draft'].rosterSelections['QB1'].name).toBe('Test Player');
+      expect(savedMocks['My Draft']?.rosterSelections['QB1']?.name).toBe('Test Player');
 
       // Step 5: Load specific draft
       const specificDraft = await adapter.loadDraftByName('user-league', 'My Draft');
@@ -275,8 +271,7 @@ describe('Storage Integration Tests (Simplified)', () => {
       // Create data in source
       const league: PlatformLeague = {
         platform: 'sleeper',
-        id: 'migration-test',
-        name: 'Migration Test League'
+        id: 'migration-test'
       };
       await sourceAdapter.saveLeague('migration-test', league);
 

@@ -601,7 +601,7 @@ describe('Data Transformation Functions', () => {
       );
 
       expect(result.settings.estimation_years).toEqual(['2022', '2023']);
-      result.settings.estimation_years.forEach(year => {
+      result.settings.estimation_years?.forEach(year => {
         expect(typeof year).toBe('string');
       });
     });

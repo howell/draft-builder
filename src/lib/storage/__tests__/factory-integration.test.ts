@@ -253,8 +253,8 @@ describe('Storage Factory Integration', () => {
     it('should handle invalid configurations consistently', () => {
       // Test each invalid config individually
       expect(() => createStorageAdapter({ type: 'invalid-type' as any })).toThrow();
-      expect(() => createStorageAdapter({ type: 'supabase', supabase: null })).toThrow();
-      expect(() => createStorageAdapter({ type: 'supabase', userId: null })).toThrow();
+      expect(() => createStorageAdapter({ type: 'supabase', supabase: null as any })).toThrow();
+      expect(() => createStorageAdapter({ type: 'supabase', userId: null as any })).toThrow();
       expect(() => createStorageAdapter({ type: 'supabase', supabase: 'not-an-object' as any, userId: 'test' })).toThrow();
     });
 
