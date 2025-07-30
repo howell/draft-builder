@@ -193,6 +193,43 @@ const useSupabase = useFeatureFlag('USE_SUPABASE_STORAGE') && !!useAuth().user;
 - **Caching**: Redis used for expensive calculations and API responses
 - **Bundle Size**: Large ranking datasets loaded dynamically
 
+## Feature Planning Guidelines
+
+When creating implementation plans for new features:
+
+### Task Organization Principles
+- **Small & Focused**: Each task should be completable in a single session
+- **Logically Related**: Group related changes together (e.g., all storage changes)
+- **Testable**: Each task should produce something that can be tested independently
+- **Sequential**: Tasks should build on each other with clear dependencies
+- **Rollback Safe**: Each task should leave the system in a working state
+
+### Avoid Time-Based Planning
+- **Don't use weeks/sprints**: Features are worked on intermittently with AI assistance
+- **Use logical phases**: Organize by functionality, not time
+- **Focus on dependencies**: What must be done before what, not when
+
+### Task Size Guidelines
+- **Single File Changes**: Prefer tasks that modify 1-3 related files
+- **Incremental Testing**: Each task should allow for testing before the next
+- **Clear Acceptance Criteria**: Each task should have obvious "done" criteria
+- **Atomic Functionality**: Each task should add/modify one coherent piece of functionality
+
+### Example Good Task Structure
+```
+Phase 1: Foundation
+├── Task 1.1: Create authentication-aware storage hook (single file)
+├── Task 1.2: Add fallback support to Supabase adapter (single file) 
+├── Task 1.3: Update storage factory to use auth context (single file)
+└── Task 1.4: Add unit tests for new storage logic (test files)
+
+Phase 2: Migration Service
+├── Task 2.1: Create migration service class with basic structure
+├── Task 2.2: Implement league migration using existing transforms
+├── Task 2.3: Implement draft migration using existing transforms
+└── Task 2.4: Add migration error handling and rollback
+```
+
 ## Common Pitfalls to Avoid
 
 1. **Direct localStorage access** - Always use StorageAdapter
