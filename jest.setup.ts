@@ -4,6 +4,9 @@ import '@testing-library/jest-dom';
 // Web API polyfills for Next.js API routes
 import 'whatwg-fetch'; // Provides proper fetch, Request, Response, Headers
 
+// IndexedDB polyfill for testing Dexie
+import 'fake-indexeddb/auto';
+
 // Ensure all Web APIs are available
 if (typeof global.Request === 'undefined') {
   global.Request = require('whatwg-fetch').Request;

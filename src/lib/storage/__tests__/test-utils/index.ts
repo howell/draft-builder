@@ -10,3 +10,6 @@ export * from './storage-factories';
 
 // Test patterns and helpers
 export * from './storage-test-patterns';
+
+// Dexie test utilities
+export * from './dexie-test-utils';
