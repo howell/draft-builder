@@ -53,6 +53,9 @@ export {
   isSupabaseAdapter
 } from './factory';
 
+// React hooks
+export { useStorageAdapter } from './hooks';
+
 // Re-export storage types for convenience
 export type {
   StoredLeaguesDataCurrent,
