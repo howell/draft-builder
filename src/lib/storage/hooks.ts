@@ -1,11 +1,11 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useAuth } from '@/lib/auth/context';
+import { useAuth } from '../auth/context';
 import { StorageAdapter } from './interface';
 import { createStorageAdapter } from './factory';
 import { MemoryStorageAdapter } from './memory';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../supabase';
 
 /**
  * React hook that provides an authentication-aware storage adapter.
