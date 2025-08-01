@@ -24,6 +24,7 @@ export interface League {
     teams?: number;
     scoringType?: string;
     lastSync?: Date;
+    originalId?: string; // Store the original platform league ID
   };
   favorite?: boolean;
   createdAt: Date;

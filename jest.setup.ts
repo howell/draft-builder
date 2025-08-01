@@ -8,11 +8,13 @@ import 'whatwg-fetch'; // Provides proper fetch, Request, Response, Headers
 import 'fake-indexeddb/auto';
 
 // Mock window object for client-side checks in tests
+// Note: jsdom provides localStorage, but we need to ensure it's available in our window mock
 Object.defineProperty(global, 'window', {
   value: {
     location: { href: 'http://localhost' },
     document: {},
-    navigator: { userAgent: 'test' }
+    navigator: { userAgent: 'test' },
+    localStorage: global.localStorage // Use jsdom's localStorage
   },
   writable: true
 });

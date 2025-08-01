@@ -4,11 +4,13 @@
 
 This document breaks down the user account implementation into small, focused tasks that can be completed incrementally. Each task is testable and leaves the system in a working state.
 
-## Phase 1: Authentication-Aware Storage
+With Dexie storage now production-ready (100% test success rate), the architecture uses **Supabase for authenticated users** with **Dexie as fallback** for anonymous and offline scenarios.
 
-**Goal**: Update storage selection to be authentication-aware while maintaining backward compatibility.
+## Phase 1: Authentication-Aware Storage with Dexie Fallback
 
-**Current State**: `getDefaultStorageAdapter()` always returns localStorage adapter with no authentication awareness.
+**Goal**: Update storage selection to be authentication-aware, using Dexie instead of localStorage as fallback.
+
+**Current State**: `getDefaultStorageAdapter()` always returns localStorage adapter with no authentication awareness. Dexie implementation is ready for production use.
 
 ### Task 1.1: Create Authentication-Aware Storage Hook
 ```typescript
@@ -29,23 +31,27 @@ export function useStorageAdapter(): StorageAdapter {
       return createStorageAdapter({
         type: 'supabase',
         supabase: supabase,
-        userId: user.id
+        userId: user.id,
+        fallback: 'dexie' // Use Dexie instead of localStorage as fallback
       });
     }
     
-    return createStorageAdapter({ type: 'localStorage' });
+    return createStorageAdapter({ 
+      type: 'dexie', 
+      userId: 'anonymous' // Anonymous users use Dexie
+    });
   }, [user, loading]);
 }
 ```
 
-#### 1.2: Add Fallback Support to Supabase Adapter
+#### 1.2: Add Dexie Fallback Support to Supabase Adapter
 ```typescript
 // Update src/lib/storage/supabase.ts
 export class SupabaseStorageAdapter implements StorageAdapter {
   constructor(
     private supabase: SupabaseClient<Database>,
     private userId: string,
-    private options?: { fallbackToLocalStorage?: boolean }
+    private options?: { fallbackToDexie?: boolean }
   ) {}
   
   async loadLeagues(): Promise<StoredLeaguesDataCurrent> {
@@ -53,9 +59,9 @@ export class SupabaseStorageAdapter implements StorageAdapter {
       // Try Supabase first
       return await this.loadLeaguesFromSupabase();
     } catch (error) {
-      if (this.options?.fallbackToLocalStorage) {
-        console.warn('Supabase unavailable, falling back to localStorage');
-        const fallback = new LocalStorageAdapter();
+      if (this.options?.fallbackToDexie) {
+        console.warn('Supabase unavailable, falling back to Dexie');
+        const fallback = new DexieStorageAdapter(this.userId);
         return await fallback.loadLeagues();
       }
       throw error;

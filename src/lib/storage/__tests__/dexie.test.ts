@@ -9,7 +9,7 @@ import 'fake-indexeddb/auto';
 import { DexieStorageAdapter } from '../dexie';
 import { dexieTestUtils } from './test-utils/dexie-test-utils';
 import { CURRENT_LEAGUES_SCHEMA_VERSION } from '@/types/storage';
-import type { PlatformLeague } from '@/platforms/common';
+import type { PlatformLeague, EspnLeague } from '@/platforms/common';
 
 describe('DexieStorageAdapter', () => {
   let adapter: DexieStorageAdapter;
@@ -41,13 +41,14 @@ describe('DexieStorageAdapter', () => {
       id: 'test-league-123'
     };
 
-    const espnLeague: PlatformLeague = {
+    const espnLeague: EspnLeague = {
       platform: 'espn',
       id: 'espn-league-456',
       auth: {
-        cookies: 'test_session=abc123; espn_s2=def456'
+        espnS2: 'def456',
+        swid: 'abc123'
       }
-    } as any;
+    };
 
     it('should load empty leagues initially', async () => {
       const result = await adapter.loadLeagues();
@@ -85,7 +86,7 @@ describe('DexieStorageAdapter', () => {
       expect(loaded!.platform).toBe('espn');
       expect(loaded!.id).toBe('espn-league-456');
       // Auth data should be encrypted/decrypted transparently
-      expect((loaded as any).auth).toEqual(espnLeague.auth);
+      expect((loaded as EspnLeague).auth).toEqual(espnLeague.auth);
     });
 
     it('should update existing league', async () => {

@@ -163,11 +163,11 @@ describe('Storage Adapter Contract', () => {
     });
 
     it('should throw error for supabase adapter without required config', () => {
-      expect(() => createStorageAdapter({ type: 'supabase' })).toThrow(/Supabase client and userId are required/);
+      expect(() => createStorageAdapter({ type: 'supabase' })).toThrow(/Supabase client is required/);
       expect(() => createStorageAdapter({ 
         type: 'supabase', 
         supabase: { from: jest.fn() } as any 
-      })).toThrow(/Supabase client and userId are required/);
+      })).toThrow(/User ID is required/);
     });
 
     it('should throw error for unknown adapter type', () => {

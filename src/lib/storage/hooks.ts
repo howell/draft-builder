@@ -13,8 +13,8 @@ import { supabase } from '../supabase';
  * This hook automatically selects the appropriate storage backend based on:
  * - Server-side rendering: Returns MemoryStorageAdapter
  * - Loading state: Returns MemoryStorageAdapter (temporary while loading)
- * - Authenticated user: Returns SupabaseStorageAdapter
- * - Anonymous user: Returns LocalStorageAdapter
+ * - Authenticated user: Returns SupabaseStorageAdapter with Dexie fallback
+ * - Anonymous user: Returns DexieStorageAdapter (better performance than localStorage)
  * 
  * The hook uses useMemo to prevent unnecessary re-creation of adapters
  * and only updates when authentication state changes.
@@ -37,16 +37,20 @@ export function useStorageAdapter(): StorageAdapter {
       return new MemoryStorageAdapter();
     }
     
-    // Authenticated user: use Supabase storage with their user ID
+    // Authenticated user: use Supabase storage with Dexie fallback for offline scenarios
     if (user) {
       return createStorageAdapter({
         type: 'supabase',
         supabase: supabase,
-        userId: user.id
+        userId: user.id,
+        fallback: 'dexie' // Use Dexie instead of localStorage as fallback
       });
     }
     
-    // Anonymous user: use localStorage for backward compatibility
-    return createStorageAdapter({ type: 'localStorage' });
+    // Anonymous user: use Dexie for better performance than localStorage
+    return createStorageAdapter({ 
+      type: 'dexie', 
+      userId: 'anonymous' // Anonymous users use Dexie for better performance
+    });
   }, [user, loading]);
 }

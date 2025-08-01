@@ -105,6 +105,8 @@ export interface StorageConfig {
   userId?: string;
   /** Optional encryption key for sensitive data */
   encryptionKey?: string;
+  /** Fallback storage type when primary storage fails (mainly for Supabase -> Dexie) */
+  fallback?: 'localStorage' | 'dexie' | 'memory';
   /** Retry configuration for network operations */
   retryConfig?: {
     maxRetries: number;

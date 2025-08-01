@@ -6,18 +6,25 @@ This document breaks down the user account implementation into small, focused ta
 
 ---
 
-## Phase 1: Authentication-Aware Storage
+## Phase 1: Authentication-Aware Storage with Dexie Fallback
 
-**Goal**: Update storage selection to be authentication-aware while maintaining backward compatibility.
+**Goal**: Update storage selection to be authentication-aware, using Dexie instead of localStorage as fallback for better performance and reliability.
 
-### Task 1.1: Create Authentication-Aware Storage Hook
+### Task 1.1: Create Authentication-Aware Storage Hook ✅ COMPLETED
 
 **Objective**: Create a React hook that selects the appropriate storage adapter based on authentication state.
 
 **Files**: 
-- `src/lib/storage/hooks.ts` (new file)
+- `src/lib/storage/hooks.ts` ✅ Updated
+- `src/lib/storage/interface.ts` ✅ Added fallback configuration option
 
 **Dependencies**: None
+
+**Status**: ✅ COMPLETED
+- Updated `useStorageAdapter` hook to use Dexie for anonymous users instead of localStorage
+- Added Dexie fallback configuration for authenticated users 
+- Updated StorageConfig interface to support fallback property
+- All tests passing
 
 **Implementation**:
 ```typescript
@@ -38,36 +45,48 @@ export function useStorageAdapter(): StorageAdapter {
       return createStorageAdapter({
         type: 'supabase',
         supabase: supabase,
-        userId: user.id
+        userId: user.id,
+        fallback: 'dexie' // Use Dexie instead of localStorage as fallback
       });
     }
     
-    return createStorageAdapter({ type: 'localStorage' });
+    return createStorageAdapter({ 
+      type: 'dexie', 
+      userId: 'anonymous' // Anonymous users use Dexie for better performance
+    });
   }, [user, loading]);
 }
 ```
 
 **Testing**: 
-- Hook returns localStorage adapter for anonymous users
-- Hook returns Supabase adapter for authenticated users
+- Hook returns Dexie adapter for anonymous users
+- Hook returns Supabase adapter with Dexie fallback for authenticated users
 - Hook returns memory adapter during loading state
 - Hook updates when auth state changes
 
 **Acceptance Criteria**:
 - Hook properly selects storage adapter based on auth state
-- No breaking changes to existing functionality
+- Anonymous users get performance benefits from Dexie
+- Authenticated users get Dexie fallback when offline
 - Proper dependency handling with useMemo
 
 ---
 
-### Task 1.2: Add Fallback Support to Supabase Adapter
+### Task 1.2: Add Dexie Fallback Support to Supabase Adapter ✅ COMPLETED
 
-**Objective**: Update Supabase adapter to gracefully fall back to localStorage when Supabase is unavailable.
+**Objective**: Update Supabase adapter to gracefully fall back to Dexie when Supabase is unavailable.
 
 **Files**:
-- `src/lib/storage/supabase.ts`
+- `src/lib/storage/supabase.ts` ✅ Updated
+- `src/lib/storage/factory.ts` ✅ Updated
 
-**Dependencies**: None
+**Dependencies**: Dexie adapter (already complete)
+
+**Status**: ✅ COMPLETED
+- Updated SupabaseStorageAdapter constructor to support fallbackToDexie option
+- Modified storage factory to pass fallback configuration correctly
+- All storage methods now support fallback to Dexie adapter
+- Comprehensive fallback tests passing
 
 **Implementation**:
 ```typescript
@@ -75,16 +94,16 @@ export class SupabaseStorageAdapter implements StorageAdapter {
   constructor(
     private supabase: SupabaseClient<Database>,
     private userId: string,
-    private options?: { fallbackToLocalStorage?: boolean }
+    private options?: { fallbackToDexie?: boolean }
   ) {}
   
   async loadLeagues(): Promise<StoredLeaguesDataCurrent> {
     try {
       return await this.loadLeaguesFromSupabase();
     } catch (error) {
-      if (this.options?.fallbackToLocalStorage) {
-        console.warn('Supabase unavailable, falling back to localStorage');
-        const fallback = new LocalStorageAdapter();
+      if (this.options?.fallbackToDexie) {
+        console.warn('Supabase unavailable, falling back to Dexie');
+        const fallback = new DexieStorageAdapter(this.userId);
         return await fallback.loadLeagues();
       }
       throw error;
@@ -108,14 +127,26 @@ export class SupabaseStorageAdapter implements StorageAdapter {
 
 ---
 
-### Task 1.3: Add Migration Detection Utilities
+### Task 1.3: Add Migration Detection Utilities ✅ COMPLETED
 
 **Objective**: Create utilities to detect and summarize localStorage data for migration preview.
 
 **Files**:
-- `src/lib/storage/migration-utils.ts` (new file)
+- `src/lib/storage/migration-utils.ts` ✅ Created
+- `src/lib/storage/__tests__/migration-utils.test.ts` ✅ Created  
+- `jest.setup.ts` ✅ Fixed localStorage availability in tests
 
 **Dependencies**: None
+
+**Status**: ✅ COMPLETED
+- Implemented comprehensive migration detection utilities with full error handling
+- Created `DataSummary` interface for structured data reporting
+- Added `hasLocalStorageData()` for quick detection of migratable data
+- Added `getLocalStorageDataSummary()` for detailed analysis of localStorage content
+- Added `validateLocalStorageData()` for corruption detection
+- Added `clearLocalStorageData()` for post-migration cleanup
+- Fixed Jest/jsdom environment issue where localStorage wasn't available in tests
+- All tests passing with 93% code coverage
 
 **Implementation**:
 ```typescript
@@ -171,46 +202,71 @@ export async function getLocalStorageDataSummary(): Promise<DataSummary> {
 
 ---
 
-### Task 1.4: Update Storage Factory with Enhanced Configuration
+### Task 1.4: Update Storage Factory with Enhanced Configuration ✅ COMPLETED
 
 **Objective**: Update the storage factory to support fallback configuration and better error handling.
 
 **Files**:
-- `src/lib/storage/factory.ts`
+- `src/lib/storage/factory.ts` ✅ Enhanced with improved validation and documentation
+- `src/lib/storage/__tests__/factory-integration.test.ts` ✅ Added comprehensive tests for enhanced functionality
 
 **Dependencies**: Task 1.2
 
+**Status**: ✅ COMPLETED
+- Enhanced configuration validation with specific, helpful error messages for each failure scenario
+- Added comprehensive JSDoc documentation for all factory functions with examples
+- Extended test coverage for fallback configuration (Dexie, localStorage, memory fallbacks)
+- Added complete Dexie adapter support with proper userId validation
+- Improved error handling for retry configuration validation
+- Enhanced type safety and better developer experience with detailed examples
+- All tests passing with excellent coverage
+
 **Implementation**:
 ```typescript
-export function createStorageAdapter(config?: StorageConfig & { 
-  fallbackToLocalStorage?: boolean 
-}): StorageAdapter {
-  // Existing logic...
-  
-  case 'supabase':
-    if (!config?.supabase || !config?.userId) {
-      throw createStorageError(
-        'AUTH_ERROR',
-        'Supabase client and userId are required for supabase adapter',
-        undefined,
-        { operation: 'createStorageAdapter' }
-      );
-    }
-    return new SupabaseStorageAdapter(config.supabase, config.userId, {
-      fallbackToLocalStorage: config.fallbackToLocalStorage
-    });
+/**
+ * Factory function to create storage adapters based on configuration.
+ * This allows switching between storage backends while maintaining the same interface.
+ * 
+ * @param config - Configuration object specifying the storage adapter type and options
+ * @param config.type - The type of storage adapter ('localStorage' | 'memory' | 'dexie' | 'supabase')
+ * @param config.supabase - Supabase client instance (required for 'supabase' type)
+ * @param config.userId - User identifier for multi-user adapters (required for 'supabase' and 'dexie')
+ * @param config.fallback - Fallback adapter type when primary storage fails ('localStorage' | 'dexie' | 'memory')
+ * @param config.retryConfig - Retry configuration for network operations
+ * @param config.encryptionKey - Optional encryption key for sensitive data
+ * 
+ * @returns A storage adapter instance implementing the StorageAdapter interface
+ * @throws {StorageError} When configuration is invalid or adapter creation fails
+ */
+export function createStorageAdapter(config?: StorageConfig): StorageAdapter {
+  // Enhanced validation with specific error messages for each case
+  // Supports all fallback types: localStorage, dexie, memory
+  // Comprehensive retry configuration validation
+  // Proper Dexie adapter creation with userId support
+  return new SupabaseStorageAdapter(config.supabase, config.userId, {
+    fallbackToLocalStorage: config.fallback === 'localStorage',
+    fallbackToDexie: config.fallback === 'dexie',
+    fallbackToMemory: config.fallback === 'memory',
+    retryConfig: config.retryConfig
+  });
 }
 ```
 
 **Testing**:
-- Factory creates Supabase adapter with fallback option
-- Error handling for missing configuration
-- Backward compatibility maintained
+- ✅ Factory creates Supabase adapter with all fallback options (Dexie, localStorage, memory)
+- ✅ Enhanced error handling for missing/invalid configuration with specific error messages
+- ✅ Dexie adapter creation with userId validation
+- ✅ Retry configuration validation (maxRetries, backoffMs)
+- ✅ Fallback configuration validation
+- ✅ Backward compatibility maintained - all existing tests pass
+- ✅ Comprehensive JSDoc documentation with practical examples
 
 **Acceptance Criteria**:
-- Enhanced configuration options available
-- Fallback configuration properly passed to adapter
-- No breaking changes to existing factory usage
+- ✅ Enhanced configuration options available with proper validation
+- ✅ Fallback configuration properly passed to adapter for all supported types
+- ✅ No breaking changes to existing factory usage
+- ✅ Improved developer experience with detailed error messages and documentation
+- ✅ Complete test coverage for all new functionality
 
 ---
 

@@ -6,6 +6,7 @@ import { createStorageAdapter, createTestStorageAdapter } from '../factory';
 import { LocalStorageAdapter } from '../localStorage';
 import { MemoryStorageAdapter } from '../memory';
 import { SupabaseStorageAdapter } from '../supabase';
+import { DexieStorageAdapter } from '../dexie';
 import { StorageAdapter } from '../interface';
 
 // Mock Supabase for testing
@@ -76,20 +77,62 @@ describe('Storage Factory Integration', () => {
       expect(() => createStorageAdapter({
         type: 'supabase',
         userId: 'test-user'
-      })).toThrow('Supabase client and userId are required for supabase adapter');
+      })).toThrow('Supabase client is required for supabase adapter');
     });
 
     it('should throw error for Supabase adapter without userId', () => {
       expect(() => createStorageAdapter({
         type: 'supabase',
         supabase: mockSupabaseClient as any
-      })).toThrow('Supabase client and userId are required for supabase adapter');
+      })).toThrow('User ID is required for supabase adapter');
     });
 
-    it('should throw error for unknown adapter type', () => {
+    it('should throw error for invalid Supabase client', () => {
+      expect(() => createStorageAdapter({
+        type: 'supabase',
+        supabase: 'invalid-client' as any,
+        userId: 'test-user'
+      })).toThrow('Invalid Supabase client provided');
+    });
+
+    it('should throw error for invalid fallback type', () => {
+      expect(() => createStorageAdapter({
+        type: 'supabase',
+        supabase: mockSupabaseClient as any,
+        userId: 'test-user',
+        fallback: 'invalid-fallback' as any
+      })).toThrow('Invalid fallback adapter type: invalid-fallback');
+    });
+
+    it('should throw error for invalid retry configuration - maxRetries', () => {
+      expect(() => createStorageAdapter({
+        type: 'supabase',
+        supabase: mockSupabaseClient as any,
+        userId: 'test-user',
+        retryConfig: { maxRetries: -1, backoffMs: 1000 }
+      })).toThrow('Invalid retry configuration: maxRetries must be a non-negative number');
+    });
+
+    it('should throw error for invalid retry configuration - backoffMs', () => {
+      expect(() => createStorageAdapter({
+        type: 'supabase',
+        supabase: mockSupabaseClient as any,
+        userId: 'test-user',
+        retryConfig: { maxRetries: 3, backoffMs: -500 }
+      })).toThrow('Invalid retry configuration: backoffMs must be a non-negative number');
+    });
+
+    it('should throw error for invalid Dexie userId type', () => {
+      expect(() => createStorageAdapter({
+        type: 'dexie',
+        userId: 123 as any
+      })).toThrow('Invalid userId provided for Dexie adapter');
+    });
+
+    it('should throw error for unknown adapter type with helpful message', () => {
       expect(() => createStorageAdapter({
         type: 'unknown' as any
-      })).toThrow('Unknown storage adapter type: unknown');
+      })).toThrow('Unknown storage adapter type: unknown. Supported types are: localStorage, memory, dexie, supabase');
     });
 
     it('should handle null/undefined configurations gracefully', () => {
@@ -260,13 +303,13 @@ describe('Storage Factory Integration', () => {
 
     it('should provide meaningful error messages for configuration errors', () => {
       expect(() => createStorageAdapter({ type: 'invalid' as any }))
-        .toThrow(/Unknown storage adapter type/);
+        .toThrow(/Unknown storage adapter type.*Supported types are/);
       
       expect(() => createStorageAdapter({ type: 'supabase' }))
-        .toThrow(/Supabase client and userId are required/);
+        .toThrow(/Supabase client is required for supabase adapter/);
       
       expect(() => createStorageAdapter({ type: 'supabase', supabase: {} as any }))
-        .toThrow(/Supabase client and userId are required/);
+        .toThrow(/User ID is required for supabase adapter/);
     });
   });
 
@@ -355,12 +398,101 @@ describe('Storage Factory Integration', () => {
     });
   });
 
+  describe('Fallback Configuration', () => {
+    it('should create Supabase adapter with Dexie fallback', () => {
+      const adapter = createStorageAdapter({
+        type: 'supabase',
+        supabase: mockSupabaseClient as any,
+        userId: 'test-user-123',
+        fallback: 'dexie'
+      });
+      
+      expect(adapter).toBeInstanceOf(SupabaseStorageAdapter);
+    });
+
+    it('should create Supabase adapter with localStorage fallback', () => {
+      const adapter = createStorageAdapter({
+        type: 'supabase',
+        supabase: mockSupabaseClient as any,
+        userId: 'test-user-123',
+        fallback: 'localStorage'
+      });
+      
+      expect(adapter).toBeInstanceOf(SupabaseStorageAdapter);
+    });
+
+    it('should create Supabase adapter with memory fallback', () => {
+      const adapter = createStorageAdapter({
+        type: 'supabase',
+        supabase: mockSupabaseClient as any,
+        userId: 'test-user-123',
+        fallback: 'memory'
+      });
+      
+      expect(adapter).toBeInstanceOf(SupabaseStorageAdapter);
+    });
+
+    it('should create Supabase adapter without fallback', () => {
+      const adapter = createStorageAdapter({
+        type: 'supabase',
+        supabase: mockSupabaseClient as any,
+        userId: 'test-user-123'
+        // No fallback specified
+      });
+      
+      expect(adapter).toBeInstanceOf(SupabaseStorageAdapter);
+    });
+
+    it('should pass retry configuration along with fallback configuration', () => {
+      const retryConfig = { maxRetries: 5, backoffMs: 200 };
+      
+      const adapter = createStorageAdapter({
+        type: 'supabase',
+        supabase: mockSupabaseClient as any,
+        userId: 'test-user-123',
+        fallback: 'dexie',
+        retryConfig
+      });
+      
+      expect(adapter).toBeInstanceOf(SupabaseStorageAdapter);
+    });
+  });
+
+  describe('Dexie Adapter Support', () => {
+    it('should create Dexie adapter with anonymous user', () => {
+      const adapter = createStorageAdapter({
+        type: 'dexie'
+      });
+      
+      expect(adapter).toBeInstanceOf(DexieStorageAdapter);
+    });
+
+    it('should create Dexie adapter with specific userId', () => {
+      const adapter = createStorageAdapter({
+        type: 'dexie',
+        userId: 'test-user-123'
+      });
+      
+      expect(adapter).toBeInstanceOf(DexieStorageAdapter);
+    });
+
+    it('should handle undefined userId for Dexie adapter', () => {
+      const adapter = createStorageAdapter({
+        type: 'dexie',
+        userId: undefined
+      });
+      
+      expect(adapter).toBeInstanceOf(DexieStorageAdapter);
+    });
+  });
+
   describe('Type Safety', () => {
     it('should enforce correct types at compile time', () => {
       // These should compile without TypeScript errors
       
       const localStorage = createStorageAdapter({ type: 'localStorage' });
       const memory = createStorageAdapter({ type: 'memory' });
+      const dexie = createStorageAdapter({ type: 'dexie', userId: 'test-user' });
       const supabase = createStorageAdapter({
         type: 'supabase',
         supabase: mockSupabaseClient as any,
@@ -370,6 +502,7 @@ describe('Storage Factory Integration', () => {
       // Runtime type checks
       expect(localStorage).toBeInstanceOf(LocalStorageAdapter);
       expect(memory).toBeInstanceOf(MemoryStorageAdapter);
+      expect(dexie).toBeInstanceOf(DexieStorageAdapter);
       expect(supabase).toBeInstanceOf(SupabaseStorageAdapter);
     });
 
@@ -377,6 +510,7 @@ describe('Storage Factory Integration', () => {
       const adapters: StorageAdapter[] = [
         createStorageAdapter({ type: 'localStorage' }),
         createStorageAdapter({ type: 'memory' }),
+        createStorageAdapter({ type: 'dexie', userId: 'test-user' }),
         createStorageAdapter({
           type: 'supabase',
           supabase: mockSupabaseClient as any,

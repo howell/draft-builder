@@ -6,6 +6,7 @@ import { renderHook } from '@testing-library/react';
 import { useStorageAdapter } from '../hooks';
 import { MemoryStorageAdapter } from '../memory';
 import { LocalStorageAdapter } from '../localStorage';
+import { DexieStorageAdapter } from '../dexie';
 import { SupabaseStorageAdapter } from '../supabase';
 
 // Mock the auth context module completely
@@ -61,7 +62,7 @@ describe('useStorageAdapter', () => {
   });
 
   describe('Anonymous user', () => {
-    it('returns localStorage adapter for anonymous users', () => {
+    it('returns Dexie adapter for anonymous users', () => {
       mockUseAuth.mockReturnValue({
         user: null, // No user
         session: null,
@@ -76,7 +77,7 @@ describe('useStorageAdapter', () => {
 
       const { result } = renderHook(() => useStorageAdapter());
 
-      expect(result.current).toBeInstanceOf(LocalStorageAdapter);
+      expect(result.current).toBeInstanceOf(DexieStorageAdapter);
     });
   });
 
@@ -118,7 +119,7 @@ describe('useStorageAdapter', () => {
       });
 
       rerender();
-      expect(result.current).toBeInstanceOf(LocalStorageAdapter);
+      expect(result.current).toBeInstanceOf(DexieStorageAdapter);
 
       // Change to authenticated user
       mockUseAuth.mockReturnValue({
@@ -170,7 +171,7 @@ describe('useStorageAdapter', () => {
       });
 
       rerender();
-      expect(result.current).toBeInstanceOf(LocalStorageAdapter);
+      expect(result.current).toBeInstanceOf(DexieStorageAdapter);
     });
   });
 

@@ -12,6 +12,8 @@ import {
   type StorageConfig
 } from './interface';
 import { LocalStorageAdapter } from './localStorage';
+import { DexieStorageAdapter } from './dexie';
+import { MemoryStorageAdapter } from './memory';
 import {
   StoredLeaguesDataCurrent,
   StoredMocksDataCurrent,
@@ -54,19 +56,27 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
  */
 export class SupabaseStorageAdapter implements StorageAdapter {
   private readonly retryConfig: RetryConfig;
-  private readonly fallbackAdapter?: LocalStorageAdapter;
+  private readonly fallbackAdapter?: StorageAdapter;
 
   constructor(
     private readonly supabase: SupabaseClient<Database>,
     private readonly userId: string,
     private readonly options?: { 
       fallbackToLocalStorage?: boolean;
+      fallbackToDexie?: boolean;
+      fallbackToMemory?: boolean;
       retryConfig?: Partial<RetryConfig>;
     }
   ) {
     this.retryConfig = { ...DEFAULT_RETRY_CONFIG, ...options?.retryConfig };
-    if (options?.fallbackToLocalStorage) {
+    
+    // Set up fallback adapter based on configuration
+    if (options?.fallbackToDexie) {
+      this.fallbackAdapter = new DexieStorageAdapter(this.userId);
+    } else if (options?.fallbackToLocalStorage) {
       this.fallbackAdapter = new LocalStorageAdapter();
+    } else if (options?.fallbackToMemory) {
+      this.fallbackAdapter = new MemoryStorageAdapter();
     }
   }
 

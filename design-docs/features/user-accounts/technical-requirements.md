@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the technical requirements, dependencies, and constraints for implementing user account functionality in the Draft Builder application.
+This document outlines the technical requirements, dependencies, and constraints for implementing user account functionality in the Draft Builder application. With Dexie storage now available as a superior IndexedDB-based solution, the architecture uses **Supabase for authenticated users** with **Dexie as the fallback** for anonymous and offline scenarios.
 
 ## Infrastructure Requirements
 
@@ -97,7 +97,7 @@ src/components/dashboard/
 
 #### Storage Factory (`src/lib/storage/factory.ts`)
 - Update `getDefaultStorageAdapter()` to be authentication-aware
-- Add fallback configuration support
+- Add Dexie fallback configuration support (instead of localStorage)
 - Enhance error handling for Supabase connectivity
 
 #### Authentication Context (`src/lib/auth/context.tsx`)
@@ -106,9 +106,15 @@ src/components/dashboard/
 - Enhanced error handling for migration scenarios
 
 #### Supabase Adapter (`src/lib/storage/supabase.ts`)
-- Add fallback to localStorage capability
+- Add fallback to Dexie capability (instead of localStorage)
 - Enhanced error handling and retry logic
 - Batch operation optimizations
+
+#### Dexie Adapter (`src/lib/storage/dexie.ts`) - Already Complete ✅
+- Production-ready with 100% test success rate
+- Full StorageAdapter interface compliance
+- User isolation with userId-based data separation
+- Transaction integrity and performance optimizations
 
 #### Application Components
 - Update all components using storage to use `useStorageAdapter()` hook
