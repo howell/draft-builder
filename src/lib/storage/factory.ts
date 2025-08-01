@@ -2,6 +2,7 @@ import { StorageAdapter, StorageConfig, createStorageError } from './interface';
 import { LocalStorageAdapter } from './localStorage';
 import { MemoryStorageAdapter } from './memory';
 import { SupabaseStorageAdapter } from './supabase';
+import { DexieStorageAdapter } from './dexie';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -24,6 +25,9 @@ export function createStorageAdapter(config?: StorageConfig): StorageAdapter {
     
     case 'memory':
       return new MemoryStorageAdapter();
+    
+    case 'dexie':
+      return new DexieStorageAdapter(config?.userId || 'anonymous');
     
     case 'supabase':
       if (!config?.supabase || !config?.userId || typeof config.supabase !== 'object' || typeof config.supabase.from !== 'function') {
@@ -92,4 +96,11 @@ export function isLocalStorageAdapter(adapter: StorageAdapter): adapter is Local
  */
 export function isSupabaseAdapter(adapter: StorageAdapter): adapter is SupabaseStorageAdapter {
   return adapter instanceof SupabaseStorageAdapter;
+}
+
+/**
+ * Type guard to check if an adapter is the Dexie adapter
+ */
+export function isDexieAdapter(adapter: StorageAdapter): adapter is DexieStorageAdapter {
+  return adapter instanceof DexieStorageAdapter;
 } 

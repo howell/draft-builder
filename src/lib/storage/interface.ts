@@ -98,10 +98,10 @@ export type StorageAdapterFactory = () => StorageAdapter;
  */
 export interface StorageConfig {
   /** Type of storage backend to use */
-  type: 'localStorage' | 'supabase' | 'memory';
+  type: 'localStorage' | 'supabase' | 'memory' | 'dexie';
   /** Supabase client for database operations (required for supabase type) */
   supabase?: SupabaseClient<Database>;
-  /** User ID for multi-user storage backends (required for supabase type) */
+  /** User ID for multi-user storage backends (required for supabase and dexie types) */
   userId?: string;
   /** Optional encryption key for sensitive data */
   encryptionKey?: string;

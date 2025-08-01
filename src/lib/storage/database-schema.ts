@@ -103,10 +103,10 @@ export class DraftBuilderDB extends Dexie {
 
     // Version 1: Initial schema
     this.version(1).stores({
-      leagues: '++id, userId, platform, leagueId, favorite, createdAt, updatedAt',
-      drafts: '++id, leagueId, userId, name, year, isTemplate, createdAt, updatedAt',
-      players: '++id, draftId, playerId, name, position, selected, overallRank, positionRank',
-      userSettings: '++id, userId, type, key, updatedAt',
+      leagues: '++id, userId, platform, leagueId, favorite, createdAt, updatedAt, [userId+leagueId]',
+      drafts: '++id, leagueId, userId, name, year, isTemplate, createdAt, updatedAt, [leagueId+userId], [userId+name]',
+      players: '++id, draftId, playerId, name, position, selected, overallRank, positionRank, [draftId+selected]',
+      userSettings: '++id, userId, type, key, updatedAt, [userId+type+key]',
       appMetadata: '++id, key, updatedAt'
     });
 

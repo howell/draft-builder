@@ -7,6 +7,23 @@ import 'whatwg-fetch'; // Provides proper fetch, Request, Response, Headers
 // IndexedDB polyfill for testing Dexie
 import 'fake-indexeddb/auto';
 
+// Mock window object for client-side checks in tests
+Object.defineProperty(global, 'window', {
+  value: {
+    location: { href: 'http://localhost' },
+    document: {},
+    navigator: { userAgent: 'test' }
+  },
+  writable: true
+});
+
+// Polyfill for structuredClone (used by fake-indexeddb)
+if (typeof global.structuredClone === 'undefined') {
+  global.structuredClone = (value: any) => {
+    return JSON.parse(JSON.stringify(value));
+  };
+}
+
 // Ensure all Web APIs are available
 if (typeof global.Request === 'undefined') {
   global.Request = require('whatwg-fetch').Request;
