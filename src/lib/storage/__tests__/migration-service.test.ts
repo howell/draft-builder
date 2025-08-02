@@ -6,7 +6,7 @@ import { DataMigrationService } from '../migration-service';
 import { DexieStorageAdapter } from '../dexie';
 import { MigrationError } from '@/types/migration';
 import type { Database } from '@/lib/database.types';
-import { transformLeagueToDatabase } from '../transforms';
+import { transformLeagueToDatabase, transformDraftToDatabase } from '../transforms';
 
 // Mock Supabase client
 const mockSupabaseClient = {
@@ -33,7 +33,12 @@ jest.mock('../dexie', () => ({
 // Mock transforms module
 jest.mock('../transforms', () => ({
   transformLeagueToDatabase: jest.fn(),
-  DatabaseLeague: {}
+  transformDraftToDatabase: jest.fn(),
+  DatabaseLeague: {},
+  DatabaseDraftSession: {},
+  DatabaseDraftSettings: {},
+  DatabasePlayerSelection: {},
+  DatabaseCostAdjustment: {}
 }));
 
 describe('DataMigrationService Foundation', () => {
@@ -544,27 +549,14 @@ describe('DataMigrationService Foundation', () => {
     });
 
     it('should handle rollback with actual league deletion', async () => {
-      // Setup league data for migration
-      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
-        loadLeagues: jest.fn().mockResolvedValue({
-          schemaVersion: 3,
-          leagues: {
-            'league-1': { platform: 'sleeper', id: 'sleeper-123' }
-          }
-        }),
-        loadSavedMocks: jest.fn().mockResolvedValue({})
-      }));
-
-      // Make migration fail after league insertion to trigger rollback
+      // Setup rollback to succeed
       mockSupabaseClient.from.mockImplementation((table: string) => {
-        if (table === 'leagues') {
+        if (table === 'draft_sessions') {
           return {
-            insert: jest.fn().mockReturnValue({
-              select: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({
-                  data: { id: 'db-league-id-1' },
-                  error: null
-                })
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockResolvedValue({
+                data: [],
+                error: null
               })
             }),
             delete: jest.fn().mockReturnValue({
@@ -572,13 +564,31 @@ describe('DataMigrationService Foundation', () => {
                 select: jest.fn().mockResolvedValue({
                   data: [],
                   error: null,
-                  count: 1
+                  count: 0
                 })
               })
             })
           };
         }
-        throw new Error('Simulated failure after league insertion');
+        
+        return {
+          delete: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              select: jest.fn().mockResolvedValue({
+                data: [],
+                error: null,
+                count: 1
+              })
+            }),
+            in: jest.fn().mockReturnValue({
+              select: jest.fn().mockResolvedValue({
+                data: [],
+                error: null,
+                count: 0
+              })
+            })
+          })
+        };
       });
 
       const rollbackResult = await migrationService.rollbackMigration();
@@ -590,21 +600,552 @@ describe('DataMigrationService Foundation', () => {
 
     it('should handle rollback failures gracefully', async () => {
       // Setup rollback failure
-      mockSupabaseClient.from.mockReturnValue({
-        delete: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            select: jest.fn().mockResolvedValue({
-              data: null,
-              error: { message: 'Database connection failed' }
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'draft_sessions') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockResolvedValue({
+                data: [],
+                error: null
+              })
+            }),
+            delete: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                select: jest.fn().mockResolvedValue({
+                  data: null,
+                  error: { message: 'Database connection failed' }
+                })
+              })
+            })
+          };
+        }
+        
+        return {
+          delete: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              select: jest.fn().mockResolvedValue({
+                data: null,
+                error: { message: 'Database connection failed' }
+              })
+            }),
+            in: jest.fn().mockReturnValue({
+              select: jest.fn().mockResolvedValue({
+                data: null,
+                error: { message: 'Database connection failed' }
+              })
             })
           })
-        })
+        };
       });
 
       const rollbackResult = await migrationService.rollbackMigration();
 
       expect(rollbackResult.success).toBe(false);
-      expect(rollbackResult.error).toContain('Failed to rollback leagues');
+      expect(rollbackResult.error).toContain('Failed to rollback');
+    });
+  });
+
+  describe('Draft Migration (Task 2.3)', () => {
+    beforeEach(() => {
+      // Reset all mocks
+      jest.clearAllMocks();
+      
+      // Setup successful auth by default
+      mockSupabaseClient.auth.getUser.mockResolvedValue({
+        data: { user: { id: 'test-user-id' } }
+      });
+
+      // Setup successful league insertion
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'leagues') {
+          return {
+            insert: jest.fn().mockReturnValue({
+              select: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({
+                  data: { id: 'db-league-id-1' },
+                  error: null
+                })
+              })
+            })
+          };
+        }
+        
+        // For draft-related tables, return successful insertion
+        return {
+          insert: jest.fn().mockResolvedValue({
+            data: null,
+            error: null
+          }),
+          delete: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              select: jest.fn().mockResolvedValue({
+                data: [],
+                error: null,
+                count: 0
+              })
+            }),
+            in: jest.fn().mockReturnValue({
+              select: jest.fn().mockResolvedValue({
+                data: [],
+                error: null,
+                count: 0
+              })
+            })
+          }),
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockResolvedValue({
+              data: [],
+              error: null
+            })
+          })
+        };
+      });
+
+      // Setup transform mocks
+      (transformLeagueToDatabase as jest.Mock).mockReturnValue({
+        user_id: 'test-user-id',
+        league_id: 'sleeper-123',
+        platform: 'sleeper',
+        auth_data_encrypted: null
+      });
+
+      (transformDraftToDatabase as jest.Mock).mockReturnValue({
+        session: {
+          user_id: 'test-user-id',
+          league_id: 'db-league-id-1',
+          name: 'Test Draft',
+          year: '2024',
+          notes: 'Test notes'
+        },
+        settings: {
+          estimation_years: ['2024'],
+          estimation_weight: 0.5,
+          search_positions: ['QB', 'RB'],
+          search_player_count: 50,
+          search_min_price: 0,
+          search_max_price: 999,
+          search_show_only_available: false
+        },
+        selections: [
+          {
+            roster_position: 'QB1',
+            player_id: 'player-1',
+            player_name: 'Test Player',
+            default_position: 'QB',
+            positions: ['QB'],
+            estimated_cost: 25,
+            overall_rank: 1,
+            position_rank: 1
+          }
+        ],
+        adjustments: [
+          {
+            player_id: 'player-1',
+            adjusted_cost: 30
+          }
+        ]
+      });
+    });
+
+    it('should successfully migrate drafts with all related data', async () => {
+      // Setup test data with leagues and drafts
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 3,
+          leagues: {
+            'league-1': { platform: 'sleeper', id: 'sleeper-123' }
+          }
+        }),
+        loadSavedMocks: jest.fn().mockResolvedValue({
+          'Draft 1': {
+            year: '2024',
+            created: Date.now() - 86400000,
+            modified: Date.now(),
+            rosterSelections: {
+              QB1: {
+                id: 'player-1',
+                name: 'Test Player',
+                defaultPosition: 'QB',
+                positions: ['QB'],
+                estimatedCost: 25,
+                overallRank: 1,
+                positionRank: 1
+              }
+            },
+            costAdjustments: {
+              'player-1': 30
+            },
+            estimationSettings: {
+              years: ['2024'],
+              weight: 0.5
+            },
+            searchSettings: {
+              positions: ['QB', 'RB'],
+              playerCount: 50,
+              minPrice: 0,
+              maxPrice: 999,
+              showOnlyAvailable: false
+            },
+            notes: 'Test notes'
+          }
+        })
+      }));
+
+      const result = await migrationService.migrateAllUserData();
+
+      expect(result.success).toBe(true);
+      expect(transformDraftToDatabase).toHaveBeenCalledTimes(1);
+      expect(transformDraftToDatabase).toHaveBeenCalledWith(
+        'Draft 1',
+        expect.objectContaining({
+          year: '2024',
+          notes: 'Test notes'
+        }),
+        'test-user-id',
+        'db-league-id-1'
+      );
+      
+      // Verify all draft-related tables were called
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('draft_sessions');
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('draft_settings');
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('player_selections');
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('cost_adjustments');
+      
+      const stats = migrationService.getStatistics();
+      expect(stats.itemsProcessed.leagues).toBe(1);
+      expect(stats.itemsProcessed.draftSessions).toBe(1);
+      expect(stats.success).toBe(true);
+    });
+
+    it('should handle draft transformation errors', async () => {
+      // Setup failing transform
+      (transformDraftToDatabase as jest.Mock).mockImplementation(() => {
+        throw new Error('Invalid draft data format');
+      });
+
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 3,
+          leagues: {
+            'league-1': { platform: 'sleeper', id: 'sleeper-123' }
+          }
+        }),
+        loadSavedMocks: jest.fn().mockResolvedValue({
+          'Draft 1': {
+            year: '2024',
+            created: Date.now(),
+            modified: Date.now(),
+            rosterSelections: {},
+            costAdjustments: {},
+            estimationSettings: { years: [], weight: 0.5 },
+            searchSettings: { positions: [], playerCount: 50, minPrice: 0, maxPrice: 999, showOnlyAvailable: false },
+            notes: ''
+          }
+        })
+      }));
+
+      const serviceWithoutRollback = new DataMigrationService(
+        mockSupabaseClient,
+        'test-user-id',
+        undefined,
+        { enableRollback: false }
+      );
+
+      await expect(serviceWithoutRollback.migrateAllUserData()).rejects.toThrow(MigrationError);
+      await expect(serviceWithoutRollback.migrateAllUserData()).rejects.toThrow('Failed to migrate draft Draft 1 for league league-1');
+    });
+
+    it('should handle draft session insertion errors', async () => {
+      // Setup failing draft session insertion
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'leagues') {
+          return {
+            insert: jest.fn().mockReturnValue({
+              select: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({
+                  data: { id: 'db-league-id-1' },
+                  error: null
+                })
+              })
+            })
+          };
+        }
+        
+        if (table === 'draft_sessions') {
+          return {
+            insert: jest.fn().mockResolvedValue({
+              data: null,
+              error: { message: 'Draft session insertion failed' }
+            })
+          };
+        }
+        
+        return {
+          insert: jest.fn().mockResolvedValue({ data: null, error: null })
+        };
+      });
+
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 3,
+          leagues: {
+            'league-1': { platform: 'sleeper', id: 'sleeper-123' }
+          }
+        }),
+        loadSavedMocks: jest.fn().mockResolvedValue({
+          'Draft 1': {
+            year: '2024',
+            created: Date.now(),
+            modified: Date.now(),
+            rosterSelections: {},
+            costAdjustments: {},
+            estimationSettings: { years: [], weight: 0.5 },
+            searchSettings: { positions: [], playerCount: 50, minPrice: 0, maxPrice: 999, showOnlyAvailable: false },
+            notes: ''
+          }
+        })
+      }));
+
+      const serviceWithoutRollback = new DataMigrationService(
+        mockSupabaseClient,
+        'test-user-id',
+        undefined,
+        { enableRollback: false }
+      );
+
+      await expect(serviceWithoutRollback.migrateAllUserData()).rejects.toThrow(MigrationError);
+      await expect(serviceWithoutRollback.migrateAllUserData()).rejects.toThrow('Failed to migrate draft Draft 1 for league league-1');
+    });
+
+    it('should handle player selections insertion errors', async () => {
+      // Setup failing player selections insertion
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'leagues') {
+          return {
+            insert: jest.fn().mockReturnValue({
+              select: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({
+                  data: { id: 'db-league-id-1' },
+                  error: null
+                })
+              })
+            })
+          };
+        }
+        
+        if (table === 'player_selections') {
+          return {
+            insert: jest.fn().mockResolvedValue({
+              data: null,
+              error: { message: 'Player selections insertion failed' }
+            })
+          };
+        }
+        
+        return {
+          insert: jest.fn().mockResolvedValue({ data: null, error: null })
+        };
+      });
+
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 3,
+          leagues: {
+            'league-1': { platform: 'sleeper', id: 'sleeper-123' }
+          }
+        }),
+        loadSavedMocks: jest.fn().mockResolvedValue({
+          'Draft 1': {
+            year: '2024',
+            created: Date.now(),
+            modified: Date.now(),
+            rosterSelections: {
+              QB1: {
+                id: 'player-1',
+                name: 'Test Player',
+                defaultPosition: 'QB',
+                positions: ['QB'],
+                estimatedCost: 25,
+                overallRank: 1,
+                positionRank: 1
+              }
+            },
+            costAdjustments: {},
+            estimationSettings: { years: [], weight: 0.5 },
+            searchSettings: { positions: [], playerCount: 50, minPrice: 0, maxPrice: 999, showOnlyAvailable: false },
+            notes: ''
+          }
+        })
+      }));
+
+      const serviceWithoutRollback = new DataMigrationService(
+        mockSupabaseClient,
+        'test-user-id',
+        undefined,
+        { enableRollback: false }
+      );
+
+      await expect(serviceWithoutRollback.migrateAllUserData()).rejects.toThrow(MigrationError);
+      await expect(serviceWithoutRollback.migrateAllUserData()).rejects.toThrow('Failed to migrate draft Draft 1 for league league-1');
+    });
+
+    it('should track progress during draft migration', async () => {
+      const mockProgressCallback = jest.fn();
+      
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 3,
+          leagues: {
+            'league-1': { platform: 'sleeper', id: 'sleeper-123' },
+            'league-2': { platform: 'espn', id: 'espn-456' }
+          }
+        }),
+        loadSavedMocks: jest.fn().mockImplementation((leagueId) => ({
+          'Draft 1': {
+            year: '2024',
+            created: Date.now(),
+            modified: Date.now(),
+            rosterSelections: {},
+            costAdjustments: {},
+            estimationSettings: { years: [], weight: 0.5 },
+            searchSettings: { positions: [], playerCount: 50, minPrice: 0, maxPrice: 999, showOnlyAvailable: false },
+            notes: ''
+          },
+          'Draft 2': {
+            year: '2024',
+            created: Date.now(),
+            modified: Date.now(),
+            rosterSelections: {},
+            costAdjustments: {},
+            estimationSettings: { years: [], weight: 0.5 },
+            searchSettings: { positions: [], playerCount: 50, minPrice: 0, maxPrice: 999, showOnlyAvailable: false },
+            notes: ''
+          }
+        }))
+      }));
+
+      const progressService = new DataMigrationService(
+        mockSupabaseClient,
+        'test-user-id',
+        mockProgressCallback
+      );
+
+      await progressService.migrateAllUserData();
+
+      // Verify progress tracking includes draft migration progress
+      expect(mockProgressCallback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          phase: 'upload',
+          progress: expect.any(Number),
+          message: expect.stringContaining('Migrated draft')
+        })
+      );
+    });
+
+    it('should handle empty draft data gracefully', async () => {
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 3,
+          leagues: {
+            'league-1': { platform: 'sleeper', id: 'sleeper-123' }
+          }
+        }),
+        loadSavedMocks: jest.fn().mockResolvedValue({}) // No drafts
+      }));
+
+      // Mock transform to return empty data
+      (transformDraftToDatabase as jest.Mock).mockReturnValue({
+        session: {
+          user_id: 'test-user-id',
+          league_id: 'db-league-id-1',
+          name: 'Empty Draft',
+          year: '2024',
+          notes: ''
+        },
+        settings: {
+          estimation_years: [],
+          estimation_weight: 0.5,
+          search_positions: [],
+          search_player_count: 50,
+          search_min_price: 0,
+          search_max_price: 999,
+          search_show_only_available: false
+        },
+        selections: [], // No selections
+        adjustments: [] // No adjustments
+      });
+
+      const result = await migrationService.migrateAllUserData();
+
+      expect(result.success).toBe(true);
+      
+      const stats = migrationService.getStatistics();
+      expect(stats.itemsProcessed.leagues).toBe(1);
+      expect(stats.itemsProcessed.draftSessions).toBe(0); // No drafts to migrate
+      expect(stats.success).toBe(true);
+    });
+
+    it('should handle comprehensive rollback with draft data', async () => {
+      // Setup data that would be rolled back
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'draft_sessions') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockResolvedValue({
+                data: [
+                  { id: 'session-1' },
+                  { id: 'session-2' }
+                ],
+                error: null
+              })
+            }),
+            delete: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                select: jest.fn().mockResolvedValue({
+                  data: [],
+                  error: null,
+                  count: 2
+                })
+              })
+            })
+          };
+        }
+        
+        return {
+          delete: jest.fn().mockReturnValue({
+            in: jest.fn().mockReturnValue({
+              select: jest.fn().mockResolvedValue({
+                data: [],
+                error: null,
+                count: 1
+              })
+            }),
+            eq: jest.fn().mockReturnValue({
+              select: jest.fn().mockResolvedValue({
+                data: [],
+                error: null,
+                count: 1
+              })
+            })
+          })
+        };
+      });
+
+      const rollbackResult = await migrationService.rollbackMigration();
+
+      expect(rollbackResult.success).toBe(true);
+      expect(rollbackResult.rolledBackOperations).toContain('draft_sessions');
+      expect(rollbackResult.rolledBackOperations).toContain('cost_adjustments');
+      expect(rollbackResult.rolledBackOperations).toContain('player_selections');
+      expect(rollbackResult.rolledBackOperations).toContain('draft_settings');
+      expect(rollbackResult.rolledBackOperations).toContain('leagues');
+      
+      // Verify deletion was called for all draft-related tables
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('cost_adjustments');
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('player_selections');
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('draft_settings');
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('draft_sessions');
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('leagues');
     });
   });
 });

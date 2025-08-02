@@ -17,8 +17,16 @@ import {
   MigrationStatistics,
   RollbackResult
 } from '@/types/migration';
-import { StoredLeaguesDataCurrent, StoredMocksDataCurrent } from '@/types/storage';
-import { transformLeagueToDatabase, DatabaseLeague } from './transforms';
+import { StoredLeaguesDataCurrent, StoredMocksDataCurrent, StoredDraftDataCurrent } from '@/types/storage';
+import { 
+  transformLeagueToDatabase, 
+  transformDraftToDatabase, 
+  DatabaseLeague,
+  DatabaseDraftSession,
+  DatabaseDraftSettings,
+  DatabasePlayerSelection,
+  DatabaseCostAdjustment
+} from './transforms';
 
 /**
  * Service for migrating user data from Dexie to Supabase
@@ -279,10 +287,10 @@ export class DataMigrationService {
     // Upload leagues and return mapping of original league IDs to database IDs
     const leagueIdMapping = await this.migrateLeagues(transformedData.transformedLeagues);
     
-    // TODO: Draft migration will be implemented in Task 2.3
-    // await this.migrateDrafts(transformedData.originalMocks, leagueIdMapping);
+    // Upload drafts using the league ID mapping
+    const draftCount = await this.migrateDrafts(transformedData.originalMocks, leagueIdMapping);
     
-    console.log(`[MigrationService] Successfully uploaded ${Object.keys(leagueIdMapping).length} leagues`);
+    console.log(`[MigrationService] Successfully uploaded ${Object.keys(leagueIdMapping).length} leagues and ${draftCount} drafts`);
     return leagueIdMapping;
   }
 
@@ -403,6 +411,252 @@ export class DataMigrationService {
   }
 
   /**
+   * Migrate drafts to Supabase database
+   * @param originalMocks Record of league IDs to their draft mocks data
+   * @param leagueIdMapping Mapping of original league IDs to database primary keys
+   * @returns Total number of drafts migrated
+   */
+  private async migrateDrafts(originalMocks: Record<LeagueId, StoredMocksDataCurrent>, leagueIdMapping: Record<LeagueId, string>): Promise<number> {
+    let totalDraftsMigrated = 0;
+    const totalLeagues = Object.keys(originalMocks).length;
+    let processedLeagues = 0;
+    
+    console.log(`[MigrationService] Starting migration of drafts for ${totalLeagues} leagues`);
+    
+    for (const [leagueId, leagueMocks] of Object.entries(originalMocks)) {
+      const leagueDbId = leagueIdMapping[leagueId as LeagueId];
+      
+      if (!leagueDbId) {
+        console.warn(`[MigrationService] No database ID found for league ${leagueId}, skipping drafts`);
+        continue;
+      }
+      
+      const draftNames = Object.keys(leagueMocks || {});
+      console.log(`[MigrationService] Migrating ${draftNames.length} drafts for league ${leagueId}`);
+      
+      for (let i = 0; i < draftNames.length; i++) {
+        const draftName = draftNames[i];
+        const draftData = leagueMocks[draftName];
+        
+        if (!draftData) {
+          console.warn(`[MigrationService] No data found for draft ${draftName}, skipping`);
+          continue;
+        }
+        
+        try {
+          await this.migrateSingleDraft(draftName, draftData, leagueId as LeagueId, leagueDbId);
+          totalDraftsMigrated++;
+          
+          // Update progress - drafts represent the second part of upload phase (70-80% range)
+          const overallProgress = processedLeagues / totalLeagues + (i + 1) / draftNames.length / totalLeagues;
+          const progress = 70 + Math.floor(overallProgress * 10); // 70-80% range
+          this.reportProgress('upload', progress, `Migrated draft ${i + 1}/${draftNames.length} for league ${processedLeagues + 1}/${totalLeagues}`);
+          
+          console.log(`[MigrationService] Successfully migrated draft ${draftName} for league ${leagueId}`);
+        } catch (error) {
+          throw new MigrationError(
+            `Failed to migrate draft ${draftName} for league ${leagueId}`,
+            error,
+            'upload',
+            this.migrationId
+          );
+        }
+      }
+      
+      processedLeagues++;
+    }
+    
+    console.log(`[MigrationService] Successfully migrated ${totalDraftsMigrated} drafts`);
+    return totalDraftsMigrated;
+  }
+
+  /**
+   * Migrate a single draft with all its related data
+   * @param draftName Name of the draft session
+   * @param draftData Draft data from Dexie storage
+   * @param leagueId Original league ID for error reporting
+   * @param leagueDbId Database primary key for the league
+   */
+  private async migrateSingleDraft(
+    draftName: string,
+    draftData: StoredDraftDataCurrent,
+    leagueId: LeagueId,
+    leagueDbId: string
+  ): Promise<void> {
+    // Transform draft data using existing utility
+    const transformed = transformDraftToDatabase(draftName, draftData, this.userId, leagueDbId);
+    
+    // Generate UUID for draft session
+    const sessionId = typeof crypto !== 'undefined' && crypto.randomUUID 
+      ? crypto.randomUUID() 
+      : `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    const now = new Date().toISOString();
+    
+    try {
+      // Insert draft session first
+      await this.insertDraftSession(sessionId, transformed.session, draftData);
+      
+      // Insert related data in parallel for better performance
+      await Promise.all([
+        this.insertDraftSettings(sessionId, transformed.settings),
+        this.insertPlayerSelections(sessionId, transformed.selections),
+        this.insertCostAdjustments(sessionId, transformed.adjustments)
+      ]);
+      
+      console.log(`[MigrationService] Successfully migrated draft ${draftName} with ${transformed.selections.length} selections and ${transformed.adjustments.length} adjustments`);
+    } catch (error) {
+      // If this is already a MigrationError, re-throw it
+      if (error instanceof MigrationError) {
+        throw error;
+      }
+      
+      // Otherwise, wrap in MigrationError
+      throw new MigrationError(
+        `Failed to migrate draft ${draftName} for league ${leagueId}`,
+        error,
+        'upload',
+        this.migrationId
+      );
+    }
+  }
+
+  /**
+   * Insert draft session into database
+   */
+  private async insertDraftSession(
+    sessionId: string,
+    sessionData: Omit<DatabaseDraftSession, 'id' | 'created_at' | 'updated_at'>,
+    originalDraft: StoredDraftDataCurrent
+  ): Promise<void> {
+    const now = new Date().toISOString();
+    
+    const { error } = await this.supabase
+      .from('draft_sessions')
+      .insert({
+        id: sessionId,
+        ...sessionData,
+        created_at: new Date(originalDraft.created).toISOString(),
+        updated_at: new Date(originalDraft.modified).toISOString()
+      });
+
+    if (error) {
+      throw new MigrationError(
+        `Failed to insert draft session: ${error.message}`,
+        error,
+        'upload',
+        this.migrationId
+      );
+    }
+  }
+
+  /**
+   * Insert draft settings into database
+   */
+  private async insertDraftSettings(
+    sessionId: string,
+    settingsData: Omit<DatabaseDraftSettings, 'id' | 'draft_session_id' | 'created_at' | 'updated_at'>
+  ): Promise<void> {
+    const now = new Date().toISOString();
+    
+    const { error } = await this.supabase
+      .from('draft_settings')
+      .insert({
+        id: typeof crypto !== 'undefined' && crypto.randomUUID 
+          ? crypto.randomUUID() 
+          : `settings-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        draft_session_id: sessionId,
+        ...settingsData,
+        created_at: now,
+        updated_at: now
+      });
+
+    if (error) {
+      throw new MigrationError(
+        `Failed to insert draft settings: ${error.message}`,
+        error,
+        'upload',
+        this.migrationId
+      );
+    }
+  }
+
+  /**
+   * Insert player selections into database
+   */
+  private async insertPlayerSelections(
+    sessionId: string,
+    selections: Omit<DatabasePlayerSelection, 'id' | 'draft_session_id' | 'selected_at'>[]
+  ): Promise<void> {
+    if (selections.length === 0) {
+      return; // No selections to insert
+    }
+
+    const now = new Date().toISOString();
+    
+    // Prepare bulk insert data
+    const selectionsToInsert = selections.map(selection => ({
+      id: typeof crypto !== 'undefined' && crypto.randomUUID 
+        ? crypto.randomUUID() 
+        : `selection-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      draft_session_id: sessionId,
+      ...selection,
+      selected_at: now
+    }));
+
+    const { error } = await this.supabase
+      .from('player_selections')
+      .insert(selectionsToInsert);
+
+    if (error) {
+      throw new MigrationError(
+        `Failed to insert player selections: ${error.message}`,
+        error,
+        'upload',
+        this.migrationId
+      );
+    }
+  }
+
+  /**
+   * Insert cost adjustments into database
+   */
+  private async insertCostAdjustments(
+    sessionId: string,
+    adjustments: Omit<DatabaseCostAdjustment, 'id' | 'draft_session_id' | 'created_at' | 'updated_at'>[]
+  ): Promise<void> {
+    if (adjustments.length === 0) {
+      return; // No adjustments to insert
+    }
+
+    const now = new Date().toISOString();
+    
+    // Prepare bulk insert data
+    const adjustmentsToInsert = adjustments.map(adjustment => ({
+      id: typeof crypto !== 'undefined' && crypto.randomUUID 
+        ? crypto.randomUUID() 
+        : `adjustment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      draft_session_id: sessionId,
+      ...adjustment,
+      created_at: now,
+      updated_at: now
+    }));
+
+    const { error } = await this.supabase
+      .from('cost_adjustments')
+      .insert(adjustmentsToInsert);
+
+    if (error) {
+      throw new MigrationError(
+        `Failed to insert cost adjustments: ${error.message}`,
+        error,
+        'upload',
+        this.migrationId
+      );
+    }
+  }
+
+  /**
    * Rollback migration by deleting all uploaded data for this user
    */
   async rollbackMigration(): Promise<RollbackResult> {
@@ -411,7 +665,91 @@ export class DataMigrationService {
     try {
       const rolledBackOperations: string[] = [];
       
-      // Delete leagues (this will cascade to related draft data when implemented)
+      // Get all draft session IDs for this user before deletion
+      const { data: draftSessions } = await this.supabase
+        .from('draft_sessions')
+        .select('id')
+        .eq('user_id', this.userId);
+      
+      const sessionIds = draftSessions?.map(session => session.id) || [];
+      
+      // Delete in reverse dependency order to avoid foreign key violations
+      
+      // 1. Delete cost adjustments
+      if (sessionIds.length > 0) {
+        const { error: adjustmentsError, count: deletedAdjustments } = await this.supabase
+          .from('cost_adjustments')
+          .delete()
+          .in('draft_session_id', sessionIds)
+          .select();
+
+        if (adjustmentsError) {
+          console.error(`[MigrationService] Failed to delete cost adjustments during rollback:`, adjustmentsError);
+          throw new Error(`Failed to rollback cost adjustments: ${adjustmentsError.message}`);
+        }
+
+        if (deletedAdjustments && deletedAdjustments > 0) {
+          rolledBackOperations.push('cost_adjustments');
+          console.log(`[MigrationService] Rolled back ${deletedAdjustments} cost adjustments`);
+        }
+      }
+
+      // 2. Delete player selections
+      if (sessionIds.length > 0) {
+        const { error: selectionsError, count: deletedSelections } = await this.supabase
+          .from('player_selections')
+          .delete()
+          .in('draft_session_id', sessionIds)
+          .select();
+
+        if (selectionsError) {
+          console.error(`[MigrationService] Failed to delete player selections during rollback:`, selectionsError);
+          throw new Error(`Failed to rollback player selections: ${selectionsError.message}`);
+        }
+
+        if (deletedSelections && deletedSelections > 0) {
+          rolledBackOperations.push('player_selections');
+          console.log(`[MigrationService] Rolled back ${deletedSelections} player selections`);
+        }
+      }
+
+      // 3. Delete draft settings
+      if (sessionIds.length > 0) {
+        const { error: settingsError, count: deletedSettings } = await this.supabase
+          .from('draft_settings')
+          .delete()
+          .in('draft_session_id', sessionIds)
+          .select();
+
+        if (settingsError) {
+          console.error(`[MigrationService] Failed to delete draft settings during rollback:`, settingsError);
+          throw new Error(`Failed to rollback draft settings: ${settingsError.message}`);
+        }
+
+        if (deletedSettings && deletedSettings > 0) {
+          rolledBackOperations.push('draft_settings');
+          console.log(`[MigrationService] Rolled back ${deletedSettings} draft settings`);
+        }
+      }
+
+      // 4. Delete draft sessions
+      const { error: sessionsError, count: deletedSessions } = await this.supabase
+        .from('draft_sessions')
+        .delete()
+        .eq('user_id', this.userId)
+        .select();
+
+      if (sessionsError) {
+        console.error(`[MigrationService] Failed to delete draft sessions during rollback:`, sessionsError);
+        throw new Error(`Failed to rollback draft sessions: ${sessionsError.message}`);
+      }
+
+      if (deletedSessions && deletedSessions > 0) {
+        rolledBackOperations.push('draft_sessions');
+        console.log(`[MigrationService] Rolled back ${deletedSessions} draft sessions`);
+      }
+
+      // 5. Delete leagues last
       const { error: leagueError, count: deletedLeagues } = await this.supabase
         .from('leagues')
         .delete()
@@ -427,12 +765,6 @@ export class DataMigrationService {
         rolledBackOperations.push('leagues');
         console.log(`[MigrationService] Rolled back ${deletedLeagues} leagues`);
       }
-      
-      // TODO: Add draft-related rollback operations in Task 2.3/2.4
-      // - draft_sessions
-      // - draft_settings  
-      // - player_selections
-      // - cost_adjustments
       
       console.log(`[MigrationService] Rollback completed for migration ${this.migrationId}. Operations rolled back: ${rolledBackOperations.join(', ')}`);
       return {
