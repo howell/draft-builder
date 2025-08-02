@@ -18,6 +18,7 @@ import {
   RollbackResult
 } from '@/types/migration';
 import { StoredLeaguesDataCurrent, StoredMocksDataCurrent } from '@/types/storage';
+import { transformLeagueToDatabase, DatabaseLeague } from './transforms';
 
 /**
  * Service for migrating user data from Dexie to Supabase
@@ -188,15 +189,15 @@ export class DataMigrationService {
       const leagueMocks = await dexieAdapter.loadSavedMocks(leagueId as LeagueId);
       mocks[leagueId as LeagueId] = leagueMocks;
       
-      // Count draft sessions and selections
-      this.statistics.itemsProcessed.draftSessions += Object.keys(leagueMocks.mocks || {}).length;
+      // Count draft sessions and selections (leagueMocks is direct StoredMocksDataCurrent)
+      this.statistics.itemsProcessed.draftSessions += Object.keys(leagueMocks || {}).length;
       
-      for (const draft of Object.values(leagueMocks.mocks || {})) {
-        if (draft.rosterSelections) {
-          this.statistics.itemsProcessed.playerSelections += Object.keys(draft.rosterSelections).length;
+      for (const draft of Object.values(leagueMocks || {})) {
+        if (draft && typeof draft === 'object' && 'rosterSelections' in draft) {
+          this.statistics.itemsProcessed.playerSelections += Object.keys(draft.rosterSelections || {}).length;
         }
-        if (draft.costAdjustments) {
-          this.statistics.itemsProcessed.costAdjustments += Object.keys(draft.costAdjustments).length;
+        if (draft && typeof draft === 'object' && 'costAdjustments' in draft) {
+          this.statistics.itemsProcessed.costAdjustments += Object.keys(draft.costAdjustments || {}).length;
         }
       }
     }
@@ -220,39 +221,69 @@ export class DataMigrationService {
     }
 
     // Validate schema versions
-    if (dexieData.leagues.schemaVersion !== 2) {
+    if (dexieData.leagues.schemaVersion !== 3) {
       console.warn(`[MigrationService] Unexpected leagues schema version: ${dexieData.leagues.schemaVersion}`);
     }
 
-    for (const [leagueId, mockData] of Object.entries(dexieData.mocks)) {
-      if (mockData.schemaVersion !== 2) {
-        console.warn(`[MigrationService] Unexpected mocks schema version for league ${leagueId}: ${mockData.schemaVersion}`);
-      }
-    }
+    // Note: Dexie mocks data doesn't have schema version wrapper, it's direct StoredMocksDataCurrent
+    // Schema validation for mocks will be handled at the individual draft level if needed
 
     console.log(`[MigrationService] Data validation passed for ${Object.keys(dexieData.leagues.leagues).length} leagues`);
   }
 
   /**
-   * Transform data for database insertion (placeholder for future tasks)
+   * Transform data for database insertion 
    */
-  private async transformDataForMigration(dexieData: { leagues: StoredLeaguesDataCurrent; mocks: Record<LeagueId, StoredMocksDataCurrent> }): Promise<any> {
-    // This will be implemented in Task 2.2 and 2.3
-    // For now, just return the data as-is
-    console.log('[MigrationService] Data transformation phase (to be implemented in subsequent tasks)');
-    return dexieData;
+  private async transformDataForMigration(dexieData: { leagues: StoredLeaguesDataCurrent; mocks: Record<LeagueId, StoredMocksDataCurrent> }): Promise<{
+    transformedLeagues: Array<{ leagueId: LeagueId; dbLeague: Omit<DatabaseLeague, 'id' | 'created_at' | 'updated_at'> }>;
+    originalMocks: Record<LeagueId, StoredMocksDataCurrent>;
+  }> {
+    console.log('[MigrationService] Transforming data for database insertion');
+    
+    // Transform leagues using existing utility
+    const transformedLeagues: Array<{ leagueId: LeagueId; dbLeague: Omit<DatabaseLeague, 'id' | 'created_at' | 'updated_at'> }> = [];
+    
+    for (const [leagueId, league] of Object.entries(dexieData.leagues.leagues)) {
+      try {
+        const dbLeague = transformLeagueToDatabase(leagueId as LeagueId, league, this.userId);
+        transformedLeagues.push({
+          leagueId: leagueId as LeagueId,
+          dbLeague
+        });
+        console.log(`[MigrationService] Transformed league ${leagueId} for database insertion`);
+      } catch (error) {
+        throw new MigrationError(
+          `Failed to transform league ${leagueId} for migration`,
+          error,
+          'transform',
+          this.migrationId
+        );
+      }
+    }
+    
+    return {
+      transformedLeagues,
+      originalMocks: dexieData.mocks
+    };
   }
 
   /**
-   * Upload data to Supabase (placeholder for future tasks)
+   * Upload data to Supabase database
    */
-  private async uploadDataToSupabase(transformedData: any): Promise<void> {
-    // This will be implemented in Task 2.2 and 2.3
-    // For now, just simulate the upload
-    console.log('[MigrationService] Data upload phase (to be implemented in subsequent tasks)');
+  private async uploadDataToSupabase(transformedData: {
+    transformedLeagues: Array<{ leagueId: LeagueId; dbLeague: Omit<DatabaseLeague, 'id' | 'created_at' | 'updated_at'> }>;
+    originalMocks: Record<LeagueId, StoredMocksDataCurrent>;
+  }): Promise<Record<LeagueId, string>> {
+    console.log('[MigrationService] Uploading data to Supabase database');
     
-    // Simulate upload delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Upload leagues and return mapping of original league IDs to database IDs
+    const leagueIdMapping = await this.migrateLeagues(transformedData.transformedLeagues);
+    
+    // TODO: Draft migration will be implemented in Task 2.3
+    // await this.migrateDrafts(transformedData.originalMocks, leagueIdMapping);
+    
+    console.log(`[MigrationService] Successfully uploaded ${Object.keys(leagueIdMapping).length} leagues`);
+    return leagueIdMapping;
   }
 
   /**
@@ -271,14 +302,20 @@ export class DataMigrationService {
     try {
       const dexieAdapter = new DexieStorageAdapter('anonymous');
       
-      // Clear all leagues first
+      // Clear all rosters for each league first
       const leagues = await dexieAdapter.loadLeagues();
       for (const leagueId of Object.keys(leagues.leagues)) {
-        await dexieAdapter.deleteSavedMocks(leagueId as LeagueId);
+        const mocks = await dexieAdapter.loadSavedMocks(leagueId as LeagueId);
+        for (const rosterName of Object.keys(mocks.mocks || {})) {
+          await dexieAdapter.deleteRoster(leagueId as LeagueId, rosterName);
+        }
       }
       
-      // Clear leagues data
-      await dexieAdapter.saveLeagues({ schemaVersion: 2, leagues: {} });
+      // Clear each league individually since there's no bulk clear method
+      for (const leagueId of Object.keys(leagues.leagues)) {
+        // Save empty mocks for each league (saveMock expects StoredMocksDataCurrent, not wrapped object)
+        await dexieAdapter.saveMock(leagueId as LeagueId, {});
+      }
       
       console.log('[MigrationService] Dexie data cleared after successful migration');
     } catch (error) {
@@ -288,17 +325,116 @@ export class DataMigrationService {
   }
 
   /**
-   * Rollback migration by deleting all uploaded data (placeholder for future tasks)
+   * Migrate leagues to Supabase database
+   * @param transformedLeagues Array of transformed league data ready for database insertion
+   * @returns Mapping of original league IDs to database primary keys
+   */
+  private async migrateLeagues(transformedLeagues: Array<{ leagueId: LeagueId; dbLeague: Omit<DatabaseLeague, 'id' | 'created_at' | 'updated_at'> }>): Promise<Record<LeagueId, string>> {
+    const leagueIdMapping: Record<LeagueId, string> = {};
+    const now = new Date().toISOString();
+    
+    console.log(`[MigrationService] Starting migration of ${transformedLeagues.length} leagues`);
+    
+    for (let i = 0; i < transformedLeagues.length; i++) {
+      const { leagueId, dbLeague } = transformedLeagues[i];
+      
+      try {
+        // Generate UUID for database primary key
+        const dbLeagueId = typeof crypto !== 'undefined' && crypto.randomUUID 
+          ? crypto.randomUUID() 
+          : `league-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Insert league into database
+        const { data, error } = await this.supabase
+          .from('leagues')
+          .insert({
+            id: dbLeagueId,
+            ...dbLeague,
+            created_at: now,
+            updated_at: now
+          })
+          .select('id')
+          .single();
+
+        if (error) {
+          throw new MigrationError(
+            `Failed to insert league ${leagueId} into database: ${error.message}`,
+            error,
+            'upload',
+            this.migrationId
+          );
+        }
+
+        if (!data?.id) {
+          throw new MigrationError(
+            `League ${leagueId} was inserted but no ID was returned`,
+            undefined,
+            'upload',
+            this.migrationId
+          );
+        }
+
+        // Store mapping for later use in draft migration
+        leagueIdMapping[leagueId] = data.id;
+        
+        // Update progress (leagues represent a portion of upload phase)
+        const progress = 60 + Math.floor((i + 1) / transformedLeagues.length * 10); // 60-70% range
+        this.reportProgress('upload', progress, `Migrated league ${i + 1}/${transformedLeagues.length}`);
+        
+        console.log(`[MigrationService] Successfully migrated league ${leagueId} -> ${data.id}`);
+      } catch (error) {
+        // If this is already a MigrationError, re-throw it
+        if (error instanceof MigrationError) {
+          throw error;
+        }
+        
+        // Otherwise, wrap in MigrationError
+        throw new MigrationError(
+          `Failed to migrate league ${leagueId}`,
+          error,
+          'upload',
+          this.migrationId
+        );
+      }
+    }
+    
+    console.log(`[MigrationService] Successfully migrated ${transformedLeagues.length} leagues`);
+    return leagueIdMapping;
+  }
+
+  /**
+   * Rollback migration by deleting all uploaded data for this user
    */
   async rollbackMigration(): Promise<RollbackResult> {
     console.log(`[MigrationService] Starting rollback for migration ${this.migrationId}`);
     
     try {
-      // This will be implemented in Task 2.4
-      // For now, just simulate rollback
-      const rolledBackOperations = ['leagues', 'draft_sessions', 'player_selections', 'cost_adjustments'];
+      const rolledBackOperations: string[] = [];
       
-      console.log(`[MigrationService] Rollback completed for migration ${this.migrationId}`);
+      // Delete leagues (this will cascade to related draft data when implemented)
+      const { error: leagueError, count: deletedLeagues } = await this.supabase
+        .from('leagues')
+        .delete()
+        .eq('user_id', this.userId)
+        .select();
+
+      if (leagueError) {
+        console.error(`[MigrationService] Failed to delete leagues during rollback:`, leagueError);
+        throw new Error(`Failed to rollback leagues: ${leagueError.message}`);
+      }
+
+      if (deletedLeagues && deletedLeagues > 0) {
+        rolledBackOperations.push('leagues');
+        console.log(`[MigrationService] Rolled back ${deletedLeagues} leagues`);
+      }
+      
+      // TODO: Add draft-related rollback operations in Task 2.3/2.4
+      // - draft_sessions
+      // - draft_settings  
+      // - player_selections
+      // - cost_adjustments
+      
+      console.log(`[MigrationService] Rollback completed for migration ${this.migrationId}. Operations rolled back: ${rolledBackOperations.join(', ')}`);
       return {
         success: true,
         rolledBackOperations
@@ -350,16 +486,16 @@ export class DataMigrationService {
           hasEspnAuthData = true;
         }
 
-        // Count drafts and selections
+        // Count drafts and selections (mocks is direct StoredMocksDataCurrent)
         const mocks = await dexieAdapter.loadSavedMocks(leagueId as LeagueId);
-        draftCount += Object.keys(mocks.mocks || {}).length;
+        draftCount += Object.keys(mocks || {}).length;
         
-        for (const draft of Object.values(mocks.mocks || {})) {
-          if (draft.rosterSelections) {
-            totalSelections += Object.keys(draft.rosterSelections).length;
+        for (const draft of Object.values(mocks || {})) {
+          if (draft && typeof draft === 'object' && 'rosterSelections' in draft) {
+            totalSelections += Object.keys(draft.rosterSelections || {}).length;
           }
-          if (draft.costAdjustments) {
-            costAdjustments += Object.keys(draft.costAdjustments).length;
+          if (draft && typeof draft === 'object' && 'costAdjustments' in draft) {
+            costAdjustments += Object.keys(draft.costAdjustments || {}).length;
           }
         }
       }
