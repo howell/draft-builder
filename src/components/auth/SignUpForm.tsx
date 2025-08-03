@@ -150,7 +150,7 @@ export default function SignUpForm({ onSwitchToLogin, onSuccess }: SignUpFormPro
             isActive={isMigrating}
           />
           <div className="mt-6 text-center text-sm text-gray-600">
-            Please don't close this window while migration is in progress...
+            Please don&apos;t close this window while migration is in progress...
           </div>
         </div>
       </div>

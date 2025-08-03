@@ -119,7 +119,7 @@ export const MigrationSuccess: React.FC<MigrationSuccessProps> = ({
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
         <h3 className="font-semibold text-blue-800 mb-3 flex items-center">
           <span className="mr-2">🚀</span>
-          What's Next?
+          What&apos;s Next?
         </h3>
         
         <ul className="space-y-2 text-sm text-blue-700">

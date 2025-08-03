@@ -42,7 +42,7 @@ export const DataPreview: React.FC<DataPreviewProps> = ({
           <div className="text-4xl mb-4">📭</div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">No Data to Migrate</h3>
           <p className="text-gray-600">
-            You don't have any saved leagues or drafts to migrate.
+            You don&apos;t have any saved leagues or drafts to migrate.
             Start by adding your fantasy leagues!
           </p>
         </div>
@@ -58,7 +58,7 @@ export const DataPreview: React.FC<DataPreviewProps> = ({
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Your Fantasy Data</h3>
           <p className="text-sm text-gray-600">
-            Here's what will be migrated to your account
+            Here&apos;s what will be migrated to your account
           </p>
         </div>
       </div>

@@ -167,7 +167,7 @@ export const AccountBenefits: React.FC<AccountBenefitsProps> = ({
         </div>
         
         <div className="text-xs text-gray-500">
-          ⭐⭐⭐⭐⭐ "Best draft tool I've ever used" - Fantasy Champion 2024
+          ⭐⭐⭐⭐⭐ &quot;Best draft tool I&apos;ve ever used&quot; - Fantasy Champion 2024
         </div>
       </div>
 
@@ -177,7 +177,7 @@ export const AccountBenefits: React.FC<AccountBenefitsProps> = ({
           <div className="flex items-start space-x-2">
             <div className="text-amber-600 text-sm">⚠️</div>
             <div className="text-sm">
-              <div className="font-medium text-amber-800">Don't Lose Your Work</div>
+              <div className="font-medium text-amber-800">Don&apos;t Lose Your Work</div>
               <div className="text-amber-700 mt-1">
                 Your browser data could be lost due to updates, crashes, or clearing cache. 
                 Create an account to permanently save your {dataSummary?.totalSelections || 0} player selections 
