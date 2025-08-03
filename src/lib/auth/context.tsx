@@ -3,6 +3,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../supabase';
+import { DataMigrationService } from '../storage/migration-service';
+import { hasLocalStorageData, getLocalStorageDataSummary } from '../storage/migration-utils';
+import type { MigrationResult, MigrationProgress, MigrationDataSummary } from '@/types/migration';
 
 // Authentication state interface
 interface AuthState {
@@ -10,6 +13,9 @@ interface AuthState {
   session: Session | null;
   loading: boolean;
   error: string | null;
+  // Migration-related state
+  isMigrating: boolean;
+  migrationProgress?: MigrationProgress;
 }
 
 // Authentication context interface
@@ -19,6 +25,13 @@ interface AuthContextType extends AuthState {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
   clearError: () => void;
+  // Migration-related methods
+  signUpWithMigration: (email: string, password: string) => Promise<{
+    error: AuthError | null;
+    migrationResult?: MigrationResult;
+  }>;
+  hasMigratableData: () => boolean;
+  getDataSummary: () => Promise<MigrationDataSummary>;
 }
 
 // Create the authentication context
@@ -40,6 +53,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     session: null,
     loading: true,
     error: null,
+    isMigrating: false,
+    migrationProgress: undefined,
   });
 
   // Initialize auth state and listen for changes
@@ -207,6 +222,109 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setAuthState(prev => ({ ...prev, error: null }));
   };
 
+  // Sign up with automatic data migration
+  const signUpWithMigration = async (email: string, password: string) => {
+    setAuthState(prev => ({ ...prev, loading: true, error: null }));
+    
+    try {
+      // 1. Create account first
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin,
+        },
+      });
+      
+      if (signUpError) {
+        throw signUpError;
+      }
+
+      // 2. Wait for user session to be established
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        throw new Error('No session established after signup');
+      }
+
+      // 3. Check if migration is needed and perform it
+      let migrationResult: MigrationResult | undefined;
+      if (hasMigratableData()) {
+        console.log('[AuthContext] Starting data migration for new user');
+        
+        setAuthState(prev => ({ 
+          ...prev, 
+          isMigrating: true,
+          migrationProgress: undefined
+        }));
+        
+        const migrationService = new DataMigrationService(
+          supabase, 
+          session.user.id,
+          (progress: MigrationProgress) => {
+            setAuthState(prev => ({
+              ...prev,
+              migrationProgress: progress
+            }));
+          }
+        );
+        
+        migrationResult = await migrationService.migrateAllUserData();
+        console.log('[AuthContext] Migration completed:', migrationResult);
+      }
+      
+      // 4. Update state with successful result
+      setAuthState(prev => ({
+        ...prev,
+        loading: false,
+        isMigrating: false,
+        migrationProgress: undefined,
+        error: null
+      }));
+      
+      return { error: null, migrationResult };
+    } catch (error) {
+      console.error('[AuthContext] SignUp with migration failed:', error);
+      
+      // Reset migration state on error
+      setAuthState(prev => ({
+        ...prev,
+        loading: false,
+        isMigrating: false,
+        migrationProgress: undefined,
+        error: error instanceof Error ? error.message : 'Signup failed'
+      }));
+      
+      return { error: error as AuthError };
+    }
+  };
+
+  // Check if user has migratable data
+  const hasMigratableData = (): boolean => {
+    try {
+      return hasLocalStorageData();
+    } catch (error) {
+      console.warn('[AuthContext] Error checking for migratable data:', error);
+      return false;
+    }
+  };
+
+  // Get summary of data to be migrated
+  const getDataSummary = async (): Promise<MigrationDataSummary> => {
+    try {
+      return await getLocalStorageDataSummary();
+    } catch (error) {
+      console.warn('[AuthContext] Error getting data summary:', error);
+      return {
+        leagueCount: 0,
+        draftCount: 0,
+        totalSelections: 0,
+        costAdjustments: 0,
+        estimatedSizeBytes: 0,
+        hasEspnAuthData: false
+      };
+    }
+  };
+
   const value: AuthContextType = {
     ...authState,
     signIn,
@@ -214,6 +332,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signOut,
     resetPassword,
     clearError,
+    signUpWithMigration,
+    hasMigratableData,
+    getDataSummary,
   };
 
   return (
