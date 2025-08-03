@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import type { MigrationResult } from '@/types/migration';
+import type { MigrationResult } from '../../types/migration';
 
 interface MigrationSuccessProps {
   /** Result of the completed migration */

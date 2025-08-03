@@ -6,7 +6,7 @@ import { DataPreview } from './DataPreview';
 import { AccountBenefits } from './AccountBenefits';
 import { MigrationProgressComponent } from './MigrationProgress';
 import { MigrationSuccess } from './MigrationSuccess';
-import type { MigrationDataSummary, MigrationResult } from '@/types/migration';
+import type { MigrationDataSummary, MigrationResult } from '../../types/migration';
 
 interface SignUpFormProps {
   onSwitchToLogin: () => void;

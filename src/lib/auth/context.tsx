@@ -5,7 +5,7 @@ import type { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../supabase';
 import { DataMigrationService } from '../storage/migration-service';
 import { hasLocalStorageData, getLocalStorageDataSummary } from '../storage/migration-utils';
-import type { MigrationResult, MigrationProgress, MigrationDataSummary } from '@/types/migration';
+import type { MigrationResult, MigrationProgress, MigrationDataSummary } from '../../types/migration';
 
 // Authentication state interface
 interface AuthState {

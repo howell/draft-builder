@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import type { MigrationProgress } from '@/types/migration';
+import type { MigrationProgress } from '../../types/migration';
 
 interface MigrationProgressProps {
   /** Current migration progress */

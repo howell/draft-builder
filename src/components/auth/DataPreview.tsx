@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import type { MigrationDataSummary } from '@/types/migration';
+import type { MigrationDataSummary } from '../../types/migration';
 
 interface DataPreviewProps {
   /** Summary of data to be migrated */

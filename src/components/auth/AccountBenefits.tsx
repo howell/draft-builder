@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import type { MigrationDataSummary } from '@/types/migration';
+import type { MigrationDataSummary } from '../../types/migration';
 
 interface AccountBenefitsProps {
   /** Current user's data summary to personalize benefits */

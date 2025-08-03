@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import type { MigrationDataSummary } from '@/types/migration';
+import type { MigrationDataSummary } from '../../types/migration';
 
 interface AccountPromotionBannerProps {
   /** Current user's data summary for personalization */
