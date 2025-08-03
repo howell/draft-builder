@@ -28,6 +28,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run type-check` - Run TypeScript compiler without emitting files
 - `npm test` - Run Jest test suite
 
+### **CRITICAL**: Task Completion Checklist
+Before marking any development task as complete, you MUST:
+
+1. **Update Design Documents**: 
+   - Mark progress in relevant design documents (e.g., `design-docs/features/user-accounts/implementation-tasks.md`)
+   - Update task status from "pending" to "in_progress" to "completed" with ✅ checkmarks
+   - Document what was actually implemented vs. what was planned
+   - Note any deviations or additional work completed
+
+2. **Verify Code Quality**:
+   - Run `npm run type-check` to ensure no TypeScript errors
+   - Run `npm run lint` to check for code quality issues
+   - Run `npm run build` to verify the application builds successfully
+   - Address any critical errors before marking tasks complete
+
+3. **Test Implementation**:
+   - Verify the implemented functionality works as expected
+   - Check that existing functionality is not broken
+   - Run relevant tests if available
+
+**Example Task Completion Flow**:
+```
+1. Implement feature
+2. Update design docs with ✅ COMPLETED status
+3. Run npm run type-check (fix any errors)
+4. Run npm run build (fix any errors)  
+5. Test functionality
+6. Mark task as complete in TodoWrite
+```
+
+**NEVER** consider a task complete without following this checklist!
+
 ## Architecture Overview
 
 ### Technology Stack
@@ -138,6 +170,14 @@ return (
 
 ## Development Guidelines
 
+### **Documentation Management**
+- **ALWAYS** update relevant design documents when working on features
+- Mark task progress with clear status indicators (✅ COMPLETED, 🔄 IN PROGRESS, ⏳ PENDING)
+- Document actual implementation details, not just planned features
+- Update acceptance criteria to reflect what was actually built
+- Note any architectural decisions or deviations from original plans
+- Keep design documents as the single source of truth for feature status
+
 ### Storage Operations
 - **Always use StorageAdapter**: Never call localStorage directly
 - **Async Pattern**: All storage calls must be async/await
@@ -238,3 +278,5 @@ Phase 2: Migration Service
 4. **Platform API assumptions** - APIs return numbers for errors
 5. **Authentication assumptions** - Always check auth state
 6. **Type safety** - Don't use `any`, implement proper type guards
+7. **Incomplete task completion** - Not updating design docs or running quality checks
+8. **Skipping verification** - Not running type-check and build before marking complete
