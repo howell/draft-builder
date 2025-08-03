@@ -39,6 +39,11 @@ const config: Config = {
     '<rootDir>/node_modules/',
     '<rootDir>/src/.*/__tests__/test-utils/'
   ],
+
+  // Module name mapping for path aliases
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
 };
 
 export default createJestConfig(config);
