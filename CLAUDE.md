@@ -206,6 +206,129 @@ return (
 - **Components**: Test loading, error, and success states
 - **Authentication**: Test protected and public routes
 
+### **CRITICAL**: E2E Testing Best Practices
+
+Based on hard-won experience implementing the user accounts E2E test suite, follow these patterns:
+
+#### 1. **Idiomatic React Testing Library Usage**
+```typescript
+// ✅ CORRECT: Direct DOM assertions
+expect(screen.getByText(/Create Draft Builder Account/i)).toBeInTheDocument();
+expect(screen.getByLabelText(/Email Address/i)).toBeInTheDocument();
+
+// ❌ WRONG: Wrapping simple assertions in waitFor
+await waitFor(() => {
+  expect(screen.getByText(/Some Text/i)).toBeInTheDocument();
+});
+```
+
+#### 2. **Handling Async useEffect Hooks**
+```typescript
+// ✅ CORRECT: Use act() for async component initialization
+let renderResult: any;
+await act(async () => {
+  renderResult = render(
+    <AuthProvider>
+      <ComponentWithAsyncEffects />
+    </AuthProvider>
+  );
+  // Give async useEffect time to complete
+  await new Promise(resolve => setTimeout(resolve, 100));
+});
+
+// ❌ WRONG: Expecting immediate sync behavior from async effects
+render(<Component />);
+expect(screen.getByText(/Async Content/i)).toBeInTheDocument(); // May fail
+```
+
+#### 3. **Mock Supabase Auth Properly**
+```typescript
+// ✅ CORRECT: Complete auth mock setup
+const mockSupabaseAuth = {
+  getSession: jest.fn().mockResolvedValue({ data: { session: null }, error: null }),
+  signUp: jest.fn(),
+  onAuthStateChange: jest.fn((callback) => {
+    // Immediately call callback to set auth state to not loading
+    callback('INITIAL_SESSION', null);
+    return {
+      data: { subscription: { unsubscribe: jest.fn() } }
+    };
+  })
+};
+(supabase as any).auth = mockSupabaseAuth;
+```
+
+#### 4. **Test What Users See, Not Implementation**
+```typescript
+// ✅ CORRECT: Test user-visible behavior
+expect(screen.getByText(/Secure Your Fantasy Data/i)).toBeInTheDocument();
+expect(screen.getByRole('button', { name: /Create Account.*Migrate/i })).toBeInTheDocument();
+
+// ✅ ALSO CORRECT: Verify mocks were called (but don't wrap in waitFor)
+expect(hasLocalStorageData).toHaveBeenCalled();
+
+// ❌ WRONG: Testing internal state or complex mock call patterns
+await waitFor(() => {
+  expect(mockFunction).toHaveBeenCalledWith(specificArg);
+});
+```
+
+#### 5. **Container Errors with waitFor**
+The error "Expected container to be an Element, a Document or a DocumentFragment but got Object" happens when:
+- Using `waitFor` to check mock function calls instead of DOM queries
+- Passing callbacks that don't interact with the DOM to `waitFor`
+
+```typescript
+// ✅ CORRECT: Use waitFor only for DOM queries that may take time
+await waitFor(() => {
+  expect(screen.getByText(/Dynamic Content/i)).toBeInTheDocument();
+});
+
+// ❌ WRONG: Using waitFor for mock assertions
+await waitFor(() => {
+  expect(mockFunction).toHaveBeenCalled(); // Causes container error
+});
+```
+
+#### 6. **Component Testing Flow**
+1. **Setup**: Mock all external dependencies (Supabase, localStorage, etc.)
+2. **Render**: Use `act()` if component has async initialization
+3. **Assert**: Test DOM content directly, verify mocks separately
+4. **Focus**: Test user-visible behavior, not internal implementation
+
+#### 7. **localStorage in Tests**
+```typescript
+// ✅ CORRECT: Populate test data before rendering
+beforeEach(() => {
+  const testData = createTestLocalStorageData();
+  populateLocalStorageWithTestData(testData);
+  
+  // Mock the functions that check localStorage
+  (hasLocalStorageData as jest.Mock).mockReturnValue(true);
+});
+```
+
+#### 8. **When Tests Fail**
+- **Check the HTML output**: Use `console.log(renderResult.container.innerHTML)` to debug
+- **Verify async timing**: Add debugging `console.log` statements to see render order
+- **Simplify first**: Start with basic rendering, then add complexity
+- **Focus on core behavior**: Test that migration logic triggers, not exact UI text
+
+#### 9. **Naming and Organization**
+```typescript
+// ✅ GOOD: Descriptive test names that indicate user scenarios
+test('signup form shows migration content when localStorage data exists', () => {
+  // Tests specific user scenario
+});
+
+// ✅ GOOD: One behavior per test
+test('form structure accommodates migration flow', () => {
+  // Tests form structure only
+});
+```
+
+These patterns ensure reliable, maintainable E2E tests that actually reflect user behavior.
+
 ## Important Implementation Notes
 
 ### Current Migration Status
