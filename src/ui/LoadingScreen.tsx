@@ -13,6 +13,8 @@ export class LoadingTask {
 	private task: TaskStatusChecker;
 	private id: number;
 	public message: string;
+	private finished: boolean = false;
+	private error: Error | null = null;
 
 	private static nextId = 0;
 
@@ -26,12 +28,29 @@ export class LoadingTask {
 		if (typeof this.task === 'function') {
 			return this.task();
 		}
-		return false;
+		return this.finished;
+	}
+
+	public hasError(): boolean {
+		return this.error !== null;
+	}
+
+	public getError(): Error | null {
+		return this.error;
 	}
 
 	public setup(finishTask: (task: LoadingTask) => void): void {
 		if (typeof this.task !== 'function') {
-			this.task.then(() => finishTask(this));
+			this.task
+				.then(() => {
+					this.finished = true;
+					finishTask(this);
+				})
+				.catch((error) => {
+					this.error = error;
+					this.finished = true;
+					finishTask(this);
+				});
 		}
 	}
 

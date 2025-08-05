@@ -26,8 +26,12 @@ describe('LoadingScreen', () => {
 
 	it('should call setup on tasks that are not functions', () => {
 		const mockFinishTask = jest.fn();
-		const mockTask = {
-			then: jest.fn((callback) => callback()),
+		const mockTask: any = {
+			then: jest.fn((callback: () => void): any => {
+				callback();
+				return mockTask;
+			}),
+			catch: jest.fn(),
 		};
 		const task = new LoadingTask(mockTask as unknown as Promise<any>, 'Loading data...');
 		setupTasks(new Set([task]), new Set(), mockFinishTask);
