@@ -111,7 +111,7 @@ describe('Storage Adapter Fallback E2E Test', () => {
     };
 
     (supabase as any).auth = mockSupabaseAuth;
-    (supabase as any).from = mockSupabaseClient.from;
+    (supabase as any).from = mockSupabaseClient.from.bind(mockSupabaseClient);
 
     // Create a mock SupabaseStorageAdapter that fails on first call, then succeeds on fallback
     let callCount = 0;
@@ -202,7 +202,7 @@ describe('Storage Adapter Fallback E2E Test', () => {
     };
 
     (supabase as any).auth = mockSupabaseAuth;
-    (supabase as any).from = mockSupabaseClient.from;
+    (supabase as any).from = mockSupabaseClient.from.bind(mockSupabaseClient);
 
     // Create a mock storage adapter that eventually succeeds
     let loadLeaguesCallCount = 0;
@@ -292,7 +292,7 @@ describe('Storage Adapter Fallback E2E Test', () => {
     };
 
     (supabase as any).auth = mockSupabaseAuth;
-    (supabase as any).from = mockSupabaseClient.from;
+    (supabase as any).from = mockSupabaseClient.from.bind(mockSupabaseClient);
 
     // Create a mock storage adapter that simulates different error scenarios
     let loadLeaguesCallCount = 0;
@@ -385,7 +385,7 @@ describe('Storage Adapter Fallback E2E Test', () => {
     };
 
     (supabase as any).auth = mockSupabaseAuth;
-    (supabase as any).from = mockSupabaseClient.from;
+    (supabase as any).from = mockSupabaseClient.from.bind(mockSupabaseClient);
 
     // Create consistent test data
     const testLeagues = createTestStoredLeagues({
@@ -483,7 +483,7 @@ describe('Storage Adapter Fallback E2E Test', () => {
     };
 
     (supabase as any).auth = mockSupabaseAuth;
-    (supabase as any).from = mockSupabaseClient.from;
+    (supabase as any).from = mockSupabaseClient.from.bind(mockSupabaseClient);
 
     // Test data with ESPN league that has auth data
     const espnLeague = { 

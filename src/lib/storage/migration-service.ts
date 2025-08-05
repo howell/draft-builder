@@ -36,6 +36,7 @@ export class DataMigrationService {
   private migrationId: string;
   private statistics: MigrationStatistics;
   private startTime: Date;
+  private currentPhase: MigrationPhase;
 
   constructor(
     private supabase: SupabaseClient<Database>,
@@ -48,6 +49,7 @@ export class DataMigrationService {
       ? crypto.randomUUID() 
       : `migration-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     this.startTime = new Date();
+    this.currentPhase = 'export'; // Initialize with first phase
     
     // Initialize statistics
     this.statistics = {
@@ -198,10 +200,10 @@ export class DataMigrationService {
       mocks[leagueId as LeagueId] = leagueMocks;
       
       // Count draft sessions and selections (leagueMocks is direct StoredMocksDataCurrent)
-      this.statistics.itemsProcessed.draftSessions += Object.keys(leagueMocks || {}).length;
-      
+      // Only count non-null drafts to match what will actually be migrated
       for (const draft of Object.values(leagueMocks || {})) {
         if (draft && typeof draft === 'object' && 'rosterSelections' in draft) {
+          this.statistics.itemsProcessed.draftSessions += 1; // Count valid draft
           this.statistics.itemsProcessed.playerSelections += Object.keys(draft.rosterSelections || {}).length;
         }
         if (draft && typeof draft === 'object' && 'costAdjustments' in draft) {
@@ -314,7 +316,7 @@ export class DataMigrationService {
       const leagues = await dexieAdapter.loadLeagues();
       for (const leagueId of Object.keys(leagues.leagues)) {
         const mocks = await dexieAdapter.loadSavedMocks(leagueId as LeagueId);
-        for (const rosterName of Object.keys(mocks.mocks || {})) {
+        for (const rosterName of Object.keys(mocks || {})) {
           await dexieAdapter.deleteRoster(leagueId as LeagueId, rosterName);
         }
       }
@@ -864,6 +866,9 @@ export class DataMigrationService {
   // Private helper methods
 
   private reportProgress(phase: MigrationPhase, progress: number, message: string, error?: string): void {
+    // Update current phase tracking
+    this.currentPhase = phase;
+    
     const progressInfo: MigrationProgress = {
       phase,
       progress,
@@ -881,8 +886,7 @@ export class DataMigrationService {
   }
 
   private getCurrentPhase(): MigrationPhase {
-    // This could be enhanced to track current phase more precisely
-    return 'export';
+    return this.currentPhase;
   }
 
   private getCurrentProgress(): number {

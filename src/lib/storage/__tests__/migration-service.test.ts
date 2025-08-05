@@ -1060,6 +1060,42 @@ describe('DataMigrationService Fixed Tests', () => {
     });
 
     it('should handle player selections insertion errors', async () => {
+      // Setup test data with at least one league and draft
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 3,
+          leagues: { 'league-1': { platform: 'sleeper', id: 'test-league-1' } }
+        }),
+        loadSavedMocks: jest.fn().mockResolvedValue({
+          'Draft 1': {
+            rosterSelections: { 'player1': { position: 'QB', cost: 25 } },
+            costAdjustments: {},
+            created: new Date('2024-01-01').toISOString(),
+            modified: new Date('2024-01-01').toISOString()
+          }
+        }),
+        deleteRoster: jest.fn().mockResolvedValue(undefined),
+        saveMock: jest.fn().mockResolvedValue(undefined)
+      }));
+
+      // Mock transform to return some selections so insertion code is triggered
+      (transformDraftToDatabase as jest.Mock).mockReturnValue({
+        session: { 
+          user_id: 'test-user-id', 
+          league_id: 'db-league-id', 
+          name: 'Draft 1', 
+          year: '2024' 
+        },
+        settings: { 
+          budget: 200,
+          roster_size: 16
+        },
+        selections: [
+          { player_id: 'player1', position: 'QB', cost: 25, overall_rank: 1, position_rank: 1 }
+        ],
+        adjustments: []
+      });
+
       // Setup successful league insertion
       const mockLeagueInsert = {
         select: jest.fn().mockReturnValue({
@@ -1105,6 +1141,42 @@ describe('DataMigrationService Fixed Tests', () => {
     });
 
     it('should handle cost adjustments insertion errors', async () => {
+      // Setup test data with at least one league and draft with adjustments
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 3,
+          leagues: { 'league-1': { platform: 'sleeper', id: 'test-league-1' } }
+        }),
+        loadSavedMocks: jest.fn().mockResolvedValue({
+          'Draft 1': {
+            rosterSelections: { 'player1': { position: 'QB', cost: 25 } },
+            costAdjustments: { 'adj1': { playerId: 'player1', adjustment: 5 } },
+            created: new Date('2024-01-01').toISOString(),
+            modified: new Date('2024-01-01').toISOString()
+          }
+        }),
+        deleteRoster: jest.fn().mockResolvedValue(undefined),
+        saveMock: jest.fn().mockResolvedValue(undefined)
+      }));
+
+      // Mock transform to return some adjustments so insertion code is triggered
+      (transformDraftToDatabase as jest.Mock).mockReturnValue({
+        session: { 
+          user_id: 'test-user-id', 
+          league_id: 'db-league-id', 
+          name: 'Draft 1', 
+          year: '2024' 
+        },
+        settings: { 
+          budget: 200,
+          roster_size: 16
+        },
+        selections: [],
+        adjustments: [
+          { player_id: 'player1', adjustment: 5, reason: 'test' }
+        ]
+      });
+
       // Setup successful league insertion
       const mockLeagueInsert = {
         select: jest.fn().mockReturnValue({
@@ -1228,6 +1300,27 @@ describe('DataMigrationService Fixed Tests', () => {
         }),
         deleteRoster: jest.fn().mockResolvedValue(undefined),
         saveMock: jest.fn().mockResolvedValue(undefined)
+      }));
+
+      // Mock transform to return data so insertions actually happen
+      // The transform function will be called with the actual league DB ID
+      (transformDraftToDatabase as jest.Mock).mockImplementation((draftName, draftData, userId, leagueDbId) => ({
+        session: { 
+          user_id: userId, 
+          league_id: leagueDbId, // Use the actual league DB ID passed to the transform
+          name: draftName, 
+          year: '2024' 
+        },
+        settings: { 
+          budget: 200,
+          roster_size: 16
+        },
+        selections: [
+          { player_id: 'player1', position: 'QB', cost: 25, overall_rank: 1, position_rank: 1 }
+        ],
+        adjustments: [
+          { player_id: 'player1', adjustment: 5, reason: 'test' }
+        ]
       }));
 
       let insertedLeagueId: string;
@@ -1489,6 +1582,9 @@ describe('DataMigrationService Fixed Tests', () => {
         deleteRoster: jest.fn().mockResolvedValue(undefined),
         saveMock: jest.fn().mockResolvedValue(undefined)
       }));
+
+      // Reset transform mock to ensure it's not interfering with null data handling  
+      (transformDraftToDatabase as jest.Mock).mockReset();
 
       // Setup successful Supabase operations
       const mockInsertChain = {
