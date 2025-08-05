@@ -910,4 +910,750 @@ describe('DataMigrationService Fixed Tests', () => {
       }
     });
   });
+
+  describe('Full successful migration', () => {
+    it('should migrate complete user dataset successfully', async () => {
+      // Setup comprehensive test data with leagues and drafts
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 3,
+          leagues: {
+            'league-1': { platform: 'sleeper', id: 'test-1' },
+            'league-2': { platform: 'espn', id: 'test-2' }
+          }
+        }),
+        loadSavedMocks: jest.fn().mockImplementation((leagueId: string) => Promise.resolve({
+          'Draft 1': {
+            rosterSelections: { 'player1': { position: 'QB', cost: 25 } },
+            costAdjustments: { 'adj1': { playerId: 'player1', adjustment: 5 } },
+            created: new Date().toISOString(),
+            modified: new Date().toISOString()
+          }
+        })),
+        deleteRoster: jest.fn().mockResolvedValue(undefined),
+        saveMock: jest.fn().mockResolvedValue(undefined)
+      }));
+
+      // Setup successful Supabase operations
+      const mockInsertChain = {
+        select: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({
+            data: { id: 'db-league-id-1' },
+            error: null
+          })
+        })
+      };
+
+      mockSupabaseClient.from = jest.fn().mockImplementation((table: string) => ({
+        insert: jest.fn().mockReturnValue(mockInsertChain),
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({
+            data: [],
+            error: null
+          })
+        })
+      }));
+
+      const service = new DataMigrationService(
+        mockSupabaseClient,
+        'test-user-id',
+        mockProgressCallback,
+        { clearLocalStorageAfterMigration: true }
+      );
+
+      const result = await service.migrateAllUserData();
+
+      expect(result.success).toBe(true);
+      expect(result.migratedLeagues).toBe(2);
+      expect(result.migratedDrafts).toBe(2);
+      expect(mockProgressCallback).toHaveBeenCalledWith(
+        expect.objectContaining({ phase: 'complete', progress: 100 })
+      );
+
+      const stats = service.getStatistics();
+      expect(stats.success).toBe(true);
+      expect(stats.itemsProcessed.leagues).toBe(2);
+      expect(stats.itemsProcessed.draftSessions).toBe(2);
+      expect(stats.itemsProcessed.playerSelections).toBe(2);
+      expect(stats.itemsProcessed.costAdjustments).toBe(2);
+    });
+
+    it('should handle transform errors during migration', async () => {
+      // Setup data but make transform fail
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 3,
+          leagues: { 'league-1': { platform: 'sleeper', id: 'test' } }
+        }),
+        loadSavedMocks: jest.fn().mockResolvedValue({})
+      }));
+
+      (transformLeagueToDatabase as jest.Mock).mockImplementation(() => {
+        throw new Error('Transform failed');
+      });
+
+      const serviceWithoutRollback = new DataMigrationService(
+        mockSupabaseClient,
+        'test-user-id',
+        undefined,
+        { enableRollback: false }
+      );
+
+      await expect(serviceWithoutRollback.migrateAllUserData()).rejects.toThrow(MigrationError);
+      await expect(serviceWithoutRollback.migrateAllUserData()).rejects.toThrow('Failed to transform league league-1 for migration');
+    });
+  });
+
+  describe('Database insertion methods', () => {
+    beforeEach(() => {
+      // Setup basic data for insertion tests
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 3,
+          leagues: { 'league-1': { platform: 'sleeper', id: 'test' } }
+        }),
+        loadSavedMocks: jest.fn().mockResolvedValue({
+          'Draft 1': {
+            rosterSelections: { 'player1': { position: 'QB', cost: 25 } },
+            costAdjustments: { 'adj1': { playerId: 'player1', adjustment: 5 } },
+            created: new Date().toISOString(),
+            modified: new Date().toISOString()
+          }
+        })
+      }));
+    });
+
+    it('should handle draft session insertion errors', async () => {
+      // Setup league insertion to succeed but session insertion to fail
+      const mockLeagueInsert = {
+        select: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({
+            data: { id: 'db-league-id' },
+            error: null
+          })
+        })
+      };
+
+      const mockSessionInsert = {
+        error: { message: 'Session insert failed' }
+      };
+
+      mockSupabaseClient.from = jest.fn().mockImplementation((table: string) => {
+        if (table === 'leagues') {
+          return { insert: jest.fn().mockReturnValue(mockLeagueInsert) };
+        }
+        if (table === 'draft_sessions') {
+          return { insert: jest.fn().mockResolvedValue(mockSessionInsert) };
+        }
+        return { insert: jest.fn() };
+      });
+
+      const serviceWithoutRollback = new DataMigrationService(
+        mockSupabaseClient,
+        'test-user-id',
+        undefined,
+        { enableRollback: false }
+      );
+
+      await expect(serviceWithoutRollback.migrateAllUserData()).rejects.toThrow(MigrationError);
+      await expect(serviceWithoutRollback.migrateAllUserData()).rejects.toThrow('Failed to migrate draft Draft 1');
+    });
+
+    it('should handle player selections insertion errors', async () => {
+      // Setup successful league insertion
+      const mockLeagueInsert = {
+        select: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({
+            data: { id: 'db-league-id' },
+            error: null
+          })
+        })
+      };
+
+      const mockSelectionsError = {
+        error: { message: 'Selections insert failed' }
+      };
+
+      mockSupabaseClient.from = jest.fn().mockImplementation((table: string) => {
+        if (table === 'leagues') {
+          return { insert: jest.fn().mockReturnValue(mockLeagueInsert) };
+        }
+        if (table === 'draft_sessions') {
+          return { insert: jest.fn().mockResolvedValue({ error: null }) };
+        }
+        if (table === 'draft_settings') {
+          return { insert: jest.fn().mockResolvedValue({ error: null }) };
+        }  
+        if (table === 'player_selections') {
+          return { insert: jest.fn().mockResolvedValue(mockSelectionsError) };
+        }
+        if (table === 'cost_adjustments') {
+          return { insert: jest.fn().mockResolvedValue({ error: null }) };
+        }
+        return { insert: jest.fn() };
+      });
+
+      const serviceWithoutRollback = new DataMigrationService(
+        mockSupabaseClient,
+        'test-user-id',
+        undefined,
+        { enableRollback: false }
+      );
+
+      await expect(serviceWithoutRollback.migrateAllUserData()).rejects.toThrow(MigrationError);
+      await expect(serviceWithoutRollback.migrateAllUserData()).rejects.toThrow('Failed to migrate draft Draft 1');
+    });
+
+    it('should handle cost adjustments insertion errors', async () => {
+      // Setup successful league insertion
+      const mockLeagueInsert = {
+        select: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({
+            data: { id: 'db-league-id' },
+            error: null
+          })
+        })
+      };
+
+      const mockAdjustmentsError = {
+        error: { message: 'Adjustments insert failed' }
+      };
+
+      mockSupabaseClient.from = jest.fn().mockImplementation((table: string) => {
+        if (table === 'leagues') {
+          return { insert: jest.fn().mockReturnValue(mockLeagueInsert) };
+        }
+        if (table === 'draft_sessions') {
+          return { insert: jest.fn().mockResolvedValue({ error: null }) };
+        }
+        if (table === 'draft_settings') {
+          return { insert: jest.fn().mockResolvedValue({ error: null }) };
+        }
+        if (table === 'player_selections') {
+          return { insert: jest.fn().mockResolvedValue({ error: null }) };
+        }
+        if (table === 'cost_adjustments') {
+          return { insert: jest.fn().mockResolvedValue(mockAdjustmentsError) };
+        }
+        return { insert: jest.fn() };
+      });
+
+      const serviceWithoutRollback = new DataMigrationService(
+        mockSupabaseClient,
+        'test-user-id',
+        undefined,
+        { enableRollback: false }
+      );
+
+      await expect(serviceWithoutRollback.migrateAllUserData()).rejects.toThrow(MigrationError);
+      await expect(serviceWithoutRollback.migrateAllUserData()).rejects.toThrow('Failed to migrate draft Draft 1');
+    });
+  });
+
+  describe('Migration preview functionality', () => {
+    it('should generate migration preview with sample data', async () => {
+      // Setup comprehensive test data
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 3,
+          leagues: {
+            'league-1': { platform: 'sleeper', id: 'sleeper-123' },
+            'league-2': { platform: 'espn', id: 'espn-456', auth: { cookies: 'test' } }
+          }
+        }),
+        loadSavedMocks: jest.fn().mockImplementation((leagueId: string) => Promise.resolve({
+          'Draft 1': {
+            rosterSelections: { 
+              'player1': { position: 'QB', cost: 25 },
+              'player2': { position: 'RB', cost: 30 }
+            },
+            costAdjustments: { 
+              'adj1': { playerId: 'player1', adjustment: 5 },
+              'adj2': { playerId: 'player2', adjustment: -3 },
+              'adj3': { playerId: 'player3', adjustment: 2 }
+            }
+          },
+          'Draft 2': {
+            rosterSelections: { 
+              'player3': { position: 'WR', cost: 20 }
+            },
+            costAdjustments: {}
+          }
+        }))
+      }));
+
+      const summary = await DataMigrationService.getMigrationPreview();
+
+      expect(summary.leagueCount).toBe(2);
+      expect(summary.draftCount).toBe(4); // 2 drafts per league
+      expect(summary.totalSelections).toBe(6); // 2 + 1 + 2 + 1 selections
+      expect(summary.costAdjustments).toBe(6); // 3 + 0 + 3 + 0 adjustments
+      expect(summary.hasEspnAuthData).toBe(true);
+      expect(summary.estimatedSizeBytes).toBeGreaterThan(0);
+    });
+
+    it('should handle ESPN auth data detection', async () => {
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 3,
+          leagues: {
+            'league-1': { platform: 'espn', id: 'espn-123', auth: { cookies: 'espn-cookies' } }
+          }
+        }),
+        loadSavedMocks: jest.fn().mockResolvedValue({})
+      }));
+
+      const summary = await DataMigrationService.getMigrationPreview();
+
+      expect(summary.hasEspnAuthData).toBe(true);
+      expect(summary.leagueCount).toBe(1);
+    });
+  });
+
+  describe('Database referential integrity', () => {
+    it('should maintain foreign key relationships during migration', async () => {
+      // Setup data with complex relationships
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 3,
+          leagues: { 'league-1': { platform: 'sleeper', id: 'test' } }
+        }),
+        loadSavedMocks: jest.fn().mockResolvedValue({
+          'Draft 1': {
+            rosterSelections: { 'player1': { position: 'QB', cost: 25 } },
+            costAdjustments: { 'adj1': { playerId: 'player1', adjustment: 5 } },
+            created: new Date().toISOString(),
+            modified: new Date().toISOString()
+          }
+        }),
+        deleteRoster: jest.fn().mockResolvedValue(undefined),
+        saveMock: jest.fn().mockResolvedValue(undefined)
+      }));
+
+      let insertedLeagueId: string;
+      let insertedSessionId: string;
+      
+      // Track the foreign key relationships
+      const insertCalls: Array<{ table: string; data: any }> = [];
+
+      mockSupabaseClient.from = jest.fn().mockImplementation((table: string) => ({
+        insert: jest.fn().mockImplementation((data: any) => {
+          insertCalls.push({ table, data });
+          
+          if (table === 'leagues') {
+            insertedLeagueId = data.id;
+            return {
+              select: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({
+                  data: { id: data.id }, // Return the same ID that was inserted
+                  error: null
+                })
+              })
+            };
+          }
+          if (table === 'draft_sessions') {
+            insertedSessionId = data.id;
+            expect(data.league_id).toBe(insertedLeagueId);
+            return { error: null };
+          }
+          if (table === 'draft_settings') {
+            expect(data.draft_session_id).toBe(insertedSessionId);
+            return { error: null };
+          }
+          if (table === 'player_selections') {
+            expect(data[0].draft_session_id).toBe(insertedSessionId);
+            return { error: null };
+          }
+          if (table === 'cost_adjustments') {
+            expect(data[0].draft_session_id).toBe(insertedSessionId);
+            return { error: null };
+          }
+          
+          return { error: null };
+        }),
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({
+            data: [],
+            error: null
+          })
+        })
+      }));
+
+      const service = new DataMigrationService(
+        mockSupabaseClient,
+        'test-user-id',
+        undefined,
+        { clearLocalStorageAfterMigration: true }
+      );
+
+      const result = await service.migrateAllUserData();
+
+      expect(result.success).toBe(true);
+      
+      // Verify insertion order maintains referential integrity
+      const tableOrder = insertCalls.map(call => call.table);
+      expect(tableOrder.indexOf('leagues')).toBeLessThan(tableOrder.indexOf('draft_sessions'));
+      expect(tableOrder.indexOf('draft_sessions')).toBeLessThan(tableOrder.indexOf('draft_settings'));
+      expect(tableOrder.indexOf('draft_sessions')).toBeLessThan(tableOrder.indexOf('player_selections'));
+      expect(tableOrder.indexOf('draft_sessions')).toBeLessThan(tableOrder.indexOf('cost_adjustments'));
+    });
+  });
+
+  describe('UUID generation and fallback', () => {
+    it('should handle UUID generation when crypto is unavailable', async () => {
+      // Mock crypto to be undefined
+      const originalCrypto = global.crypto;
+      (global as any).crypto = undefined;
+
+      try {
+        (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+          loadLeagues: jest.fn().mockResolvedValue({
+            schemaVersion: 3,
+            leagues: { 'league-1': { platform: 'sleeper', id: 'test' } }
+          }),
+          loadSavedMocks: jest.fn().mockResolvedValue({})
+        }));
+
+        const service = new DataMigrationService(
+          mockSupabaseClient,
+          'test-user-id',
+          undefined,
+          { dryRun: true }
+        );
+
+        const result = await service.migrateAllUserData();
+        expect(result.success).toBe(true);
+
+        const stats = service.getStatistics();
+        expect(stats.migrationId).toMatch(/^migration-\d+-[a-z0-9]+$/);
+      } finally {
+        global.crypto = originalCrypto;
+      }
+    });
+  });
+
+  describe('Edge cases and additional coverage', () => {
+    it('should handle empty draft data insertion correctly', async () => {
+      // Setup data with drafts that have empty selections and adjustments
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 3,
+          leagues: { 'league-1': { platform: 'sleeper', id: 'test' } }
+        }),
+        loadSavedMocks: jest.fn().mockResolvedValue({
+          'Empty Draft': {
+            rosterSelections: {},
+            costAdjustments: {},
+            created: new Date().toISOString(),
+            modified: new Date().toISOString()
+          }
+        }),
+        deleteRoster: jest.fn().mockResolvedValue(undefined),
+        saveMock: jest.fn().mockResolvedValue(undefined)
+      }));
+
+      // Setup successful Supabase operations
+      const mockInsertChain = {
+        select: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({
+            data: { id: 'db-league-id' },
+            error: null
+          })
+        })
+      };
+
+      mockSupabaseClient.from = jest.fn().mockImplementation((table: string) => ({
+        insert: jest.fn().mockReturnValue(table === 'leagues' ? mockInsertChain : { error: null }),
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({
+            data: [],
+            error: null
+          })
+        })
+      }));
+
+      const service = new DataMigrationService(
+        mockSupabaseClient,
+        'test-user-id',
+        mockProgressCallback,
+        { clearLocalStorageAfterMigration: true }
+      );
+
+      const result = await service.migrateAllUserData();
+
+      expect(result.success).toBe(true);
+      expect(result.migratedLeagues).toBe(1);
+      expect(result.migratedDrafts).toBe(1);
+    });
+
+    it('should handle league insertion with missing data response', async () => {
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 3,
+          leagues: { 'league-1': { platform: 'sleeper', id: 'test' } }
+        }),
+        loadSavedMocks: jest.fn().mockResolvedValue({})
+      }));
+
+      // Setup league insertion to return no data ID
+      const mockInsertChain = {
+        select: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({
+            data: null, // No ID returned
+            error: null
+          })
+        })
+      };
+
+      mockSupabaseClient.from = jest.fn().mockImplementation((table: string) => ({
+        insert: jest.fn().mockReturnValue(mockInsertChain)
+      }));
+
+      const serviceWithoutRollback = new DataMigrationService(
+        mockSupabaseClient,
+        'test-user-id',
+        undefined,
+        { enableRollback: false }
+      );
+
+      await expect(serviceWithoutRollback.migrateAllUserData()).rejects.toThrow(MigrationError);
+      await expect(serviceWithoutRollback.migrateAllUserData()).rejects.toThrow('League league-1 was inserted but no ID was returned');
+    });
+
+    it('should handle missing league in draft migration', async () => {
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 3,
+          leagues: { 'league-1': { platform: 'sleeper', id: 'test' } }
+        }),
+        loadSavedMocks: jest.fn().mockImplementation((leagueId: string) => {
+          // Return mocks for a different league that doesn't have a mapping
+          if (leagueId === 'league-2') {
+            return Promise.resolve({
+              'Draft 1': {
+                rosterSelections: { 'player1': { position: 'QB', cost: 25 } },
+                costAdjustments: {},
+                created: new Date().toISOString(),
+                modified: new Date().toISOString()
+              }
+            });
+          }
+          return Promise.resolve({});
+        })
+      }));
+
+      // Setup successful league insertion
+      const mockInsertChain = {
+        select: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({
+            data: { id: 'db-league-id' },
+            error: null
+          })
+        })
+      };
+
+      mockSupabaseClient.from = jest.fn().mockImplementation((table: string) => ({
+        insert: jest.fn().mockReturnValue(mockInsertChain),
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({
+            data: [],
+            error: null
+          })
+        })
+      }));
+
+      // Modify the originalMocks to include data for missing league
+      const service = new DataMigrationService(
+        mockSupabaseClient,
+        'test-user-id',
+        undefined,
+        { dryRun: true }
+      );
+
+      // Add the missing league data directly to force the missing mapping scenario
+      (service as any).originalMocks = { 'league-2': { 'Draft 1': {} } };
+
+      const result = await service.migrateAllUserData();
+      expect(result.success).toBe(true);
+    });
+
+    it('should handle draft data with missing fields', async () => {
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 3,
+          leagues: { 'league-1': { platform: 'sleeper', id: 'test' } }
+        }),
+        loadSavedMocks: jest.fn().mockResolvedValue({
+          'Draft With Missing Data': null // Missing draft data
+        }),
+        deleteRoster: jest.fn().mockResolvedValue(undefined),
+        saveMock: jest.fn().mockResolvedValue(undefined)
+      }));
+
+      // Setup successful Supabase operations
+      const mockInsertChain = {
+        select: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({
+            data: { id: 'db-league-id' },
+            error: null
+          })
+        })
+      };
+
+      mockSupabaseClient.from = jest.fn().mockImplementation((table: string) => ({
+        insert: jest.fn().mockReturnValue(table === 'leagues' ? mockInsertChain : { error: null }),
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({
+            data: [],
+            error: null
+          })
+        })
+      }));
+
+      const service = new DataMigrationService(
+        mockSupabaseClient,
+        'test-user-id',
+        mockProgressCallback,
+        { clearLocalStorageAfterMigration: true }
+      );
+
+      const result = await service.migrateAllUserData();
+
+      expect(result.success).toBe(true);
+      expect(result.migratedLeagues).toBe(1);
+      expect(result.migratedDrafts).toBe(0); // No drafts processed due to missing data
+    });
+
+    it('should handle schema version warnings', async () => {
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 2, // Different schema version
+          leagues: { 'league-1': { platform: 'sleeper', id: 'test' } }
+        }),
+        loadSavedMocks: jest.fn().mockResolvedValue({})
+      }));
+
+      const service = new DataMigrationService(
+        mockSupabaseClient,
+        'test-user-id',
+        undefined,
+        { dryRun: true }
+      );
+
+      const result = await service.migrateAllUserData();
+      expect(result.success).toBe(true);
+      expect(consoleSpy).toHaveBeenCalledWith('[MigrationService] Unexpected leagues schema version: 2');
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('Performance benchmarks', () => {
+    it('should complete small dataset migration within performance target', async () => {
+      const startTime = Date.now();
+
+      // Setup small dataset (1 league, 2 drafts)
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 3,
+          leagues: { 'league-1': { platform: 'sleeper', id: 'test' } }
+        }),
+        loadSavedMocks: jest.fn().mockResolvedValue({
+          'Draft 1': {
+            rosterSelections: { 'player1': { position: 'QB', cost: 25 } },
+            costAdjustments: { 'adj1': { playerId: 'player1', adjustment: 5 } },
+            created: new Date().toISOString(),
+            modified: new Date().toISOString()
+          },
+          'Draft 2': {
+            rosterSelections: { 'player2': { position: 'RB', cost: 30 } },
+            costAdjustments: {},
+            created: new Date().toISOString(),
+            modified: new Date().toISOString()
+          }
+        })
+      }));
+
+      const service = new DataMigrationService(
+        mockSupabaseClient,
+        'test-user-id',
+        undefined,
+        { dryRun: true }
+      );
+
+      const result = await service.migrateAllUserData();
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+
+      expect(result.success).toBe(true);
+      expect(duration).toBeLessThan(1000); // Should complete in under 1 second for dry run
+      
+      const stats = service.getStatistics();
+      expect(stats.duration).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should handle medium dataset efficiently', async () => {
+      // Setup medium dataset (3 leagues, multiple drafts each)
+      (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
+        loadLeagues: jest.fn().mockResolvedValue({
+          schemaVersion: 3,
+          leagues: {
+            'league-1': { platform: 'sleeper', id: 'test-1' },
+            'league-2': { platform: 'espn', id: 'test-2' },
+            'league-3': { platform: 'sleeper', id: 'test-3' }
+          }
+        }),
+        loadSavedMocks: jest.fn().mockImplementation((leagueId: string) => Promise.resolve({
+          'Draft 1': {
+            rosterSelections: {
+              'player1': { position: 'QB', cost: 25 },
+              'player2': { position: 'RB', cost: 30 },
+              'player3': { position: 'WR', cost: 20 }
+            },
+            costAdjustments: {
+              'adj1': { playerId: 'player1', adjustment: 5 },
+              'adj2': { playerId: 'player2', adjustment: -3 }
+            },
+            created: new Date().toISOString(),
+            modified: new Date().toISOString()
+          },
+          'Draft 2': {
+            rosterSelections: {
+              'player4': { position: 'TE', cost: 15 },
+              'player5': { position: 'K', cost: 5 }
+            },
+            costAdjustments: {
+              'adj3': { playerId: 'player4', adjustment: 2 }
+            },
+            created: new Date().toISOString(),
+            modified: new Date().toISOString()
+          }
+        }))
+      }));
+
+      const startTime = Date.now();
+      
+      const service = new DataMigrationService(
+        mockSupabaseClient,
+        'test-user-id',
+        undefined,
+        { dryRun: true }
+      );
+
+      const result = await service.migrateAllUserData();
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+
+      expect(result.success).toBe(true);
+      expect(duration).toBeLessThan(2000); // Should complete in under 2 seconds for dry run
+      
+      const stats = service.getStatistics();
+      expect(stats.itemsProcessed.leagues).toBe(3);
+      expect(stats.itemsProcessed.draftSessions).toBe(6); // 2 drafts per league
+      expect(stats.itemsProcessed.playerSelections).toBe(15); // 3+2 per draft * 3 leagues
+      expect(stats.itemsProcessed.costAdjustments).toBe(9); // 2+1 per draft * 3 leagues
+    });
+  });
 });
