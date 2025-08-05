@@ -225,18 +225,20 @@ export default function SignUpForm({ onSwitchToLogin, onSuccess }: SignUpFormPro
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter your password (min 6 characters)"
                   disabled={loading || isMigrating}
+                  aria-describedby={formData.password && formData.password.length < 6 ? 'password-error' : undefined}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5"
                   disabled={loading || isMigrating}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? '👁️' : '👁️‍🗨️'}
                 </button>
               </div>
               {formData.password && formData.password.length < 6 && (
-                <p className="mt-1 text-sm text-red-600">
+                <p id="password-error" className="mt-1 text-sm text-red-600" role="alert">
                   Password must be at least 6 characters long
                 </p>
               )}
@@ -257,9 +259,10 @@ export default function SignUpForm({ onSwitchToLogin, onSuccess }: SignUpFormPro
                 }`}
                 placeholder="Confirm your password"
                 disabled={loading || isMigrating}
+                aria-describedby={!passwordsMatch && formData.confirmPassword ? 'confirm-password-error' : undefined}
               />
               {!passwordsMatch && formData.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">
+                <p id="confirm-password-error" className="mt-1 text-sm text-red-600" role="alert">
                   Passwords do not match
                 </p>
               )}
@@ -278,11 +281,19 @@ export default function SignUpForm({ onSwitchToLogin, onSuccess }: SignUpFormPro
             >
               {loading || isMigrating ? (
                 <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg 
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    fill="none" 
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  {isMigrating ? 'Migrating Data...' : 'Creating Account...'}
+                  <span aria-live="polite">
+                    {isMigrating ? 'Migrating Data...' : 'Creating Account...'}
+                  </span>
                 </span>
               ) : (
                 dataSummary ? 'Create Account & Migrate Data' : 'Create Account'
@@ -295,7 +306,7 @@ export default function SignUpForm({ onSwitchToLogin, onSuccess }: SignUpFormPro
               Already have an account?{' '}
               <button
                 onClick={onSwitchToLogin}
-                className="font-medium text-blue-600 hover:text-blue-500 focus:outline-none focus:underline"
+                className="font-medium text-blue-600 hover:text-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-1"
                 disabled={loading || isMigrating}
               >
                 Sign in here

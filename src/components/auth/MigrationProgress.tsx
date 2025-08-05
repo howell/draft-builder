@@ -76,6 +76,11 @@ export const MigrationProgressComponent: React.FC<MigrationProgressProps> = ({
                   ? 'bg-green-500' 
                   : 'bg-blue-500'
             }`}
+            role="progressbar"
+            aria-valuenow={progressPercentage}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`Migration progress: ${progressPercentage}% complete, currently ${phaseLabels[progress.phase]}`}
           />
         </div>
         
@@ -90,57 +95,70 @@ export const MigrationProgressComponent: React.FC<MigrationProgressProps> = ({
       {/* Status Message */}
       <div className="text-sm">
         {isError ? (
-          <div className="text-red-600 bg-red-50 p-3 rounded border">
+          <div className="text-red-600 bg-red-50 p-3 rounded border" role="alert" aria-live="assertive">
             <div className="font-medium">Migration Failed</div>
             <div className="mt-1">{progress.error}</div>
           </div>
         ) : (
-          <div className={`${isComplete ? 'text-green-600' : 'text-gray-600'}`}>
+          <div 
+            className={`${isComplete ? 'text-green-600' : 'text-gray-600'}`}
+            aria-live="polite"
+            aria-atomic="true"
+          >
             {progress.message}
           </div>
         )}
       </div>
 
       {/* Phase Indicators */}
-      <div className="mt-4 flex justify-between text-xs">
-        {Object.keys(phaseLabels).map((phase, index) => {
-          const isCurrentPhase = progress.phase === phase;
-          const isCompletedPhase = Object.keys(phaseLabels).indexOf(progress.phase) > index;
-          const phaseKey = phase as keyof typeof phaseLabels;
-          
-          return (
-            <div
-              key={phase}
-              className={`flex flex-col items-center space-y-1 ${
-                isCurrentPhase 
-                  ? 'text-blue-600' 
-                  : isCompletedPhase 
-                    ? 'text-green-600' 
-                    : 'text-gray-400'
-              }`}
-            >
+      <div className="mt-4" role="group" aria-label="Migration phase progress">
+        <div className="flex justify-between text-xs sm:text-sm">
+          {Object.keys(phaseLabels).map((phase, index) => {
+            const isCurrentPhase = progress.phase === phase;
+            const isCompletedPhase = Object.keys(phaseLabels).indexOf(progress.phase) > index;
+            const phaseKey = phase as keyof typeof phaseLabels;
+            
+            const phaseDisplayName = phase === 'export' ? 'Load' : 
+             phase === 'transform' ? 'Prep' :
+             phase === 'validate' ? 'Check' :
+             phase === 'upload' ? 'Upload' :
+             phase === 'verify' ? 'Verify' :
+             'Done';
+
+            const statusLabel = isCompletedPhase ? 'completed' : isCurrentPhase ? 'in progress' : 'pending';
+            
+            return (
               <div
-                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs ${
+                key={phase}
+                className={`flex flex-col items-center space-y-1 ${
                   isCurrentPhase 
-                    ? 'border-blue-600 bg-blue-50' 
+                    ? 'text-blue-600' 
                     : isCompletedPhase 
-                      ? 'border-green-600 bg-green-50' 
-                      : 'border-gray-300 bg-gray-50'
+                      ? 'text-green-600' 
+                      : 'text-gray-400'
                 }`}
+                role="img"
+                aria-label={`Phase ${index + 1}: ${phaseDisplayName} - ${statusLabel}`}
               >
-                {isCompletedPhase ? '✓' : index + 1}
+                <div
+                  className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center text-xs ${
+                    isCurrentPhase 
+                      ? 'border-blue-600 bg-blue-50' 
+                      : isCompletedPhase 
+                        ? 'border-green-600 bg-green-50' 
+                        : 'border-gray-300 bg-gray-50'
+                  }`}
+                  aria-hidden="true"
+                >
+                  {isCompletedPhase ? '✓' : index + 1}
+                </div>
+                <span className="text-center max-w-12 sm:max-w-16 leading-tight" aria-hidden="true">
+                  {phaseDisplayName}
+                </span>
               </div>
-              <span className="text-center max-w-16 leading-tight">
-                {phase === 'export' ? 'Load' : 
-                 phase === 'transform' ? 'Prep' :
-                 phase === 'validate' ? 'Check' :
-                 phase === 'upload' ? 'Upload' :
-                 phase === 'verify' ? 'Verify' :
-                 'Done'}
-              </span>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

@@ -33,48 +33,7 @@ export function AccountDashboard({ className = "" }: AccountDashboardProps) {
   const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>(new Set());
   const [error, setError] = useState<string | null>(null);
 
-  const loadUserDataSummary = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      setError(null);
-      const loadingTask = new LoadingTask(
-        loadUserDataSummaryAsync(),
-        'Loading your dashboard data...'
-      );
-      setLoadingTasks(new Set([loadingTask]));
-      
-      // Monitor for task completion and errors
-      const checkTaskStatus = () => {
-        if (loadingTask.isFinished()) {
-          if (loadingTask.hasError()) {
-            const error = loadingTask.getError();
-            console.error('Failed to load user data summary:', error);
-            setError(error?.message || 'Failed to load dashboard data');
-          }
-          setLoadingTasks(new Set());
-        } else {
-          // Check again in a bit if not finished
-          setTimeout(checkTaskStatus, 100);
-        }
-      };
-      
-      // Start monitoring
-      setTimeout(checkTaskStatus, 100);
-    } catch (error) {
-      console.error('Failed to load user data summary:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
-      setLoadingTasks(new Set());
-    }
-  }, [user, storageAdapter]);
-
-  useEffect(() => {
-    if (user) {
-      loadUserDataSummary();
-    }
-  }, [user, loadUserDataSummary]);
-
-  const loadUserDataSummaryAsync = async () => {
+  const loadUserDataSummaryAsync = useCallback(async () => {
     if (!user) throw new Error('User not authenticated');
 
     // Load leagues data
@@ -131,7 +90,48 @@ export function AccountDashboard({ className = "" }: AccountDashboardProps) {
     });
 
     setLoadingTasks(new Set());
-  };
+  }, [user, storageAdapter, setSummary, setLoadingTasks]);
+
+  const loadUserDataSummary = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      setError(null);
+      const loadingTask = new LoadingTask(
+        loadUserDataSummaryAsync(),
+        'Loading your dashboard data...'
+      );
+      setLoadingTasks(new Set([loadingTask]));
+      
+      // Monitor for task completion and errors
+      const checkTaskStatus = () => {
+        if (loadingTask.isFinished()) {
+          if (loadingTask.hasError()) {
+            const error = loadingTask.getError();
+            console.error('Failed to load user data summary:', error);
+            setError(error?.message || 'Failed to load dashboard data');
+          }
+          setLoadingTasks(new Set());
+        } else {
+          // Check again in a bit if not finished
+          setTimeout(checkTaskStatus, 100);
+        }
+      };
+      
+      // Start monitoring
+      setTimeout(checkTaskStatus, 100);
+    } catch (error) {
+      console.error('Failed to load user data summary:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
+      setLoadingTasks(new Set());
+    }
+  }, [user, loadUserDataSummaryAsync, setError, setLoadingTasks]);
+
+  useEffect(() => {
+    if (user) {
+      loadUserDataSummary();
+    }
+  }, [user, loadUserDataSummary]);
 
   // Handle unauthenticated users
   if (!user) {
@@ -198,7 +198,7 @@ export function AccountDashboard({ className = "" }: AccountDashboardProps) {
           
           {/* Data Summary Cards */}
           {summary && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
                 <h3 className="font-semibold text-blue-900 text-sm">Leagues</h3>
                 <p className="text-2xl font-bold text-blue-700">{summary.leagueCount}</p>

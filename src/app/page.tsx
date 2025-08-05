@@ -82,15 +82,15 @@ export default function Home() {
   // }
   return (
   <LoadingScreen tasks={loadingTasks}>
-      <main className="flex min-h-screen flex-col items-center pt-24 px-12 md:ml-44 ">
+      <main className="flex min-h-screen flex-col items-center pt-24 px-4 sm:px-8 lg:px-12 md:ml-44 ">
         {!isLoadingLeagues && availableLeagues.length > 0 && <Sidebar availableLeagues={availableLeagues} />}
         <div className="flex flex-col w-full max-w-6xl">
           
           {/* Account Promotion Section for Anonymous Users */}
           {showAccountPromotion && !user && (
-            <div className="mb-8">
+            <section className="mb-8" aria-labelledby="welcome-heading">
               <div className="text-center mb-6">
-                <h1 className="text-4xl font-bold text-gray-900 mb-3">
+                <h1 id="welcome-heading" className="text-4xl font-bold text-gray-900 mb-3">
                   Welcome to Draft Builder
                 </h1>
                 <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -126,7 +126,7 @@ export default function Home() {
                     {/* Primary CTA */}
                     <Link 
                       href="/auth"
-                      className="block w-full bg-white text-blue-600 hover:bg-blue-50 font-semibold py-3 px-6 rounded-lg text-center transition-colors mb-3"
+                      className="block w-full bg-white text-blue-600 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600 font-semibold py-3 px-6 rounded-lg text-center transition-colors mb-3"
                     >
                       {dataSummary ? 'Create Account & Migrate Data' : 'Create Free Account'}
                     </Link>
@@ -134,7 +134,8 @@ export default function Home() {
                     {/* Secondary CTA */}
                     <button 
                       onClick={() => setShowAccountPromotion(false)}
-                      className="block w-full text-blue-100 hover:text-white font-medium py-2 text-center transition-colors text-sm"
+                      className="block w-full text-blue-100 hover:text-white font-medium py-2 text-center transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-transparent rounded"
+                      aria-label="Continue using Draft Builder without creating an account"
                     >
                       Continue without account
                     </button>
@@ -150,13 +151,13 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-            </div>
+            </section>
           )}
 
           {/* Authenticated User Welcome */}
           {user && (
-            <div className="mb-8 text-center">
-              <h1 className="text-4xl font-bold text-gray-900 mb-3">
+            <section className="mb-8 text-center" aria-labelledby="welcome-back-heading">
+              <h1 id="welcome-back-heading" className="text-4xl font-bold text-gray-900 mb-3">
                 Welcome back, {user.email?.split('@')[0]}!
               </h1>
               <p className="text-lg text-gray-600">
@@ -165,23 +166,23 @@ export default function Home() {
               <div className="mt-4">
                 <Link 
                   href="/dashboard"
-                  className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors mr-4"
+                  className="inline-block bg-blue-600 hover:bg-blue-700 focus:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-white font-medium py-2 px-4 rounded-lg transition-colors mr-4"
                 >
                   View Dashboard
                 </Link>
               </div>
-            </div>
+            </section>
           )}
 
           {/* League Connection Section */}
-          <div className="flex flex-col w-full">
-            <h2 className={`${user ? 'text-2xl' : 'text-4xl'} text-center mb-4 ${user ? 'text-gray-800' : 'text-gray-900'}`}>
+          <section className="flex flex-col w-full" aria-labelledby="league-connection-heading">
+            <h2 id="league-connection-heading" className={`${user ? 'text-2xl' : 'text-4xl'} text-center mb-4 ${user ? 'text-gray-800' : 'text-gray-900'}`}>
               {user ? 'Connect Your League:' : showAccountPromotion ? 'Or Connect Your League:' : 'Login With:'}
             </h2>
             
             {!user && !showAccountPromotion && (
               <div className="mt-2 items-center max-w-prose mx-auto text-center">
-                Curious? Try the <Link href="/demo"><span className='text-sky-600'>demo</span></Link>.
+                Curious? Try the <Link href="/demo" className="text-sky-600 hover:text-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 rounded underline">demo</Link>.
               </div>
             )}
             
@@ -191,7 +192,7 @@ export default function Home() {
                 { title: headerFor('sleeper'), content: <LeagueLogin><SleeperLogin submitLeague={handleSubmit} /></LeagueLogin> },
               ]} />
             </div>
-          </div>
+          </section>
         </div>
       </main>
     </LoadingScreen>

@@ -112,20 +112,39 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ tasks = new Set(), childr
 		setLoading(pendingTasks.size !== 0);
 	}, [pendingTasks]);
 	return (
-		<span>
-			{loading &&
-				<span className={loading ? '' : 'hidden'}>
-					<div className="fixed inset-0 flex flex-col justify-center items-center bg-white bg-opacity-90 z-50">
-						<div className="border-8 border-gray-200 border-t-blue-500 rounded-full w-16 h-16 animate-spin" />
-						<p className="mt-5 text-lg text-gray-800">Loading...</p>
-						{currentMessage && <p className="mt-5 text-lg text-gray-800">{currentMessage}</p>}
-					</div>
-				</span>
-			}
-			<span className={loading ? 'hidden' : ''}>
+		<div>
+			{loading && (
+				<div 
+					className="fixed inset-0 flex flex-col justify-center items-center bg-white bg-opacity-90 z-50"
+					role="dialog"
+					aria-modal="true"
+					aria-labelledby="loading-title"
+					aria-describedby="loading-message"
+				>
+					<div 
+						className="border-8 border-gray-200 border-t-blue-500 rounded-full w-16 h-16 animate-spin"
+						role="status"
+						aria-hidden="true"
+					/>
+					<h2 id="loading-title" className="mt-5 text-lg text-gray-800 font-medium">
+						Loading...
+					</h2>
+					{currentMessage && (
+						<p 
+							id="loading-message" 
+							className="mt-2 text-sm text-gray-600 text-center max-w-md"
+							aria-live="polite"
+							aria-atomic="true"
+						>
+							{currentMessage}
+						</p>
+					)}
+				</div>
+			)}
+			<div className={loading ? 'sr-only' : ''} aria-hidden={loading}>
 				{children}
-			</span>
-		</span>
+			</div>
+		</div>
 	);
 };
 

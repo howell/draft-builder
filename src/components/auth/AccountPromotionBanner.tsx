@@ -141,10 +141,11 @@ export const AccountPromotionBanner: React.FC<AccountPromotionBannerProps> = ({
               <button
                 onClick={onCreateAccount}
                 className={`
-                  px-4 py-2 text-xs font-medium rounded-md transition-colors duration-200
+                  px-4 py-2 text-xs font-medium rounded-md transition-colors duration-200 
+                  focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2
                   ${hasSignificantData 
-                    ? 'bg-white text-orange-600 hover:bg-orange-50' 
-                    : 'bg-white bg-opacity-20 text-white hover:bg-opacity-30'
+                    ? 'bg-white text-orange-600 hover:bg-orange-50 focus:ring-offset-orange-600' 
+                    : 'bg-white bg-opacity-20 text-white hover:bg-opacity-30 focus:ring-offset-transparent'
                   }
                 `}
               >
@@ -154,7 +155,7 @@ export const AccountPromotionBanner: React.FC<AccountPromotionBannerProps> = ({
               {/* Dismiss Button */}
               <button
                 onClick={handleDismiss}
-                className="p-1 text-white hover:text-gray-200 transition-colors duration-200"
+                className="p-1 text-white hover:text-gray-200 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-transparent rounded"
                 aria-label="Dismiss"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

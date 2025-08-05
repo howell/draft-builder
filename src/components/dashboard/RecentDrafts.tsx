@@ -37,26 +37,7 @@ export function RecentDrafts({ summary }: RecentDraftsProps) {
   const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>(new Set());
   const [error, setError] = useState<string | null>(null);
 
-  const loadRecentDrafts = useCallback(async () => {
-    try {
-      setError(null);
-      const loadingTask = new LoadingTask(
-        loadRecentDraftsAsync(),
-        'Loading recent drafts...'
-      );
-      setLoadingTasks(new Set([loadingTask]));
-    } catch (error) {
-      console.error('Failed to load recent drafts:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load recent drafts');
-      setLoadingTasks(new Set());
-    }
-  }, [storageAdapter]);
-
-  useEffect(() => {
-    loadRecentDrafts();
-  }, [loadRecentDrafts]);
-
-  const loadRecentDraftsAsync = async () => {
+  const loadRecentDraftsAsync = useCallback(async () => {
     const leagues = await storageAdapter.loadLeagues();
     const drafts: RecentDraft[] = [];
 
@@ -85,7 +66,26 @@ export function RecentDrafts({ summary }: RecentDraftsProps) {
     // Take only the 5 most recent
     setRecentDrafts(drafts.slice(0, 5));
     setLoadingTasks(new Set());
-  };
+  }, [storageAdapter, setRecentDrafts, setLoadingTasks]);
+
+  const loadRecentDrafts = useCallback(async () => {
+    try {
+      setError(null);
+      const loadingTask = new LoadingTask(
+        loadRecentDraftsAsync(),
+        'Loading recent drafts...'
+      );
+      setLoadingTasks(new Set([loadingTask]));
+    } catch (error) {
+      console.error('Failed to load recent drafts:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load recent drafts');
+      setLoadingTasks(new Set());
+    }
+  }, [loadRecentDraftsAsync, setError, setLoadingTasks]);
+
+  useEffect(() => {
+    loadRecentDrafts();
+  }, [loadRecentDrafts]);
 
   if (error) {
     return (
