@@ -43,6 +43,24 @@ export function AccountDashboard({ className = "" }: AccountDashboardProps) {
         'Loading your dashboard data...'
       );
       setLoadingTasks(new Set([loadingTask]));
+      
+      // Monitor for task completion and errors
+      const checkTaskStatus = () => {
+        if (loadingTask.isFinished()) {
+          if (loadingTask.hasError()) {
+            const error = loadingTask.getError();
+            console.error('Failed to load user data summary:', error);
+            setError(error?.message || 'Failed to load dashboard data');
+          }
+          setLoadingTasks(new Set());
+        } else {
+          // Check again in a bit if not finished
+          setTimeout(checkTaskStatus, 100);
+        }
+      };
+      
+      // Start monitoring
+      setTimeout(checkTaskStatus, 100);
     } catch (error) {
       console.error('Failed to load user data summary:', error);
       setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
