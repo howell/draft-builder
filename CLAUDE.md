@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+This repository holds the source code for the web application Know Your League, know-your-league.com
+
 ## Development Commands
 
 ### Core Development
@@ -94,11 +96,17 @@ src/
 The application uses a **storage abstraction layer** that supports multiple backends:
 
 - **Interface**: `StorageAdapter` in `src/lib/storage/interface.ts`
-- **LocalStorage**: Synchronous storage wrapped as async for compatibility
-- **Supabase**: Production async storage with encryption for sensitive data
+- **Dexie**: IndexedDB-based storage for anonymous users and fallback scenarios
+- **Supabase**: Production async storage with encryption for sensitive data and RLS
+- **LocalStorage**: Legacy synchronous storage wrapped as async for compatibility
+- **Memory**: Temporary storage for testing and SSR protection
 - **Factory**: `createStorageAdapter()` selects appropriate implementation
 
-**Key Pattern**: All storage operations are async even when using localStorage to maintain consistency.
+**Key Patterns**: 
+- All storage operations are async even when using localStorage to maintain consistency
+- **Authentication-aware selection**: Storage adapter automatically selected based on user auth state
+- **Fallback support**: Authenticated users can fallback to Dexie when Supabase is unavailable
+- **Progressive enhancement**: Anonymous users get high-performance Dexie, authenticated users get cloud sync
 
 ### Platform Integration Architecture
 External fantasy platforms are abstracted through a common interface:
@@ -168,6 +176,113 @@ return (
 );
 ```
 
+#### Authentication-Aware Hooks Pattern
+Use hooks that automatically adapt to authentication state:
+
+```typescript
+// ✅ CORRECT: Authentication-aware storage selection
+export function useStorageAdapter(): StorageAdapter {
+  const { user, loading } = useAuth();
+  
+  return useMemo(() => {
+    if (typeof window === 'undefined') {
+      return new MemoryStorageAdapter(); // SSR protection
+    }
+    
+    if (loading) {
+      return new MemoryStorageAdapter(); // Temporary while loading
+    }
+    
+    if (user) {
+      // Authenticated users get Supabase with Dexie fallback
+      return createStorageAdapter({
+        type: 'supabase',
+        supabase: supabase,
+        userId: user.id,
+        fallback: 'dexie'
+      });
+    }
+    
+    // Anonymous users get high-performance Dexie
+    return createStorageAdapter({ 
+      type: 'dexie', 
+      userId: 'anonymous'
+    });
+  }, [user, loading]);
+}
+```
+
+#### Multi-Step Form Components
+For complex flows like signup with migration:
+
+```typescript
+export default function MultiStepForm() {
+  const [currentStep, setCurrentStep] = useState<'form' | 'preview' | 'processing' | 'success'>('form');
+  const [processData, setProcessData] = useState<ProcessData | null>(null);
+  
+  // Step-based rendering
+  const renderStep = () => {
+    switch (currentStep) {
+      case 'form':
+        return <FormStep onNext={(data) => { setProcessData(data); setCurrentStep('preview'); }} />;
+      case 'preview':
+        return <PreviewStep data={processData} onConfirm={() => setCurrentStep('processing')} />;
+      case 'processing':
+        return <ProcessingStep data={processData} onComplete={() => setCurrentStep('success')} />;
+      case 'success':
+        return <SuccessStep />;
+    }
+  };
+  
+  return (
+    <div className="multi-step-form">
+      <StepIndicator currentStep={currentStep} />
+      {renderStep()}
+    </div>
+  );
+}
+```
+
+#### Migration Progress Components
+For long-running operations with detailed progress tracking:
+
+```typescript
+export function MigrationProgressComponent({ 
+  progress, 
+  isActive = true 
+}: MigrationProgressProps) {
+  const progressPercentage = Math.min(Math.max(progress.progress, 0), 100);
+  const isComplete = progress.phase === 'complete' && progressPercentage === 100;
+  
+  return (
+    <div className="migration-progress">
+      {/* Progress bar with proper ARIA attributes */}
+      <div
+        role="progressbar"
+        aria-valuenow={progressPercentage}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`Migration progress: ${progressPercentage}% complete`}
+      >
+        <div style={{ width: `${progressPercentage}%` }} />
+      </div>
+      
+      {/* Phase indicators */}
+      <div className="phase-indicators" role="group" aria-label="Migration phase progress">
+        {phases.map((phase) => (
+          <PhaseIndicator key={phase} phase={phase} current={progress.phase} />
+        ))}
+      </div>
+      
+      {/* Live status updates */}
+      <div aria-live="polite" aria-atomic="true">
+        {progress.message}
+      </div>
+    </div>
+  );
+}
+```
+
 ## Development Guidelines
 
 ### **Documentation Management**
@@ -183,6 +298,24 @@ return (
 - **Async Pattern**: All storage calls must be async/await
 - **Error Handling**: Wrap storage calls in try/catch blocks
 - **Factory Usage**: Use `createStorageAdapter()` to get the correct implementation
+- **Authentication Awareness**: Use `useStorageAdapter()` hook for automatic adapter selection
+- **Fallback Support**: Configure fallback adapters for offline scenarios
+- **SSR Protection**: Ensure storage operations work in server-side rendering
+
+### Data Migration Patterns
+- **Migration Service**: Use `DataMigrationService` class for complex data transfers
+- **Progress Tracking**: Always provide real-time progress updates for long operations
+- **Error Recovery**: Implement comprehensive rollback mechanisms
+- **Transaction Safety**: Ensure all-or-nothing migration behavior
+- **Data Validation**: Validate data integrity before and after migration
+- **Performance Monitoring**: Track migration duration and memory usage
+
+### User Account Integration
+- **Progressive Enhancement**: App works without accounts, enhanced with accounts
+- **Seamless Signup**: Integrate data migration into account creation flow
+- **Migration Detection**: Automatically detect and preview migratable data
+- **User Communication**: Provide clear messaging about data migration benefits
+- **Fallback Behavior**: Graceful handling when cloud services are unavailable
 
 ### Platform API Integration
 - **Use apiFor() factory**: Never instantiate platform APIs directly
@@ -201,10 +334,78 @@ return (
 - **Performance**: Use `React.memo`, `useCallback`, `useMemo` appropriately
 
 ### Testing Requirements
-- **Storage**: Test both localStorage and memory adapters
+- **Storage**: Test all adapter types (Supabase, Dexie, localStorage, memory)
 - **Platform APIs**: Mock external API calls
 - **Components**: Test loading, error, and success states
 - **Authentication**: Test protected and public routes
+- **Migration**: Test data migration scenarios including failures and rollbacks
+- **Progressive Enhancement**: Test both anonymous and authenticated user flows
+- **Fallback Scenarios**: Test offline behavior and service unavailability
+- **Performance**: Test migration performance with various dataset sizes
+- **Error Recovery**: Test all error scenarios and recovery mechanisms
+
+### Error Handling Patterns
+Use structured error handling with proper user feedback:
+
+```typescript
+// ✅ CORRECT: Structured error handling
+class MigrationError extends Error {
+  constructor(
+    message: string,
+    public cause?: Error,
+    public phase?: string,
+    public migrationId?: string
+  ) {
+    super(message);
+    this.name = 'MigrationError';
+  }
+}
+
+// Usage in migration service
+try {
+  await this.migrateDrafts();
+} catch (error) {
+  throw new MigrationError(
+    'Failed to migrate draft data',
+    error,
+    'upload',
+    this.migrationId
+  );
+}
+```
+
+### Accessibility Patterns
+Ensure all components are accessible from the start:
+
+```typescript
+// ✅ CORRECT: Proper ARIA attributes for progress components
+<div
+  role="progressbar"
+  aria-valuenow={progress}
+  aria-valuemin={0}
+  aria-valuemax={100}
+  aria-label={`Migration progress: ${progress}% complete`}
+  aria-describedby="progress-status"
+>
+  <div className="progress-fill" style={{ width: `${progress}%` }} />
+</div>
+<div id="progress-status" aria-live="polite">
+  {statusMessage}
+</div>
+
+// ✅ CORRECT: Form accessibility with error association
+<input
+  id="email"
+  type="email"
+  aria-describedby={error ? 'email-error' : undefined}
+  aria-invalid={error ? 'true' : 'false'}
+/>
+{error && (
+  <div id="email-error" role="alert" className="error-message">
+    {error}
+  </div>
+)}
+```
 
 ### **CRITICAL**: E2E Testing Best Practices
 
@@ -331,13 +532,24 @@ These patterns ensure reliable, maintainable E2E tests that actually reflect use
 
 ## Important Implementation Notes
 
-### Current Migration Status
-The application is transitioning from localStorage to Supabase storage. Key considerations:
+### User Accounts System Status ✅ COMPLETED
+The user accounts system has been fully implemented and deployed. Key features:
 
-- **Branch**: Currently on `setup_db` branch
-- **Storage**: Mixed localStorage/Supabase implementation with abstraction layer
-- **Authentication**: Supabase auth implemented and integrated
-- **Database**: Schema deployed with RLS policies
+- **Authentication**: Supabase Auth with email/password fully integrated
+- **Storage**: Authentication-aware storage with Dexie for anonymous users, Supabase for authenticated users
+- **Data Migration**: Complete migration system from anonymous to authenticated storage
+- **Progressive Enhancement**: App works great without accounts, even better with accounts
+- **Database**: Schema deployed with comprehensive RLS policies for data isolation
+- **UI Components**: Complete signup flow with migration integration and dashboard
+- **Testing**: Comprehensive E2E test coverage for all user flows
+
+### Storage Architecture Evolution
+The application has evolved from localStorage-only to a sophisticated multi-adapter system:
+
+- **Anonymous Users**: High-performance Dexie (IndexedDB) storage
+- **Authenticated Users**: Supabase cloud storage with Dexie fallback for offline scenarios
+- **Migration Path**: Seamless upgrade from anonymous to authenticated with data preservation
+- **Fallback Strategy**: Automatic fallback to local storage during network issues
 
 ### ESPN Authentication
 ESPN requires complex cookie-based authentication that must be encrypted when stored:
@@ -403,3 +615,10 @@ Phase 2: Migration Service
 6. **Type safety** - Don't use `any`, implement proper type guards
 7. **Incomplete task completion** - Not updating design docs or running quality checks
 8. **Skipping verification** - Not running type-check and build before marking complete
+9. **Migration without rollback** - Always implement rollback mechanisms for data migrations
+10. **Ignoring SSR** - Components must work during server-side rendering
+11. **Missing accessibility** - Include ARIA attributes and semantic HTML from the start
+12. **Poor error messages** - Provide user-friendly error messages, not technical details
+13. **Hardcoded storage types** - Use authentication-aware storage selection
+14. **Missing progress tracking** - Long operations need real-time progress updates
+15. **Inadequate testing** - Test all user flows including error scenarios and edge cases
