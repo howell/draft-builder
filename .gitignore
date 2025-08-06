@@ -37,3 +37,9 @@ next-env.d.ts
 
 # assets that may be included
 untracked-assets/
+# E2E test artifacts
+e2e/reports/
+test-results/
+playwright-report/
+playwright/.cache/
+allure-results/
