@@ -19,19 +19,27 @@ const TabContainer: React.FC<TabContainerProps> = ({ pages }) => {
 
     return (
         <div className="flex flex-col w-auto">
-            <div className="flex justify-evenly">
+            <div className="flex justify-evenly" role="tablist">
                 {pages.map((child, i) => (
-                    <div key={`tab-${i}`}
+                    <button key={`tab-${i}`}
+                        role="tab"
+                        aria-selected={selectedTab === i}
+                        aria-controls={`tabpanel-${i}`}
+                        id={`tab-${i}`}
                         onClick={() => handleTabClick(i)}
                         className={`cursor-pointer px-4 py-2`}>
                         {typeof child.title === 'function' ? child.title(selectedTab === i) : child.title}
-                    </div>))
+                    </button>))
                 }
             </div>
             <div className="">
                 {pages.map((child, i) =>
                      ( selectedTab === i &&
-                      <div key={`tab-${i}`} className='w-full'>
+                      <div key={`tabpanel-${i}`} 
+                        role="tabpanel"
+                        id={`tabpanel-${i}`}
+                        aria-labelledby={`tab-${i}`}
+                        className='w-full'>
                         {child.content}
                     </div>
                 ))}

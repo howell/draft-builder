@@ -63,7 +63,26 @@ export class DexieStorageAdapter implements StorageAdapter {
         return { schemaVersion: CURRENT_LEAGUES_SCHEMA_VERSION, leagues: {} };
       }
 
-      const leagues = await queries.leagues(this.userId).all();
+      const leagues = await Promise.race([
+        (async (): Promise<League[]> => {
+          // Check if database is open
+          if (!db.isOpen()) {
+            try {
+              await db.open();
+            } catch (error) {
+              throw error;
+            }
+          }
+          
+          const result = await db.getLeaguesForUser(this.userId);
+          return result;
+        })(),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('DexieAdapter.loadLeagues() timeout after 2 seconds'));
+          }, 2000);
+        })
+      ]) as League[];
       const leaguesMap: { [leagueId: LeagueId]: PlatformLeague } = {};
 
       for (const league of leagues) {

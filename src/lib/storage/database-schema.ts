@@ -10,6 +10,101 @@ import type { Platform, LeagueId, SeasonId } from '@/platforms/common';
 import type { EstimationSettingsStateV4, SearchSettingsState } from '@/types/storage';
 
 // =============================================================================
+// DATABASE VERSION CONSTANTS
+// =============================================================================
+
+/**
+ * Current Dexie schema version (used in this.version() calls)
+ * Dexie multiplies this by 10 internally for the actual IndexedDB version
+ */
+export const DEXIE_SCHEMA_VERSION = 1;
+
+/**
+ * Actual IndexedDB database version (Dexie schema version * 10)
+ * Use this when opening IndexedDB directly (e.g., in tests or utilities)
+ */
+export const INDEXEDDB_VERSION = DEXIE_SCHEMA_VERSION * 10;
+
+// =============================================================================
+// SINGLE SOURCE OF TRUTH - SCHEMA DEFINITION
+// =============================================================================
+
+/**
+ * Database schema definition - Single source of truth for both Dexie and raw IndexedDB
+ * This ensures the app and tests always use identical schemas
+ */
+export const SCHEMA_DEFINITION = {
+  version: DEXIE_SCHEMA_VERSION,
+  stores: {
+    leagues: {
+      dexieSchema: '++id, userId, platform, leagueId, favorite, createdAt, updatedAt, [userId+leagueId]',
+      keyPath: 'id',
+      autoIncrement: true,
+      indexes: [
+        { name: 'userId', keyPath: 'userId', options: { unique: false } },
+        { name: 'userId+leagueId', keyPath: ['userId', 'leagueId'], options: { unique: true } }
+      ]
+    },
+    drafts: {
+      dexieSchema: '++id, leagueId, userId, name, year, isTemplate, createdAt, updatedAt, [leagueId+userId], [userId+name]',
+      keyPath: 'id',
+      autoIncrement: true,
+      indexes: [
+        { name: 'userId', keyPath: 'userId', options: { unique: false } },
+        { name: 'updatedAt', keyPath: 'updatedAt', options: { unique: false } },
+        { name: 'leagueId+userId', keyPath: ['leagueId', 'userId'], options: { unique: false } },
+        { name: 'userId+name', keyPath: ['userId', 'name'], options: { unique: false } }
+      ]
+    },
+    players: {
+      dexieSchema: '++id, draftId, playerId, name, position, selected, overallRank, positionRank, [draftId+selected]',
+      keyPath: 'id',
+      autoIncrement: true,
+      indexes: [
+        { name: 'draftId', keyPath: 'draftId', options: { unique: false } },
+        { name: 'draftId+selected', keyPath: ['draftId', 'selected'], options: { unique: false } }
+      ]
+    },
+    userSettings: {
+      dexieSchema: '++id, userId, type, key, updatedAt, [userId+type+key]',
+      keyPath: 'id',
+      autoIncrement: true,
+      indexes: [
+        { name: 'userId+type+key', keyPath: ['userId', 'type', 'key'], options: { unique: true } }
+      ]
+    },
+    appMetadata: {
+      dexieSchema: '++id, key, updatedAt',
+      keyPath: 'id',
+      autoIncrement: true,
+      indexes: [
+        { name: 'key', keyPath: 'key', options: { unique: false } }
+      ]
+    }
+  }
+};
+
+/**
+ * Create IndexedDB object stores using the canonical schema definition
+ * This ensures tests and utilities create exactly the same schema as Dexie
+ */
+export function createIndexedDBSchema(db: IDBDatabase): void {
+  Object.entries(SCHEMA_DEFINITION.stores).forEach(([storeName, storeConfig]) => {
+    if (!db.objectStoreNames.contains(storeName)) {
+      const store = db.createObjectStore(storeName, {
+        keyPath: storeConfig.keyPath,
+        autoIncrement: storeConfig.autoIncrement
+      });
+      
+      // Create all indexes exactly as Dexie would
+      storeConfig.indexes.forEach(index => {
+        store.createIndex(index.name, index.keyPath, index.options);
+      });
+    }
+  });
+}
+
+// =============================================================================
 // CORE INTERFACES
 // =============================================================================
 
@@ -102,14 +197,13 @@ export class DraftBuilderDB extends Dexie {
   constructor() {
     super('DraftBuilderDB');
 
-    // Version 1: Initial schema
-    this.version(1).stores({
-      leagues: '++id, userId, platform, leagueId, favorite, createdAt, updatedAt, [userId+leagueId]',
-      drafts: '++id, leagueId, userId, name, year, isTemplate, createdAt, updatedAt, [leagueId+userId], [userId+name]',
-      players: '++id, draftId, playerId, name, position, selected, overallRank, positionRank, [draftId+selected]',
-      userSettings: '++id, userId, type, key, updatedAt, [userId+type+key]',
-      appMetadata: '++id, key, updatedAt'
+    // Use canonical schema definition to ensure consistency with tests
+    const storesConfig: { [tableName: string]: string } = {};
+    Object.entries(SCHEMA_DEFINITION.stores).forEach(([storeName, storeConfig]) => {
+      storesConfig[storeName] = storeConfig.dexieSchema;
     });
+
+    this.version(SCHEMA_DEFINITION.version).stores(storesConfig);
 
     // Define hooks for automatic timestamp updates
     this.leagues.hook('creating', (primKey, obj, trans) => {
@@ -155,11 +249,16 @@ export class DraftBuilderDB extends Dexie {
    * Get all leagues for a specific user
    */
   async getLeaguesForUser(userId: string): Promise<League[]> {
-    return this.leagues
-      .where('userId')
-      .equals(userId)
-      .reverse()
-      .sortBy('updatedAt');
+    const filteredLeagues = await this.leagues.where('userId').equals(userId).toArray();
+    
+    // Sort by updatedAt descending (newest first)
+    const result = filteredLeagues.sort((a, b) => {
+      const aDate = a.updatedAt instanceof Date ? a.updatedAt : new Date(a.updatedAt);
+      const bDate = b.updatedAt instanceof Date ? b.updatedAt : new Date(b.updatedAt);
+      return bDate.getTime() - aDate.getTime();
+    });
+    
+    return result;
   }
 
   /**
@@ -380,6 +479,12 @@ export class DraftBuilderDB extends Dexie {
 
 export const db = new DraftBuilderDB();
 
+// Make database and Dexie available globally for E2E tests
+if (typeof window !== 'undefined') {
+  (window as any).__draftBuilderDB = db;
+  (window as any).Dexie = Dexie;
+}
+
 // =============================================================================
 // QUERY BUILDERS
 // =============================================================================
@@ -388,11 +493,14 @@ export const db = new DraftBuilderDB();
  * Fluent query builder for common operations
  */
 export class DraftBuilderQueries {
-  constructor(private db: DraftBuilderDB) {}
+  constructor(private db: DraftBuilderDB) {
+  }
 
   leagues(userId: string) {
     return {
-      all: () => this.db.getLeaguesForUser(userId),
+      all: () => {
+        return this.db.getLeaguesForUser(userId);
+      },
       byPlatform: (platform: Platform) => 
         this.db.leagues.where('userId').equals(userId).filter(l => l.platform === platform).toArray(),
       favorites: () =>

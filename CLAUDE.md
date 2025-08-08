@@ -19,6 +19,10 @@ This repository holds the source code for the web application Know Your League, 
 - If processes become orphaned, find and kill them: `lsof -ti:3000 | xargs kill`
 - Check for running Next.js processes: `ps aux | grep next-server`
 
+### E2E Testing with Playwright
+- **IMPORTANT**: Always use `PLAYWRIGHT_HTML_OPEN='never' npx playwright test ...` to prevent Playwright from opening a server after tests complete
+- This prevents hanging processes and keeps the terminal clean
+
 ### Database Operations
 - `npm run db:types` - Generate TypeScript types from Supabase schema
 - `supabase migration new <name>` - Create new database migration

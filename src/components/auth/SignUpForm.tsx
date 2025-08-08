@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../lib/auth/context';
+import { INDEXEDDB_VERSION } from '../../lib/storage/database-schema';
 import { DataPreview } from './DataPreview';
 import { AccountBenefits } from './AccountBenefits';
 import { MigrationProgressComponent } from './MigrationProgress';
@@ -40,10 +41,44 @@ export default function SignUpForm({ onSwitchToLogin, onSuccess }: SignUpFormPro
   const [migrationResult, setMigrationResult] = useState<MigrationResult | null>(null);
   const [currentStep, setCurrentStep] = useState<'form' | 'preview' | 'migrating' | 'success'>('form');
 
+  // Helper function to check IndexedDB directly (for debugging)
+  const checkDirectIndexedDB = async (): Promise<{ count: number, success: boolean }> => {
+    try {
+      if (typeof window === 'undefined') return { count: 0, success: false };
+      
+      const dbRequest = indexedDB.open('DraftBuilderDB', INDEXEDDB_VERSION);
+      const db = await new Promise((resolve, reject) => {
+        dbRequest.onerror = () => reject(dbRequest.error);
+        dbRequest.onsuccess = () => resolve(dbRequest.result);
+        dbRequest.onupgradeneeded = () => resolve(null);
+      });
+      
+      if (!db) return { count: 0, success: false };
+      
+      const transaction = (db as any).transaction(['leagues'], 'readonly');
+      const store = transaction.objectStore('leagues');
+      const index = store.index('userId');
+      const request = index.getAll('anonymous');
+      
+      const leagues = await new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      
+      (db as any).close();
+      return { count: (leagues as any[]).length, success: true };
+    } catch (error) {
+      console.error('[SignUpForm] Error in direct IndexedDB check:', error);
+      return { count: 0, success: false };
+    }
+  };
+
   // Check for migratable data on component mount
   useEffect(() => {
     const checkForData = async () => {
-      if (hasMigratableData()) {
+      const hasMigratable = await hasMigratableData();
+      
+      if (hasMigratable) {
         const summary = await getDataSummary();
         setDataSummary(summary);
         setShowDataPreview(true);
@@ -94,11 +129,18 @@ export default function SignUpForm({ onSwitchToLogin, onSuccess }: SignUpFormPro
 
     try {
       // Use migration-aware signup if user has data to migrate
-      if (hasMigratableData()) {
-        const { error, migrationResult: result } = await signUpWithMigration(formData.email, formData.password);
+      if (await hasMigratableData()) {
+        const { error, migrationResult: result, migrationWarning } = await signUpWithMigration(formData.email, formData.password);
         
         if (!error) {
           setMigrationResult(result || null);
+          
+          // Show migration warning if migration failed but account was created
+          if (migrationWarning) {
+            console.warn('[SignUpForm] Account created but migration failed:', migrationWarning);
+            // Could add a toast notification here in the future
+          }
+          
           setCurrentStep('success');
           onSuccess?.();
         }

@@ -51,14 +51,17 @@ export const DataPreview: React.FC<DataPreviewProps> = ({
   }
 
   return (
-    <div className={`data-preview ${className}`}>
+    <div className={`data-preview ${className}`} data-testid="migration-preview">
       {/* Header */}
       <div className="flex items-center space-x-3 mb-4">
         <div className="text-2xl">📊</div>
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Your Fantasy Data</h3>
           <p className="text-sm text-gray-600">
-            Here&apos;s what will be migrated to your account
+            We found your fantasy data - here&apos;s what will be migrated to your account
+          </p>
+          <p className="text-sm text-gray-500 mt-1">
+            {dataSummary.leagueCount} league{dataSummary.leagueCount !== 1 ? 's' : ''} found with {dataSummary.draftCount} mock draft{dataSummary.draftCount !== 1 ? 's' : ''}
           </p>
         </div>
       </div>

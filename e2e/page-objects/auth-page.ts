@@ -4,6 +4,7 @@ import { BasePage } from './base-page';
 export class AuthPage extends BasePage {
   readonly emailInput: Locator;
   readonly passwordInput: Locator;
+  readonly confirmPasswordInput: Locator;
   readonly loginButton: Locator;
   readonly signupButton: Locator;
   readonly switchToSignupButton: Locator;
@@ -17,13 +18,14 @@ export class AuthPage extends BasePage {
     super(page);
     // Match actual selectors from the app
     this.emailInput = page.locator('input[type="email"]');
-    this.passwordInput = page.locator('input[type="password"]');
-    this.loginButton = page.getByRole('button', { name: /log in/i });
-    this.signupButton = page.getByRole('button', { name: /create account/i });
-    this.switchToSignupButton = page.getByText(/don't have an account/i);
-    this.switchToLoginButton = page.getByText(/already have an account/i);
+    this.passwordInput = page.locator('input#password');
+    this.confirmPasswordInput = page.locator('input#confirmPassword');
+    this.loginButton = page.locator('form').getByRole('button', { name: /sign in/i });
+    this.signupButton = page.locator('form').getByRole('button', { name: /create account/i });
+    this.switchToSignupButton = page.getByRole('button', { name: /sign up here/i });
+    this.switchToLoginButton = page.getByRole('button', { name: /sign in here/i });
     this.errorMessage = page.locator('[role="alert"]');
-    this.successMessage = page.getByText(/successfully/i);
+    this.successMessage = page.getByText(/account created/i);
     this.migrationPreview = page.getByTestId('migration-preview');
     this.migrationProgress = page.getByTestId('migration-progress');
   }
@@ -34,6 +36,14 @@ export class AuthPage extends BasePage {
   }
 
   async login(email: string, password: string) {
+    // Click the Sign In tab to ensure we're on the login form
+    await this.page.getByRole('button', { name: /sign in/i }).first().click();
+    await this.waitForLoad();
+    
+    // Wait for form fields to be enabled (not in loading state)
+    await this.emailInput.waitFor({ state: 'visible' });
+    await expect(this.emailInput).toBeEnabled({ timeout: 5000 });
+    
     await this.emailInput.fill(email);
     await this.passwordInput.fill(password);
     await this.loginButton.click();
@@ -41,9 +51,22 @@ export class AuthPage extends BasePage {
   }
 
   async signup(email: string, password: string) {
-    await this.switchToSignupButton.click();
+    // Click the Sign Up tab to switch to signup mode
+    await this.page.getByRole('button', { name: /sign up/i }).first().click();
+    await this.waitForLoad();
+    
+    // Wait for form fields to be enabled (not in loading state)
+    await this.emailInput.waitFor({ state: 'visible' });
+    await expect(this.emailInput).toBeEnabled({ timeout: 5000 });
+    
+    // Fill form fields  
     await this.emailInput.fill(email);
     await this.passwordInput.fill(password);
+    
+    // For signup, we also need to fill confirm password
+    const confirmPasswordInput = this.page.locator('input#confirmPassword');
+    await confirmPasswordInput.fill(password);
+    
     await this.signupButton.click();
     await this.waitForLoad();
   }
@@ -63,7 +86,7 @@ export class AuthPage extends BasePage {
     await this.waitForMigrationComplete();
   }
 
-  async waitForMigrationComplete(timeout = 30000) {
+  async waitForMigrationComplete(timeout = 10000) {
     await expect(this.migrationProgress).toBeVisible();
     await expect(this.page.getByText(/migration complete/i)).toBeVisible({ timeout });
   }

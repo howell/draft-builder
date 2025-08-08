@@ -47,7 +47,7 @@ export const MigrationProgressComponent: React.FC<MigrationProgressProps> = ({
   const isComplete = progress.phase === 'complete' && progressPercentage === 100;
 
   return (
-    <div className={`migration-progress ${className}`}>
+    <div className={`migration-progress ${className}`} data-testid="migration-progress">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-2">

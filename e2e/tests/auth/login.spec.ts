@@ -25,9 +25,10 @@ test.describe('User Authentication', () => {
     await authPage.navigateToAuth();
     await authPage.signup(credentials.email, credentials.password);
     
-    await authPage.expectSignupSuccess();
-    // Should redirect to dashboard after successful signup
+    // In test environment, email confirmation is disabled so user gets immediately 
+    // signed in and redirected to dashboard after successful signup
     await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page.getByText(/Welcome back!/i)).toBeVisible();
   });
 
   test('should login existing user successfully', async ({ page }) => {
@@ -53,17 +54,17 @@ test.describe('User Authentication', () => {
   test('should validate email format', async ({ page }) => {
     await authPage.navigateToAuth();
     
-    // Try to signup with invalid email
-    await authPage.switchToSignupButton.click();
+    // Switch to signup tab and try to fill invalid email
+    await page.getByRole('button', { name: /sign up/i }).first().click();
     await authPage.emailInput.fill('invalid-email');
     await authPage.passwordInput.fill('ValidPassword123!');
     
-    // The form should not submit with invalid email
-    await authPage.signupButton.click();
-    
-    // Check for HTML5 validation or error message
+    // Check that HTML5 validation catches the invalid email
     const emailValidity = await authPage.emailInput.evaluate((el: HTMLInputElement) => el.validity.valid);
     expect(emailValidity).toBe(false);
+    
+    // Button should be disabled due to invalid email
+    await expect(authPage.signupButton).toBeDisabled();
   });
 
   test('should maintain session across page reloads', async ({ page }) => {

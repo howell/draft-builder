@@ -11,12 +11,14 @@ const EspnLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
     const [leagueID, setLeagueID] = useState("");
     const [swid, setSwid] = useState("");
     const [espnS2, setEspnS2] = useState("");
+    const [validationError, setValidationError] = useState<string | null>(null);
     const router = useRouter();
 
     const handleSubmit = async () => {
+      setValidationError(null);
 
       if (leagueID.trim() === "") {
-        alert("Please enter your league ID");
+        setValidationError("Please enter your league ID");
         return;
       }
 
@@ -28,19 +30,19 @@ const EspnLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
       }
 
       if (isNaN(parseInt(providedLeagueId))) {
-        alert("League ID must be a number");
+        setValidationError("League ID must be a number");
         return;
       }
 
       let providedSwid = swid.trim();
       let providedEspnS2 = espnS2.trim();
       if (providedSwid === "" && providedEspnS2 !== "") {
-        alert("Please enter your SWID");
+        setValidationError("Please enter your SWID");
         return;
       }
 
       if (providedEspnS2 === "" && providedSwid !== "") {
-        alert("Please enter your ESPN_S2");
+        setValidationError("Please enter your ESPN_S2");
         return;
       }
 
@@ -57,6 +59,13 @@ const EspnLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
             <h1 className="text-xl">Enter your ESPN Fantasy Football league ID and click Submit.</h1>
 
             <LeagueDataInput label="League ID" value={leagueID} onChange={setLeagueID} />
+            
+            {validationError && (
+                <div className="mt-2 text-sm text-red-600" role="alert">
+                    {validationError}
+                </div>
+            )}
+            
             <SubmitButton onClick={handleSubmit} />
 
             <div className="mt-5">

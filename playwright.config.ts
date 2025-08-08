@@ -23,13 +23,13 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    // Global timeout for each test
-    actionTimeout: 30000,
-    navigationTimeout: 30000
+    // Much shorter timeouts for development
+    actionTimeout: 5000,
+    navigationTimeout: 10000
   },
 
   expect: {
-    timeout: 10000
+    timeout: 3000
   },
 
   projects: [
@@ -64,7 +64,7 @@ export default defineConfig({
     command: 'npm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+    timeout: 30 * 1000,
     env: {
       NODE_ENV: 'test',
       // Pass through the Next.js public variables for the app

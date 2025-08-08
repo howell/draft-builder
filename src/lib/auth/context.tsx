@@ -29,8 +29,9 @@ interface AuthContextType extends AuthState {
   signUpWithMigration: (email: string, password: string) => Promise<{
     error: AuthError | null;
     migrationResult?: MigrationResult;
+    migrationWarning?: string | null;
   }>;
-  hasMigratableData: () => boolean;
+  hasMigratableData: () => Promise<boolean>;
   getDataSummary: () => Promise<MigrationDataSummary>;
 }
 
@@ -45,6 +46,11 @@ export const useAuth = () => {
   }
   return context;
 };
+
+// Global flags to prevent concurrent migration detection calls
+let migrationDetectionInProgress = false;
+let migrationDetectionResult: boolean | null = null;
+let migrationDetectionPromise: Promise<boolean> | null = null;
 
 // Authentication provider component
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -222,12 +228,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setAuthState(prev => ({ ...prev, error: null }));
   };
 
-  // Sign up with automatic data migration
+  // Sign up with automatic data migration (user-friendly: always create account)
   const signUpWithMigration = async (email: string, password: string) => {
     setAuthState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
-      // 1. Create account first
+      // 1. Create account first - this should always succeed if credentials are valid
       const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -246,46 +252,61 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error('No session established after signup');
       }
 
-      // 3. Check if migration is needed and perform it
+      // Account created successfully, user logged in
+
+      // 3. Attempt migration as separate step - failure here should not prevent account creation
       let migrationResult: MigrationResult | undefined;
-      if (hasMigratableData()) {
-        console.log('[AuthContext] Starting data migration for new user');
+      let migrationError: string | null = null;
+      
+      if (await hasMigratableData()) {
+        // Starting data migration for new user
         
-        setAuthState(prev => ({ 
-          ...prev, 
-          isMigrating: true,
-          migrationProgress: undefined
-        }));
-        
-        const migrationService = new DataMigrationService(
-          supabase, 
-          session.user.id,
-          (progress: MigrationProgress) => {
-            setAuthState(prev => ({
-              ...prev,
-              migrationProgress: progress
-            }));
-          }
-        );
-        
-        migrationResult = await migrationService.migrateAllUserData();
-        console.log('[AuthContext] Migration completed:', migrationResult);
+        try {
+          setAuthState(prev => ({ 
+            ...prev, 
+            isMigrating: true,
+            migrationProgress: undefined
+          }));
+          
+          const migrationService = new DataMigrationService(
+            supabase, 
+            session.user.id,
+            (progress: MigrationProgress) => {
+              setAuthState(prev => ({
+                ...prev,
+                migrationProgress: progress
+              }));
+            }
+          );
+          
+          migrationResult = await migrationService.migrateAllUserData();
+          // Migration completed successfully
+        } catch (error) {
+          console.warn('[AuthContext] Migration failed, but account was created successfully:', error);
+          migrationError = error instanceof Error ? error.message : 'Migration failed';
+          // Continue - user still has their account
+        }
       }
       
-      // 4. Update state with successful result
+      // 4. Update state with result - account is always created successfully
       setAuthState(prev => ({
         ...prev,
         loading: false,
         isMigrating: false,
         migrationProgress: undefined,
-        error: null
+        error: null // No error - account was created successfully
       }));
       
-      return { error: null, migrationResult };
+      // Return success with optional migration result and warning
+      return { 
+        error: null, 
+        migrationResult,
+        migrationWarning: migrationError // New field to indicate migration issues
+      };
     } catch (error) {
-      console.error('[AuthContext] SignUp with migration failed:', error);
+      console.error('[AuthContext] Account signup failed:', error);
       
-      // Reset migration state on error
+      // Reset state on signup failure
       setAuthState(prev => ({
         ...prev,
         loading: false,
@@ -298,14 +319,53 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Check if user has migratable data
-  const hasMigratableData = (): boolean => {
-    try {
-      return hasLocalStorageData();
-    } catch (error) {
-      console.warn('[AuthContext] Error checking for migratable data:', error);
-      return false;
+  // Check if user has migratable data (async) - prevents concurrent calls
+  const hasMigratableData = async (): Promise<boolean> => {
+    // Check if detection is already in progress
+    
+    // If a detection is already in progress, wait for it
+    if (migrationDetectionInProgress && migrationDetectionPromise) {
+      // Migration detection already in progress, wait
+      return migrationDetectionPromise;
     }
+    
+    // If we have a cached result that's still fresh (less than 5 seconds old), return it
+    if (migrationDetectionResult !== null) {
+      // Returning cached migration detection result
+      return migrationDetectionResult;
+    }
+    
+    // Start new migration detection
+    migrationDetectionInProgress = true;
+    // Starting new migration detection
+    
+    migrationDetectionPromise = (async () => {
+      try {
+        const { hasMigratableData: checkMigratableData } = await import('../storage/migration-utils');
+        const result = await checkMigratableData();
+        
+        // Cache the result
+        migrationDetectionResult = result;
+        // Migration detection completed
+        
+        // Clear the cache after 5 seconds to allow re-checking if needed
+        setTimeout(() => {
+          // Clear cached migration detection result
+          migrationDetectionResult = null;
+        }, 5000);
+        
+        return result;
+      } catch (error) {
+        console.warn('[AuthContext] Error checking for migratable data:', error);
+        return false;
+      } finally {
+        // Always reset the flag
+        migrationDetectionInProgress = false;
+        migrationDetectionPromise = null;
+      }
+    })();
+    
+    return migrationDetectionPromise;
   };
 
   // Get summary of data to be migrated

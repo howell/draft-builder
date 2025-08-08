@@ -34,10 +34,11 @@ const config: Config = {
   // The test environment that will be used for testing
   testEnvironment: "jsdom",
 
-  // Ignore test utility files
+  // Ignore test utility files and Playwright e2e tests
   testPathIgnorePatterns: [
     '<rootDir>/node_modules/',
-    '<rootDir>/src/.*/__tests__/test-utils/'
+    '<rootDir>/src/.*/__tests__/test-utils/',
+    '<rootDir>/e2e/'
   ],
 
   // Module name mapping for path aliases

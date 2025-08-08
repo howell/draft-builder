@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '../../lib/auth/context';
 import { useStorageAdapter } from '../../lib/storage/hooks';
 import { LeagueId } from '../../platforms/common';
@@ -8,6 +9,7 @@ import LoadingScreen, { LoadingTask, LoadingTasks } from '../../ui/LoadingScreen
 import ErrorScreen from '../../ui/ErrorScreen';
 import { QuickActions } from './QuickActions';
 import { RecentDrafts } from './RecentDrafts';
+import UserProfile from '../auth/UserProfile';
 
 interface UserDataSummary {
   leagueCount: number;
@@ -27,8 +29,9 @@ interface AccountDashboardProps {
 }
 
 export function AccountDashboard({ className = "" }: AccountDashboardProps) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const storageAdapter = useStorageAdapter();
+  const router = useRouter();
   const [summary, setSummary] = useState<UserDataSummary | null>(null);
   const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>(new Set());
   const [error, setError] = useState<string | null>(null);
@@ -133,6 +136,13 @@ export function AccountDashboard({ className = "" }: AccountDashboardProps) {
     }
   }, [user, loadUserDataSummary]);
 
+  // Redirect unauthenticated users to home page
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/');
+    }
+  }, [user, loading, router]);
+
   // Handle unauthenticated users
   if (!user) {
     return (
@@ -184,15 +194,18 @@ export function AccountDashboard({ className = "" }: AccountDashboardProps) {
                 {user.email}
               </p>
             </div>
-            <div className="text-right text-sm text-gray-500">
-              <p>Member since</p>
-              <p className="font-medium text-gray-700">
-                {summary?.joinDate.toLocaleDateString('en-US', { 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
-              </p>
+            <div className="flex items-center space-x-6">
+              <div className="text-right text-sm text-gray-500">
+                <p>Member since</p>
+                <p className="font-medium text-gray-700">
+                  {summary?.joinDate.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </p>
+              </div>
+              <UserProfile showEmail={false} compact={true} />
             </div>
           </div>
           

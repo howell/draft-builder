@@ -1,10 +1,10 @@
 /**
- * Migration detection utilities for localStorage data
- * These utilities help detect and summarize existing localStorage data for migration preview
+ * Migration detection utilities for Dexie (IndexedDB) data
+ * These utilities help detect and summarize existing Dexie data for migration preview
  */
 
 import { LeagueId } from '@/platforms/common';
-import { LocalStorageAdapter } from './localStorage';
+import { DexieStorageAdapter } from './dexie';
 import { SAVED_LEAGUES_KEY } from './constants';
 
 /**
@@ -22,43 +22,52 @@ export interface DataSummary {
 }
 
 /**
- * Check if there is any localStorage data available for migration
- * This is a fast check that doesn't parse all the data
+ * Check if there is any Dexie data available for migration
+ * This function is async because Dexie operations are async
  */
-export function hasLocalStorageData(): boolean {
+export async function hasMigratableData(): Promise<boolean> {
   try {
     // Check if running in browser environment
-    if (typeof window === 'undefined' || !window.localStorage) {
+    if (typeof window === 'undefined') {
       return false;
     }
     
-    // Check for leagues data
-    const leagues = localStorage.getItem(SAVED_LEAGUES_KEY);
-    if (leagues) {
-      try {
-        const parsed = JSON.parse(leagues);
-        if (parsed && parsed.leagues && typeof parsed.leagues === 'object') {
-          return Object.keys(parsed.leagues).length > 0;
-        }
-      } catch {
-        // If parsing fails, assume no valid data
-        return false;
-      }
+    // Use DexieStorageAdapter to check for data
+    const dexieAdapter = new DexieStorageAdapter('anonymous');
+    
+    // Try to load leagues data
+    const leagues = await dexieAdapter.loadLeagues();
+    
+    if (leagues && leagues.leagues && typeof leagues.leagues === 'object') {
+      const leagueCount = Object.keys(leagues.leagues).length;
+      return leagueCount > 0;
     }
     
     return false;
-  } catch {
+  } catch (error) {
     // Any error means no accessible data
     return false;
   }
 }
 
 /**
- * Get a comprehensive summary of localStorage data for migration preview
+ * Legacy function for backward compatibility - now redirects to async function
+ * @deprecated Use hasMigratableData() instead
+ */
+export function hasLocalStorageData(): boolean {
+  console.warn('[hasLocalStorageData] This function is deprecated. Use hasMigratableData() instead.');
+  // For legacy compatibility, return false and let the async version handle it
+  return false;
+}
+
+/**
+ * Get a comprehensive summary of Dexie data for migration preview
  * This function analyzes all stored data and counts items
  */
 export async function getLocalStorageDataSummary(): Promise<DataSummary> {
   try {
+    console.log('[getLocalStorageDataSummary] Starting data summary generation...');
+    
     // Initialize summary with zero counts
     const summary: DataSummary = {
       leagueCount: 0,
@@ -68,17 +77,17 @@ export async function getLocalStorageDataSummary(): Promise<DataSummary> {
     };
     
     // Check if running in browser environment
-    if (typeof window === 'undefined' || !window.localStorage) {
+    if (typeof window === 'undefined') {
       return summary;
     }
     
-    // Use LocalStorageAdapter for consistent data access
-    const localAdapter = new LocalStorageAdapter();
+    // Use DexieStorageAdapter for consistent data access
+    const dexieAdapter = new DexieStorageAdapter('anonymous');
     
     // Load leagues data
     let leagues;
     try {
-      leagues = await localAdapter.loadLeagues();
+      leagues = await dexieAdapter.loadLeagues();
     } catch (error) {
       console.warn('[MigrationUtils] Failed to load leagues data:', error);
       return summary;
@@ -96,22 +105,26 @@ export async function getLocalStorageDataSummary(): Promise<DataSummary> {
     // Analyze each league's draft data
     for (const leagueId of leagueIds) {
       try {
-        const mocks = await localAdapter.loadSavedMocks(leagueId as LeagueId);
+        const mocks = await dexieAdapter.loadSavedMocks(leagueId as LeagueId);
+        
         const draftNames = Object.keys(mocks);
         summary.draftCount += draftNames.length;
         
         // Count selections and adjustments in each draft
         for (const draftName of draftNames) {
           const draft = mocks[draftName];
+          
           if (draft) {
             // Count player selections
             if (draft.rosterSelections && typeof draft.rosterSelections === 'object') {
-              summary.totalSelections += Object.keys(draft.rosterSelections).length;
+              const selectionsCount = Object.keys(draft.rosterSelections).length;
+              summary.totalSelections += selectionsCount;
             }
             
             // Count cost adjustments
             if (draft.costAdjustments && typeof draft.costAdjustments === 'object') {
-              summary.costAdjustments += Object.keys(draft.costAdjustments).length;
+              const adjustmentsCount = Object.keys(draft.costAdjustments).length;
+              summary.costAdjustments += adjustmentsCount;
             }
           }
         }
@@ -235,7 +248,7 @@ export function clearLocalStorageData(): void {
       localStorage.removeItem(key);
     });
     
-    console.log(`[MigrationUtils] Cleared localStorage data. Removed ${keysToRemove.length + 1} keys.`);
+    // Cleared localStorage data
   } catch (error) {
     console.error('[MigrationUtils] Error clearing localStorage data:', error);
     throw error;

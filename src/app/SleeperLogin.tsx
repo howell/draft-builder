@@ -5,18 +5,18 @@ import { isLeagueId, SleeperLeague } from '@/platforms/common';
 
 const SleeperLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
     const [leagueID, setLeagueID] = useState("");
+    const [validationError, setValidationError] = useState<string | null>(null);
 
     const handleSubmit = async () => {
+      setValidationError(null);
 
       if (leagueID.trim() === "") {
-        alert("Please enter your league ID");
+        setValidationError("Please enter your league ID");
         return;
       }
 
-      
-
       if (!isLeagueId(leagueID)) {
-        alert("League ID must be a number");
+        setValidationError("League ID must be a number");
         return;
       }
 
@@ -29,6 +29,13 @@ const SleeperLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
             <h1 className="text-xl">Enter your Sleeper Fantasy Football league ID and click Submit.</h1>
 
             <LeagueDataInput label="League ID" value={leagueID} onChange={setLeagueID} />
+            
+            {validationError && (
+                <div className="mt-2 text-sm text-red-600" role="alert">
+                    {validationError}
+                </div>
+            )}
+            
             <SubmitButton onClick={handleSubmit} />
         </div>
     )

@@ -9,6 +9,7 @@ export class HomePage extends BasePage {
   readonly submitButton: Locator;
   readonly loadingIndicator: Locator;
   readonly errorMessage: Locator;
+  readonly validationError: Locator;
   readonly sidebar: Locator;
   readonly loginButton: Locator;
   readonly signupButton: Locator;
@@ -19,10 +20,14 @@ export class HomePage extends BasePage {
     this.espnTab = page.getByRole('tab', { name: /espn/i });
     this.sleeperTab = page.getByRole('tab', { name: /sleeper/i });
     this.demoLink = page.getByRole('link', { name: /demo/i });
-    this.leagueIdInput = page.locator('input[placeholder*="League ID"]');
-    this.submitButton = page.getByRole('button', { name: /submit|load|connect/i });
+    // LeagueDataInput uses name="League ID" attribute, not placeholder
+    this.leagueIdInput = page.locator('input[name="League ID"], input[placeholder*="League ID"]');
+    this.submitButton = page.getByRole('button', { name: /submit/i });
     this.loadingIndicator = page.getByTestId('loading-screen');
-    this.errorMessage = page.locator('[role="alert"]');
+    // API/Network errors shown in main error section
+    this.errorMessage = page.locator('[role="alert"]').filter({ hasText: /Failed to find league|Error finding league/i });
+    // Form validation errors shown inline
+    this.validationError = page.locator('[role="alert"]').filter({ hasText: /Please enter|must be a number/i });
     this.sidebar = page.locator('aside, [role="navigation"]');
     this.loginButton = page.getByRole('link', { name: /log in/i });
     this.signupButton = page.getByRole('link', { name: /sign up/i });

@@ -29,6 +29,7 @@ export default function Home() {
   const [isLoadingLeagues, setIsLoadingLeagues] = useState(true);
   const [dataSummary, setDataSummary] = useState<MigrationDataSummary | null>(null);
   const [showAccountPromotion, setShowAccountPromotion] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -71,7 +72,8 @@ export default function Home() {
     if (submissionInProgress) return;
     try {
       setSubmissionInProgress(true);
-      await submitLeague(league, router, setLoadingTasks, saveLeagueAsync);
+      setError(null); // Clear any previous errors
+      await submitLeague(league, router, setLoadingTasks, saveLeagueAsync, setError);
     } finally {
       setSubmissionInProgress(false);
     }
@@ -186,6 +188,22 @@ export default function Home() {
               </div>
             )}
             
+            {/* Error message display */}
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg" role="alert">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-red-800">{error}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div className='min-w-full w-full'>
               <TabContainer pages={[
                 { title: headerFor('espn'), content: <LeagueLogin><EspnLogin submitLeague={handleSubmit} /></LeagueLogin> },
@@ -202,7 +220,8 @@ export default function Home() {
 async function submitLeague(league: PlatformLeague,
   router: AppRouterInstance,
   setLoadingTasks: (tasks: LoadingTasks) => void,
-  saveLeague: (id: LeagueId, league: PlatformLeague) => Promise<void>)
+  saveLeague: (id: LeagueId, league: PlatformLeague) => Promise<void>,
+  setError: (error: string | null) => void)
    {
   const client = new ApiClient(league);
   const request = client.findLeague();
@@ -210,11 +229,13 @@ async function submitLeague(league: PlatformLeague,
   const result = await request;
 
   if (typeof result === 'string') {
-    alert(`Failed to find league: ${result}`);
+    setError(`Failed to find league: ${result}`);
+    setLoadingTasks(new Set()); // Clear loading state
     return;
   }
   if (result?.status !== 'ok') {
-    alert(`Error finding league: ${result.status}`);
+    setError(`Error finding league: ${result.status}`);
+    setLoadingTasks(new Set()); // Clear loading state
     return;
   }
 

@@ -3,22 +3,18 @@
  */
 
 import {
-  hasLocalStorageData,
+  hasMigratableData,
   getLocalStorageDataSummary,
-  validateLocalStorageData,
-  clearLocalStorageData,
   type DataSummary
 } from '../migration-utils';
-import { SAVED_LEAGUES_KEY } from '../constants';
-import { CURRENT_LEAGUES_SCHEMA_VERSION, CURRENT_MOCKS_SCHEMA_VERSION } from '@/types/storage';
 
 // Create mock functions that we can control
 const mockLoadLeagues = jest.fn();
 const mockLoadSavedMocks = jest.fn();
 
-// Mock the LocalStorageAdapter to avoid dependencies on real localStorage adapter
-jest.mock('../localStorage', () => ({
-  LocalStorageAdapter: jest.fn().mockImplementation(() => ({
+// Mock the DexieStorageAdapter to avoid dependencies on real IndexedDB
+jest.mock('../dexie', () => ({
+  DexieStorageAdapter: jest.fn().mockImplementation(() => ({
     loadLeagues: mockLoadLeagues,
     loadSavedMocks: mockLoadSavedMocks
   }))
@@ -26,65 +22,61 @@ jest.mock('../localStorage', () => ({
 
 describe('Migration Utils', () => {
   beforeEach(() => {
-    // Clear localStorage before each test
-    localStorage.clear();
-    
     // Reset mocks
     jest.clearAllMocks();
     mockLoadLeagues.mockReset();
     mockLoadSavedMocks.mockReset();
   });
 
-  afterEach(() => {
-    localStorage.clear();
-  });
-
-  describe('hasLocalStorageData', () => {
-    it('returns false when no data exists', () => {
-      expect(hasLocalStorageData()).toBe(false);
-    });
-
-    it('returns false when leagues key exists but is empty', () => {
-      localStorage.setItem(SAVED_LEAGUES_KEY, JSON.stringify({
-        schemaVersion: CURRENT_LEAGUES_SCHEMA_VERSION,
+  describe('hasMigratableData', () => {
+    it('returns false when no data exists', async () => {
+      mockLoadLeagues.mockResolvedValue({
         leagues: {}
-      }));
+      });
       
-      expect(hasLocalStorageData()).toBe(false);
+      expect(await hasMigratableData()).toBe(false);
     });
 
-    it('returns true when leagues data exists', () => {
-      localStorage.setItem(SAVED_LEAGUES_KEY, JSON.stringify({
-        schemaVersion: CURRENT_LEAGUES_SCHEMA_VERSION,
+    it('returns false when leagues data is empty', async () => {
+      mockLoadLeagues.mockResolvedValue({
+        leagues: {}
+      });
+      
+      expect(await hasMigratableData()).toBe(false);
+    });
+
+    it('returns true when leagues data exists', async () => {
+      mockLoadLeagues.mockResolvedValue({
         leagues: {
           'test-league': {
             platform: 'sleeper',
             id: 'test-league'
           }
         }
-      }));
+      });
       
-      expect(hasLocalStorageData()).toBe(true);
+      expect(await hasMigratableData()).toBe(true);
     });
 
-    it('returns false when leagues data is corrupted', () => {
-      localStorage.setItem(SAVED_LEAGUES_KEY, 'invalid-json');
-      expect(hasLocalStorageData()).toBe(false);
+    it('returns false when data loading fails', async () => {
+      mockLoadLeagues.mockRejectedValue(new Error('Failed to load'));
+      
+      expect(await hasMigratableData()).toBe(false);
     });
 
-    it('returns false when leagues structure is invalid', () => {
-      localStorage.setItem(SAVED_LEAGUES_KEY, JSON.stringify({
-        wrongStructure: true
-      }));
+    it('returns false in non-browser environment', async () => {
+      const originalWindow = global.window;
+      delete (global as any).window;
       
-      expect(hasLocalStorageData()).toBe(false);
+      expect(await hasMigratableData()).toBe(false);
+      
+      global.window = originalWindow;
     });
   });
 
   describe('getLocalStorageDataSummary', () => {
     it('returns zero counts when no data exists', async () => {
       mockLoadLeagues.mockResolvedValue({
-        schemaVersion: CURRENT_LEAGUES_SCHEMA_VERSION,
         leagues: {}
       });
 
@@ -100,7 +92,6 @@ describe('Migration Utils', () => {
 
     it('correctly counts leagues without drafts', async () => {
       mockLoadLeagues.mockResolvedValue({
-        schemaVersion: CURRENT_LEAGUES_SCHEMA_VERSION,
         leagues: {
           'league1': { platform: 'sleeper', id: 'league1' },
           'league2': { platform: 'espn', id: 'league2' }
@@ -121,7 +112,6 @@ describe('Migration Utils', () => {
 
     it('correctly counts complete data with drafts and selections', async () => {
       mockLoadLeagues.mockResolvedValue({
-        schemaVersion: CURRENT_LEAGUES_SCHEMA_VERSION,
         leagues: {
           'league1': { platform: 'sleeper', id: 'league1' }
         }
@@ -183,7 +173,6 @@ describe('Migration Utils', () => {
 
     it('continues processing when individual league mocks fail', async () => {
       mockLoadLeagues.mockResolvedValue({
-        schemaVersion: CURRENT_LEAGUES_SCHEMA_VERSION,
         leagues: {
           'league1': { platform: 'sleeper', id: 'league1' },
           'league2': { platform: 'espn', id: 'league2' }
@@ -217,140 +206,4 @@ describe('Migration Utils', () => {
     });
   });
 
-  describe('validateLocalStorageData', () => {
-    it('returns invalid when no localStorage available', () => {
-      // Mock localStorage as undefined
-      const originalLocalStorage = window.localStorage;
-      delete (window as any).localStorage;
-      
-      const result = validateLocalStorageData();
-      
-      expect(result.isValid).toBe(false);
-      expect(result.issues).toContain('localStorage not available');
-      
-      // Restore localStorage
-      (window as any).localStorage = originalLocalStorage;
-    });
-
-    it('returns valid when no data exists', () => {
-      const result = validateLocalStorageData();
-      
-      expect(result.isValid).toBe(true);
-      expect(result.issues).toHaveLength(0);
-    });
-
-    it('returns valid for properly structured data', () => {
-      localStorage.setItem(SAVED_LEAGUES_KEY, JSON.stringify({
-        schemaVersion: CURRENT_LEAGUES_SCHEMA_VERSION,
-        leagues: {
-          'test-league': {
-            platform: 'sleeper',
-            id: 'test-league'
-          }
-        }
-      }));
-      
-      const result = validateLocalStorageData();
-      
-      expect(result.isValid).toBe(true);
-      expect(result.issues).toHaveLength(0);
-    });
-
-    it('identifies corrupted JSON data', () => {
-      localStorage.setItem(SAVED_LEAGUES_KEY, 'invalid-json{');
-      
-      const result = validateLocalStorageData();
-      
-      expect(result.isValid).toBe(false);
-      expect(result.issues).toContain('Leagues data is not valid JSON');
-    });
-
-    it('identifies missing schema version', () => {
-      localStorage.setItem(SAVED_LEAGUES_KEY, JSON.stringify({
-        leagues: {
-          'test-league': { platform: 'sleeper', id: 'test-league' }
-        }
-      }));
-      
-      const result = validateLocalStorageData();
-      
-      expect(result.isValid).toBe(false);
-      expect(result.issues).toContain('Leagues data missing schema version');
-    });
-
-    it('identifies missing required league properties', () => {
-      localStorage.setItem(SAVED_LEAGUES_KEY, JSON.stringify({
-        schemaVersion: CURRENT_LEAGUES_SCHEMA_VERSION,
-        leagues: {
-          'invalid-league': {
-            platform: 'sleeper'
-            // Missing 'id' property
-          }
-        }
-      }));
-      
-      const result = validateLocalStorageData();
-      
-      expect(result.isValid).toBe(false);
-      expect(result.issues).toContain('League invalid-league missing required properties (platform, id)');
-    });
-  });
-
-  describe('clearLocalStorageData', () => {
-    it('removes leagues data', () => {
-      localStorage.setItem(SAVED_LEAGUES_KEY, JSON.stringify({
-        schemaVersion: CURRENT_LEAGUES_SCHEMA_VERSION,
-        leagues: { 'test': { platform: 'sleeper', id: 'test' } }
-      }));
-      
-      clearLocalStorageData();
-      
-      expect(localStorage.getItem(SAVED_LEAGUES_KEY)).toBeNull();
-    });
-
-    it('removes in-progress selections', () => {
-      const inProgressKey = '##IN_PROGRESS_SELECTIONS##';
-      localStorage.setItem(inProgressKey, JSON.stringify({ someData: true }));
-      
-      clearLocalStorageData();
-      
-      expect(localStorage.getItem(inProgressKey)).toBeNull();
-    });
-
-    it('removes league mock data', () => {
-      const mockData = {
-        schemaVersion: CURRENT_MOCKS_SCHEMA_VERSION,
-        mocks: {
-          'Draft 1': {
-            year: '2024',
-            created: Date.now(),
-            modified: Date.now(),
-            rosterSelections: {},
-            costAdjustments: {},
-            estimationSettings: {},
-            searchSettings: {},
-            notes: ''
-          }
-        }
-      };
-      
-      localStorage.setItem('test-league-123', JSON.stringify(mockData));
-      localStorage.setItem('other-data', 'should-not-be-removed');
-      
-      clearLocalStorageData();
-      
-      expect(localStorage.getItem('test-league-123')).toBeNull();
-      expect(localStorage.getItem('other-data')).toBe('should-not-be-removed');
-    });
-
-    it('preserves non-draft-builder data', () => {
-      localStorage.setItem('some-other-app-data', 'preserve-me');
-      localStorage.setItem('user-preferences', JSON.stringify({ theme: 'dark' }));
-      
-      clearLocalStorageData();
-      
-      expect(localStorage.getItem('some-other-app-data')).toBe('preserve-me');
-      expect(localStorage.getItem('user-preferences')).toBe(JSON.stringify({ theme: 'dark' }));
-    });
-  });
 });
