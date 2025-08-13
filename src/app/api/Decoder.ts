@@ -28,11 +28,20 @@ export class DecoderWithResult<T> extends Decoder<T> {
         [P in K]: V;
     }> {
         if (this.params.has(key)) {
-            const value = JSON.parse(this.params.get(key) ?? '');
-            if (pred(value)) {
-                return new DecoderWithResult(this.params, { ...this.resultSoFar, [key]: value } as T & {
-                    [P in K]: V;
-                });
+            const paramValue = this.params.get(key);
+            // Skip if parameter is null, undefined, or literal "undefined" string
+            if (paramValue && paramValue !== 'undefined' && paramValue.trim() !== '') {
+                try {
+                    const value = JSON.parse(paramValue);
+                    if (pred(value)) {
+                        return new DecoderWithResult(this.params, { ...this.resultSoFar, [key]: value } as T & {
+                            [P in K]: V;
+                        });
+                    }
+                } catch (error) {
+                    // Log the parsing error but continue to return FailedDecoder
+                    console.warn(`JSON parsing failed for parameter '${key}' with value '${paramValue}':`, error);
+                }
             }
         }
         return new FailedDecoder(this.params, key);
