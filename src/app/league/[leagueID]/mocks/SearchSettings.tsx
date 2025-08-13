@@ -91,14 +91,16 @@ const SearchSettings: React.FC<SearchSettingsProps> = ({
                     <SearchLabel label='Min Price'>
                         Min Price:
                         <SearchNumber value={currentSettings.minPrice}
-                            onChange={handleMinPriceChange} />
+                            onChange={handleMinPriceChange}
+                            testId="price-range-min" />
                     </SearchLabel>
                 </SearchContainer>
                 <SearchContainer>
                     <SearchLabel label='Max Price'>
                         Max Price:
                         <SearchNumber value={currentSettings.maxPrice}
-                            onChange={handleMaxPriceChange} />
+                            onChange={handleMaxPriceChange}
+                            testId="price-range-max" />
                     </SearchLabel>
                 </SearchContainer>
                 <SearchContainer>

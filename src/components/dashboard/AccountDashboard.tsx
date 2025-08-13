@@ -214,19 +214,19 @@ export function AccountDashboard({ className = "" }: AccountDashboardProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
                 <h3 className="font-semibold text-blue-900 text-sm">Leagues</h3>
-                <p className="text-2xl font-bold text-blue-700">{summary.leagueCount}</p>
+                <p className="text-2xl font-bold text-blue-700" data-testid="dashboard-league-count">{summary.leagueCount}</p>
               </div>
               <div className="bg-green-50 rounded-lg p-4 border border-green-100">
                 <h3 className="font-semibold text-green-900 text-sm">Draft Sessions</h3>
-                <p className="text-2xl font-bold text-green-700">{summary.draftCount}</p>
+                <p className="text-2xl font-bold text-green-700" data-testid="dashboard-draft-count">{summary.draftCount}</p>
               </div>
               <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
                 <h3 className="font-semibold text-purple-900 text-sm">Player Selections</h3>
-                <p className="text-2xl font-bold text-purple-700">{summary.totalSelections}</p>
+                <p className="text-2xl font-bold text-purple-700" data-testid="dashboard-selection-count">{summary.totalSelections}</p>
               </div>
               <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
                 <h3 className="font-semibold text-orange-900 text-sm">Cost Adjustments</h3>
-                <p className="text-2xl font-bold text-orange-700">{summary.costAdjustments}</p>
+                <p className="text-2xl font-bold text-orange-700" data-testid="dashboard-adjustment-count">{summary.costAdjustments}</p>
               </div>
             </div>
           )}

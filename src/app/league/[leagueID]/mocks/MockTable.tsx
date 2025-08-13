@@ -417,7 +417,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
         <div className="flex flex-col md:flex-row justify-evenly gap-8 p-2 mx-auto">
             <div className="md:ml-8">
                 <div className="flex items-center justify-between mb-4">
-                    <PrimaryHeading>Your Roster</PrimaryHeading>
+                    <PrimaryHeading data-testid="your-roster-heading">Your Roster</PrimaryHeading>
                     <AutosaveIndicator 
                         status={autosaveStatus} 
                         retryCount={retryCount}
@@ -425,7 +425,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                         onRetry={manualRetryAutosave}
                     />
                 </div>
-                <table>
+                <table data-testid="roster-table">
                     <thead>
                         <tr>
                             <th>Position</th>
@@ -454,13 +454,14 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                         })}
                     </tbody>
                 </table>
-                <div>
-                    <p>Budget: {auctionBudget} </p>
-                    <p>Remaining: {auctionBudget - budgetSpent} </p>
+                <div data-testid="budget-display">
+                    <p data-testid="budget-total">Budget: {auctionBudget} </p>
+                    <p data-testid="budget-remaining">Remaining: {auctionBudget - budgetSpent} </p>
                 </div>
                 <div>
                     <DarkLightText>
                         <input
+                            data-testid="roster-name-input"
                             className="bg-inherit text-inherit text-lg mt-2 p-2 gap-8 w-auto rounded-lg"
                             type="text"
                             value={rosterName}
@@ -475,6 +476,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                                 savingStatus === 'saving' ? 'opacity-50 cursor-not-allowed' : ''
                             }`}
                             disabled={savingStatus === 'saving'}
+                            data-testid="save-roster-button"
                         >
                             {savingStatus === 'saving' ? (
                                 <span className="flex items-center gap-2">
@@ -508,7 +510,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                 </div>
             </div>
             <div className='flex flex-col items-start '>
-                <PrimaryHeading>
+                <PrimaryHeading data-testid="available-players-heading">
                     Available Players
                 </PrimaryHeading>
                 <div className='grid md:grid-cols-2 w-full'>
@@ -524,7 +526,9 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                                     onRankingSelected={setCurrentRanking} />
                             </span>
                         }
-                        <CollapsibleComponent label={<h2 className='text-lg'>Search Settings</h2>}>
+                        <CollapsibleComponent 
+                            label={<h2 className='text-lg'>Search Settings</h2>}
+                            testId="search-settings-toggle">
                             <SearchSettings
                                 onSettingsChanged={onSettingsChanged}
                                 positions={playerPositions}
@@ -657,12 +661,14 @@ type MockButtonProps = {
     styles?: string;
     children: React.ReactNode;
     disabled?: boolean;
+    'data-testid'?: string;
 };
 
 const MockButton: React.FC<MockButtonProps> = (props) => (
     <button 
         onClick={props.disabled ? undefined : props.onClick}
         disabled={props.disabled}
+            data-testid={props['data-testid']}
         className={'py-2 px-2 text-lg rounded-lg border-2 ' + (props.styles ?? '')}>
         {props.children}
     </button>
@@ -677,8 +683,8 @@ const ResetButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
     </MockButton>
 );
 
-const PrimaryHeading: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <h1 className="text-2xl font-bold">{children}</h1>
+const PrimaryHeading: React.FC<{ children: React.ReactNode; 'data-testid'?: string }> = ({ children, 'data-testid': testId }) => (
+    <h1 className="text-2xl font-bold" data-testid={testId}>{children}</h1>
 );
 
 interface AutosaveIndicatorProps {

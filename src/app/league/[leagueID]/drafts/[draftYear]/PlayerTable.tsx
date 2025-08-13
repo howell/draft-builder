@@ -61,7 +61,7 @@ const PlayerTable = <T extends object,>({
 
     return (
         <div className="mx-auto my-5 border-collapse w-full max-h-[90dvh] overflow-y-auto overflow-x-auto md:overflow-x-hidden">
-            <table className="table-auto w-full">
+            <table data-testid="available-players-table" className="table-auto w-full">
                 <thead>
                     <tr>
                         {columns.map(([column, name], i) => (
@@ -84,11 +84,13 @@ const PlayerTable = <T extends object,>({
                 <tbody>
                     {sortedData.map((item, i) => (
                         <tr key={item.id}
+                            data-testid={`player-row-${item.id}`}
                             className={`even:bg-gray-300 even:text-black odd:bg-gray-700 odd:text-white
                                         ${onPlayerClick ? 'cursor-pointer' : ''}`}
                             onClick={() => onPlayerClick && onPlayerClick(item)}>
                             {columns.map(([column, _], i) => (
                                 <td key={`${column.toString()} ${item.id}`}
+                                    data-testid={`player-cell-${item.id}-${column.toString()}`}
                                     className={`border-2 border-black py-2 text-left whitespace-nowrap text-ellipsis
                                                 ${i === columns.length - 1 ? 'pl-2 pr-4' : 'px-2'}`} >
                                     <div>

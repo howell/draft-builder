@@ -79,11 +79,12 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
     };
 
     return (
-        <tr >
+        <tr data-testid={`roster-position-${position}-${rosterSlot.index}`}>
             <td>{position}</td>
             <td>
                 <DarkLightText>
                     <input
+                        data-testid={`roster-player-input-${position}-${rosterSlot.index}`}
                         className="flex justify-start items-start h-7 bg-inherit text-inherit ml-2 pl-2 py-4"
                         type="text"
                         value={inputValue}
