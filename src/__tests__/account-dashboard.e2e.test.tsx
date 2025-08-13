@@ -247,6 +247,14 @@ describe('Account Dashboard E2E Test', () => {
 
     (supabase as any).auth = mockSupabaseAuth;
 
+    // Also need to mock the database methods that ensureUserRecord might use
+    (supabase as any).from = jest.fn().mockReturnValue({
+      upsert: jest.fn().mockResolvedValue({ data: null, error: null }),
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({ data: null, error: null })
+    });
+
     // Mock storage adapter with slow loading
     mockStorageAdapter = {
       loadLeagues: jest.fn().mockImplementation(() => 
@@ -273,6 +281,9 @@ describe('Account Dashboard E2E Test', () => {
       // Give time for auth but not for data loading
       await new Promise(resolve => setTimeout(resolve, 200));
     });
+
+    // Wait for LoadingScreen polling to trigger
+    await new Promise(resolve => setTimeout(resolve, 150));
 
     // Should show loading state
     expect(screen.getByText('Loading your dashboard data...')).toBeInTheDocument();

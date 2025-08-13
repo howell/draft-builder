@@ -219,7 +219,7 @@ describe('Authenticated Storage Adapter E2E Test', () => {
 
   });
 
-  test('loading state returns memory adapter temporarily', async () => {
+  test('loading state returns dexie adapter for consistency', async () => {
 
     // Mock auth state that never resolves (simulates loading)
     const mockSupabaseAuth = {
@@ -252,12 +252,12 @@ describe('Authenticated Storage Adapter E2E Test', () => {
     // Wait for component to be ready
     expect(screen.getByTestId('adapter-ready')).toBeInTheDocument();
 
-    // During loading state, should get memory adapter
+    // Fixed: During loading state, now gets Dexie adapter for consistency (prevents race conditions)
     expect(capturedAdapter).toBeTruthy();
-    expect(isMemoryAdapter(capturedAdapter)).toBe(true);
+    expect(isDexieAdapter(capturedAdapter)).toBe(true);
     
     // Verify the adapter type is displayed correctly
-    expect(screen.getByTestId('adapter-type')).toHaveTextContent('memory');
+    expect(screen.getByTestId('adapter-type')).toHaveTextContent('dexie');
 
   });
 
