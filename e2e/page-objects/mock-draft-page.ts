@@ -9,22 +9,22 @@ export class MockDraftPage extends BasePage {
   readonly rosterTable: Locator;
   readonly budgetDisplay: Locator;
   readonly saveButton: Locator;
-  readonly positionFilter: Locator;
   readonly priceRangeMin: Locator;
   readonly priceRangeMax: Locator;
+  readonly positionNoneButton: Locator;
 
   constructor(page: Page) {
     super(page);
     this.createDraftButton = page.getByRole('button', { name: /create.*draft|new.*draft/i });
     this.draftNameInput = page.locator('input[placeholder*="Draft name"]');
-    this.playerSearchInput = page.locator('input[placeholder*="Search player"]');
+    this.playerSearchInput = page.getByPlaceholder('Search for a player...').first();
     this.playerTable = page.locator('table').first(); // Available players table
     this.rosterTable = page.locator('table').last(); // Your roster table
     this.budgetDisplay = page.getByTestId('budget-display');
     this.saveButton = page.getByRole('button', { name: /save/i });
-    this.positionFilter = page.locator('select, [role="combobox"]').first();
     this.priceRangeMin = page.locator('input[type="number"]').first();
     this.priceRangeMax = page.locator('input[type="number"]').last();
+    this.positionNoneButton = page.getByRole('button', { name: 'None' });
   }
 
   async navigateToMockDrafts(leagueId: string) {
@@ -50,11 +50,36 @@ export class MockDraftPage extends BasePage {
   }
 
   async filterByPosition(position: string) {
-    await this.positionFilter.selectOption(position);
+    // First ensure the Search Settings section is expanded
+    const searchSettingsHeader = this.page.getByText('Search Settings');
+    await searchSettingsHeader.click();
+    await this.page.waitForTimeout(500);
+    
+    if (position === '') {
+      // Show all positions - click "All" button
+      const allButton = this.page.getByRole('button', { name: 'All' });
+      await allButton.click();
+    } else {
+      // Show only specific position
+      // First clear all positions
+      await this.positionNoneButton.click();
+      await this.page.waitForTimeout(200);
+      
+      // Then check the specific position checkbox
+      // Find the label that contains this position text, then get the checkbox within it
+      const positionLabel = this.page.locator('label').filter({ hasText: position });
+      const positionCheckbox = positionLabel.locator('input[type="checkbox"]');
+      await positionCheckbox.click();
+    }
     await this.page.waitForTimeout(300);
   }
 
   async setPriceRange(min: number, max: number) {
+    // First ensure the Search Settings section is expanded
+    const searchSettingsHeader = this.page.getByText('Search Settings');
+    await searchSettingsHeader.click();
+    await this.page.waitForTimeout(500);
+    
     await this.priceRangeMin.fill(min.toString());
     await this.priceRangeMax.fill(max.toString());
     await this.page.waitForTimeout(300);

@@ -1,0 +1,23 @@
+{
+  "status": "ok",
+  "data": {
+    "name": "The Ham",
+    "drafted": true,
+    "scoringType": "half-ppr",
+    "draft": {
+      "type": "auction",
+      "auctionBudget": 200
+    },
+    "rosterSettings": {
+      "QB": 1,
+      "RB": 2,
+      "WR": 2,
+      "TE": 1,
+      "FLEX": 1,
+      "REC_FLEX": 1,
+      "SUPER_FLEX": 1,
+      "DEF": 1,
+      "BN": 5
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "status": "ok",
+  "data": {
+    "2023": {
+      "name": "Test League 2024",
+      "drafted": true,
+      "scoringType": "standard",
+      "draft": {
+        "type": "auction",
+        "auctionBudget": 150
+      },
+      "rosterSettings": {
+        "QB": 1,
+        "RB": 2,
+        "WR": 2,
+        "TE": 1,
+        "FLEX": 1,
+        "REC_FLEX": 1,
+        "SUPER_FLEX": 1,
+        "DST": 1,
+        "BN": 5
+      }
+    },
+    "2024": {
+      "name": "Test League 2024",
+      "drafted": true,
+      "scoringType": "half-ppr",
+      "draft": {
+        "type": "auction",
+        "auctionBudget": 200
+      },
+      "rosterSettings": {
+        "QB": 1,
+        "RB": 2,
+        "WR": 2,
+        "TE": 1,
+        "FLEX": 1,
+        "REC_FLEX": 1,
+        "SUPER_FLEX": 1,
+        "DST": 1,
+        "BN": 5
+      }
+    },
+    "2025": {
+      "name": "Test League 2024",
+      "drafted": true,
+      "scoringType": "half-ppr",
+      "draft": {
+        "type": "auction",
+        "auctionBudget": 200
+      },
+      "rosterSettings": {
+        "QB": 1,
+        "RB": 2,
+        "WR": 2,
+        "TE": 1,
+        "FLEX": 1,
+        "REC_FLEX": 1,
+        "SUPER_FLEX": 1,
+        "DST": 1,
+        "BN": 5
+      }
+    }
+  }
+}

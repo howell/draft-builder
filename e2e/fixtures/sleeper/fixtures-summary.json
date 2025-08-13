@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2025-08-11T13:04:25.934Z",
+  "platform": "sleeper",
+  "sourceLeagueId": "1050568427330465792",
+  "seasons": [
+    "2025",
+    "2024",
+    "2023"
+  ],
+  "endpoints": [
+    "fetch-league-sleeper",
+    "fetch-league-history-sleeper",
+    "fetch-teams-sleeper",
+    "fetch-players-sleeper",
+    "fetch-draft-sleeper-2025",
+    "fetch-draft-sleeper-2024",
+    "fetch-draft-sleeper-2023"
+  ],
+  "leagueName": "The Ham",
+  "generationTimeMs": 1463,
+  "notes": [
+    "Generated using SleeperApi class",
+    "Data is already in application format - no additional transformation needed",
+    "Fixtures wrap PlatformApi responses in standard { status, data } format"
+  ]
+}

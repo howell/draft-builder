@@ -1,0 +1,128 @@
+{
+  "status": "ok",
+  "data": {
+    "season": "2023",
+    "picks": [
+      {
+        "playerId": "CLE",
+        "team": "test_user_3",
+        "price": 1,
+        "overallPickNumber": 1
+      },
+      {
+        "playerId": "4881",
+        "team": "test_user_9",
+        "price": 37,
+        "overallPickNumber": 2
+      },
+      {
+        "playerId": "4984",
+        "team": "test_user_2",
+        "price": 50,
+        "overallPickNumber": 3
+      },
+      {
+        "playerId": "4866",
+        "team": "test_user_3",
+        "price": 27,
+        "overallPickNumber": 4
+      },
+      {
+        "playerId": "6797",
+        "team": "test_user_6",
+        "price": 40,
+        "overallPickNumber": 5
+      },
+      {
+        "playerId": "6813",
+        "team": "test_user_12",
+        "price": 50,
+        "overallPickNumber": 6
+      },
+      {
+        "playerId": "4046",
+        "team": "test_user_4",
+        "price": 43,
+        "overallPickNumber": 7
+      },
+      {
+        "playerId": "4034",
+        "team": "test_user_10",
+        "price": 40,
+        "overallPickNumber": 8
+      },
+      {
+        "playerId": "4663",
+        "team": "test_user_4",
+        "price": 37,
+        "overallPickNumber": 9
+      },
+      {
+        "playerId": "4039",
+        "team": "test_user_2",
+        "price": 40,
+        "overallPickNumber": 10
+      },
+      {
+        "playerId": "6770",
+        "team": "test_user_4",
+        "price": 36,
+        "overallPickNumber": 11
+      },
+      {
+        "playerId": "167",
+        "team": "test_user_6",
+        "price": 31,
+        "overallPickNumber": 12
+      },
+      {
+        "playerId": "6904",
+        "team": "test_user_3",
+        "price": 46,
+        "overallPickNumber": 13
+      },
+      {
+        "playerId": "5849",
+        "team": "test_user_10",
+        "price": 38,
+        "overallPickNumber": 14
+      },
+      {
+        "playerId": "1234",
+        "team": "test_user_11",
+        "price": 36,
+        "overallPickNumber": 15
+      },
+      {
+        "playerId": "4029",
+        "team": "test_user_9",
+        "price": 41,
+        "overallPickNumber": 16
+      },
+      {
+        "playerId": "7564",
+        "team": "test_user_3",
+        "price": 31,
+        "overallPickNumber": 17
+      },
+      {
+        "playerId": "5872",
+        "team": "test_user_10",
+        "price": 27,
+        "overallPickNumber": 18
+      },
+      {
+        "playerId": "6794",
+        "team": "test_user_9",
+        "price": 33,
+        "overallPickNumber": 19
+      },
+      {
+        "playerId": "7610",
+        "team": "test_user_10",
+        "price": 29,
+        "overallPickNumber": 20
+      }
+    ]
+  }
+}

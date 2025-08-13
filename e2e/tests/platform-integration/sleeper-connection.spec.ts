@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { HomePage } from '../../page-objects/home-page';
 import { DatabaseHelpers } from '../../utils/database-helpers';
+import { setupCommonApiMocks, ApiMockPresets, setupApiMocksWithPreset } from '../../utils/reusable-api-setup';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -13,64 +14,8 @@ test.describe('Sleeper League Integration', () => {
     homePage = new HomePage(page);
     dbHelpers = new DatabaseHelpers();
     
-    // Setup API mocking with Playwright route interception
-    await page.route('**/api/find-league**', async (route) => {
-      const url = route.request().url();
-      
-      // Check for test scenarios
-      if (url.includes('invalid')) {
-        await route.fulfill({ status: 404, json: { status: 'Failed to find league' } });
-      } else if (url.includes('timeout') || url.includes('999999999')) {
-        // Simulate timeout by returning 504 immediately
-        await route.fulfill({ status: 504, json: { error: 'Gateway Timeout' } });
-      } else {
-        // Default success response
-        await route.fulfill({ status: 200, json: { status: 'ok' } });
-      }
-    });
-    
-    // Mock the fetch-league endpoint that's called when navigating to /league/{id}
-    await page.route('**/api/fetch-league**', async (route) => {
-      await route.fulfill({ 
-        status: 200, 
-        json: { 
-          status: 'ok',
-          data: {
-            id: '123456789',
-            name: 'Test Sleeper League',
-            teams: 12,
-            season: '2024',
-            platform: 'sleeper',
-            scoring: {},
-            settings: {}
-          }
-        } 
-      });
-    });
-    
-    // Mock Sleeper API calls directly (in case the app calls them from the frontend)
-    await page.route('https://api.sleeper.app/**', async (route) => {
-      const url = route.request().url();
-      
-      if (url.includes('/league/invalid')) {
-        await route.fulfill({ status: 404 });
-      } else if (url.includes('/league/timeout') || url.includes('/league/999999999')) {
-        // Simulate timeout
-        await route.fulfill({ status: 504 });
-      } else {
-        // Default Sleeper league response
-        await route.fulfill({ 
-          status: 200, 
-          json: {
-            league_id: '123456789',
-            name: 'Test Sleeper League',
-            total_rosters: 12,
-            season: '2024',
-            status: 'in_season'
-          }
-        });
-      }
-    });
+    // Setup standard API mocks - much cleaner!
+    await setupCommonApiMocks(page, ApiMockPresets.standard('sleeper'));
     
     // Create authenticated user session for protected features
     const { user, credentials } = await dbHelpers.createTestUser();
@@ -115,10 +60,13 @@ test.describe('Sleeper League Integration', () => {
     await homePage.expectLeagueConnectionSuccess();
     
     // Verify league data is displayed
-    await expect(page.getByText(/sleeper league/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Welcome to Test League 2024/i })).toBeVisible();
   });
 
   test('should handle invalid Sleeper league ID', async ({ page }) => {
+    // Override setup for this specific test case
+    await setupApiMocksWithPreset(page, 'leagueNotFound', { platform: 'sleeper' });
+    
     await homePage.navigateToHome();
     await homePage.selectPlatform('sleeper');
     
@@ -139,7 +87,7 @@ test.describe('Sleeper League Integration', () => {
     await homePage.expectLeagueConnectionSuccess();
     
     // Verify league page loads with correct league name from mocked data
-    await expect(page.getByText(/Welcome to Test Sleeper League!/i)).toBeVisible();
+    await expect(page.getByText(/Welcome to Test League 2024!/i)).toBeVisible();
     await expect(page.getByText(/Use the links on the side to explore/i)).toBeVisible();
   });
 
@@ -163,6 +111,9 @@ test.describe('Sleeper League Integration', () => {
   });
 
   test('should handle API timeout gracefully', async ({ page }) => {
+    // Override setup for timeout scenario
+    await setupApiMocksWithPreset(page, 'timeout', { platform: 'sleeper' });
+    
     await homePage.navigateToHome();
     await homePage.selectPlatform('sleeper');
     

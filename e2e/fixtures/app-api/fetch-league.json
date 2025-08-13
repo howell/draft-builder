@@ -1,0 +1,27 @@
+{
+  "status": "ok",
+  "data": {
+    "id": "123456789",
+    "name": "Test League 2024",
+    "teams": 12,
+    "season": "2025",
+    "platform": "sleeper",
+    "scoring": {
+      "rec": 0.5
+    },
+    "settings": {
+      "auctionBudget": 200,
+      "rosterSettings": {
+        "QB": 1,
+        "RB": 2,
+        "WR": 2,
+        "TE": 1,
+        "FLEX": 1,
+        "REC_FLEX": 1,
+        "SUPER_FLEX": 1,
+        "DEF": 1,
+        "BN": 5
+      }
+    }
+  }
+}

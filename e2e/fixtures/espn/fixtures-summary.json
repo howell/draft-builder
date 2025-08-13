@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2025-08-11T13:04:24.433Z",
+  "platform": "espn",
+  "sourceLeagueId": "80193",
+  "seasons": [
+    "2025",
+    "2024",
+    "2023"
+  ],
+  "endpoints": [
+    "fetch-league-espn",
+    "fetch-league-history-espn",
+    "fetch-teams-espn",
+    "fetch-players-espn",
+    "fetch-draft-espn-2025",
+    "fetch-draft-espn-2024",
+    "fetch-draft-espn-2023"
+  ],
+  "leagueName": "Flavortown",
+  "generationTimeMs": 1278,
+  "notes": [
+    "Generated using EspnApi class",
+    "Data is already in application format - no additional transformation needed",
+    "Fixtures wrap PlatformApi responses in standard { status, data } format"
+  ]
+}

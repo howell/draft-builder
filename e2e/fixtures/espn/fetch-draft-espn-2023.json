@@ -1,0 +1,968 @@
+{
+  "status": "ok",
+  "data": {
+    "season": "2023",
+    "picks": [
+      {
+        "playerId": "4362628",
+        "team": "3",
+        "price": 53,
+        "overallPickNumber": 1
+      },
+      {
+        "playerId": "4242335",
+        "team": "10",
+        "price": 12,
+        "overallPickNumber": 2
+      },
+      {
+        "playerId": "3929630",
+        "team": "10",
+        "price": 51,
+        "overallPickNumber": 3
+      },
+      {
+        "playerId": "4262921",
+        "team": "16",
+        "price": 63,
+        "overallPickNumber": 4
+      },
+      {
+        "playerId": "4047650",
+        "team": "9",
+        "price": 26,
+        "overallPickNumber": 5
+      },
+      {
+        "playerId": "4430807",
+        "team": "3",
+        "price": 45,
+        "overallPickNumber": 6
+      },
+      {
+        "playerId": "-16028",
+        "team": "13",
+        "price": 2,
+        "overallPickNumber": 7
+      },
+      {
+        "playerId": "15847",
+        "team": "16",
+        "price": 31,
+        "overallPickNumber": 8
+      },
+      {
+        "playerId": "3117251",
+        "team": "13",
+        "price": 56,
+        "overallPickNumber": 9
+      },
+      {
+        "playerId": "3116406",
+        "team": "13",
+        "price": 49,
+        "overallPickNumber": 10
+      },
+      {
+        "playerId": "3916148",
+        "team": "13",
+        "price": 43,
+        "overallPickNumber": 11
+      },
+      {
+        "playerId": "2977187",
+        "team": "16",
+        "price": 28,
+        "overallPickNumber": 12
+      },
+      {
+        "playerId": "4036133",
+        "team": "2",
+        "price": 16,
+        "overallPickNumber": 13
+      },
+      {
+        "playerId": "16800",
+        "team": "10",
+        "price": 38,
+        "overallPickNumber": 14
+      },
+      {
+        "playerId": "16737",
+        "team": "14",
+        "price": 12,
+        "overallPickNumber": 15
+      },
+      {
+        "playerId": "4372016",
+        "team": "16",
+        "price": 29,
+        "overallPickNumber": 16
+      },
+      {
+        "playerId": "-16025",
+        "team": "7",
+        "price": 2,
+        "overallPickNumber": 17
+      },
+      {
+        "playerId": "3128720",
+        "team": "10",
+        "price": 42,
+        "overallPickNumber": 18
+      },
+      {
+        "playerId": "3043078",
+        "team": "9",
+        "price": 40,
+        "overallPickNumber": 19
+      },
+      {
+        "playerId": "4038941",
+        "team": "20",
+        "price": 15,
+        "overallPickNumber": 20
+      },
+      {
+        "playerId": "4429795",
+        "team": "7",
+        "price": 25,
+        "overallPickNumber": 21
+      },
+      {
+        "playerId": "3139477",
+        "team": "14",
+        "price": 25,
+        "overallPickNumber": 22
+      },
+      {
+        "playerId": "2976212",
+        "team": "7",
+        "price": 40,
+        "overallPickNumber": 23
+      },
+      {
+        "playerId": "4569618",
+        "team": "3",
+        "price": 29,
+        "overallPickNumber": 24
+      },
+      {
+        "playerId": "3042519",
+        "team": "7",
+        "price": 26,
+        "overallPickNumber": 25
+      },
+      {
+        "playerId": "4045163",
+        "team": "20",
+        "price": 21,
+        "overallPickNumber": 26
+      },
+      {
+        "playerId": "-16023",
+        "team": "20",
+        "price": 1,
+        "overallPickNumber": 27
+      },
+      {
+        "playerId": "-16006",
+        "team": "10",
+        "price": 1,
+        "overallPickNumber": 28
+      },
+      {
+        "playerId": "4360248",
+        "team": "20",
+        "price": 11,
+        "overallPickNumber": 29
+      },
+      {
+        "playerId": "3126486",
+        "team": "20",
+        "price": 17,
+        "overallPickNumber": 30
+      },
+      {
+        "playerId": "3068267",
+        "team": "15",
+        "price": 62,
+        "overallPickNumber": 31
+      },
+      {
+        "playerId": "3918298",
+        "team": "7",
+        "price": 26,
+        "overallPickNumber": 32
+      },
+      {
+        "playerId": "4047646",
+        "team": "14",
+        "price": 36,
+        "overallPickNumber": 33
+      },
+      {
+        "playerId": "4040715",
+        "team": "9",
+        "price": 29,
+        "overallPickNumber": 34
+      },
+      {
+        "playerId": "4360238",
+        "team": "9",
+        "price": 19,
+        "overallPickNumber": 35
+      },
+      {
+        "playerId": "4241457",
+        "team": "20",
+        "price": 27,
+        "overallPickNumber": 36
+      },
+      {
+        "playerId": "4374302",
+        "team": "2",
+        "price": 33,
+        "overallPickNumber": 37
+      },
+      {
+        "playerId": "3925357",
+        "team": "20",
+        "price": 19,
+        "overallPickNumber": 38
+      },
+      {
+        "playerId": "3916387",
+        "team": "2",
+        "price": 15,
+        "overallPickNumber": 39
+      },
+      {
+        "playerId": "3915511",
+        "team": "13",
+        "price": 20,
+        "overallPickNumber": 40
+      },
+      {
+        "playerId": "4239996",
+        "team": "15",
+        "price": 38,
+        "overallPickNumber": 41
+      },
+      {
+        "playerId": "4239993",
+        "team": "7",
+        "price": 23,
+        "overallPickNumber": 42
+      },
+      {
+        "playerId": "3116365",
+        "team": "20",
+        "price": 25,
+        "overallPickNumber": 43
+      },
+      {
+        "playerId": "4362887",
+        "team": "10",
+        "price": 8,
+        "overallPickNumber": 44
+      },
+      {
+        "playerId": "3040151",
+        "team": "14",
+        "price": 17,
+        "overallPickNumber": 45
+      },
+      {
+        "playerId": "4241389",
+        "team": "2",
+        "price": 29,
+        "overallPickNumber": 46
+      },
+      {
+        "playerId": "4427366",
+        "team": "9",
+        "price": 19,
+        "overallPickNumber": 47
+      },
+      {
+        "playerId": "4047365",
+        "team": "14",
+        "price": 34,
+        "overallPickNumber": 48
+      },
+      {
+        "playerId": "2976499",
+        "team": "9",
+        "price": 17,
+        "overallPickNumber": 49
+      },
+      {
+        "playerId": "4248528",
+        "team": "20",
+        "price": 15,
+        "overallPickNumber": 50
+      },
+      {
+        "playerId": "3116385",
+        "team": "14",
+        "price": 38,
+        "overallPickNumber": 51
+      },
+      {
+        "playerId": "4373626",
+        "team": "3",
+        "price": 3,
+        "overallPickNumber": 52
+      },
+      {
+        "playerId": "4361411",
+        "team": "3",
+        "price": 5,
+        "overallPickNumber": 53
+      },
+      {
+        "playerId": "4361370",
+        "team": "20",
+        "price": 23,
+        "overallPickNumber": 54
+      },
+      {
+        "playerId": "4241478",
+        "team": "9",
+        "price": 23,
+        "overallPickNumber": 55
+      },
+      {
+        "playerId": "4569173",
+        "team": "16",
+        "price": 26,
+        "overallPickNumber": 56
+      },
+      {
+        "playerId": "4697815",
+        "team": "2",
+        "price": 9,
+        "overallPickNumber": 57
+      },
+      {
+        "playerId": "2576925",
+        "team": "10",
+        "price": 16,
+        "overallPickNumber": 58
+      },
+      {
+        "playerId": "15818",
+        "team": "13",
+        "price": 12,
+        "overallPickNumber": 59
+      },
+      {
+        "playerId": "3121023",
+        "team": "9",
+        "price": 7,
+        "overallPickNumber": 60
+      },
+      {
+        "playerId": "4048244",
+        "team": "3",
+        "price": 18,
+        "overallPickNumber": 61
+      },
+      {
+        "playerId": "3122840",
+        "team": "2",
+        "price": 7,
+        "overallPickNumber": 62
+      },
+      {
+        "playerId": "15795",
+        "team": "10",
+        "price": 10,
+        "overallPickNumber": 63
+      },
+      {
+        "playerId": "3054850",
+        "team": "15",
+        "price": 15,
+        "overallPickNumber": 64
+      },
+      {
+        "playerId": "3045147",
+        "team": "10",
+        "price": 13,
+        "overallPickNumber": 65
+      },
+      {
+        "playerId": "4035538",
+        "team": "2",
+        "price": 12,
+        "overallPickNumber": 66
+      },
+      {
+        "playerId": "4241372",
+        "team": "13",
+        "price": 5,
+        "overallPickNumber": 67
+      },
+      {
+        "playerId": "4241463",
+        "team": "3",
+        "price": 9,
+        "overallPickNumber": 68
+      },
+      {
+        "playerId": "3932905",
+        "team": "2",
+        "price": 8,
+        "overallPickNumber": 69
+      },
+      {
+        "playerId": "3123076",
+        "team": "7",
+        "price": 5,
+        "overallPickNumber": 70
+      },
+      {
+        "playerId": "4360310",
+        "team": "3",
+        "price": 18,
+        "overallPickNumber": 71
+      },
+      {
+        "playerId": "4567048",
+        "team": "2",
+        "price": 20,
+        "overallPickNumber": 72
+      },
+      {
+        "playerId": "3116165",
+        "team": "15",
+        "price": 12,
+        "overallPickNumber": 73
+      },
+      {
+        "playerId": "3045138",
+        "team": "20",
+        "price": 9,
+        "overallPickNumber": 74
+      },
+      {
+        "playerId": "2976316",
+        "team": "14",
+        "price": 6,
+        "overallPickNumber": 75
+      },
+      {
+        "playerId": "4379399",
+        "team": "2",
+        "price": 19,
+        "overallPickNumber": 76
+      },
+      {
+        "playerId": "4426502",
+        "team": "15",
+        "price": 8,
+        "overallPickNumber": 77
+      },
+      {
+        "playerId": "4240021",
+        "team": "14",
+        "price": 16,
+        "overallPickNumber": 78
+      },
+      {
+        "playerId": "3895856",
+        "team": "15",
+        "price": 9,
+        "overallPickNumber": 79
+      },
+      {
+        "playerId": "3051876",
+        "team": "9",
+        "price": 4,
+        "overallPickNumber": 80
+      },
+      {
+        "playerId": "4426354",
+        "team": "15",
+        "price": 13,
+        "overallPickNumber": 81
+      },
+      {
+        "playerId": "3116593",
+        "team": "2",
+        "price": 13,
+        "overallPickNumber": 82
+      },
+      {
+        "playerId": "4361579",
+        "team": "16",
+        "price": 5,
+        "overallPickNumber": 83
+      },
+      {
+        "playerId": "3915416",
+        "team": "2",
+        "price": 12,
+        "overallPickNumber": 84
+      },
+      {
+        "playerId": "16733",
+        "team": "9",
+        "price": 4,
+        "overallPickNumber": 85
+      },
+      {
+        "playerId": "4241985",
+        "team": "20",
+        "price": 10,
+        "overallPickNumber": 86
+      },
+      {
+        "playerId": "4360438",
+        "team": "14",
+        "price": 9,
+        "overallPickNumber": 87
+      },
+      {
+        "playerId": "3121422",
+        "team": "15",
+        "price": 9,
+        "overallPickNumber": 88
+      },
+      {
+        "playerId": "4361529",
+        "team": "7",
+        "price": 10,
+        "overallPickNumber": 89
+      },
+      {
+        "playerId": "4258595",
+        "team": "13",
+        "price": 1,
+        "overallPickNumber": 90
+      },
+      {
+        "playerId": "14880",
+        "team": "15",
+        "price": 9,
+        "overallPickNumber": 91
+      },
+      {
+        "playerId": "4360294",
+        "team": "7",
+        "price": 5,
+        "overallPickNumber": 92
+      },
+      {
+        "playerId": "2577327",
+        "team": "3",
+        "price": 6,
+        "overallPickNumber": 93
+      },
+      {
+        "playerId": "-16021",
+        "team": "2",
+        "price": 1,
+        "overallPickNumber": 94
+      },
+      {
+        "playerId": "4429205",
+        "team": "15",
+        "price": 8,
+        "overallPickNumber": 95
+      },
+      {
+        "playerId": "-16033",
+        "team": "16",
+        "price": 1,
+        "overallPickNumber": 96
+      },
+      {
+        "playerId": "3120348",
+        "team": "16",
+        "price": 4,
+        "overallPickNumber": 97
+      },
+      {
+        "playerId": "4430191",
+        "team": "9",
+        "price": 3,
+        "overallPickNumber": 98
+      },
+      {
+        "playerId": "-16002",
+        "team": "14",
+        "price": 1,
+        "overallPickNumber": 99
+      },
+      {
+        "playerId": "4239934",
+        "team": "16",
+        "price": 4,
+        "overallPickNumber": 100
+      },
+      {
+        "playerId": "4259545",
+        "team": "15",
+        "price": 5,
+        "overallPickNumber": 101
+      },
+      {
+        "playerId": "-16017",
+        "team": "3",
+        "price": 1,
+        "overallPickNumber": 102
+      },
+      {
+        "playerId": "4372414",
+        "team": "7",
+        "price": 1,
+        "overallPickNumber": 103
+      },
+      {
+        "playerId": "4035687",
+        "team": "20",
+        "price": 4,
+        "overallPickNumber": 104
+      },
+      {
+        "playerId": "16731",
+        "team": "2",
+        "price": 2,
+        "overallPickNumber": 105
+      },
+      {
+        "playerId": "4385690",
+        "team": "3",
+        "price": 2,
+        "overallPickNumber": 106
+      },
+      {
+        "playerId": "4241479",
+        "team": "13",
+        "price": 4,
+        "overallPickNumber": 107
+      },
+      {
+        "playerId": "4036348",
+        "team": "10",
+        "price": 1,
+        "overallPickNumber": 108
+      },
+      {
+        "playerId": "8439",
+        "team": "16",
+        "price": 2,
+        "overallPickNumber": 109
+      },
+      {
+        "playerId": "3128429",
+        "team": "10",
+        "price": 2,
+        "overallPickNumber": 110
+      },
+      {
+        "playerId": "4692590",
+        "team": "15",
+        "price": 1,
+        "overallPickNumber": 111
+      },
+      {
+        "playerId": "4240455",
+        "team": "3",
+        "price": 1,
+        "overallPickNumber": 112
+      },
+      {
+        "playerId": "2577417",
+        "team": "7",
+        "price": 1,
+        "overallPickNumber": 113
+      },
+      {
+        "playerId": "4035886",
+        "team": "3",
+        "price": 4,
+        "overallPickNumber": 114
+      },
+      {
+        "playerId": "2576414",
+        "team": "9",
+        "price": 5,
+        "overallPickNumber": 115
+      },
+      {
+        "playerId": "4430027",
+        "team": "16",
+        "price": 1,
+        "overallPickNumber": 116
+      },
+      {
+        "playerId": "3139925",
+        "team": "3",
+        "price": 2,
+        "overallPickNumber": 117
+      },
+      {
+        "playerId": "16460",
+        "team": "3",
+        "price": 2,
+        "overallPickNumber": 118
+      },
+      {
+        "playerId": "3117256",
+        "team": "13",
+        "price": 2,
+        "overallPickNumber": 119
+      },
+      {
+        "playerId": "4361409",
+        "team": "10",
+        "price": 2,
+        "overallPickNumber": 120
+      },
+      {
+        "playerId": "2573401",
+        "team": "15",
+        "price": 3,
+        "overallPickNumber": 121
+      },
+      {
+        "playerId": "4429013",
+        "team": "3",
+        "price": 1,
+        "overallPickNumber": 122
+      },
+      {
+        "playerId": "4360635",
+        "team": "7",
+        "price": 1,
+        "overallPickNumber": 123
+      },
+      {
+        "playerId": "4243537",
+        "team": "2",
+        "price": 3,
+        "overallPickNumber": 124
+      },
+      {
+        "playerId": "4361741",
+        "team": "9",
+        "price": 1,
+        "overallPickNumber": 125
+      },
+      {
+        "playerId": "4426385",
+        "team": "16",
+        "price": 1,
+        "overallPickNumber": 126
+      },
+      {
+        "playerId": "4241474",
+        "team": "16",
+        "price": 2,
+        "overallPickNumber": 127
+      },
+      {
+        "playerId": "3051392",
+        "team": "10",
+        "price": 1,
+        "overallPickNumber": 128
+      },
+      {
+        "playerId": "14881",
+        "team": "14",
+        "price": 1,
+        "overallPickNumber": 129
+      },
+      {
+        "playerId": "4430878",
+        "team": "7",
+        "price": 2,
+        "overallPickNumber": 130
+      },
+      {
+        "playerId": "4569987",
+        "team": "15",
+        "price": 1,
+        "overallPickNumber": 131
+      },
+      {
+        "playerId": "2980453",
+        "team": "7",
+        "price": 1,
+        "overallPickNumber": 132
+      },
+      {
+        "playerId": "3116389",
+        "team": "2",
+        "price": 1,
+        "overallPickNumber": 133
+      },
+      {
+        "playerId": "16782",
+        "team": "9",
+        "price": 1,
+        "overallPickNumber": 134
+      },
+      {
+        "playerId": "4429160",
+        "team": "16",
+        "price": 1,
+        "overallPickNumber": 135
+      },
+      {
+        "playerId": "4567156",
+        "team": "20",
+        "price": 1,
+        "overallPickNumber": 136
+      },
+      {
+        "playerId": "4240600",
+        "team": "10",
+        "price": 1,
+        "overallPickNumber": 137
+      },
+      {
+        "playerId": "4241555",
+        "team": "14",
+        "price": 1,
+        "overallPickNumber": 138
+      },
+      {
+        "playerId": "3916433",
+        "team": "13",
+        "price": 1,
+        "overallPickNumber": 139
+      },
+      {
+        "playerId": "-16018",
+        "team": "15",
+        "price": 1,
+        "overallPickNumber": 140
+      },
+      {
+        "playerId": "3115394",
+        "team": "7",
+        "price": 1,
+        "overallPickNumber": 141
+      },
+      {
+        "playerId": "-16005",
+        "team": "9",
+        "price": 1,
+        "overallPickNumber": 142
+      },
+      {
+        "playerId": "4429084",
+        "team": "16",
+        "price": 1,
+        "overallPickNumber": 143
+      },
+      {
+        "playerId": "3045144",
+        "team": "15",
+        "price": 2,
+        "overallPickNumber": 144
+      },
+      {
+        "playerId": "4035676",
+        "team": "10",
+        "price": 1,
+        "overallPickNumber": 145
+      },
+      {
+        "playerId": "3925347",
+        "team": "14",
+        "price": 1,
+        "overallPickNumber": 146
+      },
+      {
+        "playerId": "3917792",
+        "team": "13",
+        "price": 1,
+        "overallPickNumber": 147
+      },
+      {
+        "playerId": "3121410",
+        "team": "7",
+        "price": 1,
+        "overallPickNumber": 148
+      },
+      {
+        "playerId": "4429615",
+        "team": "9",
+        "price": 1,
+        "overallPickNumber": 149
+      },
+      {
+        "playerId": "4429025",
+        "team": "16",
+        "price": 1,
+        "overallPickNumber": 150
+      },
+      {
+        "playerId": "4040761",
+        "team": "20",
+        "price": 1,
+        "overallPickNumber": 151
+      },
+      {
+        "playerId": "3917315",
+        "team": "10",
+        "price": 1,
+        "overallPickNumber": 152
+      },
+      {
+        "playerId": "4372485",
+        "team": "14",
+        "price": 1,
+        "overallPickNumber": 153
+      },
+      {
+        "playerId": "4040655",
+        "team": "13",
+        "price": 1,
+        "overallPickNumber": 154
+      },
+      {
+        "playerId": "4241416",
+        "team": "20",
+        "price": 1,
+        "overallPickNumber": 155
+      },
+      {
+        "playerId": "4258173",
+        "team": "14",
+        "price": 1,
+        "overallPickNumber": 156
+      },
+      {
+        "playerId": "15864",
+        "team": "13",
+        "price": 1,
+        "overallPickNumber": 157
+      },
+      {
+        "playerId": "3916566",
+        "team": "14",
+        "price": 1,
+        "overallPickNumber": 158
+      },
+      {
+        "playerId": "3929645",
+        "team": "13",
+        "price": 1,
+        "overallPickNumber": 159
+      },
+      {
+        "playerId": "-16015",
+        "team": "13",
+        "price": 1,
+        "overallPickNumber": 160
+      }
+    ]
+  }
+}

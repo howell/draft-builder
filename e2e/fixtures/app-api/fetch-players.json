@@ -1,0 +1,580 @@
+{
+  "status": "ok",
+  "data": [
+    {
+      "ids": {
+        "sleeper": "3294",
+        "espn": "espn_3294",
+        "yahoo": "yahoo_3294"
+      },
+      "fullName": "Dak Prescott",
+      "position": "QB",
+      "eligiblePositions": [
+        "QB",
+        "BN",
+        "QB"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "3321",
+        "espn": "espn_3321",
+        "yahoo": "yahoo_3321"
+      },
+      "fullName": "Tyreek Hill",
+      "position": "WR",
+      "eligiblePositions": [
+        "WR",
+        "BN",
+        "WR"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "4034",
+        "espn": "espn_4034",
+        "yahoo": "yahoo_4034"
+      },
+      "fullName": "Christian McCaffrey",
+      "position": "RB",
+      "eligiblePositions": [
+        "RB",
+        "BN",
+        "RB"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "4046",
+        "espn": "espn_4046",
+        "yahoo": "yahoo_4046"
+      },
+      "fullName": "Patrick Mahomes",
+      "position": "QB",
+      "eligiblePositions": [
+        "QB",
+        "BN",
+        "QB"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "4866",
+        "espn": "espn_4866",
+        "yahoo": "yahoo_4866"
+      },
+      "fullName": "Saquon Barkley",
+      "position": "RB",
+      "eligiblePositions": [
+        "RB",
+        "BN",
+        "RB"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "4881",
+        "espn": "espn_4881",
+        "yahoo": "yahoo_4881"
+      },
+      "fullName": "Lamar Jackson",
+      "position": "QB",
+      "eligiblePositions": [
+        "QB",
+        "BN",
+        "QB"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "4984",
+        "espn": "espn_4984",
+        "yahoo": "yahoo_4984"
+      },
+      "fullName": "Josh Allen",
+      "position": "QB",
+      "eligiblePositions": [
+        "QB",
+        "BN",
+        "QB"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "5872",
+        "espn": "espn_5872",
+        "yahoo": "yahoo_5872"
+      },
+      "fullName": "Deebo Samuel",
+      "position": "WR",
+      "eligiblePositions": [
+        "WR",
+        "BN",
+        "WR"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "6768",
+        "espn": "espn_6768",
+        "yahoo": "yahoo_6768"
+      },
+      "fullName": "Tua Tagovailoa",
+      "position": "QB",
+      "eligiblePositions": [
+        "QB",
+        "BN",
+        "QB"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "6770",
+        "espn": "espn_6770",
+        "yahoo": "yahoo_6770"
+      },
+      "fullName": "Joe Burrow",
+      "position": "QB",
+      "eligiblePositions": [
+        "QB",
+        "BN",
+        "QB"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "6786",
+        "espn": "espn_6786",
+        "yahoo": "yahoo_6786"
+      },
+      "fullName": "CeeDee Lamb",
+      "position": "WR",
+      "eligiblePositions": [
+        "WR",
+        "BN",
+        "WR"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "6794",
+        "espn": "espn_6794",
+        "yahoo": "yahoo_6794"
+      },
+      "fullName": "Justin Jefferson",
+      "position": "WR",
+      "eligiblePositions": [
+        "WR",
+        "BN",
+        "WR"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "6904",
+        "espn": "espn_6904",
+        "yahoo": "yahoo_6904"
+      },
+      "fullName": "Jalen Hurts",
+      "position": "QB",
+      "eligiblePositions": [
+        "QB",
+        "BN",
+        "QB"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "7526",
+        "espn": "espn_7526",
+        "yahoo": "yahoo_7526"
+      },
+      "fullName": "Jaylen Waddle",
+      "position": "WR",
+      "eligiblePositions": [
+        "WR",
+        "BN",
+        "WR"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "7564",
+        "espn": "espn_7564",
+        "yahoo": "yahoo_7564"
+      },
+      "fullName": "Ja'Marr Chase",
+      "position": "WR",
+      "eligiblePositions": [
+        "WR",
+        "BN",
+        "WR"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "8155",
+        "espn": "espn_8155",
+        "yahoo": "yahoo_8155"
+      },
+      "fullName": "Breece Hall",
+      "position": "RB",
+      "eligiblePositions": [
+        "RB",
+        "BN",
+        "RB"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "9221",
+        "espn": "espn_9221",
+        "yahoo": "yahoo_9221"
+      },
+      "fullName": "Jahmyr Gibbs",
+      "position": "RB",
+      "eligiblePositions": [
+        "RB",
+        "BN",
+        "RB"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "9229",
+        "espn": "espn_9229",
+        "yahoo": "yahoo_9229"
+      },
+      "fullName": "Anthony Richardson",
+      "position": "QB",
+      "eligiblePositions": [
+        "QB",
+        "BN",
+        "QB"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "9509",
+        "espn": "espn_9509",
+        "yahoo": "yahoo_9509"
+      },
+      "fullName": "Bijan Robinson",
+      "position": "RB",
+      "eligiblePositions": [
+        "RB",
+        "BN",
+        "RB"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "9758",
+        "espn": "espn_9758",
+        "yahoo": "yahoo_9758"
+      },
+      "fullName": "C.J. Stroud",
+      "position": "QB",
+      "eligiblePositions": [
+        "QB",
+        "BN",
+        "QB"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "CLE",
+        "espn": "espn_CLE",
+        "yahoo": "yahoo_CLE"
+      },
+      "fullName": "CLE Defense",
+      "position": "DEF",
+      "eligiblePositions": [
+        "DEF",
+        "BN",
+        "DEF"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "6797",
+        "espn": "espn_6797",
+        "yahoo": "yahoo_6797"
+      },
+      "fullName": "Player 6797",
+      "position": "WR",
+      "eligiblePositions": [
+        "RB",
+        "WR",
+        "FLEX",
+        "BN"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "6813",
+        "espn": "espn_6813",
+        "yahoo": "yahoo_6813"
+      },
+      "fullName": "Player 6813",
+      "position": "WR",
+      "eligiblePositions": [
+        "RB",
+        "WR",
+        "FLEX",
+        "BN"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "4663",
+        "espn": "espn_4663",
+        "yahoo": "yahoo_4663"
+      },
+      "fullName": "Player 4663",
+      "position": "RB",
+      "eligiblePositions": [
+        "RB",
+        "WR",
+        "FLEX",
+        "BN"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "4039",
+        "espn": "espn_4039",
+        "yahoo": "yahoo_4039"
+      },
+      "fullName": "Player 4039",
+      "position": "RB",
+      "eligiblePositions": [
+        "RB",
+        "WR",
+        "FLEX",
+        "BN"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "167",
+        "espn": "espn_167",
+        "yahoo": "yahoo_167"
+      },
+      "fullName": "Player 167",
+      "position": "RB",
+      "eligiblePositions": [
+        "RB",
+        "WR",
+        "FLEX",
+        "BN"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "5849",
+        "espn": "espn_5849",
+        "yahoo": "yahoo_5849"
+      },
+      "fullName": "Player 5849",
+      "position": "RB",
+      "eligiblePositions": [
+        "RB",
+        "WR",
+        "FLEX",
+        "BN"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "1234",
+        "espn": "espn_1234",
+        "yahoo": "yahoo_1234"
+      },
+      "fullName": "Player 1234",
+      "position": "RB",
+      "eligiblePositions": [
+        "RB",
+        "WR",
+        "FLEX",
+        "BN"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "4029",
+        "espn": "espn_4029",
+        "yahoo": "yahoo_4029"
+      },
+      "fullName": "Player 4029",
+      "position": "RB",
+      "eligiblePositions": [
+        "RB",
+        "WR",
+        "FLEX",
+        "BN"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "7610",
+        "espn": "espn_7610",
+        "yahoo": "yahoo_7610"
+      },
+      "fullName": "Player 7610",
+      "position": "RB",
+      "eligiblePositions": [
+        "RB",
+        "WR",
+        "FLEX",
+        "BN"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "5927",
+        "espn": "espn_5927",
+        "yahoo": "yahoo_5927"
+      },
+      "fullName": "Player 5927",
+      "position": "RB",
+      "eligiblePositions": [
+        "RB",
+        "WR",
+        "FLEX",
+        "BN"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "1466",
+        "espn": "espn_1466",
+        "yahoo": "yahoo_1466"
+      },
+      "fullName": "Player 1466",
+      "position": "RB",
+      "eligiblePositions": [
+        "RB",
+        "WR",
+        "FLEX",
+        "BN"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "4017",
+        "espn": "espn_4017",
+        "yahoo": "yahoo_4017"
+      },
+      "fullName": "Player 4017",
+      "position": "RB",
+      "eligiblePositions": [
+        "RB",
+        "WR",
+        "FLEX",
+        "BN"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "2505",
+        "espn": "espn_2505",
+        "yahoo": "yahoo_2505"
+      },
+      "fullName": "Player 2505",
+      "position": "RB",
+      "eligiblePositions": [
+        "RB",
+        "WR",
+        "FLEX",
+        "BN"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "7591",
+        "espn": "espn_7591",
+        "yahoo": "yahoo_7591"
+      },
+      "fullName": "Player 7591",
+      "position": "RB",
+      "eligiblePositions": [
+        "RB",
+        "WR",
+        "FLEX",
+        "BN"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "7523",
+        "espn": "espn_7523",
+        "yahoo": "yahoo_7523"
+      },
+      "fullName": "Player 7523",
+      "position": "RB",
+      "eligiblePositions": [
+        "RB",
+        "WR",
+        "FLEX",
+        "BN"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "test_qb_1",
+        "espn": "espn_test_qb_1",
+        "yahoo": "yahoo_test_qb_1"
+      },
+      "fullName": "Patrick Mahomes",
+      "position": "QB",
+      "eligiblePositions": [
+        "QB",
+        "BN",
+        "QB"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "test_rb_1",
+        "espn": "espn_test_rb_1",
+        "yahoo": "yahoo_test_rb_1"
+      },
+      "fullName": "Austin Ekeler",
+      "position": "RB",
+      "eligiblePositions": [
+        "RB",
+        "BN",
+        "RB"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "test_wr_1",
+        "espn": "espn_test_wr_1",
+        "yahoo": "yahoo_test_wr_1"
+      },
+      "fullName": "Justin Jefferson",
+      "position": "WR",
+      "eligiblePositions": [
+        "WR",
+        "BN",
+        "WR"
+      ]
+    },
+    {
+      "ids": {
+        "sleeper": "test_te_1",
+        "espn": "espn_test_te_1",
+        "yahoo": "yahoo_test_te_1"
+      },
+      "fullName": "Travis Kelce",
+      "position": "TE",
+      "eligiblePositions": [
+        "TE",
+        "BN",
+        "TE"
+      ]
+    }
+  ]
+}

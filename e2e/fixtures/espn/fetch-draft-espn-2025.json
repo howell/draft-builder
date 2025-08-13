@@ -1,0 +1,848 @@
+{
+  "status": "ok",
+  "data": {
+    "season": "2025",
+    "picks": [
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 1
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 2
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 3
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 4
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 5
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 6
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 7
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 8
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 9
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 10
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 11
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 12
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 13
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 14
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 15
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 16
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 17
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 18
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 19
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 20
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 21
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 22
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 23
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 24
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 25
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 26
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 27
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 28
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 29
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 30
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 31
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 32
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 33
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 34
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 35
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 36
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 37
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 38
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 39
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 40
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 41
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 42
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 43
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 44
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 45
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 46
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 47
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 48
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 49
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 50
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 51
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 52
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 53
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 54
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 55
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 56
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 57
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 58
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 59
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 60
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 61
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 62
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 63
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 64
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 65
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 66
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 67
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 68
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 69
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 70
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 71
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 72
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 73
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 74
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 75
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 76
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 77
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 78
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 79
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 80
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 81
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 82
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 83
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 84
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 85
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 86
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 87
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 88
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 89
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 90
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 91
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 92
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 93
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 94
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 95
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 96
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 97
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 98
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 99
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 100
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 101
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 102
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 103
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 104
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 105
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 106
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 107
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 108
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 109
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 110
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 111
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 112
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 113
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 114
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 115
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 116
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 117
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 118
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 119
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 120
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 121
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 122
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 123
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 124
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 125
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 126
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 127
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 128
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 129
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 130
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 131
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 132
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 133
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 134
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 135
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 136
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 137
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 138
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 139
+      },
+      {
+        "playerId": "-1",
+        "team": "-1",
+        "price": 0,
+        "overallPickNumber": 140
+      }
+    ]
+  }
+}
