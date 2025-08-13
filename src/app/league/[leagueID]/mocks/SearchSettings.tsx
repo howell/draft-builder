@@ -131,7 +131,7 @@ const SearchContainer: React.FC<{ children: ReactNode }> = ({ children }) => (
     </div>
 );
 
-const SearchNumber: React.FC<{ value: number, onChange: (value: number) => void }> = ({ value, onChange }) => (
+const SearchNumber: React.FC<{ value: number, onChange: (value: number) => void, testId?: string }> = ({ value, onChange, testId }) => (
     <input
         className='min-w-6 max-w-12 ml-2
                    dark:bg-slate-700 dark:text-white'
@@ -139,6 +139,7 @@ const SearchNumber: React.FC<{ value: number, onChange: (value: number) => void 
         min={0}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
+        data-testid={testId}
     />
 );
 
