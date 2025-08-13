@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { UseQueryResult } from '@tanstack/react-query';
 
 export type StatusChecker = () => boolean;
 export type TaskStatusChecker = Promise<any> | StatusChecker;
@@ -63,53 +64,98 @@ export class LoadingTask {
 	}
 }
 
+export class QueryLoadingTask extends LoadingTask {
+	private query: UseQueryResult<any>;
+	private static queryTaskId = 0;
+
+	constructor(query: UseQueryResult<any>, message: string) {
+		// Use a status checker function instead of promise/task
+		super(() => query.isSuccess || query.isError, message);
+		this.query = query;
+		// Override the id to distinguish from regular LoadingTask
+		(this as any).id = -(QueryLoadingTask.queryTaskId++); // Negative IDs for query tasks
+	}
+
+	public isFinished(): boolean {
+		return this.query.isSuccess || this.query.isError;
+	}
+
+	public hasError(): boolean {
+		return this.query.isError;
+	}
+
+	public getError(): Error | null {
+		return this.query.error as Error | null;
+	}
+
+	// Query tasks don't need setup since they're already managed by React Query
+	public setup(finishTask: (task: LoadingTask) => void): void {
+		// No-op for query tasks - React Query manages the lifecycle
+	}
+}
+
 const LoadingScreen: React.FC<LoadingScreenProps> = ({ tasks = new Set(), children }) => {
 	const [completedTasks, setCompletedTasks] = useState(new Set<LoadingTask>());
-	const [pendingTasks, setPendingTasks] = useState(new Set(tasks));
 	const [currentMessage, setCurrentMessage] = useState<string | undefined>(undefined);
 	const [loading, setLoading] = useState(true);
 
-
-	const finishTask = useCallback((task: LoadingTask) => {
-		if (completedTasks.has(task)) return;
-		const newCompletedTasks = new Set(completedTasks);
-		newCompletedTasks.add(task);
-		setCompletedTasks(newCompletedTasks);
-		const newPendingTasks = new Set(pendingTasks);
-		newPendingTasks.delete(task);
-		setPendingTasks(newPendingTasks);
-	}, [pendingTasks, setPendingTasks, completedTasks, setCompletedTasks]);
-
-	useEffect(() => {
-		setupTasks(tasks, completedTasks, finishTask);
-		const newPendingTasks = new Set(pendingTasks);
+	// Derive pending tasks from props and completed state
+	const pendingTasks = React.useMemo(() => {
+		const pending = new Set<LoadingTask>();
 		for (const task of tasks) {
 			if (!completedTasks.has(task)) {
-				newPendingTasks.add(task);
+				pending.add(task);
 			}
 		}
-		if (newPendingTasks.size !== pendingTasks.size) {
-			setPendingTasks(newPendingTasks);
-		}
-	}, [tasks, pendingTasks, completedTasks, finishTask]);
+		return pending;
+	}, [tasks, completedTasks]);
 
+	// Simplified finish task that only updates completed tasks
+	const finishTask = useCallback((task: LoadingTask) => {
+		setCompletedTasks(prev => {
+			if (prev.has(task)) return prev;
+			const newCompleted = new Set(prev);
+			newCompleted.add(task);
+			return newCompleted;
+		});
+	}, []);
+
+	// Setup tasks when they change
 	useEffect(() => {
-		let nextMessage: string | undefined;
-		for (const task of pendingTasks) {
-			if (task.isFinished()) {
-				finishTask(task);
-			} else {
-				nextMessage = task.message;
-				break;
+		setupTasks(tasks, completedTasks, finishTask);
+	}, [tasks, completedTasks, finishTask]);
+
+	// Poll for finished tasks
+	useEffect(() => {
+		const interval = setInterval(() => {
+			let allComplete = true;
+			let nextMessage: string | undefined;
+			
+			for (const task of pendingTasks) {
+				if (task.isFinished()) {
+					finishTask(task);
+				} else {
+					allComplete = false;
+					nextMessage = task.message;
+					break;
+				}
 			}
-		}
-		if (nextMessage !== currentMessage) {
+			
 			setCurrentMessage(nextMessage);
-		}
-	}, [currentMessage, pendingTasks, completedTasks, finishTask]);
+			
+			// CRITICAL FIX: Stop polling when all tasks complete
+			if (allComplete && pendingTasks.size === 0) {
+				console.log('[LoadingScreen] All tasks complete, stopping polling');
+				clearInterval(interval);
+			}
+		}, 100);
+		
+		return () => clearInterval(interval);
+	}, [pendingTasks, finishTask]);
 	
+	// Update loading state based on pending tasks
 	useEffect(() => {
-		setLoading(pendingTasks.size !== 0);
+		setLoading(pendingTasks.size > 0);
 	}, [pendingTasks]);
 	return (
 		<div>

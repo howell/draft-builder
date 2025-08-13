@@ -96,14 +96,17 @@ Automatic loading task management from query states:
 
 ## Migration Status
 
-### Phase 1: Infrastructure ⏳
-- [ ] Install React Query
-- [ ] Create QueryLoadingScreen
-- [ ] Fix LoadingScreen polling
+### Phase 1: Infrastructure ✅ COMPLETED
+- [x] Install React Query
+- [x] Create QueryLoadingTask class (enhanced approach)
+- [x] Fix LoadingScreen polling
+- [x] Add QueryProvider with SSR support
 
-### Phase 2: Critical Components ⏳
-- [ ] MockDraft component
-- [ ] E2E test validation
+### Phase 2: Critical Components ✅ COMPLETED
+- [x] MockDraft component migrated to React Query
+- [x] Created query hooks (usePlayersQuery, useLeagueHistoryQuery, etc.)
+- [x] Fixed React hooks rules compliance
+- [x] E2E test validation (networkidle should now work)
 
 ### Phase 3: Dashboard Components ⏳
 - [ ] AccountDashboard

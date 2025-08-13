@@ -1,13 +1,27 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import LoadingScreen, { LoadingTask, setupTasks } from '../LoadingScreen';
 
 describe('LoadingScreen', () => {
+	beforeEach(() => {
+		jest.useFakeTimers();
+	});
+
+	afterEach(() => {
+		jest.runOnlyPendingTimers();
+		jest.useRealTimers();
+	});
 	it('should display loading spinner and message when tasks are pending', () => {
 		const task = new LoadingTask(() => false, 'Loading data...');
 		render(<LoadingScreen tasks={new Set([task])} />);
 
 		expect(screen.getByText('Loading...')).toBeInTheDocument();
+		
+		// Advance timers to trigger the polling mechanism
+		act(() => {
+			jest.advanceTimersByTime(100);
+		});
+		
 		expect(screen.getByText('Loading data...')).toBeInTheDocument();
 	});
 
@@ -18,6 +32,11 @@ describe('LoadingScreen', () => {
 				<div>Content loaded</div>
 			</LoadingScreen>
 		);
+
+		// Advance timers to trigger task completion polling
+		act(() => {
+			jest.advanceTimersByTime(100);
+		});
 
 		expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
 		expect(screen.queryByText('Loading data...')).not.toBeInTheDocument();
@@ -53,6 +72,11 @@ describe('LoadingScreen', () => {
 		const task2 = new LoadingTask(() => false, 'Loading data 2...');
 		render(<LoadingScreen tasks={new Set([task1, task2])} />);
 
+		// Advance timers to trigger polling
+		act(() => {
+			jest.advanceTimersByTime(100);
+		});
+
 		expect(screen.getByText('Loading data 1...')).toBeInTheDocument();
 	});
 
@@ -60,6 +84,11 @@ describe('LoadingScreen', () => {
 		const task1 = new LoadingTask(() => true, 'Loading data 1...');
 		const task2 = new LoadingTask(() => false, 'Loading data 2...');
 		render(<LoadingScreen tasks={new Set([task1, task2])} />);
+
+		// Advance timers to trigger polling and task completion
+		act(() => {
+			jest.advanceTimersByTime(100);
+		});
 
 		expect(screen.getByText('Loading data 2...')).toBeInTheDocument();
 	});
