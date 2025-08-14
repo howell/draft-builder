@@ -1,17 +1,19 @@
 "use client";
 import PlayerTable, { ColumnName } from './PlayerTable';
 import { DraftedPlayer, LeagueTeam, mergeDraftAndPlayerInfo } from "@/platforms/PlatformApi";
-import React, { useState, useEffect, useCallback, use } from 'react';
+import React, { useState, useCallback, use, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import ApiClient from '@/app/api/ApiClient';
-import LoadingScreen, { LoadingTask, LoadingTasks, TaskStatusChecker } from '@/ui/LoadingScreen';
+import LoadingScreen, { LoadingTask, QueryLoadingTask } from '@/ui/LoadingScreen';
 import ErrorScreen from '@/ui/ErrorScreen';
 import { SearchSettingsState } from '@/app/storage/savedMockTypes';
 import SearchSettings from '../../mocks/SearchSettings';
 import CollapsibleComponent from '@/ui/Collapsible';
 import TabContainer, { TabChild, TabTitle } from '@/ui/TabContainer';
-import { loadLeagueAsync } from '@/app/storage/localStorage';
 import { isLeagueId, isSeasonId, LeagueId, SeasonId } from '@/platforms/common';
+import { useAuth } from '@/lib/auth/context';
+import { usePlayersQuery } from '@/hooks/queries/usePlayersQuery';
+import { useDraftDataQuery } from '@/hooks/queries/useDraftDataQuery';
+import { useLeagueTeamsQuery } from '@/hooks/queries/useLeagueTeamsQuery';
 // Dynamically import PlayerScatterChart with no SSR
 const PlayerScatterChart = dynamic(() => import('./PlayerScatterChart'), { ssr: false });
 
@@ -36,54 +38,132 @@ const Page = (props: Readonly<{ params: Promise<{ leagueID: string, draftYear: s
     const params = use(props.params);
     const leagueID = params.leagueID;
     const draftYear = params.draftYear;
-    const [error, setError] = useState<string | null>(null);
-    const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>(new Set());
-    const [tableData, setTableData] = useState<TableData[]>([]);
+    const { loading: authLoading } = useAuth();
+    
+    // Validate parameters
+    if (!isLeagueId(leagueID)) {
+        return <ErrorScreen message="Invalid league ID" />;
+    }
+    if (!isSeasonId(draftYear)) {
+        return <ErrorScreen message="Invalid draft year" />;
+    }
+
+    // Use React Query hooks for data fetching
+    const playersQuery = usePlayersQuery(leagueID);
+    const draftDataQuery = useDraftDataQuery(leagueID, draftYear);
+    const teamsQuery = useLeagueTeamsQuery(leagueID, draftYear);
+
+    // Track authLoading state with ref to avoid closure capture issue
+    const authLoadingRef = useRef(authLoading);
+    authLoadingRef.current = authLoading;
+
+    // Process data when all queries complete
+    const { tableData, allPositions, positionGraphs } = useMemo(() => {
+        if (!playersQuery.data || !draftDataQuery.data || !teamsQuery.data) {
+            return { 
+                tableData: [], 
+                allPositions: [], 
+                positionGraphs: [] 
+            };
+        }
+
+        // Find the league to get platform info
+        const league = playersQuery.data.length > 0 ? 
+            { platform: 'espn' } : { platform: 'sleeper' }; // Default fallback
+
+        const resultData = mergeDraftAndPlayerInfo(
+            draftDataQuery.data.picks, 
+            playersQuery.data, 
+            teamsQuery.data, 
+            league.platform as any
+        );
+        const tableData = resultData.map(makeTableRow);
+        const positions = Array.from(new Set(tableData.map(player => player.position)));
+        
+        const positionGraphs = positions.map(position => {
+            const data = tableData.filter(player => player.position === position);
+            return { 
+                title: chartTitleFor(position), 
+                content: <ChartContainer><PlayerScatterChart data={data} /></ChartContainer> 
+            };
+        });
+        const allGraphs = [
+            { 
+                title: chartTitleFor('All Players'), 
+                content: <ChartContainer><PlayerScatterChart data={tableData} /></ChartContainer> 
+            }, 
+            ...positionGraphs
+        ];
+
+        return { 
+            tableData, 
+            allPositions: positions, 
+            positionGraphs: allGraphs 
+        };
+    }, [playersQuery.data, draftDataQuery.data, teamsQuery.data]);
+
+    // State for UI
+    const [searchSettings, setSearchSettings] = useState<SearchSettingsState>(
+        defaultSearchSettingsFor(allPositions)
+    );
     const [showing, setShowing] = useState<TableData[]>([]);
-    const [allPositions, setAllPositions] = useState<string[]>([]);
-    const [initialSearchSettings, setInitialSearchSettings] = useState<SearchSettingsState>(defaultSearchSettingsFor([]));
-    const [defaultSearchSettings, setDefaultSearchSettings] = useState<SearchSettingsState>(initialSearchSettings);
-    const [searchSettings, setSearchSettings] = useState<SearchSettingsState>(defaultSearchSettings);
-    const [positionGraphs, setPositionGraphs] = useState<TabChild[]>([]);
 
-    useEffect(() => {
-        if (!isLeagueId(leagueID)) {
-            setError('Invalid league ID');
+    // Update search settings when positions change
+    React.useEffect(() => {
+        if (allPositions.length > 0) {
+            const newSettings = { ...searchSettings, positions: allPositions };
+            setSearchSettings(newSettings);
         }
-    }, [leagueID]);
-    useEffect(() => {
-        if (!isSeasonId(draftYear)) {
-            setError('Invalid draft year');
-        }
-    }, [draftYear]);
+    }, [allPositions]);
 
-    useEffect(() => {
-        fetchData(leagueID,
-            draftYear,
-            initialSearchSettings,
-            setLoadingTasks,
-            setTableData,
-            setError,
-            setAllPositions,
-            setSearchSettings,
-            setDefaultSearchSettings,
-            setPositionGraphs);
-    }, [leagueID, draftYear, initialSearchSettings]);
-
-    useEffect(() => {
-    }, [tableData, searchSettings]);
-
-    useEffect(() => {
+    // Filter displayed players based on search settings
+    React.useEffect(() => {
         const includePlayer = (p: TableData) => showPlayer(p, searchSettings);
         const nextShowing = tableData.filter(includePlayer)
             .slice(0, searchSettings.playerCount);
         setShowing(nextShowing);
     }, [searchSettings, tableData]);
 
-    const resetSearchSettings = useCallback(() => setSearchSettings(defaultSearchSettings), [defaultSearchSettings]);
+    const defaultSearchSettings = useMemo(() => 
+        defaultSearchSettingsFor(allPositions), 
+        [allPositions]
+    );
 
+    const resetSearchSettings = useCallback(() => 
+        setSearchSettings(defaultSearchSettings), 
+        [defaultSearchSettings]
+    );
+
+    // Create stable loading tasks
+    const authTask = useMemo(() => 
+        new LoadingTask(() => !authLoadingRef.current, 'Checking authentication...'), 
+        []
+    );
+
+    const playersTask = useMemo(() => 
+        new QueryLoadingTask(playersQuery, 'Fetching Players'), 
+        [playersQuery]
+    );
+
+    const draftTask = useMemo(() => 
+        new QueryLoadingTask(draftDataQuery, 'Fetching Draft'), 
+        [draftDataQuery]
+    );
+
+    const teamsTask = useMemo(() => 
+        new QueryLoadingTask(teamsQuery, 'Fetching Team History'), 
+        [teamsQuery]
+    );
+
+    // Combine all tasks into a stable Set
+    const loadingTasks = useMemo(() => {
+        return new Set([authTask, playersTask, draftTask, teamsTask]);
+    }, [authTask, playersTask, draftTask, teamsTask]);
+
+    // Handle query errors
+    const error = playersQuery.error || draftDataQuery.error || teamsQuery.error;
     if (error) {
-        return <ErrorScreen message={error} />;
+        return <ErrorScreen message={error.message || 'Failed to load draft data'} />;
     }
 
 
@@ -138,71 +218,6 @@ function teamName(team: string | number | LeagueTeam): string {
             team.name;
 }
 
-async function fetchData(leagueID: LeagueId,
-    draftYear: SeasonId,
-    defaultSearchSettings: SearchSettingsState,
-    setLoadingTasks: (tasks: LoadingTasks) => void,
-    setTableData: (data: TableData[]) => void,
-    setError: (error: string) => void,
-    setAllPositions: (positions: string[]) => void,
-    setSearchSettings: (settings: SearchSettingsState) => void,
-    setDefaultSearchSettings: (settings: SearchSettingsState) => void,
-    setPositionGraphs: (graphs: TabChild[]) => void) {
-    try {
-        const league = await loadLeagueAsync(leagueID);
-        if (!league) {
-            setError('Could not load league; please try logging in again');
-            return;
-        }
-        const client = new ApiClient(league);
-        const playerResponse = client.fetchPlayers(draftYear);
-        const draftResponse = client.fetchDraft(draftYear);
-        const teamsResponse = client.fetchLeagueTeams(draftYear, 0);
-
-        const tasks: LoadingTasks = new Set([
-            new LoadingTask(draftResponse, 'Fetching Draft'),
-            new LoadingTask(teamsResponse, 'Fetching Team History'),
-            new LoadingTask(playerResponse, 'Fetching Players')
-        ]);
-        setLoadingTasks(tasks);
-
-        const draftData = await draftResponse;
-        if (typeof draftData === 'string') {
-            setError(`Failed to load draft: ${draftData}`);
-            return;
-        }
-
-        const teamsData = await teamsResponse;
-        if (typeof teamsData === 'string') {
-            setError(`Failed to load teams: ${teamsData}`);
-            return;
-        }
-
-        const playerData = await playerResponse;
-        if (typeof playerData === 'string') {
-            setError(`Failed to load players: ${playerData}`);
-            return;
-        }
-
-        const resultData = mergeDraftAndPlayerInfo(draftData.data!.picks, playerData.data!, teamsData.data!, league.platform);
-        const tableData = resultData.map(makeTableRow);
-        const positions = Array.from(new Set(tableData.map(player => player.position)));
-        const settings = { ...defaultSearchSettings, positions };
-        setTableData(tableData);
-        setSearchSettings(settings);
-        setDefaultSearchSettings(settings);
-        setAllPositions(positions);
-        let positionGraphs = positions.map(position => {
-            const data = tableData.filter(player => player.position === position);
-            return { title: chartTitleFor(position), content: <ChartContainer><PlayerScatterChart data={data} /></ChartContainer> };
-        });
-        positionGraphs = [{ title: chartTitleFor('All Players'), content: <ChartContainer><PlayerScatterChart data={tableData} /></ChartContainer> }, ...positionGraphs];
-        setPositionGraphs(positionGraphs);
-    } catch (error: any) {
-        setError(error.message);
-    } finally {
-    }
-}
 
 function showPlayer(p: TableData, searchSettings: SearchSettingsState) {
     return (p.auctionPrice >= searchSettings.minPrice &&
