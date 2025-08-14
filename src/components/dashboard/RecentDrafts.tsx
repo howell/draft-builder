@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useStorageAdapter } from '../../lib/storage/hooks';
+import React, { useMemo } from 'react';
+import { useAuth } from '../../lib/auth/context';
 import { LeagueId } from '../../platforms/common';
-import LoadingScreen, { LoadingTask, LoadingTasks } from '../../ui/LoadingScreen';
+import LoadingScreen, { LoadingTask, QueryLoadingTask } from '../../ui/LoadingScreen';
+import { useMockDraftsQuery, useLeaguesQuery } from '../../hooks/queries';
 
 interface UserDataSummary {
   leagueCount: number;
@@ -18,83 +19,60 @@ interface UserDataSummary {
   };
 }
 
-interface RecentDraft {
-  draftName: string;
-  leagueName: string;
-  leagueId: LeagueId;
-  lastModified: Date;
-  selectionCount: number;
-  adjustmentCount: number;
-}
+// Use the shared interface from the query hook
+import type { MockDraft } from '../../hooks/queries/useMockDraftsQuery';
 
 interface RecentDraftsProps {
   summary?: UserDataSummary | null;
 }
 
 export function RecentDrafts({ summary }: RecentDraftsProps) {
-  const storageAdapter = useStorageAdapter();
-  const [recentDrafts, setRecentDrafts] = useState<RecentDraft[]>([]);
-  const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>(new Set());
-  const [error, setError] = useState<string | null>(null);
+  const { loading: authLoading } = useAuth();
+  
+  // Use granular React Query hooks
+  const leaguesQuery = useLeaguesQuery();
+  const leagueIds = useMemo(() => {
+    if (!leaguesQuery.data) return undefined;
+    return Object.keys(leaguesQuery.data.leagues) as LeagueId[];
+  }, [leaguesQuery.data]);
+  
+  const mockDraftsQuery = useMockDraftsQuery(leagueIds);
+  
+  // Filter to recent drafts (limit 5)
+  const recentDrafts = useMemo(() => {
+    if (!mockDraftsQuery.data) return [];
+    return mockDraftsQuery.data.slice(0, 5);
+  }, [mockDraftsQuery.data]);
 
-  const loadRecentDraftsAsync = useCallback(async () => {
-    const leagues = await storageAdapter.loadLeagues();
-    const drafts: RecentDraft[] = [];
+  // Create loading tasks following MockDraft pattern
+  const authLoadingRef = React.useRef(authLoading);
+  authLoadingRef.current = authLoading;
+  
+  const authTask = useMemo(() => 
+    new LoadingTask(() => !authLoadingRef.current, 'Authenticating...'), 
+    []
+  );
 
-    for (const [leagueId, league] of Object.entries(leagues.leagues)) {
-      try {
-        const mocks = await storageAdapter.loadSavedMocks(leagueId as LeagueId);
-        
-        for (const [draftName, draft] of Object.entries(mocks)) {
-          drafts.push({
-            draftName,
-            leagueName: leagueId,
-            leagueId: leagueId as LeagueId,
-            lastModified: new Date(draft.modified),
-            selectionCount: Object.keys(draft.rosterSelections).length,
-            adjustmentCount: Object.keys(draft.costAdjustments || {}).length,
-          });
-        }
-      } catch (draftError) {
-        console.warn(`Failed to load drafts for league ${leagueId}:`, draftError);
-      }
-    }
+  const mockDraftsTask = useMemo(() => 
+    new QueryLoadingTask(mockDraftsQuery, 'Loading recent drafts...'), 
+    [mockDraftsQuery]
+  );
 
-    // Sort by last modified, most recent first
-    drafts.sort((a, b) => b.lastModified.getTime() - a.lastModified.getTime());
-    
-    // Take only the 5 most recent
-    setRecentDrafts(drafts.slice(0, 5));
-    setLoadingTasks(new Set());
-  }, [storageAdapter, setRecentDrafts, setLoadingTasks]);
-
-  const loadRecentDrafts = useCallback(async () => {
-    try {
-      setError(null);
-      const loadingTask = new LoadingTask(
-        loadRecentDraftsAsync(),
-        'Loading recent drafts...'
-      );
-      setLoadingTasks(new Set([loadingTask]));
-    } catch (error) {
-      console.error('Failed to load recent drafts:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load recent drafts');
-      setLoadingTasks(new Set());
-    }
-  }, [loadRecentDraftsAsync, setError, setLoadingTasks]);
-
-  useEffect(() => {
-    loadRecentDrafts();
-  }, [loadRecentDrafts]);
+  const loadingTasks = useMemo(() => {
+    const tasks = new Set([authTask, mockDraftsTask]);
+    return tasks;
+  }, [authTask, mockDraftsTask]);
+  
+  const error = mockDraftsQuery.error;
 
   if (error) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Drafts</h2>
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <p className="text-red-800">Failed to load recent drafts: {error}</p>
+          <p className="text-red-800">Failed to load recent drafts: {error.message}</p>
           <button 
-            onClick={loadRecentDrafts}
+            onClick={() => mockDraftsQuery.refetch()}
             className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
           >
             Retry
@@ -154,10 +132,10 @@ export function RecentDrafts({ summary }: RecentDraftsProps) {
               </div>
             ))}
             
-            {recentDrafts.length === 5 && summary && summary.draftCount > 5 && (
+            {recentDrafts.length === 5 && mockDraftsQuery.data && mockDraftsQuery.data.length > 5 && (
               <div className="text-center pt-4">
                 <p className="text-sm text-gray-500">
-                  Showing 5 of {summary.draftCount} total drafts
+                  Showing 5 of {mockDraftsQuery.data.length} total drafts
                 </p>
               </div>
             )}

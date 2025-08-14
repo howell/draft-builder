@@ -1,15 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../lib/auth/context';
-import { useStorageAdapter } from '../../lib/storage/hooks';
 import { LeagueId } from '../../platforms/common';
-import LoadingScreen, { LoadingTask, LoadingTasks } from '../../ui/LoadingScreen';
+import LoadingScreen, { LoadingTask, QueryLoadingTask } from '../../ui/LoadingScreen';
 import ErrorScreen from '../../ui/ErrorScreen';
 import { QuickActions } from './QuickActions';
 import { RecentDrafts } from './RecentDrafts';
 import UserProfile from '../auth/UserProfile';
+import { useLeaguesQuery, useDraftsQuery } from '../../hooks/queries';
 
 interface UserDataSummary {
   leagueCount: number;
@@ -29,119 +29,88 @@ interface AccountDashboardProps {
 }
 
 export function AccountDashboard({ className = "" }: AccountDashboardProps) {
-  const { user, loading } = useAuth();
-  const storageAdapter = useStorageAdapter();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [summary, setSummary] = useState<UserDataSummary | null>(null);
-  const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>(new Set());
-  const [error, setError] = useState<string | null>(null);
+  
+  // Use granular React Query hooks
+  const leaguesQuery = useLeaguesQuery();
+  const leagueIds = useMemo(() => {
+    if (!leaguesQuery.data) return undefined;
+    return Object.keys(leaguesQuery.data.leagues) as LeagueId[];
+  }, [leaguesQuery.data]);
+  
+  const draftsQuery = useDraftsQuery(leagueIds);
+  
+  // Track authLoading state with ref to avoid closure capture issue
+  const authLoadingRef = React.useRef(authLoading);
+  authLoadingRef.current = authLoading;
 
-  const loadUserDataSummaryAsync = useCallback(async () => {
-    if (!user) throw new Error('User not authenticated');
+  // Component lifecycle logging
+  console.log('[AccountDashboard] Component render with React Query - user:', user?.id || 'none', 'authLoading:', authLoading);
 
-    // Load leagues data
-    const leagues = await storageAdapter.loadLeagues();
-    const leagueIds = Object.keys(leagues.leagues) as LeagueId[];
-    
-    let totalDrafts = 0;
-    let totalSelections = 0;
-    let totalAdjustments = 0;
-    let lastDraftDate: Date | undefined;
-    let lastDraftName: string | undefined;
-    let lastLeagueAccessed: string | undefined;
-    
-    // Process each league and its drafts
-    for (const leagueId of leagueIds) {
-      try {
-        const mocks = await storageAdapter.loadSavedMocks(leagueId);
-        const draftNames = Object.keys(mocks);
-        totalDrafts += draftNames.length;
-        
-        // Process each draft
-        for (const draftName of draftNames) {
-          const draft = mocks[draftName];
-          
-          // Count selections and adjustments
-          totalSelections += Object.keys(draft.rosterSelections).length;
-          totalAdjustments += Object.keys(draft.costAdjustments || {}).length;
-          
-          // Track most recent draft
-          const draftModified = new Date(draft.modified);
-          if (!lastDraftDate || draftModified > lastDraftDate) {
-            lastDraftDate = draftModified;
-            lastDraftName = draftName;
-            lastLeagueAccessed = leagueId;
-          }
-        }
-      } catch (draftError) {
-        console.warn(`Failed to load drafts for league ${leagueId}:`, draftError);
-        // Continue processing other leagues even if one fails
-      }
+  // Calculate summary from query data using useMemo
+  const summary = useMemo((): UserDataSummary | null => {
+    if (!user || !leaguesQuery.data || !draftsQuery.data) {
+      return null;
     }
     
-    setSummary({
-      leagueCount: leagueIds.length,
-      draftCount: totalDrafts,
-      totalSelections,
-      costAdjustments: totalAdjustments,
+    console.log('[AccountDashboard] Calculating summary from React Query data');
+    
+    const summary = {
+      leagueCount: leagueIds?.length || 0,
+      draftCount: draftsQuery.data.totalDrafts,
+      totalSelections: draftsQuery.data.totalSelections,
+      costAdjustments: draftsQuery.data.totalAdjustments,
       joinDate: user.created_at ? new Date(user.created_at) : new Date(),
-      recentActivity: lastDraftDate ? {
-        lastDraftDate,
-        lastDraftName,
-        lastLeagueAccessed,
+      recentActivity: draftsQuery.data.mostRecentDraft ? {
+        lastDraftDate: draftsQuery.data.mostRecentDraft.lastModified,
+        lastDraftName: draftsQuery.data.mostRecentDraft.draftName,
+        lastLeagueAccessed: draftsQuery.data.mostRecentDraft.leagueId,
       } : undefined,
-    });
+    };
+    
+    console.log('[AccountDashboard] ✅ Summary calculated:', summary);
+    return summary;
+  }, [user, leaguesQuery.data, draftsQuery.data, leagueIds]);
 
-    setLoadingTasks(new Set());
-  }, [user, storageAdapter, setSummary, setLoadingTasks]);
+  // Create stable loading tasks with individual useMemo to avoid re-creation
+  const authTask = useMemo(() => 
+    new LoadingTask(() => !authLoadingRef.current, 'Authenticating...'), 
+    []
+  );
 
-  const loadUserDataSummary = useCallback(async () => {
-    if (!user) return;
+  const leaguesTask = useMemo(() => 
+    new QueryLoadingTask(leaguesQuery, 'Loading leagues...'), 
+    [leaguesQuery]
+  );
 
-    try {
-      setError(null);
-      const loadingTask = new LoadingTask(
-        loadUserDataSummaryAsync(),
-        'Loading your dashboard data...'
-      );
-      setLoadingTasks(new Set([loadingTask]));
-      
-      // Monitor for task completion and errors
-      const checkTaskStatus = () => {
-        if (loadingTask.isFinished()) {
-          if (loadingTask.hasError()) {
-            const error = loadingTask.getError();
-            console.error('Failed to load user data summary:', error);
-            setError(error?.message || 'Failed to load dashboard data');
-          }
-          setLoadingTasks(new Set());
-        } else {
-          // Check again in a bit if not finished
-          setTimeout(checkTaskStatus, 100);
-        }
-      };
-      
-      // Start monitoring
-      setTimeout(checkTaskStatus, 100);
-    } catch (error) {
-      console.error('Failed to load user data summary:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
-      setLoadingTasks(new Set());
-    }
-  }, [user, loadUserDataSummaryAsync, setError, setLoadingTasks]);
+  const draftsTask = useMemo(() => 
+    new QueryLoadingTask(draftsQuery, 'Loading drafts...'), 
+    [draftsQuery]
+  );
 
-  useEffect(() => {
-    if (user) {
-      loadUserDataSummary();
-    }
-  }, [user, loadUserDataSummary]);
+  // Combine all tasks into a stable Set
+  const loadingTasks = useMemo(() => {
+    const tasks = new Set([
+      authTask,
+      leaguesTask,
+      draftsTask
+    ]);
+    console.log('[AccountDashboard] Created combined loading tasks:', tasks.size);
+    return tasks;
+  }, [authTask, leaguesTask, draftsTask]);
 
+  // Handle query errors
+  const error = leaguesQuery.error || draftsQuery.error;
+  
   // Redirect unauthenticated users to home page
-  useEffect(() => {
-    if (!loading && !user) {
+  React.useEffect(() => {
+    console.log('[AccountDashboard] Auth redirect useEffect - authLoading:', authLoading, 'user:', user?.id || 'none');
+    if (!authLoading && !user) {
+      console.log('[AccountDashboard] Redirecting unauthenticated user to home');
       router.push('/');
     }
-  }, [user, loading, router]);
+  }, [user, authLoading, router]);
 
   // Handle unauthenticated users
   if (!user) {
@@ -167,10 +136,13 @@ export function AccountDashboard({ className = "" }: AccountDashboardProps) {
   if (error) {
     return (
       <div className={className}>
-        <ErrorScreen message={error} />
+        <ErrorScreen message={error.message || 'Failed to load dashboard data'} />
         <div className="text-center mt-4">
           <button 
-            onClick={loadUserDataSummary}
+            onClick={() => {
+              leaguesQuery.refetch();
+              draftsQuery.refetch();
+            }}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
           >
             Retry Loading Dashboard
