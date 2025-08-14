@@ -1,11 +1,11 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import type { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../supabase';
-import { DataMigrationService } from '../storage/migration-service';
-import { hasLocalStorageData, getLocalStorageDataSummary } from '../storage/migration-utils';
-import type { MigrationResult, MigrationProgress, MigrationDataSummary } from '../../types/migration';
+import { StorageAdapter } from '../storage/interface';
+import { createStorageAdapter } from '../storage/factory';
+import { MemoryStorageAdapter } from '../storage/memory';
 
 // Authentication state interface
 interface AuthState {
@@ -13,26 +13,16 @@ interface AuthState {
   session: Session | null;
   loading: boolean;
   error: string | null;
-  // Migration-related state
-  isMigrating: boolean;
-  migrationProgress?: MigrationProgress;
 }
 
 // Authentication context interface
 interface AuthContextType extends AuthState {
+  storageAdapter: StorageAdapter;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
   clearError: () => void;
-  // Migration-related methods
-  signUpWithMigration: (email: string, password: string) => Promise<{
-    error: AuthError | null;
-    migrationResult?: MigrationResult;
-    migrationWarning?: string | null;
-  }>;
-  hasMigratableData: () => Promise<boolean>;
-  getDataSummary: () => Promise<MigrationDataSummary>;
 }
 
 // Create the authentication context
@@ -47,11 +37,6 @@ export const useAuth = () => {
   return context;
 };
 
-// Global flags to prevent concurrent migration detection calls
-let migrationDetectionInProgress = false;
-let migrationDetectionResult: boolean | null = null;
-let migrationDetectionPromise: Promise<boolean> | null = null;
-
 // Authentication provider component
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [authState, setAuthState] = useState<AuthState>({
@@ -59,19 +44,53 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     session: null,
     loading: true,
     error: null,
-    isMigrating: false,
-    migrationProgress: undefined,
   });
+
+  // Create storage adapter based on current auth state
+  const storageAdapter = useMemo(() => {
+    // Server-side rendering protection
+    if (typeof window === 'undefined') {
+      console.log('[AuthContext] Server-side rendering detected, using MemoryStorageAdapter');
+      return new MemoryStorageAdapter();
+    }
+    
+    // Authenticated user: use Supabase storage with Dexie fallback for offline scenarios
+    if (authState.user && !authState.loading) {
+      console.log('[AuthContext] ==================== AUTHENTICATED USER STORAGE ====================');
+      console.log(`[AuthContext] Authenticated user detected:`);
+      console.log(`[AuthContext]   User ID: ${authState.user.id}`);
+      console.log(`[AuthContext]   User email: ${authState.user.email}`);
+      console.log(`[AuthContext] Creating SupabaseStorageAdapter with Dexie fallback...`);
+      const adapter = createStorageAdapter({
+        type: 'supabase',
+        supabase: supabase,
+        userId: authState.user.id,
+        fallback: 'dexie' // Use Dexie instead of localStorage as fallback
+      });
+      console.log(`[AuthContext] Created adapter:`, adapter.constructor.name);
+      console.log('[AuthContext] ==================== STORAGE ADAPTER READY ====================');
+      return adapter;
+    }
+    
+    // Anonymous or loading state: consistently use Dexie for data persistence
+    // This ensures data saved during auth loading is accessible after loading completes
+    console.log('[AuthContext] Anonymous/loading state detected, creating DexieStorageAdapter');
+    return createStorageAdapter({ 
+      type: 'dexie', 
+      userId: 'anonymous' // Anonymous users use Dexie for better performance
+    });
+  }, [authState.user, authState.loading]); // Only recreate when user or loading state changes
 
   // Initialize auth state and listen for changes
   useEffect(() => {
     // Get initial session
     const initializeAuth = async () => {
       try {
+        console.log('[AuthContext] ==================== INITIALIZING AUTH ====================');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Error getting session:', error);
+          console.error('[AuthContext] Error getting session:', error);
           setAuthState(prev => ({
             ...prev,
             loading: false,
@@ -80,19 +99,47 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
-        setAuthState(prev => ({
-          ...prev,
-          user: session?.user ?? null,
-          session,
-          loading: false,
-        }));
+        console.log('[AuthContext] Initial session user ID:', session?.user?.id || 'null');
+        console.log('[AuthContext] Initial session email:', session?.user?.email || 'null');
+        console.log('[AuthContext] Initial session token preview:', session?.access_token?.substring(0, 20) + '...' || 'null');
+
+        // Apply same reference stability logic for initial auth state
+        setAuthState(prev => {
+          const newUser = session?.user ?? null;
+          const newLoading = false;
+          
+          const userChanged = prev.user?.id !== newUser?.id;
+          const sessionChanged = prev.session?.access_token !== session?.access_token;
+          const loadingChanged = prev.loading !== newLoading;
+          
+          if (!userChanged && !sessionChanged && !loadingChanged) {
+            console.log('[AuthContext] Initial auth: No state changes detected, preserving existing references');
+            return prev;
+          }
+          
+          console.log('[AuthContext] Initial auth: State changes detected:', {
+            userChanged,
+            sessionChanged,
+            loadingChanged
+          });
+          
+          return {
+            ...prev,
+            user: newUser,
+            session,
+            loading: newLoading,
+          };
+        });
 
         // Create user record if it doesn't exist
         if (session?.user) {
+          console.log('[AuthContext] Creating user record for initial session user:', session.user.id);
           await ensureUserRecord(session.user);
         }
+        
+        console.log('[AuthContext] ==================== AUTH INITIALIZATION COMPLETE ====================');
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error('[AuthContext] Error initializing auth:', error);
         setAuthState(prev => ({
           ...prev,
           loading: false,
@@ -106,20 +153,60 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.id);
+        console.log('[AuthContext] ==================== AUTH STATE CHANGE ====================');
+        console.log('[AuthContext] Event:', event);
+        console.log('[AuthContext] User ID:', session?.user?.id || 'null');
+        console.log('[AuthContext] Session ID:', session?.access_token?.substring(0, 20) + '...' || 'null');
+        console.log('[AuthContext] User email:', session?.user?.email || 'null');
         
-        setAuthState(prev => ({
-          ...prev,
-          user: session?.user ?? null,
-          session,
-          loading: false,
-          error: null,
-        }));
+        // Only update state if values actually changed to prevent unnecessary re-renders
+        setAuthState(prev => {
+          console.log('[AuthContext] Previous user ID:', prev.user?.id || 'null');
+          
+          // Log user ID changes specifically
+          if (prev.user?.id && session?.user?.id && prev.user.id !== session?.user?.id) {
+            console.log('[AuthContext] 🚨 CRITICAL: USER ID CHANGED!');
+            console.log('[AuthContext] Previous user ID:', prev.user.id);
+            console.log('[AuthContext] New user ID:', session.user.id);
+          }
+          const newUser = session?.user ?? null;
+          const newLoading = false;
+          const newError = null;
+          
+          // Check if any values actually changed
+          const userChanged = prev.user?.id !== newUser?.id;
+          const sessionChanged = prev.session?.access_token !== session?.access_token;
+          const loadingChanged = prev.loading !== newLoading;
+          const errorChanged = prev.error !== newError;
+          
+          if (!userChanged && !sessionChanged && !loadingChanged && !errorChanged) {
+            console.log('[AuthContext] No state changes detected, preserving existing references');
+            return prev; // Return same reference to prevent downstream re-renders
+          }
+          
+          console.log('[AuthContext] State changes detected:', {
+            userChanged,
+            sessionChanged, 
+            loadingChanged,
+            errorChanged
+          });
+          
+          return {
+            ...prev,
+            user: newUser,
+            session,
+            loading: newLoading,
+            error: newError,
+          };
+        });
 
         // Create user record for new users
         if (event === 'SIGNED_IN' && session?.user) {
+          console.log('[AuthContext] Creating user record for SIGNED_IN user:', session.user.id);
           await ensureUserRecord(session.user);
         }
+        
+        console.log('[AuthContext] ==================== AUTH STATE CHANGE COMPLETE ====================');
       }
     );
 
@@ -171,7 +258,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Sign up with email and password
   const signUp = async (email: string, password: string) => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }));
+    setAuthState(prev => ({ ...prev, loading: true, error: null, storageAdapter }));
     
     const { error } = await supabase.auth.signUp({
       email,
@@ -200,7 +287,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Sign out
   const signOut = async () => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }));
+    setAuthState(prev => ({ ...prev, loading: true, error: null, storageAdapter }));
     
     const { error } = await supabase.auth.signOut();
     
@@ -225,176 +312,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Clear error state
   const clearError = () => {
-    setAuthState(prev => ({ ...prev, error: null }));
-  };
-
-  // Sign up with automatic data migration (user-friendly: always create account)
-  const signUpWithMigration = async (email: string, password: string) => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }));
-    
-    try {
-      // 1. Create account first - this should always succeed if credentials are valid
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: window.location.origin,
-        },
-      });
-      
-      if (signUpError) {
-        throw signUpError;
-      }
-
-      // 2. Wait for user session to be established
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        throw new Error('No session established after signup');
-      }
-
-      // Account created successfully, user logged in
-
-      // 3. Attempt migration as separate step - failure here should not prevent account creation
-      let migrationResult: MigrationResult | undefined;
-      let migrationError: string | null = null;
-      
-      if (await hasMigratableData()) {
-        // Starting data migration for new user
-        
-        try {
-          setAuthState(prev => ({ 
-            ...prev, 
-            isMigrating: true,
-            migrationProgress: undefined
-          }));
-          
-          const migrationService = new DataMigrationService(
-            supabase, 
-            session.user.id,
-            (progress: MigrationProgress) => {
-              setAuthState(prev => ({
-                ...prev,
-                migrationProgress: progress
-              }));
-            }
-          );
-          
-          migrationResult = await migrationService.migrateAllUserData();
-          // Migration completed successfully
-        } catch (error) {
-          console.warn('[AuthContext] Migration failed, but account was created successfully:', error);
-          migrationError = error instanceof Error ? error.message : 'Migration failed';
-          // Continue - user still has their account
-        }
-      }
-      
-      // 4. Update state with result - account is always created successfully
-      setAuthState(prev => ({
-        ...prev,
-        loading: false,
-        isMigrating: false,
-        migrationProgress: undefined,
-        error: null // No error - account was created successfully
-      }));
-      
-      // Return success with optional migration result and warning
-      return { 
-        error: null, 
-        migrationResult,
-        migrationWarning: migrationError // New field to indicate migration issues
-      };
-    } catch (error) {
-      console.error('[AuthContext] Account signup failed:', error);
-      
-      // Reset state on signup failure
-      setAuthState(prev => ({
-        ...prev,
-        loading: false,
-        isMigrating: false,
-        migrationProgress: undefined,
-        error: error instanceof Error ? error.message : 'Signup failed'
-      }));
-      
-      return { error: error as AuthError };
-    }
-  };
-
-  // Check if user has migratable data (async) - prevents concurrent calls
-  const hasMigratableData = async (): Promise<boolean> => {
-    // Check if detection is already in progress
-    
-    // If a detection is already in progress, wait for it
-    if (migrationDetectionInProgress && migrationDetectionPromise) {
-      // Migration detection already in progress, wait
-      return migrationDetectionPromise;
-    }
-    
-    // If we have a cached result that's still fresh (less than 5 seconds old), return it
-    if (migrationDetectionResult !== null) {
-      // Returning cached migration detection result
-      return migrationDetectionResult;
-    }
-    
-    // Start new migration detection
-    migrationDetectionInProgress = true;
-    // Starting new migration detection
-    
-    migrationDetectionPromise = (async () => {
-      try {
-        const { hasMigratableData: checkMigratableData } = await import('../storage/migration-utils');
-        const result = await checkMigratableData();
-        
-        // Cache the result
-        migrationDetectionResult = result;
-        // Migration detection completed
-        
-        // Clear the cache after 5 seconds to allow re-checking if needed
-        setTimeout(() => {
-          // Clear cached migration detection result
-          migrationDetectionResult = null;
-        }, 5000);
-        
-        return result;
-      } catch (error) {
-        console.warn('[AuthContext] Error checking for migratable data:', error);
-        return false;
-      } finally {
-        // Always reset the flag
-        migrationDetectionInProgress = false;
-        migrationDetectionPromise = null;
-      }
-    })();
-    
-    return migrationDetectionPromise;
-  };
-
-  // Get summary of data to be migrated
-  const getDataSummary = async (): Promise<MigrationDataSummary> => {
-    try {
-      return await getLocalStorageDataSummary();
-    } catch (error) {
-      console.warn('[AuthContext] Error getting data summary:', error);
-      return {
-        leagueCount: 0,
-        draftCount: 0,
-        totalSelections: 0,
-        costAdjustments: 0,
-        estimatedSizeBytes: 0,
-        hasEspnAuthData: false
-      };
-    }
+    setAuthState(prev => ({ ...prev, error: null, storageAdapter }));
   };
 
   const value: AuthContextType = {
     ...authState,
+    storageAdapter, // Use the current storage adapter from useMemo, not from state
     signIn,
     signUp,
     signOut,
     resetPassword,
     clearError,
-    signUpWithMigration,
-    hasMigratableData,
-    getDataSummary,
   };
 
   return (
