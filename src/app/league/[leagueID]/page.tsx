@@ -1,64 +1,58 @@
 'use client';
-import ApiClient from '@/app/api/ApiClient';
-import { loadLeagueAsync } from '@/app/storage/localStorage';
-import { CURRENT_SEASON } from '@/constants';
 import { isLeagueId } from '@/platforms/common';
-import { LeagueInfo } from '@/platforms/PlatformApi';
 import ErrorScreen from '@/ui/ErrorScreen';
-import LoadingScreen, { LoadingTask, LoadingTasks } from '@/ui/LoadingScreen';
-import { useState, useEffect, use } from 'react';
+import LoadingScreen, { LoadingTask, QueryLoadingTask } from '@/ui/LoadingScreen';
+import { use, useMemo, useRef } from 'react';
+import { useAuth } from '@/lib/auth/context';
+import { useLeagueInfoQuery } from '@/hooks/queries/useLeagueInfoQuery';
 
 export default function LeaguePage(props: Readonly<{ params: Promise<{ leagueID: string }> }>) {
     const params = use(props.params);
     const leagueID = params.leagueID;
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
-    const [leagueInfo, setLeagueInfo] = useState<LeagueInfo | null>(null);
-    const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>(new Set());
-
-    useEffect(() => {
-        if (!isLeagueId(leagueID)) {
-            setError('Invalid league ID');
-        }
-    }, [leagueID]);
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const league = await loadLeagueAsync(leagueID);
-                if (!league) {
-                    setError('Could not load league; please try logging in again');
-                    return;
-                }
-                const client = new ApiClient(league);
-                const request = client.fetchLeague(CURRENT_SEASON);
-                setLoadingTasks(new Set([new LoadingTask(request, 'Fetching League')]));
-                const response = await request;
-                if (typeof response === 'string') {
-                    setError(`Failed to load league: ${response}`);
-                    return;
-                }
-                setLeagueInfo(response.data!);
-            } catch (error: any) {
-                setError(error.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
-    }, [leagueID]);
-
-    if (error) {
-        return <ErrorScreen message={`Error loading league: ${error}`} />;
+    const { loading: authLoading } = useAuth();
+    
+    // Validate league ID
+    if (!isLeagueId(leagueID)) {
+        return <ErrorScreen message="Invalid league ID" />;
     }
-    if (loading) {
-        return <LoadingScreen tasks={loadingTasks} />;
+
+    // Use React Query for data fetching
+    const leagueInfoQuery = useLeagueInfoQuery(leagueID);
+
+    // Track authLoading state with ref to avoid closure capture issue
+    const authLoadingRef = useRef(authLoading);
+    authLoadingRef.current = authLoading;
+
+    // Create stable loading tasks
+    const authTask = useMemo(() => 
+        new LoadingTask(() => !authLoadingRef.current, 'Checking authentication...'), 
+        []
+    );
+
+    const leagueTask = useMemo(() => 
+        new QueryLoadingTask(leagueInfoQuery, 'Fetching League Information'), 
+        [leagueInfoQuery]
+    );
+
+    // Combine all tasks into a stable Set
+    const loadingTasks = useMemo(() => {
+        return new Set([authTask, leagueTask]);
+    }, [authTask, leagueTask]);
+
+    // Handle query errors
+    if (leagueInfoQuery.error) {
+        const error = leagueInfoQuery.error as Error;
+        return <ErrorScreen message={`Error loading league: ${error.message}`} />;
     }
 
     return (
-        <div className="flex min-h-screen flex-col items-center p-12 m-auto">
-            <h1 className="text-2xl mb-4">Welcome to {leagueInfo!.name}!</h1>
-            <p>Use the links on the side to explore the previous auctions and plan for the next.</p>
-        </div>
+        <LoadingScreen tasks={loadingTasks}>
+            {leagueInfoQuery.data && (
+                <div className="flex min-h-screen flex-col items-center p-12 m-auto">
+                    <h1 className="text-2xl mb-4">Welcome to {leagueInfoQuery.data.name}!</h1>
+                    <p>Use the links on the side to explore the previous auctions and plan for the next.</p>
+                </div>
+            )}
+        </LoadingScreen>
     );
 }
