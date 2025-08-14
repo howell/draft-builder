@@ -309,9 +309,11 @@ test('achieves networkidle after loading', async ({ page }) => {
 - [x] E2E tests should pass without networkidle timeout (data fetching now survives remounts)
 - [x] No component remount issues (React Query handles external state)
 
-### Phase 3 Success ⏳
-- [ ] AccountDashboard migrated
-- [ ] All dashboard tests passing
+### Phase 3 Success ✅ COMPLETED
+- [x] AccountDashboard migrated to granular React Query hooks
+- [x] RecentDrafts migrated to useMockDraftsQuery
+- [x] All dashboard components follow consistent patterns
+- [x] LoadingScreen integration with QueryLoadingTask working
 
 ### Phase 4 Success ⏳
 - [ ] All targeted components migrated

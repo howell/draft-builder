@@ -108,9 +108,10 @@ Automatic loading task management from query states:
 - [x] Fixed React hooks rules compliance
 - [x] E2E test validation (networkidle should now work)
 
-### Phase 3: Dashboard Components ⏳
-- [ ] AccountDashboard
-- [ ] RecentDrafts
+### Phase 3: Dashboard Components ✅ COMPLETED
+- [x] AccountDashboard migrated to use useLeaguesQuery and useDraftsQuery
+- [x] RecentDrafts migrated to use useMockDraftsQuery
+- [x] Created granular query hooks following established patterns
 
 ### Phase 4: Remaining Components ⏳
 - [ ] League pages
