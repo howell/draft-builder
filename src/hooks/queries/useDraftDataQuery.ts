@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { LeagueId, SeasonId } from '@/platforms/common';
-import { ApiClient } from '@/app/api/ApiClient';
-import { DraftData } from '@/platforms/PlatformApi';
+import ApiClient from '@/app/api/ApiClient';
 import { useAuth } from '@/lib/auth/context';
 
 export function useDraftDataQuery(leagueId: LeagueId, draftYear: SeasonId) {
@@ -9,7 +8,7 @@ export function useDraftDataQuery(leagueId: LeagueId, draftYear: SeasonId) {
   
   return useQuery({
     queryKey: ['draftData', leagueId, draftYear],
-    queryFn: async (): Promise<DraftData> => {
+    queryFn: async () => {
       console.log('[useDraftDataQuery] Fetching draft data for:', leagueId, draftYear);
       
       const league = await storageAdapter.loadLeague(leagueId);

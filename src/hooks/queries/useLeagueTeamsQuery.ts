@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { LeagueId, SeasonId } from '@/platforms/common';
-import { ApiClient } from '@/app/api/ApiClient';
+import ApiClient from '@/app/api/ApiClient';
 import { LeagueTeam } from '@/platforms/PlatformApi';
 import { useAuth } from '@/lib/auth/context';
 

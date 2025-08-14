@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { LeagueId, CURRENT_SEASON } from '@/platforms/common';
-import { ApiClient } from '@/app/api/ApiClient';
+import { LeagueId } from '@/platforms/common';
+import ApiClient from '@/app/api/ApiClient';
 import { LeagueInfo } from '@/platforms/PlatformApi';
 import { useAuth } from '@/lib/auth/context';
+import { CURRENT_SEASON } from '@/constants';
 
 export function useLeagueInfoQuery(leagueId: LeagueId) {
   const { storageAdapter, loading: authLoading } = useAuth();
