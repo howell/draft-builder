@@ -3,8 +3,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import MockRosterEntry from './MockRosterEntry';
 import PlayerTable, { ColumnName } from '../drafts/[draftYear]/PlayerTable';
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer, CostEstimatedPlayer, RosterSlot, RosterSelections, SearchSettingsState, EstimationSettingsState, StoredDraftDataCurrent, Rankings, RankedPlayer, Ranking } from '@/app/storage/savedMockTypes';
-import { getDefaultStorageAdapter } from '@/lib/storage/factory';
-import { IN_PROGRESS_SELECTIONS_KEY } from '@/lib/storage/constants';
+import { useStorageAdapter } from '@/lib/storage/hooks';
+import { getInProgressSelectionsKey } from '@/lib/storage/constants';
 import { StorageError } from '@/lib/storage/interface';
 import SearchSettings, { SearchLabel } from './SearchSettings';
 import EstimationSettings from './EstimationSettings';
@@ -55,6 +55,7 @@ const defaultCostPredictor: CostPredictor = {
 };
 
 const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, auctionBudget, players, draftHistory, playerPositions, availableRankings }) => {
+    const storageAdapter = useStorageAdapter();
     const defaultSearchSettings: SearchSettingsState = { positions: playerPositions, playerCount: 200, minPrice: 1, maxPrice: auctionBudget, showOnlyAvailable: true };
     const defaultEstimationSettings: EstimationSettingsState = { years: Array.from(draftHistory.keys()), weight: 50 };
     const [playerDb, _setPlayerDb] = useState<MockPlayer[]>(players);
@@ -95,7 +96,8 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
             setDraftLoadError(null);
             
             try {
-                const loadedDraft = await loadStoredDraftData(leagueId, draftName);
+                const name = draftName === '' ? getInProgressSelectionsKey(leagueId) : (draftName || getInProgressSelectionsKey(leagueId));
+                const loadedDraft = await storageAdapter.loadDraftByName(leagueId, name);
                 if (loadedDraft && loadedDraft.rosterSelections && loadedDraft.costAdjustments && loadedDraft.estimationSettings && loadedDraft.searchSettings) {
                     setRosterSelections(loadedDraft.rosterSelections);
                     setCostAdjustments(new Map(Object.entries(loadedDraft.costAdjustments)));
@@ -115,17 +117,18 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
         };
         
         loadDraftData();
-    }, [leagueId, draftName]);
+    }, [leagueId, draftName, storageAdapter]);
 
     const performAutosave = useCallback(async (attempt: number = 0) => {
         const maxRetries = 3;
         const backoffMs = Math.min(1000 * Math.pow(2, attempt), 8000); // Exponential backoff, max 8s
         
         try {
-            const storageAdapter = getDefaultStorageAdapter();
+            const saveKey = draftName || getInProgressSelectionsKey(leagueId);
+            
             await storageAdapter.saveSelectedRoster(
                 leagueId, 
-                IN_PROGRESS_SELECTIONS_KEY, 
+                saveKey, 
                 rosterSelections, 
                 Object.fromEntries(costAdjustments.entries()), 
                 estimationSettings, 
@@ -164,19 +167,23 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                 setTimeout(() => setAutosaveStatus('idle'), 5000);
             }
         }
-    }, [leagueId, rosterSelections, costAdjustments, estimationSettings, searchSettings]);
+    }, [leagueId, draftName, rosterSelections, costAdjustments, estimationSettings, searchSettings, storageAdapter]);
 
     useEffect(() => {
         if (finishedLoading) {
-            // Optimistic update: Show saving status immediately
-            setAutosaveStatus('saving');
+            const hasSelections = Object.keys(rosterSelections).length > 0;
             
-            // Autosave in-progress selections with debouncing
-            const timeoutId = setTimeout(async () => {
-                await performAutosave();
-            }, 500); // 500ms debounce
-            
-            return () => clearTimeout(timeoutId);
+            if (hasSelections) {
+                // Optimistic update: Show saving status immediately
+                setAutosaveStatus('saving');
+                
+                // Autosave in-progress selections with debouncing
+                const timeoutId = setTimeout(async () => {
+                    await performAutosave();
+                }, 500); // 500ms debounce
+                
+                return () => clearTimeout(timeoutId);
+            }
         }
     }, [leagueId, rosterSelections, costAdjustments, estimationSettings, searchSettings, finishedLoading, performAutosave]);
 
@@ -306,34 +313,54 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
 
     const saveRosterSelections = async () => {
         if (!rosterName.trim()) {
-            alert('Please enter a roster name before saving.');
+            setSaveError('Please enter a roster name before saving.');
+            setSavingStatus('error');
+            setTimeout(() => {
+                setSaveError(null);
+                setSavingStatus('idle');
+            }, 3000);
             return;
         }
         
         setSavingStatus('saving');
         setSaveError(null);
         
+        // Add a small delay to ensure UI updates
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        const saveStartTime = Date.now();
         try {
-            const storageAdapter = getDefaultStorageAdapter();
+            
             await storageAdapter.saveSelectedRoster(
                 leagueId, 
                 rosterName, 
-                costAdjustedRosterSelections, 
+                rosterSelections, 
                 Object.fromEntries(costAdjustments.entries()), 
                 estimationSettings, 
                 searchSettings
             );
+            const saveEndTime = Date.now();
+            
             setSavingStatus('saved');
             
             // Show success feedback briefly
-            setTimeout(() => setSavingStatus('idle'), 2000);
+            setTimeout(() => {
+                setSavingStatus('idle');
+            }, 2000);
+            
         } catch (error) {
+            console.error('[MockTable] Save operation failed after attempting for:', Date.now() - saveStartTime, 'ms');
             const errorMessage = error instanceof StorageError 
                 ? error.message 
                 : 'Failed to save roster';
+            console.error('[MockTable] Error details:', {
+                error,
+                errorMessage,
+                rosterName,
+                leagueId
+            });
             setSaveError(errorMessage);
             setSavingStatus('error');
-            console.error('Error saving roster:', error);
         }
     };
 
@@ -351,7 +378,6 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
         setSaveError(null);
         
         try {
-            const storageAdapter = getDefaultStorageAdapter();
             await storageAdapter.deleteRoster(leagueId, rosterName);
             resetRoster();
             setRosterName('');
@@ -465,7 +491,9 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                             className="bg-inherit text-inherit text-lg mt-2 p-2 gap-8 w-auto rounded-lg"
                             type="text"
                             value={rosterName}
-                            onChange={(e) => setRosterName(e.target.value)}
+                            onChange={(e) => {
+                                setRosterName(e.target.value);
+                            }}
                             placeholder="Enter roster name"
                         />
                     </DarkLightText>
@@ -631,11 +659,6 @@ function serializeRosterSlot(slot: RosterSlot): string {
     return JSON.stringify(slot);
 };
 
-async function loadStoredDraftData(leagueID: LeagueId, draftName: string | undefined): Promise<StoredDraftDataCurrent | undefined> {
-    const name = draftName === '' ? IN_PROGRESS_SELECTIONS_KEY : (draftName || IN_PROGRESS_SELECTIONS_KEY);
-    const storageAdapter = getDefaultStorageAdapter();
-    return await storageAdapter.loadDraftByName(leagueID, name);
-}
 
 export function calculateAmountSpent(costEstimator: CostPredictor, rosterSpots: number, selectedPlayers: RankedPlayer[], adjustments: Map<string, number>): number {
     const unSelectedCost = rosterSpots - selectedPlayers.length;
@@ -665,14 +688,14 @@ type MockButtonProps = {
 };
 
 const MockButton: React.FC<MockButtonProps> = (props) => (
-    <button 
+        <button 
         onClick={props.disabled ? undefined : props.onClick}
-        disabled={props.disabled}
+            disabled={props.disabled}
             data-testid={props['data-testid']}
-        className={'py-2 px-2 text-lg rounded-lg border-2 ' + (props.styles ?? '')}>
-        {props.children}
-    </button>
-);
+            className={'py-2 px-2 text-lg rounded-lg border-2 ' + (props.styles ?? '')}>
+            {props.children}
+        </button>
+    );
 
 const ResetButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
     <MockButton onClick={onClick}
