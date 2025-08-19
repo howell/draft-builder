@@ -28,11 +28,11 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <QueryProvider>
-        <AuthProvider>
+          <AuthProvider>
             <MigrationGate>
-          {children}
+              {children}
             </MigrationGate>
-        </AuthProvider>
+          </AuthProvider>
         </QueryProvider>
         {!isTestMode && <Analytics />}
       </body>
