@@ -3,15 +3,15 @@ import { DraftedPlayer, mergeDraftAndPlayerInfo, Player, RosterSettings, Scoring
 import MockTable, { MockTableProps } from './MockTable';
 import { Ranking } from '@/app/storage/savedMockTypes';
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer, Rankings } from '@/app/storage/savedMockTypes';
-import React, { useState, useEffect, useCallback } from 'react';
-import ApiClient from '@/app/api/ApiClient';
-import LoadingScreen, { LoadingTask, LoadingTasks, TaskStatusChecker } from "@/ui/LoadingScreen";
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import LoadingScreen from "@/ui/LoadingScreen";
 import ErrorScreen from "@/ui/ErrorScreen";
 import { CURRENT_SEASON } from "@/constants";
 import { findBestRegression } from "../../analytics";
-import { loadLeagueAsync } from "@/app/storage/localStorage";
 import { LeagueId, Platform, PlatformLeague, SeasonId } from "@/platforms/common";
 import RankingsClient from "@/rankings/RankingsClient";
+import { useAuth } from '@/lib/auth/context';
+import { usePlayersQuery, useLeagueHistoryQuery, useDraftHistoryQuery, useRankingsQuery } from '@/hooks/queries';
 
 export type MockDraftProps = {
     leagueId: LeagueId;
@@ -20,118 +20,119 @@ export type MockDraftProps = {
 }
 
 const MockDraft: React.FC<MockDraftProps> = ({ leagueId, draftName, googleApiKey }) => {
-    const [error, setError] = useState<string | null>(null);
-    const [tableData, setTableData] = useState<MockTableProps | null>(null);
-    const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>(new Set());
-
-
+    const { storageAdapter, loading: authLoading } = useAuth();
+    const [league, setLeague] = useState<PlatformLeague>();
+    
+    
+    // Load league data after auth is ready
     useEffect(() => {
-        fetchData(leagueId, googleApiKey, setTableData, setError, setLoadingTasks);
-    }, [leagueId, googleApiKey]);
+        if (!authLoading && storageAdapter) {
+            storageAdapter.loadLeague(leagueId).then(setLeague);
+        }
+    }, [leagueId, storageAdapter, authLoading]);
+
+    // React Query hooks for data fetching (will wait for auth)
+    const playersQuery = usePlayersQuery(leagueId);
+    const historyQuery = useLeagueHistoryQuery(leagueId);
+    const draftQuery = useDraftHistoryQuery(leagueId, historyQuery.data);
+    
+    // Rankings depend on league data and players
+    const rankingsQuery = useRankingsQuery(
+        leagueId,
+        league,
+        googleApiKey,
+        (historyQuery.data && typeof historyQuery.data === 'object' && (historyQuery.data as any)[CURRENT_SEASON]?.scoringType) ||
+        (historyQuery.data && typeof historyQuery.data === 'object' && (Object.values(historyQuery.data as any).find((info: any) => typeof info !== 'number') as any)?.scoringType),
+        (Array.isArray(playersQuery.data) ? playersQuery.data : [])
+    );
+
+    // Create loading dependencies using the new simplified API
+    const loadingDependencies = useMemo(() => [
+        { loading: authLoading, message: 'Authenticating...' },
+        { query: playersQuery as any, message: 'Fetching Players' },
+        { query: historyQuery as any, message: 'Fetching League History' },
+        { query: draftQuery as any, message: 'Building Draft History' },
+        { query: rankingsQuery as any, message: 'Loading Rankings' }
+    ], [authLoading, playersQuery, historyQuery, draftQuery, rankingsQuery]);
+
+    // Prepare table data when all queries complete (must be before early returns)
+    const tableData = useMemo(() => {
+        if (!playersQuery.data || 
+            !Array.isArray(playersQuery.data) ||
+            !historyQuery.data || 
+            typeof historyQuery.data !== 'object' ||
+            !draftQuery.data || 
+            !(draftQuery.data instanceof Map) ||
+            !rankingsQuery.data || 
+            !Array.isArray(rankingsQuery.data) ||
+            !league) {
+            return null;
+        }
+
+        console.log('[MockDraft] Building table data from query results');
+
+        // Get league info from current season or fall back to most recent available season
+        const currentSeasonInfo = (historyQuery.data as any)[CURRENT_SEASON];
+        const fallbackSeasonInfo = Object.values(historyQuery.data as any).find((info: any) => typeof info !== 'number');
+        const latestInfo = currentSeasonInfo || fallbackSeasonInfo;
+
+        if (!latestInfo || typeof latestInfo === 'number') {
+            return null;
+        }
+
+        // Build draft analyses
+        const draftAnalyses = new Map(Array.from(draftQuery.data.entries()).map(([draftInfo, players]) =>
+            [draftInfo.season,
+             analyzeDraft(mergeDraftAndPlayerInfo(draftInfo.picks, players, undefined, league.platform))] as
+            [SeasonId, DraftAnalysis]));
+
+        const scoringType = latestInfo.scoringType;
+        const lineupSettings = { ...latestInfo.rosterSettings };
+        delete lineupSettings['IR'];
+        
+        const playerDb = buildPlayerDb(league.platform, playersQuery.data, rankingsQuery.data.map(r => r.value), lineupSettings, scoringType);
+        const positions = Array.from(new Set(playerDb.map(player => player.defaultPosition)));
+        const auctionBudget = latestInfo.draft.auctionBudget;
+
+        return {
+            leagueId: leagueId,
+            auctionBudget,
+            positions: lineupSettings,
+            players: playerDb,
+            playerPositions: positions,
+            draftHistory: draftAnalyses,
+            availableRankings: rankingsQuery.data
+        };
+    }, [playersQuery.data, historyQuery.data, draftQuery.data, rankingsQuery.data, league, leagueId]);
+
+    // Handle errors (after all hooks)
+    const error = playersQuery.error || historyQuery.error || 
+                  draftQuery.error || rankingsQuery.error;
 
     if (error) {
-        return <ErrorScreen message={error} />;
+        return <ErrorScreen message={error.message} />;
     }
-    
+
+    // Use LoadingScreen with QueryLoadingTasks - automatic task management!
     return (
-        <LoadingScreen tasks={loadingTasks}>
-            {tableData &&
-                <MockTable leagueId={leagueId}
+        <LoadingScreen waitFor={loadingDependencies}>
+            {tableData && (
+                <MockTable 
+                    leagueId={leagueId}
                     draftName={draftName}
                     auctionBudget={tableData.auctionBudget}
                     positions={tableData.positions}
                     players={tableData.players}
                     playerPositions={tableData.playerPositions}
                     draftHistory={tableData.draftHistory}
-                    availableRankings={tableData.availableRankings} />
-            }
+                    availableRankings={tableData.availableRankings} 
+                />
+            )}
         </LoadingScreen>
     );
 };
 
 export default MockDraft;
-
-async function fetchData(leagueID: LeagueId,
-    googleApiKey: string,
-    setTableData: (data: MockTableProps) => void,
-    setError: (error: string) => void,
-    setLoadingTasks: (tasks: LoadingTasks) => void)
-{
-    let finished = false;
-    try {
-        const league = await loadLeagueAsync(leagueID);
-        if (!league) {
-            setError('Could not load league; please try logging in again');
-            return;
-        }
-        const client = new ApiClient(league);
-        const playerResponse = client.fetchPlayers(CURRENT_SEASON);
-        const leagueHistoryResponse = client.fetchLeagueHistory(CURRENT_SEASON);
-
-        let tasks: LoadingTasks = new Set();
-        tasks.add(new LoadingTask(playerResponse, 'Fetching Players'));
-        tasks.add(new LoadingTask(leagueHistoryResponse, 'Fetching League History'));
-        tasks.add(new LoadingTask(() => finished, 'Analyzing Draft'));
-        setLoadingTasks(tasks);
-
-        const leagueHistory = await leagueHistoryResponse;
-        if (typeof leagueHistory === 'string') {
-            setError(`Failed to load league history: ${leagueHistory}`);
-            return;
-        }
-        if (Object.keys(leagueHistory.data!).length === 0) {
-            setError('No league history found');
-            return;
-        }
-        const draftHistoryTask = client.buildDraftHistory(leagueHistory.data!);
-        tasks = new Set(tasks);
-        tasks.add(new LoadingTask(draftHistoryTask, 'Fetching Draft History'));
-        setLoadingTasks(tasks);
-        const draftHistory = await draftHistoryTask;
-        if (typeof draftHistory === 'string') {
-            setError(`Failed to load draft history: ${draftHistory}`);
-            return;
-        }
-        const draftAnalyses = new Map(Array.from(draftHistory.entries()).map(([draftInfo, players]) =>
-            [draftInfo.season,
-                 analyzeDraft(mergeDraftAndPlayerInfo(draftInfo.picks, players, undefined, league.platform))] as
-            [SeasonId, DraftAnalysis]));
-
-        const latestInfo = leagueHistory.data![CURRENT_SEASON]!;
-        const playerData = await playerResponse;
-        if (typeof playerData === 'string') {
-            setError(`Failed to load players: ${playerData}`);
-            return;
-        }
-
-        const rankingsTask = loadRankingsFor(league, googleApiKey, latestInfo.scoringType, playerData.data!);
-        tasks = new Set(tasks);
-        tasks.add(new LoadingTask(rankingsTask, 'Fetching Rankings'));
-        setLoadingTasks(tasks);
-
-        const rankings = await rankingsTask;
-        const scoringType = latestInfo.scoringType;
-        const lineupSettings = latestInfo.rosterSettings;
-        delete lineupSettings['IR'];
-        const playerDb = buildPlayerDb(league.platform, playerData.data!, rankings.map(r => r.value), lineupSettings, scoringType);
-        const positions = Array.from(new Set(playerDb.map(player => player.defaultPosition)));
-        const auctionBudget = latestInfo.draft.auctionBudget;
-        setTableData({
-            leagueId: leagueID,
-            auctionBudget,
-            positions: lineupSettings,
-            players: playerDb,
-            playerPositions: positions,
-            draftHistory: draftAnalyses,
-            availableRankings: rankings
-        });
-    } catch (error) {
-        setError(`Failed to load data: ${error}`);
-    }
-    finally {
-        finished = true;
-    }
-}
 
 function buildPlayerDb(platform: Platform, players: Player[], rankings: Rankings[], lineupSettings: RosterSettings, scoringType: ScoringType): MockPlayer[] {
     return players.filter(player =>
