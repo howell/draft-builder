@@ -14,7 +14,8 @@ export async function makeApiRequest<T, U>(endpoint: string, method: string, bod
             headers: {
                 'Content-Type': 'application/json',
                 ...headers
-            }
+            },
+            timeout: 10_000
         });
         return response.data;
     } catch (error) {
