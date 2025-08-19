@@ -40,11 +40,9 @@ export function useUserDraftsQuery(leagueIds?: LeagueId[]) {
           const endTime = Date.now();
           console.log(`[useUserDraftsQuery] ✅ Mocks loaded for league ${leagueId} in ${endTime - startTime}ms`);
           
-          // Filter out IN_PROGRESS_SELECTIONS - they're not saved drafts
-          const draftNames = Object.keys(mocks).filter(name => !isInProgressSelectionsKey(name));
+          const draftNames = Object.keys(mocks);
           console.log(`[useUserDraftsQuery] League ${leagueId} drafts:`, draftNames);
           
-          // Process each draft
           for (const draftName of draftNames) {
             const draft = mocks[draftName];
             
@@ -68,8 +66,7 @@ export function useUserDraftsQuery(leagueIds?: LeagueId[]) {
       console.log('[useUserDraftsQuery] ✅ Draft processing complete:', allDrafts.length, 'drafts');
       return allDrafts;
     },
-    // Wait for auth and league data before fetching
-    enabled: !authLoading && !!user && !!leagueIds && leagueIds.length > 0,
+    enabled: !authLoading && !!user && !!leagueIds,
     // Cache for 2 minutes since draft data changes more frequently than leagues
     staleTime: 2 * 60 * 1000,
   });
