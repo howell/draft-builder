@@ -37,9 +37,7 @@ export function MigrationGate({ children }: MigrationGateProps) {
       // Only check for migratable data if user is authenticated
       // Anonymous users should never be redirected for migration
       if (!user) {
-        if (process.env.NODE_ENV === 'test' && process.env.E2E_FIXTURE_MODE === 'true') {
-          console.log('[MigrationGate] Anonymous user - skipping migration check');
-        }
+        console.log('[MigrationGate] Anonymous user - skipping migration check');
         setMigrationCheckComplete(true);
         return;
       }
@@ -47,10 +45,16 @@ export function MigrationGate({ children }: MigrationGateProps) {
       try {
         const hasData = await hasMigratableData();
         if (hasData) {
-          console.log('[MigrationGate] Migratable data found, redirecting to /migrate');
-          router.push('/migrate');
-          // Don't set check complete - keep loading while redirecting
-          return;
+          if (pathname !== '/migrate') {
+            console.log('[MigrationGate] Migratable data found, redirecting to /migrate');
+            router.push('/migrate');
+            // Don't set check complete - keep loading while redirecting
+            return;
+          } else {
+            console.log('[MigrationGate] Already on /migrate page, not redirecting');
+            setMigrationCheckComplete(true);
+            return;
+          }
         }
         setMigrationCheckComplete(true);
       } catch (error) {
@@ -61,11 +65,14 @@ export function MigrationGate({ children }: MigrationGateProps) {
     };
 
     checkForMigration();
-  }, [authLoading, router, user]);
+  }, [authLoading, router, user, pathname]);
 
-  // For anonymous users or excluded pages, bypass migration check entirely
   const skipMigrationPages = ['/migrate', '/auth', '/'];
-  if (!user || skipMigrationPages.includes(pathname)) {
+  if (skipMigrationPages.includes(pathname)) {
+    return <>{children}</>;
+  }
+
+  if (!authLoading && !user) {
     return <>{children}</>;
   }
 
