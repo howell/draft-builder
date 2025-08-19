@@ -19,7 +19,18 @@ export function useDraftsQuery(leagueIds?: LeagueId[]) {
   
   // Transform raw draft data into summary format
   const data = useMemo((): UserDraftsData | undefined => {
-    if (!baseQuery.data) return undefined;
+    if (!baseQuery.data) {
+      if (baseQuery.isSuccess) {
+        return {
+          drafts: [],
+          totalDrafts: 0,
+          totalSelections: 0,
+          totalAdjustments: 0,
+          mostRecentDraft: undefined,
+        };
+      }
+      return undefined;
+    }
     
     const drafts = baseQuery.data;
     const totalSelections = drafts.reduce((sum, draft) => sum + draft.selectionCount, 0);
@@ -37,7 +48,7 @@ export function useDraftsQuery(leagueIds?: LeagueId[]) {
       totalAdjustments,
       mostRecentDraft,
     };
-  }, [baseQuery.data]);
+  }, [baseQuery.data, baseQuery.isSuccess]);
   
   return {
     ...baseQuery,
