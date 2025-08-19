@@ -3,9 +3,9 @@ import { useRouter } from 'next/navigation'
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { useCallback, useEffect, useState } from "react";
 import ApiClient from './api/ApiClient';
-import LoadingScreen, { LoadingTask, LoadingTasks } from '@/ui/LoadingScreen';
+import LoadingScreen from '@/ui/LoadingScreen';
 import { LeagueId, Platform, PlatformLeague, platformLogo } from '@/platforms/common';
-import { loadLeaguesAsync, saveLeagueAsync } from './storage/localStorage';
+import type { StorageAdapter } from '@/lib/storage/interface';
 import Sidebar from '../ui/Sidebar';
 import { LeagueSubmitCallback } from './leagueInputs';
 import { activateLeague } from './navigation';
@@ -17,17 +17,18 @@ import SleeperLogin from './SleeperLogin';
 import { useAuth } from '@/lib/auth/context';
 import { AccountBenefits } from '@/components/auth/AccountBenefits';
 import { DataPreview } from '@/components/auth/DataPreview';
-import { hasLocalStorageData, getLocalStorageDataSummary } from '@/lib/storage/migration-utils';
-import type { MigrationDataSummary } from '@/types/migration';
+import { hasMigratableData, getLocalStorageDataSummary } from '@/lib/storage/migration-utils';
+import type { DataSummary } from '@/lib/storage/migration-utils';
 
 export default function Home() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, storageAdapter } = useAuth();
   const [submissionInProgress, setSubmissionInProgress] = useState(false);
-  const [loadingTasks, setLoadingTasks] = useState<LoadingTasks>(new Set());
+  const [isProcessingLeague, setIsProcessingLeague] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState('');
   const [availableLeagues, setAvailableLeagues] = useState<PlatformLeague[]>([]);
   const [isLoadingLeagues, setIsLoadingLeagues] = useState(true);
-  const [dataSummary, setDataSummary] = useState<MigrationDataSummary | null>(null);
+  const [dataSummary, setDataSummary] = useState<DataSummary | null>(null);
   const [showAccountPromotion, setShowAccountPromotion] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +36,7 @@ export default function Home() {
     const loadData = async () => {
       try {
         setIsLoadingLeagues(true);
-        const availableLeagues = await loadLeaguesAsync();
+        const availableLeagues = await storageAdapter.loadLeagues();
         setAvailableLeagues(Object.values(availableLeagues.leagues));
       } catch (error) {
         console.error('Failed to load leagues:', error);
@@ -45,23 +46,25 @@ export default function Home() {
       }
     };
     loadData();
-  }, []);
+  }, [storageAdapter]);
 
   // Check for migratable data and show account promotion for anonymous users
   useEffect(() => {
     const checkForMigratableData = async () => {
-      if (!user && hasLocalStorageData()) {
+      if (!user) {
         try {
-          const summary = await getLocalStorageDataSummary();
-          setDataSummary(summary);
+          const hasData = await hasMigratableData();
+          if (hasData) {
+            const summary = await getLocalStorageDataSummary();
+            setDataSummary(summary);
+          }
           setShowAccountPromotion(true);
         } catch (error) {
-          console.warn('Failed to get data summary:', error);
+          console.warn('Failed to check for migratable data:', error);
+          setShowAccountPromotion(true); // Show for all anonymous users
         }
-      } else if (user) {
-        setShowAccountPromotion(false);
       } else {
-        setShowAccountPromotion(true); // Show for all anonymous users
+        setShowAccountPromotion(false);
       }
     };
     
@@ -73,17 +76,17 @@ export default function Home() {
     try {
       setSubmissionInProgress(true);
       setError(null); // Clear any previous errors
-      await submitLeague(league, router, setLoadingTasks, saveLeagueAsync, setError);
+      await submitLeague(league, router, setIsProcessingLeague, setProcessingMessage, storageAdapter, setError);
     } finally {
       setSubmissionInProgress(false);
     }
-  }, [submissionInProgress, router]);
+  }, [submissionInProgress, router, storageAdapter]);
 
   // if (submissionInProgress) {
   //   return <LoadingScreen tasks={loadingTasks} />;
   // }
   return (
-  <LoadingScreen tasks={loadingTasks}>
+  <LoadingScreen waitFor={[{ loading: isProcessingLeague, message: processingMessage }]}>
       <main className="flex min-h-screen flex-col items-center pt-24 px-4 sm:px-8 lg:px-12 md:ml-44 ">
         {!isLoadingLeagues && availableLeagues.length > 0 && <Sidebar availableLeagues={availableLeagues} />}
         <div className="flex flex-col w-full max-w-6xl">
@@ -219,28 +222,46 @@ export default function Home() {
 
 async function submitLeague(league: PlatformLeague,
   router: AppRouterInstance,
-  setLoadingTasks: (tasks: LoadingTasks) => void,
-  saveLeague: (id: LeagueId, league: PlatformLeague) => Promise<void>,
-  setError: (error: string | null) => void)
-   {
-  const client = new ApiClient(league);
-  const request = client.findLeague();
-  setLoadingTasks(new Set([new LoadingTask(request, 'Finding League')]));
-  const result = await request;
+  setIsProcessing: (loading: boolean) => void,
+  setProcessingMessage: (message: string) => void,
+  storageAdapter: StorageAdapter,
+  setError: (error: string | null) => void) {
+  try {
+    console.log('[Home] Starting submitLeague with:', league);
+    
+    const client = new ApiClient(league);
+    const request = client.findLeague();
+    setIsProcessing(true);
+    setProcessingMessage('Finding League');
+    const result = await request;
 
-  if (typeof result === 'string') {
-    setError(`Failed to find league: ${result}`);
-    setLoadingTasks(new Set()); // Clear loading state
+    console.log('[Home] findLeague result:', result);
+    if (typeof result === 'string') {
+      console.log('[Home] findLeague failed with string result:', result);
+      setError(`Failed to find league: ${result}`);
+      setIsProcessing(false);
+      setProcessingMessage('');
+      return;
+    }
+    if (result?.status !== 'ok') {
+      console.log('[Home] findLeague failed with status:', result.status);
+      setError(`Error finding league: ${result.status}`);
+      setIsProcessing(false);
+      setProcessingMessage('');
+      return;
+    }
+
+    await storageAdapter.saveLeague(league.id, league);
+    
+    // Just navigate - no need to clear loading state since we're leaving the page
+    activateLeague(league, router);
+  } catch (error) {
+    console.error('[Home] Unexpected error in submitLeague:', error);
+    setError(`Unexpected error: ${error}`);
+    setIsProcessing(false);
+    setProcessingMessage('');
     return;
   }
-  if (result?.status !== 'ok') {
-    setError(`Error finding league: ${result.status}`);
-    setLoadingTasks(new Set()); // Clear loading state
-    return;
-  }
-
-  await saveLeague(league.id, league);
-  activateLeague(league, router);
 }
 
 function headerFor(platform: Platform): TabTitle {
