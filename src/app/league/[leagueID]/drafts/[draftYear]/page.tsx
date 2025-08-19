@@ -1,19 +1,21 @@
 "use client";
 import PlayerTable, { ColumnName } from './PlayerTable';
 import { DraftedPlayer, LeagueTeam, mergeDraftAndPlayerInfo } from "@/platforms/PlatformApi";
-import React, { useState, useCallback, use, useMemo, useRef } from 'react';
+import React, { useState, useCallback, use, useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import LoadingScreen, { LoadingTask, QueryLoadingTask } from '@/ui/LoadingScreen';
+import LoadingScreen from '@/ui/LoadingScreen';
 import ErrorScreen from '@/ui/ErrorScreen';
 import { SearchSettingsState } from '@/app/storage/savedMockTypes';
 import SearchSettings from '../../mocks/SearchSettings';
 import CollapsibleComponent from '@/ui/Collapsible';
 import TabContainer, { TabChild, TabTitle } from '@/ui/TabContainer';
-import { isLeagueId, isSeasonId, LeagueId, SeasonId } from '@/platforms/common';
+import { isLeagueId, isSeasonId, LeagueId, SeasonId, PlatformLeague } from '@/platforms/common';
 import { useAuth } from '@/lib/auth/context';
 import { usePlayersQuery } from '@/hooks/queries/usePlayersQuery';
 import { useDraftDataQuery } from '@/hooks/queries/useDraftDataQuery';
 import { useLeagueTeamsQuery } from '@/hooks/queries/useLeagueTeamsQuery';
+import { useLeagueInfoQuery } from '@/hooks/queries/useLeagueInfoQuery';
+import { useLeagueFromStorage } from '@/hooks/queries/useLeagueFromStorage';
 // Dynamically import PlayerScatterChart with no SSR
 const PlayerScatterChart = dynamic(() => import('./PlayerScatterChart'), { ssr: false });
 
@@ -39,27 +41,27 @@ const Page = (props: Readonly<{ params: Promise<{ leagueID: string, draftYear: s
     const leagueID = params.leagueID;
     const draftYear = params.draftYear;
     const { loading: authLoading } = useAuth();
-    
-    // Validate parameters
-    if (!isLeagueId(leagueID)) {
-        return <ErrorScreen message="Invalid league ID" />;
-    }
-    if (!isSeasonId(draftYear)) {
-        return <ErrorScreen message="Invalid draft year" />;
-    }
 
+    
     // Use React Query hooks for data fetching
     const playersQuery = usePlayersQuery(leagueID);
     const draftDataQuery = useDraftDataQuery(leagueID, draftYear);
     const teamsQuery = useLeagueTeamsQuery(leagueID, draftYear);
-
-    // Track authLoading state with ref to avoid closure capture issue
-    const authLoadingRef = useRef(authLoading);
-    authLoadingRef.current = authLoading;
+    const leagueInfoQuery = useLeagueInfoQuery(leagueID);
+    const leagueFromStorage = useLeagueFromStorage(leagueID);
 
     // Process data when all queries complete
     const { tableData, allPositions, positionGraphs } = useMemo(() => {
-        if (!playersQuery.data || !draftDataQuery.data || !teamsQuery.data) {
+        // Check if all queries have loaded and have the expected data structure
+        if (!playersQuery.data || 
+            !Array.isArray(playersQuery.data) ||
+            !draftDataQuery.data || 
+            !(draftDataQuery.data as any).picks ||
+            !Array.isArray((draftDataQuery.data as any).picks) ||
+            !teamsQuery.data ||
+            !Array.isArray(teamsQuery.data) ||
+            !leagueInfoQuery.data ||
+            !leagueFromStorage.data) {
             return { 
                 tableData: [], 
                 allPositions: [], 
@@ -67,15 +69,20 @@ const Page = (props: Readonly<{ params: Promise<{ leagueID: string, draftYear: s
             };
         }
 
-        // Find the league to get platform info
-        const league = playersQuery.data.length > 0 ? 
-            { platform: 'espn' } : { platform: 'sleeper' }; // Default fallback
+        // TypeScript type assertions after validation
+        const validDraftData = draftDataQuery.data as { picks: any[] };
+        const validPlayersData = playersQuery.data as any[];
+        const validTeamsData = teamsQuery.data as any[];
+
+        // Get the platform from the loaded league information
+        const platform = leagueFromStorage.data.platform;
+        console.log('[DraftPage] Using platform from storage:', platform);
 
         const resultData = mergeDraftAndPlayerInfo(
-            draftDataQuery.data.picks, 
-            playersQuery.data, 
-            teamsQuery.data, 
-            league.platform as any
+            validDraftData.picks, 
+            validPlayersData, 
+            validTeamsData, 
+            platform as any
         );
         const tableData = resultData.map(makeTableRow);
         const positions = Array.from(new Set(tableData.map(player => player.position)));
@@ -100,75 +107,77 @@ const Page = (props: Readonly<{ params: Promise<{ leagueID: string, draftYear: s
             allPositions: positions, 
             positionGraphs: allGraphs 
         };
-    }, [playersQuery.data, draftDataQuery.data, teamsQuery.data]);
+    }, [playersQuery.data, draftDataQuery.data, teamsQuery.data, leagueInfoQuery.data, leagueFromStorage.data]);
+
+    // Default search settings
+    const defaultSearchSettings = useMemo(() => 
+        defaultSearchSettingsFor(allPositions), 
+        [allPositions]
+    );
 
     // State for UI
     const [searchSettings, setSearchSettings] = useState<SearchSettingsState>(
-        defaultSearchSettingsFor(allPositions)
+        defaultSearchSettings
     );
     const [showing, setShowing] = useState<TableData[]>([]);
 
+    // Reset callback
+    const resetSearchSettings = useCallback(() => 
+        setSearchSettings(defaultSearchSettings), 
+        [defaultSearchSettings]
+    );
+
+    // Create loading dependencies using the new simplified API
+    const loadingDependencies = useMemo(() => [
+        { loading: authLoading, message: 'Checking authentication...' },
+        { loading: leagueFromStorage.loading, message: 'Loading League Information' },
+        { query: playersQuery as any, message: 'Fetching Players' },
+        { query: draftDataQuery as any, message: 'Fetching Draft' },
+        { query: teamsQuery as any, message: 'Fetching Team History' },
+        { query: leagueInfoQuery as any, message: 'Fetching League Information' }
+    ], [authLoading, leagueFromStorage.loading, playersQuery, draftDataQuery, teamsQuery, leagueInfoQuery]);
+
     // Update search settings when positions change
-    React.useEffect(() => {
+    useEffect(() => {
         if (allPositions.length > 0) {
-            const newSettings = { ...searchSettings, positions: allPositions };
-            setSearchSettings(newSettings);
+            setSearchSettings(prevSettings => {
+                // Only update if positions actually changed
+                const positionsChanged = prevSettings.positions.length !== allPositions.length ||
+                    !prevSettings.positions.every(pos => allPositions.includes(pos));
+                
+                if (positionsChanged) {
+                    return { ...prevSettings, positions: allPositions };
+                }
+                return prevSettings;
+            });
         }
     }, [allPositions]);
 
     // Filter displayed players based on search settings
-    React.useEffect(() => {
+    useEffect(() => {
         const includePlayer = (p: TableData) => showPlayer(p, searchSettings);
         const nextShowing = tableData.filter(includePlayer)
             .slice(0, searchSettings.playerCount);
         setShowing(nextShowing);
     }, [searchSettings, tableData]);
 
-    const defaultSearchSettings = useMemo(() => 
-        defaultSearchSettingsFor(allPositions), 
-        [allPositions]
-    );
-
-    const resetSearchSettings = useCallback(() => 
-        setSearchSettings(defaultSearchSettings), 
-        [defaultSearchSettings]
-    );
-
-    // Create stable loading tasks
-    const authTask = useMemo(() => 
-        new LoadingTask(() => !authLoadingRef.current, 'Checking authentication...'), 
-        []
-    );
-
-    const playersTask = useMemo(() => 
-        new QueryLoadingTask(playersQuery, 'Fetching Players'), 
-        [playersQuery]
-    );
-
-    const draftTask = useMemo(() => 
-        new QueryLoadingTask(draftDataQuery, 'Fetching Draft'), 
-        [draftDataQuery]
-    );
-
-    const teamsTask = useMemo(() => 
-        new QueryLoadingTask(teamsQuery, 'Fetching Team History'), 
-        [teamsQuery]
-    );
-
-    // Combine all tasks into a stable Set
-    const loadingTasks = useMemo(() => {
-        return new Set([authTask, playersTask, draftTask, teamsTask]);
-    }, [authTask, playersTask, draftTask, teamsTask]);
+    // NOW VALIDATE PARAMETERS AFTER ALL HOOKS
+    if (!isLeagueId(leagueID)) {
+        return <ErrorScreen message="Invalid league ID" />;
+    }
+    if (!isSeasonId(draftYear)) {
+        return <ErrorScreen message="Invalid draft year" />;
+    }
 
     // Handle query errors
-    const error = playersQuery.error || draftDataQuery.error || teamsQuery.error;
+    const error = playersQuery.error || draftDataQuery.error || teamsQuery.error || leagueFromStorage.error;
     if (error) {
         return <ErrorScreen message={error.message || 'Failed to load draft data'} />;
     }
 
 
     return (
-        <LoadingScreen tasks={loadingTasks}>
+        <LoadingScreen waitFor={loadingDependencies}>
             <div className='flex flex-col pl-4 mt-2'>
                 <div className='flex flex-col justify-center m-auto'>
                     <h1 className='text-left md:text-center text-2xl font-bold'>Your {draftYear} Draft Recap!</h1>
