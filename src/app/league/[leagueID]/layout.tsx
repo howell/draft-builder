@@ -1,11 +1,14 @@
 'use client';
 import Sidebar from '@/ui/Sidebar';
+import LoadingScreen from '@/ui/LoadingScreen';
 import { useState, useEffect, use, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import ApiClient from '@/app/api/ApiClient';
 import { CURRENT_SEASON } from '@/constants';
 import { PlatformLeague, SeasonId } from '@/platforms/common';
-import { IN_PROGRESS_SELECTIONS_KEY, SAVED_LEAGUES_KEY, loadLeaguesAsync, loadSavedMocksAsync } from '@/app/storage/localStorage';
+import { SAVED_LEAGUES_KEY, loadSavedMocksAsync } from '@/app/storage/localStorage';
+import { isInProgressSelectionsKey } from '@/lib/storage/constants';
+import { useAuth } from '@/lib/auth/context';
 import Link from 'next/link';
 import CollapsibleComponent from '@/ui/Collapsible';
 
@@ -44,15 +47,21 @@ const LeagueLayout = (
     const currentMock = parseMockName(usePathname());
     
     const router = useRouter();
+    const { loading: authLoading, storageAdapter } = useAuth();
 
     // Unified data loading with proper dependency management
     const loadLayoutData = useCallback(async () => {
+        // Don't load data if auth is still loading
+        // This prevents using the wrong storage adapter (Dexie instead of Supabase)
+        if (authLoading) {
+            return;
+        }
         try {
             setState(prev => ({ ...prev, isLoading: true, error: null }));
             
             // Load both data sources in parallel
             const [availableLeaguesData, locallyStored] = await Promise.all([
-                loadLeaguesAsync(),
+                storageAdapter.loadLeagues(),
                 loadSavedMocksAsync(leagueID)
             ]);
             
@@ -61,21 +70,35 @@ const LeagueLayout = (
             const league = availableLeaguesData.leagues[leagueID];
             
             if (!league) {
+                console.error('[LeagueLayout] League not found in storage - triggering redirect to home:', {
+                    leagueID,
+                    leagueIDType: typeof leagueID,
+                    availableLeagueIds: Object.keys(availableLeaguesData.leagues),
+                    availableLeagueIdTypes: Object.keys(availableLeaguesData.leagues).map(id => typeof id),
+                    allLeaguesData: availableLeaguesData,
+                    timestamp: new Date().toISOString()
+                });
                 setState(prev => ({ ...prev, error: 'League not found', isLoading: false }));
                 router.push('/');
                 return;
             }
             
-            // Process saved drafts
+            // Process saved drafts - filter out all in-progress selections (legacy and league-specific)
             const savedDrafts = { ...locallyStored };
-            delete savedDrafts[IN_PROGRESS_SELECTIONS_KEY];
+            
+            // Remove all in-progress selections keys
+            Object.keys(savedDrafts).forEach(key => {
+                if (isInProgressSelectionsKey(key)) {
+                    delete savedDrafts[key];
+                }
+            });
             
             const years = new Set(Object.values(savedDrafts).map((draft) => draft.year));
             const prevDrafts: [SeasonId, string[]][] = [];
             
             for (const year of years) {
                 const drafts = Object.entries(savedDrafts)
-                    .filter(([draftName, draftData]) => draftName !== IN_PROGRESS_SELECTIONS_KEY && draftData.year === year)
+                    .filter(([draftName, draftData]) => !isInProgressSelectionsKey(draftName) && draftData.year === year)
                     .map(([draftName, draftData]) => draftName);
                 prevDrafts.push([year, drafts]);
             }
@@ -88,6 +111,12 @@ const LeagueLayout = (
             
             if (typeof resp === 'string') {
                 const errorMsg = `Failed to load league history: ${resp}`;
+                console.error('[LeagueLayout] League history fetch failed - redirecting to home:', {
+                    leagueID,
+                    errorMsg,
+                    currentPath: typeof window !== 'undefined' ? window.location.pathname : 'SSR',
+                    timestamp: new Date().toISOString()
+                });
                 setState(prev => ({ ...prev, error: errorMsg, isLoading: false }));
                 alert(errorMsg);
                 router.push('/');
@@ -109,11 +138,20 @@ const LeagueLayout = (
             
             auctions.sort((a, b) => b - a);
             
+            // Get league name from current season or fall back to most recent available season
+            const currentSeasonInfo = leagueHistory[CURRENT_SEASON];
+            const fallbackSeasonInfo = Object.values(leagueHistory).find(info => typeof info !== 'number');
+            const leagueInfo = currentSeasonInfo || fallbackSeasonInfo;
+            
+            if (!leagueInfo || typeof leagueInfo === 'number') {
+                throw new Error('No valid league information found in history');
+            }
+            
             // Update state with all data at once
             setState({
                 savedDraftNames: prevDrafts,
                 prevAuctions: auctions,
-                leagueName: leagueHistory[CURRENT_SEASON]!.name,
+                leagueName: leagueInfo.name,
                 availableLeagues,
                 isLoading: false,
                 error: null
@@ -129,7 +167,7 @@ const LeagueLayout = (
             }));
             alert(errorMsg);
         }
-    }, [leagueID, router]);
+    }, [leagueID, router, storageAdapter, authLoading]);
     
     // Load data on mount and when leagueID changes
     useEffect(() => {
@@ -151,68 +189,63 @@ const LeagueLayout = (
 
 
     return (
-        <div className='flex flex-col md:flex-row'>
-            <Sidebar leagueID={leagueID}
-                availableLeagues={state.availableLeagues}>
-
-                {/* League Name Section */}
-                {state.isLoading ? (
-                    <div className="text-xl text-gray-500">Loading league...</div>
-                ) : state.error ? (
+        <LoadingScreen 
+            waitFor={[
+                { loading: authLoading, message: "Authenticating..." },
+                { loading: state.isLoading, message: "Loading league data..." }
+            ]}
+        >
+            {state.error ? (
+                <div className="flex justify-center items-center min-h-screen">
                     <div className="text-xl text-red-500">Error: {state.error}</div>
-                ) : (
-                    <h2 className="text-xl"><Link href={`/league/${leagueID}`}>{state.leagueName}</Link></h2>
-                )}
+                </div>
+            ) : (
+                <div className='flex flex-col md:flex-row'>
+                    <Sidebar leagueID={leagueID}
+                        availableLeagues={state.availableLeagues}>
 
-                {/* Drafts Section */}
-                <CollapsibleComponent label={<h2 className='mt-2 text-xl'>Drafts</h2>}>
-                    {state.isLoading ? (
-                        <div className="text-gray-500 p-2">Loading drafts...</div>
-                    ) : state.error ? (
-                        <div className="text-red-500 p-2">Failed to load drafts</div>
-                    ) : (
-                        <ul className="">
-                            {state.prevAuctions.map((year) => (
-                                <li key={year} className={year === currentYear ? 'font-bold text-lg' : ''}>
-                                    <Link href={`/league/${leagueID}/drafts/${year}`}>{year}</Link>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </CollapsibleComponent>
+                        {/* League Name Section */}
+                        <h2 className="text-xl"><Link href={`/league/${leagueID}`}>{state.leagueName}</Link></h2>
 
-                {/* Mocks Section */}
-                <CollapsibleComponent label={<h2 className='mt-2 text-xl'>Mocks</h2>}>
-                    <ul className=''>
-                        <li key="newMock" className={currentMock === NEW_MOCK_NAME ? 'font-bold text-lg' : ''}>
-                            <Link href={`/league/${leagueID}/mocks`}>New</Link>
-                        </li>
-                        {state.isLoading ? (
-                            <li className="text-gray-500 p-2">Loading saved mocks...</li>
-                        ) : state.error ? (
-                            <li className="text-red-500 p-2">Error: {state.error}</li>
-                        ) : (
-                            <ul>
-                                {state.savedDraftNames.map(([year, drafts]) => (
-                                    <li key={year}>
-                                        <CollapsibleComponent label={year.toString()} >
-                                            <ul>
-                                                {drafts.map((draftName) => (
-                                                    <li key={draftName} className={draftName === currentMock ? 'font-bold text-lg' : ''}>
-                                                        <Link href={`/league/${leagueID}/mocks/${encodeURIComponent(draftName)}`} >{draftName}</Link>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </CollapsibleComponent>
+                        {/* Drafts Section */}
+                        <CollapsibleComponent label={<h2 className='mt-2 text-xl'>Drafts</h2>}>
+                            <ul className="">
+                                {state.prevAuctions.map((year) => (
+                                    <li key={year} className={year === currentYear ? 'font-bold text-lg' : ''}>
+                                        <Link href={`/league/${leagueID}/drafts/${year}`}>{year}</Link>
                                     </li>
                                 ))}
                             </ul>
-                        )}
-                    </ul>
-                </CollapsibleComponent>
-            </Sidebar>
-            <main className='flex-1 p-4'>{children}</main>
-        </div>
+                        </CollapsibleComponent>
+
+                        {/* Mocks Section */}
+                        <CollapsibleComponent label={<h2 className='mt-2 text-xl'>Mocks</h2>}>
+                            <ul className=''>
+                                <li key="newMock" className={currentMock === NEW_MOCK_NAME ? 'font-bold text-lg' : ''}>
+                                    <Link href={`/league/${leagueID}/mocks`}>New</Link>
+                                </li>
+                                <ul>
+                                    {state.savedDraftNames.map(([year, drafts]) => (
+                                        <li key={year}>
+                                            <CollapsibleComponent label={year.toString()} >
+                                                <ul>
+                                                    {drafts.map((draftName) => (
+                                                        <li key={draftName} className={draftName === currentMock ? 'font-bold text-lg' : ''}>
+                                                            <Link href={`/league/${leagueID}/mocks/${encodeURIComponent(draftName)}`} >{draftName}</Link>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </CollapsibleComponent>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </ul>
+                        </CollapsibleComponent>
+                    </Sidebar>
+                    <main className='flex-1 p-4'>{children}</main>
+                </div>
+            )}
+        </LoadingScreen>
     );
 };
 
