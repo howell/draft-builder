@@ -3,7 +3,7 @@
 import React from 'react';
 import { useAuth } from '../../lib/auth/context';
 import AuthPage from './AuthPage';
-import LoadingScreen, { LoadingTask } from '../../ui/LoadingScreen';
+import LoadingScreen from '../../ui/LoadingScreen';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -20,12 +20,8 @@ export default function ProtectedRoute({
 
   // Show loading screen while checking authentication
   if (loading) {
-    const authTasks = [
-      new LoadingTask(Promise.resolve(), 'Checking authentication...'),
-    ];
-    
     return (
-      <LoadingScreen tasks={new Set(authTasks)}>
+      <LoadingScreen waitFor={[{ loading, message: 'Checking authentication...' }]}>
         <div className="min-h-screen bg-gray-50" />
       </LoadingScreen>
     );
@@ -51,12 +47,8 @@ export function GuestOnlyRoute({
   const { user, loading } = useAuth();
 
   if (loading) {
-    const authTasks = [
-      new LoadingTask(Promise.resolve(), 'Checking authentication...'),
-    ];
-    
     return (
-      <LoadingScreen tasks={new Set(authTasks)}>
+      <LoadingScreen waitFor={[{ loading, message: 'Checking authentication...' }]}>
         <div className="min-h-screen bg-gray-50" />
       </LoadingScreen>
     );
