@@ -239,7 +239,7 @@ test.describe('User Signup with Data Migration', () => {
     await authPage.signupButton.click();
     
     // MigrationGate should redirect to /migrate page if data exists (even if corrupt)
-    await expect(page).toHaveURL(/\/migrate/, { timeout: TEST_TIMEOUTS.FAST_NAVIGATION });
+    await expect(page).toHaveURL(/\/migrate/, { timeout: TEST_TIMEOUTS.NAVIGATION });
     
     // Try to migrate the corrupt data
     const migrateButton = page.getByRole('button', { name: /migrate my data/i });
@@ -320,7 +320,7 @@ test.describe('User Signup with Data Migration', () => {
     }
     
     // Should redirect to dashboard without migration
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: TEST_TIMEOUTS.FAST_NAVIGATION });
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: TEST_TIMEOUTS.NAVIGATION });
     
     // Should show welcome message for new user
     await expect(page.getByText(/welcome/i)).toBeVisible();

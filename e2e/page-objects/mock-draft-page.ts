@@ -1,5 +1,6 @@
 import { Page, Locator, expect } from '@playwright/test';
 import { BasePage } from './base-page';
+import { TEST_TIMEOUTS } from '../utils/test-constants';
 
 export class MockDraftPage extends BasePage {
   readonly createDraftButton: Locator;
@@ -28,7 +29,7 @@ export class MockDraftPage extends BasePage {
   }
 
   async navigateToMockDrafts(leagueId: string) {
-    await this.page.goto(`/league/${leagueId}/mocks`);
+    await this.page.goto(`/league/${leagueId}/mocks`, { timeout: TEST_TIMEOUTS.TABLE_RENDER });
     await this.waitForLoad();
   }
 

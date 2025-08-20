@@ -11,7 +11,7 @@ export abstract class BasePage {
     // In E2E test environment, use domcontentloaded instead of networkidle
     // Production builds may have hanging API calls that prevent networkidle
     if (process.env.NODE_ENV === 'test') {
-      await this.page.waitForLoadState('domcontentloaded');
+      await this.page.waitForLoadState('networkidle');
       // Give a brief pause for initial rendering
       await this.page.waitForTimeout(1000);
     } else {
