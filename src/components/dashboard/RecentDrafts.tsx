@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { useAuth } from '../../lib/auth/context';
 import { LeagueId } from '../../platforms/common';
-import LoadingScreen, { LoadingTask, QueryLoadingTask } from '../../ui/LoadingScreen';
+import LoadingScreen from '../../ui/LoadingScreen';
 import { useMockDraftsQuery, useLeaguesQuery } from '../../hooks/queries';
 
 interface UserDataSummary {
@@ -44,24 +44,11 @@ export function RecentDrafts({ summary }: RecentDraftsProps) {
     return mockDraftsQuery.data.slice(0, 5);
   }, [mockDraftsQuery.data]);
 
-  // Create loading tasks following MockDraft pattern
-  const authLoadingRef = React.useRef(authLoading);
-  authLoadingRef.current = authLoading;
-  
-  const authTask = useMemo(() => 
-    new LoadingTask(() => !authLoadingRef.current, 'Authenticating...'), 
-    []
-  );
-
-  const mockDraftsTask = useMemo(() => 
-    new QueryLoadingTask(mockDraftsQuery, 'Loading recent drafts...'), 
-    [mockDraftsQuery]
-  );
-
-  const loadingTasks = useMemo(() => {
-    const tasks = new Set([authTask, mockDraftsTask]);
-    return tasks;
-  }, [authTask, mockDraftsTask]);
+  // Create loading dependencies using the new simplified API
+  const loadingDependencies = useMemo(() => [
+    { loading: authLoading, message: 'Authenticating...' },
+    { query: mockDraftsQuery as any, message: 'Loading recent drafts...' }
+  ], [authLoading, mockDraftsQuery]);
   
   const error = mockDraftsQuery.error;
 
@@ -83,7 +70,7 @@ export function RecentDrafts({ summary }: RecentDraftsProps) {
   }
 
   return (
-    <LoadingScreen tasks={loadingTasks}>
+    <LoadingScreen waitFor={loadingDependencies}>
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Drafts</h2>
         
