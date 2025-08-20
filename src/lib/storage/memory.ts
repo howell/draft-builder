@@ -208,4 +208,23 @@ export class MemoryStorageAdapter implements StorageAdapter {
       );
     }
   }
+
+  /**
+   * Clear all data from memory storage
+   * This resets all in-memory data to empty state
+   */
+  async clearAllData(): Promise<void> {
+    try {
+      console.log('[MemoryStorageAdapter] Clearing all in-memory data');
+      this.reset(); // Use existing reset method
+      console.log('[MemoryStorageAdapter] ✅ Successfully cleared all data');
+    } catch (error) {
+      throw createStorageError(
+        'DATA_ERROR',
+        'Failed to clear memory data',
+        error,
+        { operation: 'clearAllData' }
+      );
+    }
+  }
 } 
