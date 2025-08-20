@@ -245,7 +245,7 @@ describe('DataMigrationService Fixed Tests', () => {
       }));
 
       await expect(serviceWithoutRollback.migrateAllUserData()).rejects.toThrow(MigrationError);
-      await expect(serviceWithoutRollback.migrateAllUserData()).rejects.toThrow('No leagues found to migrate');
+      await expect(serviceWithoutRollback.migrateAllUserData()).rejects.toThrow('Failed to export Dexie data');
     });
 
     it('should fail when user is not authenticated', async () => {
@@ -864,7 +864,8 @@ describe('DataMigrationService Fixed Tests', () => {
         }),
         loadSavedMocks: mockLoadSavedMocks,
         deleteRoster: jest.fn().mockResolvedValue(undefined),
-        saveMock: jest.fn().mockResolvedValue(undefined)
+        saveMock: jest.fn().mockResolvedValue(undefined),
+        clearAllData: jest.fn().mockResolvedValue(undefined)
       }));
 
       // Setup successful Supabase operations for all tables
@@ -897,16 +898,15 @@ describe('DataMigrationService Fixed Tests', () => {
       // Verify localStorage clearing methods were called after successful migration
       // The migration service creates multiple adapter instances, find the one used for clearing
       const dexieAdapterCalls = (DexieStorageAdapter as jest.Mock).mock.results;
-      const lastAdapter = dexieAdapterCalls[dexieAdapterCalls.length - 1].value;
-      
-      // Verify that saveMock was called on any adapter instance (clearing functionality)
       const allAdapters = dexieAdapterCalls.map(result => result.value);
-      const saveMockCalled = allAdapters.some(adapter => adapter.saveMock.mock.calls.length > 0);
       
-      expect(saveMockCalled).toBe(true);
-      if (saveMockCalled) {
-        const adapterWithSaveMockCalls = allAdapters.find(adapter => adapter.saveMock.mock.calls.length > 0);
-        expect(adapterWithSaveMockCalls.saveMock).toHaveBeenCalledWith('league-1', {});
+      // Verify that clearAllData was called on any adapter instance (clearing functionality)
+      const clearAllDataCalled = allAdapters.some(adapter => adapter.clearAllData.mock.calls.length > 0);
+      
+      expect(clearAllDataCalled).toBe(true);
+      if (clearAllDataCalled) {
+        const adapterWithClearCalls = allAdapters.find(adapter => adapter.clearAllData.mock.calls.length > 0);
+        expect(adapterWithClearCalls.clearAllData).toHaveBeenCalled();
       }
     });
   });

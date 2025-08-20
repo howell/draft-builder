@@ -139,6 +139,9 @@ describe('Migration Service Cleanup Logic', () => {
       const deleteRosterCalls: Array<{ leagueId: string; rosterName: string }> = [];
       const saveMockCalls: Array<{ leagueId: string; data: any }> = [];
 
+      // Track cleanup operations to verify correct behavior
+      const clearAllDataCalls: Array<{ userId: string }> = [];
+
       (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
         loadLeagues: jest.fn().mockResolvedValue({
           schemaVersion: 3,
@@ -155,6 +158,10 @@ describe('Migration Service Cleanup Logic', () => {
         saveMock: jest.fn().mockImplementation((leagueId: string, data: any) => {
           saveMockCalls.push({ leagueId, data });
           return Promise.resolve();
+        }),
+        clearAllData: jest.fn().mockImplementation(() => {
+          clearAllDataCalls.push({ userId: 'anonymous' });
+          return Promise.resolve();
         })
       }));
 
@@ -170,24 +177,13 @@ describe('Migration Service Cleanup Logic', () => {
       expect(result.success).toBe(true);
 
       // Verify cleanup operations were called correctly
-      // Should delete all draft rosters from all leagues
-      expect(deleteRosterCalls).toHaveLength(3); // 2 drafts in league-1, 1 draft in league-2
-      expect(deleteRosterCalls).toEqual(
-        expect.arrayContaining([
-          { leagueId: 'league-1', rosterName: 'Draft Alpha' },
-          { leagueId: 'league-1', rosterName: 'Draft Beta' },
-          { leagueId: 'league-2', rosterName: 'Draft Gamma' }
-        ])
-      );
+      // Should use bulk clearAllData instead of individual operations
+      expect(clearAllDataCalls).toHaveLength(1);
+      expect(clearAllDataCalls[0]).toEqual({ userId: 'anonymous' });
 
-      // Should save empty mocks for each league
-      expect(saveMockCalls).toHaveLength(2);
-      expect(saveMockCalls).toEqual(
-        expect.arrayContaining([
-          { leagueId: 'league-1', data: {} },
-          { leagueId: 'league-2', data: {} }
-        ])
-      );
+      // Individual cleanup operations should not be called with new bulk approach
+      expect(deleteRosterCalls).toHaveLength(0);
+      expect(saveMockCalls).toHaveLength(0);
     });
 
     it('should handle empty mocks data during cleanup', async () => {
@@ -198,6 +194,7 @@ describe('Migration Service Cleanup Logic', () => {
       // Track cleanup operations
       const deleteRosterCalls: Array<{ leagueId: string; rosterName: string }> = [];
       const saveMockCalls: Array<{ leagueId: string; data: any }> = [];
+      const clearAllDataCalls: Array<{ userId: string }> = [];
 
       (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
         loadLeagues: jest.fn().mockResolvedValue({
@@ -215,6 +212,10 @@ describe('Migration Service Cleanup Logic', () => {
         saveMock: jest.fn().mockImplementation((leagueId: string, data: any) => {
           saveMockCalls.push({ leagueId, data });
           return Promise.resolve();
+        }),
+        clearAllData: jest.fn().mockImplementation(() => {
+          clearAllDataCalls.push({ userId: 'anonymous' });
+          return Promise.resolve();
         })
       }));
 
@@ -229,12 +230,13 @@ describe('Migration Service Cleanup Logic', () => {
 
       expect(result.success).toBe(true);
 
-      // Should not call deleteRoster since there are no drafts
-      expect(deleteRosterCalls).toHaveLength(0);
+      // Should use bulk clearAllData even when there are no drafts
+      expect(clearAllDataCalls).toHaveLength(1);
+      expect(clearAllDataCalls[0]).toEqual({ userId: 'anonymous' });
 
-      // Should still save empty mocks for the league
-      expect(saveMockCalls).toHaveLength(1);
-      expect(saveMockCalls[0]).toEqual({ leagueId: 'league-empty', data: {} });
+      // Individual cleanup operations should not be called with new bulk approach
+      expect(deleteRosterCalls).toHaveLength(0);
+      expect(saveMockCalls).toHaveLength(0);
     });
 
     it('should not attempt cleanup when clearLocalStorageAfterMigration is false', async () => {
@@ -307,8 +309,8 @@ describe('Migration Service Cleanup Logic', () => {
         }
       };
 
-      // Setup console.warn spy to capture cleanup warnings
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      // Setup console.error spy to capture cleanup errors
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       let loadLeaguesCallCount = 0;
       (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
@@ -344,7 +346,7 @@ describe('Migration Service Cleanup Logic', () => {
       // Migration should still succeed despite cleanup failure
       expect(result.success).toBe(true);
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to clear Dexie data after migration'),
+        expect.stringContaining('❌ Failed to clear Dexie data after migration'),
         expect.any(Error)
       );
 
@@ -374,6 +376,7 @@ describe('Migration Service Cleanup Logic', () => {
       };
 
       const deleteRosterCalls: Array<any> = [];
+      const clearAllDataCalls: Array<{ userId: string }> = [];
 
       (DexieStorageAdapter as jest.Mock).mockImplementation(() => ({
         loadLeagues: jest.fn().mockResolvedValue({
@@ -385,7 +388,11 @@ describe('Migration Service Cleanup Logic', () => {
           deleteRosterCalls.push({ leagueId, rosterName });
           return Promise.resolve();
         }),
-        saveMock: jest.fn().mockResolvedValue(undefined)
+        saveMock: jest.fn().mockResolvedValue(undefined),
+        clearAllData: jest.fn().mockImplementation(() => {
+          clearAllDataCalls.push({ userId: 'anonymous' });
+          return Promise.resolve();
+        })
       }));
 
       const service = new DataMigrationService(
@@ -407,11 +414,12 @@ describe('Migration Service Cleanup Logic', () => {
       expect(stats.itemsProcessed.costAdjustments).toBe(1); // One adjustment
 
       // Verify cleanup handled the same data structure correctly
-      expect(deleteRosterCalls).toHaveLength(1);
-      expect(deleteRosterCalls[0]).toEqual({
-        leagueId: 'league-consistency',
-        rosterName: 'Draft Consistency Test'
-      });
+      // Should use bulk clearAllData instead of individual operations
+      expect(clearAllDataCalls).toHaveLength(1);
+      expect(clearAllDataCalls[0]).toEqual({ userId: 'anonymous' });
+
+      // Individual cleanup operations should not be called with new bulk approach
+      expect(deleteRosterCalls).toHaveLength(0);
     });
   });
 });

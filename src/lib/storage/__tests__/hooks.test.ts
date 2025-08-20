@@ -8,6 +8,7 @@ import { MemoryStorageAdapter } from '../memory';
 import { LocalStorageAdapter } from '../localStorage';
 import { DexieStorageAdapter } from '../dexie';
 import { SupabaseStorageAdapter } from '../supabase';
+import { createStorageAdapter } from '../factory';
 
 // Mock the auth context module completely
 const mockUseAuth = jest.fn();
@@ -29,6 +30,11 @@ jest.mock('../../supabase', () => ({
   },
 }));
 
+// Mock the storage factory
+jest.mock('../factory', () => ({
+  createStorageAdapter: jest.fn(),
+}));
+
 // Define mock user for tests
 const mockUser = {
   id: 'user-123',
@@ -36,18 +42,39 @@ const mockUser = {
   created_at: '2023-01-01T00:00:00Z',
 };
 
+// Mock storage adapter instances
+const mockDexieAdapter = new DexieStorageAdapter('anonymous');
+const mockSupabaseAdapter = new SupabaseStorageAdapter(
+  // Mock Supabase client
+  {
+    from: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    single: jest.fn().mockReturnThis(),
+    upsert: jest.fn().mockReturnThis(),
+    insert: jest.fn().mockReturnThis(),
+    delete: jest.fn().mockReturnThis(),
+    in: jest.fn().mockReturnThis()
+  } as any,
+  'user-123',
+  { fallbackToDexie: true }
+);
+
+const mockCreateStorageAdapter = createStorageAdapter as jest.MockedFunction<typeof createStorageAdapter>;
+
 describe('useStorageAdapter', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   describe('Loading state', () => {
-    it('returns memory adapter during loading state', () => {
+    it('returns dexie adapter during loading state for consistency', () => {
       mockUseAuth.mockReturnValue({
         user: null,
         session: null,
         loading: true, // Loading state
         error: null,
+        storageAdapter: mockDexieAdapter, // Provide the storage adapter
         signIn: jest.fn(),
         signUp: jest.fn(),
         signOut: jest.fn(),
@@ -57,7 +84,8 @@ describe('useStorageAdapter', () => {
 
       const { result } = renderHook(() => useStorageAdapter());
 
-      expect(result.current).toBeInstanceOf(MemoryStorageAdapter);
+      // Fixed: Now consistently returns Dexie during loading to prevent race conditions
+      expect(result.current).toBeInstanceOf(DexieStorageAdapter);
     });
   });
 
@@ -68,6 +96,7 @@ describe('useStorageAdapter', () => {
         session: null,
         loading: false,
         error: null,
+        storageAdapter: mockDexieAdapter, // Provide the storage adapter
         signIn: jest.fn(),
         signUp: jest.fn(),
         signOut: jest.fn(),
@@ -88,6 +117,7 @@ describe('useStorageAdapter', () => {
         session: { user: mockUser } as any,
         loading: false,
         error: null,
+        storageAdapter: mockSupabaseAdapter, // Provide the storage adapter
         signIn: jest.fn(),
         signUp: jest.fn(),
         signOut: jest.fn(),
@@ -111,6 +141,7 @@ describe('useStorageAdapter', () => {
         session: null,
         loading: false,
         error: null,
+        storageAdapter: mockDexieAdapter, // Provide the storage adapter
         signIn: jest.fn(),
         signUp: jest.fn(),
         signOut: jest.fn(),
@@ -127,6 +158,7 @@ describe('useStorageAdapter', () => {
         session: { user: mockUser } as any,
         loading: false,
         error: null,
+        storageAdapter: mockSupabaseAdapter, // Provide the storage adapter
         signIn: jest.fn(),
         signUp: jest.fn(),
         signOut: jest.fn(),
@@ -147,6 +179,7 @@ describe('useStorageAdapter', () => {
         session: { user: mockUser } as any,
         loading: false,
         error: null,
+        storageAdapter: mockSupabaseAdapter, // Provide the storage adapter
         signIn: jest.fn(),
         signUp: jest.fn(),
         signOut: jest.fn(),
@@ -163,6 +196,7 @@ describe('useStorageAdapter', () => {
         session: null,
         loading: false,
         error: null,
+        storageAdapter: mockDexieAdapter, // Provide the storage adapter
         signIn: jest.fn(),
         signUp: jest.fn(),
         signOut: jest.fn(),
@@ -175,7 +209,8 @@ describe('useStorageAdapter', () => {
     });
   });
 
-  // Note: Server-side rendering protection is tested implicitly
-  // The hook includes `typeof window === 'undefined'` check
+  // Note: Server-side rendering protection is handled in the auth context
+  // The auth context includes `typeof window === 'undefined'` check
   // which returns MemoryStorageAdapter for SSR environments
+  // These tests focus on client-side behavior where loading/anonymous states use Dexie
 });

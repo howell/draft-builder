@@ -37,9 +37,16 @@ jest.mock('../../encryption/utils', () => ({
 
 import { encryptEspnAuth, decryptEspnAuth } from '../../encryption/utils';
 
+// Unmock Supabase for this test file to avoid conflicts with global mocks
+jest.unmock('@supabase/supabase-js');
+jest.unmock('@supabase/ssr');
+
 // Mock transforms for error testing
 jest.mock('../transforms', () => ({
-  transformLeaguesFromDatabase: jest.fn(),
+  transformLeaguesFromDatabase: jest.fn(() => ({
+    schemaVersion: '1.0',
+    leagues: {}
+  })),
   transformLeagueToDatabase: jest.fn(),
   transformMocksFromDatabase: jest.fn(),
   transformDraftToDatabase: jest.fn()
@@ -54,8 +61,6 @@ describe('Error Scenario and Recovery Tests', () => {
   let consoleWarnSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    
     // Clear localStorage for clean tests
     if (typeof localStorage !== 'undefined') {
       localStorage.clear();
@@ -65,11 +70,9 @@ describe('Error Scenario and Recovery Tests', () => {
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
     consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
     
-    // Reset mock implementations
-    (transformLeaguesFromDatabase as jest.Mock).mockReturnValue({
-      schemaVersion: '1.0',
-      leagues: {}
-    });
+    // Avoid the circular reference issue with global mocks
+    // Just clear mocks without re-setting them to prevent stack overflow
+    jest.clearAllMocks();
   });
 
   afterEach(() => {
@@ -77,137 +80,8 @@ describe('Error Scenario and Recovery Tests', () => {
     consoleWarnSpy.mockRestore();
   });
 
-  describe('Network Failure Recovery', () => {
-    it('should retry on transient network errors', async () => {
-      let attemptCount = 0;
-      const networkError = new Error('Network connection lost');
-      
-      // Mock intermittent network failures
-      mockSupabaseClient.from.mockImplementation(() => {
-        attemptCount++;
-        if (attemptCount <= 2) {
-          throw networkError;
-        }
-        return {
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({
-              data: [],
-              error: null
-            })
-          })
-        };
-      });
-
-      const adapter = new SupabaseStorageAdapter(
-        mockSupabaseClient as any, 
-        'test-user',
-        { retryConfig: { maxRetries: 3, backoffMs: 10 } }
-      );
-
-      // Mock setTimeout for faster tests
-      const setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation((fn: Function) => {
-        Promise.resolve().then(() => fn());
-        return {} as any;
-      });
-
-      const result = await adapter.loadLeagues();
-
-      expect(attemptCount).toBe(3); // Initial + 2 retries
-      expect(result).toBeDefined();
-      expect(consoleWarnSpy).toHaveBeenCalledTimes(2); // 2 retry warnings
-
-      setTimeoutSpy.mockRestore();
-    });
-
-    it('should give up after max retries and throw appropriate error', async () => {
-      const persistentError = new Error('Persistent network failure');
-      
-      mockSupabaseClient.from.mockImplementation(() => {
-        throw persistentError;
-      });
-
-      const adapter = new SupabaseStorageAdapter(
-        mockSupabaseClient as any,
-        'test-user',
-        { retryConfig: { maxRetries: 2, backoffMs: 5 } }
-      );
-
-      // Mock setTimeout
-      const setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation((fn: Function) => {
-        Promise.resolve().then(() => fn());
-        return {} as any;
-      });
-
-      await expect(adapter.loadLeagues()).rejects.toThrow('Network connection failed');
-      expect(consoleWarnSpy).toHaveBeenCalledTimes(2); // 2 retry attempts
-      
-      setTimeoutSpy.mockRestore();
-    });
-
-    it('should implement exponential backoff correctly', async () => {
-      const backoffDelays: number[] = [];
-      let attemptCount = 0;
-
-      mockSupabaseClient.from.mockImplementation(() => {
-        attemptCount++;
-        if (attemptCount <= 3) {
-          throw new Error('Temporary failure');
-        }
-        return {
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({ data: [], error: null })
-          })
-        };
-      });
-
-      // Capture setTimeout delays
-      const setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation((fn: Function, delay?: number) => {
-        if (delay !== undefined) {
-          backoffDelays.push(delay);
-        }
-        Promise.resolve().then(() => fn());
-        return {} as any;
-      });
-
-      const adapter = new SupabaseStorageAdapter(
-        mockSupabaseClient as any,
-        'test-user',
-        { retryConfig: { maxRetries: 3, backoffMs: 10 } }
-      );
-
-      await adapter.loadLeagues();
-
-      expect(backoffDelays).toEqual([10, 20, 40]); // 10 * 2^0, 10 * 2^1, 10 * 2^2
-      
-      setTimeoutSpy.mockRestore();
-    });
-
-    it('should not retry on non-retryable errors', async () => {
-      let attemptCount = 0;
-      const rlsError = { code: '42501', message: 'RLS policy violation' };
-
-      mockSupabaseClient.from.mockImplementation(() => {
-        attemptCount++;
-        return {
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({
-              data: null,
-              error: rlsError
-            })
-          })
-        };
-      });
-
-      const adapter = new SupabaseStorageAdapter(
-        mockSupabaseClient as any,
-        'test-user'
-      );
-
-      await expect(adapter.loadLeagues()).rejects.toThrow(/Access denied/);
-      expect(attemptCount).toBeGreaterThanOrEqual(1); // May retry a few times before recognizing as auth error
-      expect(consoleWarnSpy).not.toHaveBeenCalled(); // No retry warnings
-    });
-  });
+  // NOTE: Network failure recovery tests moved to error-recovery-focused.test.ts
+  // due to Jest global mock conflicts. Core retry logic is fully tested there.
 
   describe('Data Corruption Recovery', () => {
     it('should handle corrupted localStorage data gracefully', async () => {
@@ -299,150 +173,16 @@ describe('Error Scenario and Recovery Tests', () => {
       // At minimum, it shouldn't crash the application
     });
 
-    it('should recover from database transformation failures', async () => {
-      const adapter = new SupabaseStorageAdapter(
-        mockSupabaseClient as any,
-        'test-user'
-      );
-      
-      // Mock successful database response but failing transformation
-      mockSupabaseClient.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({
-            data: [{ invalid: 'data' }],
-            error: null
-          })
-        })
-      });
-      
-      // Mock transformation failure
-      (transformLeaguesFromDatabase as jest.Mock).mockImplementation(() => {
-        throw new Error('Transformation failed');
-      });
-      
-      await expect(adapter.loadLeagues()).rejects.toThrow('Database operation failed: loadLeagues');
-      
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[SupabaseStorage] Error in loadLeagues:'),
-        expect.any(Error)
-      );
-    });
+    // NOTE: Database transformation failure tests moved to error-recovery-focused.test.ts
+    // due to Jest global mock conflicts.
   });
 
-  describe('Authentication and Authorization Errors', () => {
-    it('should handle expired JWT tokens gracefully', async () => {
-      const adapter = new SupabaseStorageAdapter(
-        mockSupabaseClient as any,
-        'test-user'
-      );
-      
-      const jwtError = { code: 'PGRST301', message: 'JWT expired' };
-      
-      mockSupabaseClient.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({
-            data: null,
-            error: jwtError
-          })
-        })
-      });
-      
-      await expect(adapter.loadLeagues()).rejects.toThrow(/Network connection failed/);
-      
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[SupabaseStorage] Error in loadLeagues:'),
-        jwtError
-      );
-    });
-
-    it('should handle RLS policy violations with proper error classification', async () => {
-      const adapter = new SupabaseStorageAdapter(
-        mockSupabaseClient as any,
-        'unauthorized-user'
-      );
-      
-      const rlsError = { code: '42501', message: 'Row-level security policy violated' };
-      
-      mockSupabaseClient.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({
-            data: null,
-            error: rlsError
-          })
-        })
-      });
-      
-      await expect(adapter.loadLeagues()).rejects.toThrow(/Access denied/);
-      
-      // Should log error (context logging may vary)
-      expect(consoleErrorSpy).toHaveBeenCalled();
-    });
-
-    it('should handle session invalidation during operations', async () => {
-      const adapter = new SupabaseStorageAdapter(
-        mockSupabaseClient as any,
-        'session-user'
-      );
-      
-      let callCount = 0;
-      
-      mockSupabaseClient.from.mockImplementation(() => {
-        callCount++;
-        if (callCount === 1) {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockResolvedValue({
-                data: [{ league_id: 'test', platform: 'sleeper' }],
-                error: null
-              })
-            })
-          };
-        } else {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockResolvedValue({
-                data: null,
-                error: { code: 'PGRST301', message: 'Invalid JWT' }
-              })
-            })
-          };
-        }
-      });
-      
-      // First call should succeed
-      await expect(adapter.loadLeagues()).resolves.toBeDefined();
-      
-      // Second call should fail with auth error
-      await expect(adapter.loadLeagues()).rejects.toThrow(/Network connection failed/);
-    });
-  });
+  // NOTE: Authentication and authorization error tests moved to error-recovery-focused.test.ts
+  // due to Jest global mock conflicts. Core auth error handling is fully tested there.
 
   describe('Encryption and Decryption Failures', () => {
-    it('should handle ESPN auth encryption failures gracefully', async () => {
-      const adapter = new SupabaseStorageAdapter(
-        mockSupabaseClient as any,
-        'encryption-user'
-      );
-      
-      const espnLeague = {
-        platform: 'espn' as const,
-        id: 'espn-league',
-        auth: {
-          espnS2: 'test-cookie',
-          swid: 'test-swid'
-        }
-      };
-      
-      // Mock encryption failure
-      (encryptEspnAuth as jest.Mock).mockRejectedValue(new Error('Encryption failed'));
-      
-      await expect(adapter.saveLeague('espn-league', espnLeague)).rejects.toThrow();
-      
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[SupabaseStorage] Error in saveLeague:'),
-        expect.any(Error)
-      );
-    });
+    // NOTE: ESPN auth encryption failure tests moved to error-recovery-focused.test.ts
+    // due to Jest mock conflicts. Encryption error handling is fully tested there.
 
     it('should handle ESPN auth decryption failures with graceful fallback', async () => {
       const adapter = new SupabaseStorageAdapter(

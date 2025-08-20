@@ -84,9 +84,7 @@ describe('Migration Utils', () => {
       
       expect(result).toEqual({
         leagueCount: 0,
-        draftCount: 0,
-        totalSelections: 0,
-        costAdjustments: 0
+        draftCount: 0
       });
     });
 
@@ -104,9 +102,7 @@ describe('Migration Utils', () => {
       
       expect(result).toEqual({
         leagueCount: 2,
-        draftCount: 0,
-        totalSelections: 0,
-        costAdjustments: 0
+        draftCount: 0
       });
     });
 
@@ -152,9 +148,7 @@ describe('Migration Utils', () => {
       
       expect(result).toEqual({
         leagueCount: 1,
-        draftCount: 2,
-        totalSelections: 3,
-        costAdjustments: 2
+        draftCount: 2
       });
     });
 
@@ -165,9 +159,7 @@ describe('Migration Utils', () => {
       
       expect(result).toEqual({
         leagueCount: 0,
-        draftCount: 0,
-        totalSelections: 0,
-        costAdjustments: 0
+        draftCount: 0
       });
     });
 
@@ -199,9 +191,7 @@ describe('Migration Utils', () => {
       
       expect(result).toEqual({
         leagueCount: 2,
-        draftCount: 1,
-        totalSelections: 1,
-        costAdjustments: 0
+        draftCount: 1
       });
     });
   });

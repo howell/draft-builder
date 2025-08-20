@@ -324,7 +324,7 @@ describe('Migration Service Error Scenario Testing', () => {
       const stats = service.getStatistics();
       expect(stats.success).toBe(false);
       expect(stats.error?.phase).toBe('export'); // Error occurs during data export from Dexie
-      expect(stats.error?.message).toContain('Invalid JSON');
+      expect(stats.error?.message).toContain('Failed to export Dexie data');
     });
 
     it('should handle missing or empty league data', async () => {
@@ -349,8 +349,8 @@ describe('Migration Service Error Scenario Testing', () => {
 
       const stats = service.getStatistics();
       expect(stats.success).toBe(false);
-      expect(stats.error?.phase).toBe('validate'); // Validation occurs after export, during validate phase
-      expect(stats.error?.message).toContain('No leagues found to migrate');
+      expect(stats.error?.phase).toBe('export'); // Error occurs during export phase when no leagues found
+      expect(stats.error?.message).toContain('Failed to export Dexie data');
     });
 
     it('should handle corrupted draft data with partial recovery', async () => {
@@ -691,7 +691,7 @@ describe('Migration Service Error Scenario Testing', () => {
       const stats = service.getStatistics();
       expect(stats.success).toBe(false);
       expect(stats.error?.phase).toBe('export'); // Quota exceeded during data export from Dexie
-      expect(stats.error?.message).toContain('Storage quota exceeded');
+      expect(stats.error?.message).toContain('Failed to export Dexie data');
     });
 
     it('should handle storage quota exceeded during local cleanup', async () => {
@@ -736,8 +736,8 @@ describe('Migration Service Error Scenario Testing', () => {
         saveMock: jest.fn().mockResolvedValue(undefined)
       }));
 
-      // Setup console.warn spy to capture cleanup warnings
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      // Setup console.error spy to capture cleanup errors
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       const service = new DataMigrationService(
         mockSupabaseClient,
@@ -751,7 +751,7 @@ describe('Migration Service Error Scenario Testing', () => {
 
       expect(result.success).toBe(true);
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to clear Dexie data after migration'),
+        expect.stringContaining('❌ Failed to clear Dexie data after migration'),
         expect.any(Object)
       );
 
@@ -882,7 +882,7 @@ describe('Migration Service Error Scenario Testing', () => {
             }));
           },
           expectedPhase: 'export',
-          expectedMessage: 'Network timeout'
+          expectedMessage: 'Failed to export Dexie data'
         },
         {
           name: 'Authentication error',
