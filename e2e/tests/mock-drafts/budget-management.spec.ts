@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { MockDraftPage } from '../../page-objects/mock-draft-page';
 import { MockDraftHelpers } from '../../utils/mock-draft-helpers';
 import { testJourneys, ConnectedLeagueSession } from '../../utils/test-journeys';
+import { TEST_TIMEOUTS } from '../../utils/test-constants';
 
 // Budget management tests interact heavily with the same UI components
 // Use serial mode to ensure consistent test execution
@@ -85,7 +86,7 @@ test.describe('Mock Draft Budget Management', () => {
       }
     } else {
       // Fallback: just check that some budget number less than 200 is visible
-      await expect(page.getByText(/1[34]\d/)).toBeVisible({ timeout: 3000 }); // ~130-149 range
+      await expect(page.getByText(/1[34]\d/)).toBeVisible({ timeout: TEST_TIMEOUTS.BUTTON_CLICK }); // ~130-149 range
     }
     
     // Verify player appears in roster table

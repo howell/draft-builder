@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { testJourneys, ConnectedLeagueSession } from '../../utils/test-journeys';
+import { TEST_TIMEOUTS } from '../../utils/test-constants';
 
 test.describe('Mock Draft Error Cases', () => {
   test('should handle missing league (404) gracefully', async ({ page }) => {
@@ -30,7 +31,7 @@ test.describe('Mock Draft Error Cases', () => {
       
       // The page should show an error because the API returns 404
       await expect(page.getByText(/Error loading league.*Request failed with status code 404/i)).toBeVisible({ 
-        timeout: 20000 
+        timeout: TEST_TIMEOUTS.ERROR_MESSAGE 
       });
     } finally {
       if (session) {
@@ -67,7 +68,7 @@ test.describe('Mock Draft Error Cases', () => {
       
       // The page should show an error
       await expect(page.getByText(/Error loading league.*Request failed with status code 500/i)).toBeVisible({ 
-        timeout: 20000 
+        timeout: TEST_TIMEOUTS.ERROR_MESSAGE 
       });
     } finally {
       if (session) {
@@ -106,7 +107,7 @@ test.describe('Mock Draft Error Cases', () => {
       
       // The page should show an error
       await expect(page.getByText(/Error loading league.*Request failed with status code 504/i)).toBeVisible({ 
-        timeout: 20000 
+        timeout: TEST_TIMEOUTS.NETWORK_TIMEOUT 
       });
     } finally {
       if (session) {

@@ -4,6 +4,7 @@ import { DatabaseHelpers } from '../../utils/database-helpers';
 import { MigrationDataHelpers } from '../../utils/migration-data-helpers';
 import { createUserCredentials } from '../../utils/test-data-factory';
 import { setupGoogleSheetsApiMocks } from '../../utils/google-api-mocks';
+import { TEST_TIMEOUTS } from '../../utils/test-constants';
 
 test.describe('User Signup with Data Migration', () => {
   let dbHelpers: DatabaseHelpers;
@@ -57,7 +58,7 @@ test.describe('User Signup with Data Migration', () => {
     await authPage.signupButton.click();
     
     // Should be redirected to migration page by MigrationGate
-    await expect(page).toHaveURL(/\/migrate/, { timeout: 2000 });
+    await expect(page).toHaveURL(/\/migrate/, { timeout: TEST_TIMEOUTS.FAST_NAVIGATION });
     
     // Verify migration page shows the correct data summary
     await migrationHelpers.verifyMigrationPageDataSummary({ leagues: 2, drafts: 2 });
@@ -114,7 +115,7 @@ test.describe('User Signup with Data Migration', () => {
     
     // After signup, MigrationGate should redirect to /migrate page
     console.log('[Test] Waiting for redirect to /migrate...');
-    await expect(page).toHaveURL(/\/migrate/, { timeout: 2000 });
+    await expect(page).toHaveURL(/\/migrate/, { timeout: TEST_TIMEOUTS.FAST_NAVIGATION });
     
     // Verify migration page shows correct data summary
     console.log('[Test] Verifying migration page...');
@@ -133,7 +134,7 @@ test.describe('User Signup with Data Migration', () => {
     console.log('[Test] Checking if migration started (looking for loading screen)...');
     try {
       // Look for the loading screen message that appears when migration starts
-      await expect(page.getByText('Migrating your fantasy data to the cloud...')).toBeVisible({ timeout: 5000 });
+      await expect(page.getByText('Migrating your fantasy data to the cloud...')).toBeVisible({ timeout: TEST_TIMEOUTS.LOADING_SCREEN });
       console.log('[Test] Migration started successfully (loading screen visible)');
     } catch (error) {
       console.log('[Test] Migration may not have started, loading screen not visible');
@@ -157,7 +158,7 @@ test.describe('User Signup with Data Migration', () => {
     
     // Wait for migration to complete and redirect to dashboard
     console.log('[Test] Waiting for migration to complete...');
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 5000 });
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: TEST_TIMEOUTS.NAVIGATION });
     
     // Add more detailed logging before verification
     console.log('[Test] Waiting for dashboard to load...');
@@ -238,7 +239,7 @@ test.describe('User Signup with Data Migration', () => {
     await authPage.signupButton.click();
     
     // MigrationGate should redirect to /migrate page if data exists (even if corrupt)
-    await expect(page).toHaveURL(/\/migrate/, { timeout: 2000 });
+    await expect(page).toHaveURL(/\/migrate/, { timeout: TEST_TIMEOUTS.FAST_NAVIGATION });
     
     // Try to migrate the corrupt data
     const migrateButton = page.getByRole('button', { name: /migrate my data/i });
@@ -247,7 +248,7 @@ test.describe('User Signup with Data Migration', () => {
     
     // Migration should fail and show an error
     const errorElement = page.locator('.bg-red-50, [role="alert"]');
-    await expect(errorElement).toBeVisible({ timeout: 1000 });
+    await expect(errorElement).toBeVisible({ timeout: TEST_TIMEOUTS.ELEMENT_VISIBLE });
     
     // User can still delete data and continue to dashboard
     const deleteButton = page.getByRole('button', { name: /delete local data/i });
@@ -255,15 +256,15 @@ test.describe('User Signup with Data Migration', () => {
     await deleteButton.click();
     
     // After deleting corrupt data, should redirect to dashboard
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 2000 });
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: TEST_TIMEOUTS.FAST_NAVIGATION });
     
     // Wait for the dashboard to fully load
     await page.waitForLoadState('networkidle');
     
     // Wait for dashboard content to appear - both welcome message and league count should be visible
     // The welcome message indicates the page loaded, league count indicates data queries completed
-    await expect(page.getByText(/welcome back/i)).toBeVisible({ timeout: 5000 });
-    await expect(page.getByTestId('dashboard-league-count')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/welcome back/i)).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(page.getByTestId('dashboard-league-count')).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
   });
 
   test('should allow signup without migration when no data exists', async ({ page }) => {
@@ -319,7 +320,7 @@ test.describe('User Signup with Data Migration', () => {
     }
     
     // Should redirect to dashboard without migration
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 2000 });
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: TEST_TIMEOUTS.FAST_NAVIGATION });
     
     // Should show welcome message for new user
     await expect(page.getByText(/welcome/i)).toBeVisible();

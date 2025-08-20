@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { MockDraftPage } from '../../page-objects/mock-draft-page';
 import { testJourneys, ConnectedLeagueSession } from '../../utils/test-journeys';
+import { TEST_TIMEOUTS } from '../../utils/test-constants';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -60,7 +61,7 @@ test.describe('Mock Draft Creation', () => {
     // Setup already navigated to mock drafts
     
     // Wait for tables to load
-    await expect(page.locator('table')).toHaveCount(2, { timeout: 15000 });
+    await expect(page.locator('table')).toHaveCount(2, { timeout: TEST_TIMEOUTS.TABLE_RENDER });
     
     // Should display auction budget
     await expect(page.getByText(/budget.*200/i)).toBeVisible();
@@ -76,7 +77,7 @@ test.describe('Mock Draft Creation', () => {
     // Setup already navigated to mock drafts
     
     // Wait for tables to load
-    await expect(page.locator('table')).toHaveCount(2, { timeout: 15000 });
+    await expect(page.locator('table')).toHaveCount(2, { timeout: TEST_TIMEOUTS.TABLE_RENDER });
     
     // Should display player information from our fixtures
     // Check the player table (second table) for player names
@@ -93,10 +94,10 @@ test.describe('Mock Draft Creation', () => {
     // Setup already navigated to mock drafts
     
     // Loading should eventually complete and show both tables
-    await expect(page.locator('table')).toHaveCount(2, { timeout: 15000 });
+    await expect(page.locator('table')).toHaveCount(2, { timeout: TEST_TIMEOUTS.TABLE_RENDER });
     
     // The loading dialog (specifically the one with role="dialog") should be hidden
-    await expect(page.locator('[role="dialog"]').filter({ hasText: 'Loading' })).not.toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[role="dialog"]').filter({ hasText: 'Loading' })).not.toBeVisible({ timeout: TEST_TIMEOUTS.LOADING_DIALOG });
     
     // Should not show error messages
     await expect(page.getByText(/error|failed|Error|Failed/i)).not.toBeVisible();
@@ -106,7 +107,7 @@ test.describe('Mock Draft Creation', () => {
     // Setup already navigated to mock drafts
     
     // Wait for interface to load with both tables
-    await expect(page.locator('table')).toHaveCount(2, { timeout: 15000 });
+    await expect(page.locator('table')).toHaveCount(2, { timeout: TEST_TIMEOUTS.TABLE_RENDER });
     
     // Should have roster section (first table)
     const rosterTable = page.locator('table').first();
@@ -123,7 +124,7 @@ test.describe('Mock Draft Creation', () => {
     // Setup already navigated to mock drafts
     
     // Wait for interface to load with both tables
-    await expect(page.locator('table')).toHaveCount(2, { timeout: 15000 });
+    await expect(page.locator('table')).toHaveCount(2, { timeout: TEST_TIMEOUTS.TABLE_RENDER });
     
     // Authenticated users should see save/load functionality
     // (This depends on the actual UI - may need adjustment based on implementation)

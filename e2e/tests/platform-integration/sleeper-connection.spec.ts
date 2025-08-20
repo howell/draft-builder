@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { HomePage } from '../../page-objects/home-page';
 import { DatabaseHelpers } from '../../utils/database-helpers';
 import { setupCommonApiMocks, ApiMockPresets, setupApiMocksWithPreset } from '../../utils/reusable-api-setup';
+import { TEST_TIMEOUTS } from '../../utils/test-constants';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -28,7 +29,7 @@ test.describe('Sleeper League Integration', () => {
     await page.getByRole('button', { name: /sign in/i }).first().click();
     
     // Wait for form fields to be enabled (auth context has loaded)
-    await expect(page.locator('input[type="email"]')).toBeEnabled({ timeout: 5000 });
+    await expect(page.locator('input[type="email"]')).toBeEnabled({ timeout: TEST_TIMEOUTS.ELEMENT_ENABLED });
     
     // Fill in credentials and submit
     await page.locator('input[type="email"]').fill(credentials.email);
@@ -37,7 +38,7 @@ test.describe('Sleeper League Integration', () => {
     
     // Wait for successful login by checking URL change or dashboard content
     // Successful login should redirect away from /auth
-    await expect(page).toHaveURL(/\/(dashboard|$)/, { timeout: 10000 });
+    await expect(page).toHaveURL(/\/(dashboard|$)/, { timeout: TEST_TIMEOUTS.SLOW_NAVIGATION });
     
     // Navigate to home page for testing platform integration
     await page.goto('/');
@@ -122,6 +123,6 @@ test.describe('Sleeper League Integration', () => {
     await homePage.submitButton.click();
     
     // Should show API error (504 Gateway Timeout gets converted to "Error finding league: 504")
-    await expect(page.getByText(/Error finding league|504|Gateway Timeout/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Error finding league|504|Gateway Timeout/i)).toBeVisible({ timeout: TEST_TIMEOUTS.API_RESPONSE });
   });
 });

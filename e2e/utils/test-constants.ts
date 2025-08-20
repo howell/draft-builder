@@ -75,14 +75,35 @@ export const TEST_PLAYERS = {
 } as const;
 
 /**
- * API endpoint timeouts for tests
+ * Test timeout constants organized by operation type
+ * These values should be used consistently across all E2E tests
  */
 export const TEST_TIMEOUTS = {
-  PAGE_LOAD: 30000,
-  API_RESPONSE: 15000,
-  TABLE_RENDER: 15000,
-  NAVIGATION: 10000,
-  ELEMENT_VISIBLE: 5000
+  // Element visibility and basic interactions
+  ELEMENT_VISIBLE: 1_000,        // Quick element appearance
+  ELEMENT_ENABLED: 5_000,        // Form fields becoming enabled
+  BUTTON_CLICK: 3_000,           // Button response after click
+  
+  // Navigation and page transitions  
+  FAST_NAVIGATION: 2_000,        // Quick redirects (e.g., /migrate)
+  NAVIGATION: 5_000,             // Standard navigation
+  SLOW_NAVIGATION: 10_000,       // Complex auth flows
+  
+  // Data loading and rendering
+  API_RESPONSE: 5_000,           // Standard API responses
+  TABLE_RENDER: 15_000,          // Complex table loading (mock drafts)
+  DATA_MIGRATION: 5_000,         // Data migration operations
+  
+  // Loading states and complex UI
+  LOADING_DIALOG: 10_000,        // Loading dialogs to disappear
+  LOADING_SCREEN: 5_000,         // Loading screens to appear
+  
+  // Error scenarios and edge cases
+  ERROR_MESSAGE: 20_000,         // Error messages (may involve retries)
+  NETWORK_TIMEOUT: 20_000,       // Network timeout scenarios
+  
+  // Legacy/deprecated - kept for compatibility
+  PAGE_LOAD: 5_000
 } as const;
 
 /**
