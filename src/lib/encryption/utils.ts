@@ -32,7 +32,8 @@ const IV_LENGTH = 16; // CBC IV length
  * Validate encryption setup on app startup
  */
 function validateEncryptionSetup(): void {
-  if (process.env.NODE_ENV === 'production' && !process.env.ENCRYPTION_KEY) {
+  // Only validate on server side - client side doesn't have access to server env vars
+  if (typeof window === 'undefined' && process.env.NODE_ENV === 'production' && !process.env.ENCRYPTION_KEY) {
     throw new Error('ENCRYPTION_KEY environment variable is required in production');
   }
 }
