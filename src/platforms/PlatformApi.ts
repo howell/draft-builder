@@ -70,19 +70,27 @@ export abstract class PlatformApi {
 }
 
 export function mergeDraftAndPlayerInfo(draftData: DraftPick[], playerData: Player[], teams: LeagueTeam[] = [], platform: Platform): DraftedPlayer[] {
-    return draftData.map((pick) => {
+    const result: DraftedPlayer[] = [];
+    
+    for (const pick of draftData) {
+        if (!pick.playerId || pick.playerId === null || pick.playerId === undefined || pick.playerId === '') {
+            console.warn(`[mergeDraftAndPlayerInfo] Skipping pick with invalid player ID:`, pick);
+            continue;
+        }
+        
         const player = playerData.find((player) => player.ids[platform] === pick.playerId);
         if (!player) {
-            console.error('Player not found for pick:', pick);
-            throw new Error('Player not found for pick');
+            console.warn(`[mergeDraftAndPlayerInfo] Player not found for pick ${pick.playerId}, platform: ${platform}, skipping pick:`, pick);
+            continue;
         }
         const team = teams.find((team) => team.id === pick.team);
-        return {
+        result.push({
             ...pick,
             ...player,
             draftedBy: team || pick.team
-        };
-    });
+        });
+    }
+    return result;
 }export function convertBy<T, U>(fn: (arg: T) => U): (arg: T | number) => U | number {
     return (arg: T | number) => {
         if (typeof arg === 'number') {
