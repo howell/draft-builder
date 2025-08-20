@@ -24,7 +24,7 @@ export class AuthPage extends BasePage {
     this.signupButton = page.locator('form').getByRole('button', { name: /create account/i });
     this.switchToSignupButton = page.getByRole('button', { name: /sign up here/i });
     this.switchToLoginButton = page.getByRole('button', { name: /sign in here/i });
-    this.errorMessage = page.locator('[role="alert"]');
+    this.errorMessage = page.locator('[data-testid="login-error-alert"], [data-testid="signup-error-alert"]').first();
     this.successMessage = page.getByText(/account created/i);
     this.migrationPreview = page.getByTestId('migration-preview');
     this.migrationProgress = page.getByTestId('migration-progress');

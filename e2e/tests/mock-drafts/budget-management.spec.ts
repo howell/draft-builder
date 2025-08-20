@@ -4,10 +4,7 @@ import { MockDraftHelpers } from '../../utils/mock-draft-helpers';
 import { testJourneys, ConnectedLeagueSession } from '../../utils/test-journeys';
 import { TEST_TIMEOUTS } from '../../utils/test-constants';
 
-// Budget management tests interact heavily with the same UI components
-// Use serial mode to ensure consistent test execution
-test.describe.configure({ mode: 'serial' });
-
+// 
 test.describe('Mock Draft Budget Management', () => {
   let session: ConnectedLeagueSession;
   let mockDraftPage: MockDraftPage;

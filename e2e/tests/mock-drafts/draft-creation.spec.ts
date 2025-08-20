@@ -3,8 +3,6 @@ import { MockDraftPage } from '../../page-objects/mock-draft-page';
 import { testJourneys, ConnectedLeagueSession } from '../../utils/test-journeys';
 import { TEST_TIMEOUTS } from '../../utils/test-constants';
 
-test.describe.configure({ mode: 'serial' });
-
 test.describe('Mock Draft Creation', () => {
   let session: ConnectedLeagueSession;
   let mockDraftPage: MockDraftPage;

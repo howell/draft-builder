@@ -491,12 +491,12 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                     <div data-testid="budget-display" className="mt-6 p-4 bg-gradient-to-r from-accent-50 to-accent-100 rounded-lg border border-accent-200 dark:from-accent-900/20 dark:to-accent-800/20 dark:border-accent-700">
                         <div className="flex justify-between items-center">
                             <div>
-                                <p className="text-sm font-semibold text-accent-900 dark:text-accent-200" data-testid="budget-total">Total Budget</p>
-                                <p className="text-2xl font-bold text-accent-700 dark:text-accent-300">${auctionBudget}</p>
+                                <p className="text-sm font-semibold text-accent-900 dark:text-accent-200">Total Budget</p>
+                                <p className="text-2xl font-bold text-accent-700 dark:text-accent-300" data-testid="budget-total">${auctionBudget}</p>
                             </div>
                             <div className="text-right">
-                                <p className="text-sm font-semibold text-accent-900 dark:text-accent-200" data-testid="budget-remaining">Remaining</p>
-                                <p className="text-2xl font-bold text-accent-700 dark:text-accent-300">${auctionBudget - budgetSpent}</p>
+                                <p className="text-sm font-semibold text-accent-900 dark:text-accent-200">Remaining</p>
+                                <p className="text-2xl font-bold text-accent-700 dark:text-accent-300" data-testid="budget-remaining">${auctionBudget - budgetSpent}</p>
                             </div>
                         </div>
                     </div>

@@ -53,7 +53,7 @@ export default function LoginForm({ onSwitchToSignUp, onSuccess }: LoginFormProp
       </h2>
       
       {error && (
-        <Alert variant="error" className="mb-4">
+        <Alert variant="error" className="mb-4" data-testid="login-error-alert">
           {error}
         </Alert>
       )}

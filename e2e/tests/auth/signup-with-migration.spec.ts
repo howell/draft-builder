@@ -143,7 +143,7 @@ test.describe('User Signup with Data Migration', () => {
       await page.screenshot({ path: `debug-migration-start-failure-${Date.now()}.png`, fullPage: true });
       
       // Check if there are any error messages
-      const errorElements = await page.locator('[role="alert"], .text-red-800, .bg-red-50').all();
+      const errorElements = await page.locator('[data-testid="signup-error-alert"], .text-red-800, .bg-red-50').all();
       if (errorElements.length > 0) {
         console.log('[Test] Found error elements on page');
         for (let i = 0; i < errorElements.length; i++) {
@@ -247,7 +247,7 @@ test.describe('User Signup with Data Migration', () => {
     await migrateButton.click();
     
     // Migration should fail and show an error
-    const errorElement = page.locator('.bg-red-50, [role="alert"]');
+    const errorElement = page.locator('.bg-red-50, [data-testid*="error"]');
     await expect(errorElement).toBeVisible({ timeout: TEST_TIMEOUTS.ELEMENT_VISIBLE });
     
     // User can still delete data and continue to dashboard
@@ -311,7 +311,7 @@ test.describe('User Signup with Data Migration', () => {
     await page.waitForTimeout(100);
     
     // Debug: Check if there are any error messages on the page
-    const errorMessage = page.getByRole('alert');
+    const errorMessage = page.getByTestId('signup-error-alert');
     const hasError = await errorMessage.count() > 0;
     
     if (hasError) {

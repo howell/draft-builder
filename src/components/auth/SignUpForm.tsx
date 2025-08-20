@@ -84,7 +84,7 @@ export default function SignUpForm({ onSwitchToLogin, onSuccess }: SignUpFormPro
 
       {/* Error Display */}
       {error && (
-        <Alert variant="error">
+        <Alert variant="error" data-testid="signup-error-alert">
           {error}
         </Alert>
       )}

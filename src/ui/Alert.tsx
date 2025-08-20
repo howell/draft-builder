@@ -9,6 +9,7 @@ interface AlertProps {
   icon?: React.ReactNode;
   onClose?: () => void;
   className?: string;
+  'data-testid'?: string;
 }
 
 const variantStyles: Record<AlertVariant, {
@@ -60,6 +61,7 @@ export const Alert: React.FC<AlertProps> = ({
   icon,
   onClose,
   className = '',
+  'data-testid': testId,
 }) => {
   const styles = variantStyles[variant];
   
@@ -67,6 +69,7 @@ export const Alert: React.FC<AlertProps> = ({
     <div
       className={`rounded-lg border p-4 ${styles.container} ${className}`}
       role="alert"
+      data-testid={testId}
     >
       <div className="flex">
         {(icon !== null) && (

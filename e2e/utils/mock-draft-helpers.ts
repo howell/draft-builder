@@ -82,7 +82,7 @@ export class MockDraftHelpers {
   async getBudgetTotal(): Promise<number> {
     const budgetElement = this.page.locator('[data-testid="budget-total"]');
     const budgetText = await budgetElement.textContent();
-    const match = budgetText?.match(/(\d+)/);
+    const match = budgetText?.match(/\$?(\d+)/);
     return match ? parseInt(match[1]) : 0;
   }
 
@@ -92,7 +92,7 @@ export class MockDraftHelpers {
   async getBudgetRemaining(): Promise<number> {
     const remainingElement = this.page.locator('[data-testid="budget-remaining"]');
     const remainingText = await remainingElement.textContent();
-    const match = remainingText?.match(/(\d+)/);
+    const match = remainingText?.match(/\$?(\d+)/);
     return match ? parseInt(match[1]) : 0;
   }
 

@@ -134,7 +134,7 @@ export const AccountBenefits: React.FC<AccountBenefitsProps> = ({
       </div>
 
       {/* Data Security Guarantee */}
-      <Alert variant="success" icon={<span className="text-xl">🛡️</span>} className="mb-6">
+      <Alert variant="success" icon={<span className="text-xl">🛡️</span>} className="mb-6" data-testid="security-guarantee-alert">
         <div>
           <h3 className="font-semibold text-green-800 mb-2">Your Data is Safe</h3>
           <ul className="text-sm text-green-700 space-y-1">

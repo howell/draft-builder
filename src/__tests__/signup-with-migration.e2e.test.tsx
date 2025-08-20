@@ -119,9 +119,10 @@ describe('SignUpForm E2E Test', () => {
     // Should display error message
     expect(screen.getByText('Email already exists')).toBeInTheDocument();
 
-    // Error should be in red background
-    const errorElement = screen.getByText('Email already exists');
-    expect(errorElement.closest('div')).toHaveClass('bg-red-50');
+    // Error should be in red background Alert container
+    const errorText = screen.getByText('Email already exists');
+    const alertContainer = errorText.closest('[role="alert"]');
+    expect(alertContainer).toHaveClass('bg-red-50');
   });
 
   test('shows loading state during signup', () => {
@@ -134,8 +135,8 @@ describe('SignUpForm E2E Test', () => {
 
     render(<SignUpForm onSwitchToLogin={jest.fn()} />);
 
-    // Should show loading button text
-    expect(screen.getByText('Creating Account...')).toBeInTheDocument();
+    // Should show loading button text (Button component shows "Loading..." when loading)
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
     
     // Form fields should be disabled during loading
     expect(screen.getByLabelText(/Email Address/i)).toBeDisabled();
@@ -143,7 +144,7 @@ describe('SignUpForm E2E Test', () => {
     expect(screen.getByLabelText(/Confirm Password/i)).toBeDisabled();
 
     // Submit button should be disabled
-    const submitButton = screen.getByRole('button', { name: /Creating Account.../i });
+    const submitButton = screen.getByRole('button', { name: /Loading.../i });
     expect(submitButton).toBeDisabled();
   });
 

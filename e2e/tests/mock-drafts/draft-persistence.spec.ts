@@ -3,8 +3,6 @@ import { MockDraftPage } from '../../page-objects/mock-draft-page';
 import { MockDraftHelpers } from '../../utils/mock-draft-helpers';
 import { testJourneys, ConnectedLeagueSession } from '../../utils/test-journeys';
 
-test.describe.configure({ mode: 'serial' });
-
 test.describe('Mock Draft Persistence', () => {
   let session: ConnectedLeagueSession;
   let mockDraftPage: MockDraftPage;
