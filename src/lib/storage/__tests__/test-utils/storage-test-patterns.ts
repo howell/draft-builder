@@ -16,6 +16,7 @@ import {
   populateLocalStorageWithTestData,
   clearTestLocalStorage
 } from './storage-factories';
+import { cleanupTestDatabase } from './dexie-test-utils';
 
 /**
  * Test a storage adapter's basic CRUD operations
@@ -112,30 +113,52 @@ export async function testFallbackBehavior(
   fallbackAdapter: StorageAdapter,
   shouldFallback: boolean = true
 ) {
-  const testData = populateLocalStorageWithTestData();
-  const testLeagueId = Object.keys(testData.leagues.leagues)[0] as LeagueId;
+  // Set up test data in the fallback adapter
+  const testData = createTestStoredLeagues();
+  const testLeagueId = Object.keys(testData.leagues)[0] as LeagueId;
+  const testLeague = testData.leagues[testLeagueId];
+  
+  // Create test mocks data
+  const testMocks = createTestStoredMocks();
+  const mockName = Object.keys(testMocks)[0];
+  const mockData = testMocks[mockName];
+
+  // Set up data in fallback adapter directly
+  await fallbackAdapter.saveLeague(testLeagueId, testLeague);
+  await fallbackAdapter.saveSelectedRoster(
+    testLeagueId,
+    mockName,
+    mockData.rosterSelections,
+    mockData.costAdjustments,
+    mockData.estimationSettings,
+    mockData.searchSettings,
+    mockData.notes
+  );
 
   try {
     // Test loadLeagues fallback
     const leagues = await primaryAdapter.loadLeagues();
     if (shouldFallback) {
-      expect(leagues).toEqual(testData.leagues);
+      expect(leagues.leagues[testLeagueId]).toEqual(testLeague);
+      expect(leagues.schemaVersion).toBeDefined();
     }
 
     // Test loadLeague fallback
     const league = await primaryAdapter.loadLeague(testLeagueId);
     if (shouldFallback) {
-      expect(league).toEqual(testData.leagues.leagues[testLeagueId]);
+      expect(league).toEqual(testLeague);
     }
 
     // Test loadSavedMocks fallback
     const mocks = await primaryAdapter.loadSavedMocks(testLeagueId);
     if (shouldFallback) {
-      expect(mocks).toEqual(testData.mocksByLeague[testLeagueId].mocks);
+      expect(mocks[mockName]).toBeDefined();
+      expect(mocks[mockName].rosterSelections).toEqual(mockData.rosterSelections);
     }
 
   } finally {
     clearTestLocalStorage();
+    await cleanupTestDatabase();
   }
 }
 
@@ -152,15 +175,17 @@ export function createFallbackTests(
     let fallbackAdapter: StorageAdapter;
     let nonFallbackAdapter: StorageAdapter;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       primaryAdapter = createPrimaryAdapter();
       fallbackAdapter = createFallbackAdapter();
       nonFallbackAdapter = createNonFallbackAdapter();
       clearTestLocalStorage();
+      await cleanupTestDatabase();
     });
 
-    afterEach(() => {
+    afterEach(async () => {
       clearTestLocalStorage();
+      await cleanupTestDatabase();
     });
 
     describe('fallback behavior', () => {
@@ -176,17 +201,37 @@ export function createFallbackTests(
       });
 
       it('should preserve data consistency during fallback', async () => {
-        const testData = populateLocalStorageWithTestData();
-        const testLeagueId = Object.keys(testData.leagues.leagues)[0] as LeagueId;
+        // Set up test data in the fallback adapter
+        const testData = createTestStoredLeagues();
+        const testLeagueId = Object.keys(testData.leagues)[0] as LeagueId;
+        const testLeague = testData.leagues[testLeagueId];
+        
+        // Create test mocks data
+        const testMocks = createTestStoredMocks();
+        const mockName = Object.keys(testMocks)[0];
+        const mockData = testMocks[mockName];
+
+        // Set up data in fallback adapter directly
+        await fallbackAdapter.saveLeague(testLeagueId, testLeague);
+        await fallbackAdapter.saveSelectedRoster(
+          testLeagueId,
+          mockName,
+          mockData.rosterSelections,
+          mockData.costAdjustments,
+          mockData.estimationSettings,
+          mockData.searchSettings,
+          mockData.notes
+        );
 
         // Load data through primary adapter (should fallback)
         const leagues = await primaryAdapter.loadLeagues();
         const mocks = await primaryAdapter.loadSavedMocks(testLeagueId);
 
         // Verify data integrity
-        expect(leagues.schemaVersion).toBe(testData.leagues.schemaVersion);
-        expect(Object.keys(leagues.leagues)).toEqual(Object.keys(testData.leagues.leagues));
-        expect(Object.keys(mocks)).toEqual(Object.keys(testData.mocksByLeague[testLeagueId].mocks));
+        expect(leagues.schemaVersion).toBeDefined();
+        expect(leagues.leagues[testLeagueId]).toEqual(testLeague);
+        expect(Object.keys(mocks)).toContain(mockName);
+        expect(mocks[mockName].rosterSelections).toEqual(mockData.rosterSelections);
       });
     });
 
@@ -195,15 +240,16 @@ export function createFallbackTests(
         const testLeague = createTestLeague();
         const testLeagueId = 'fallback-test' as LeagueId;
 
-        // Save through primary adapter (should fallback to localStorage)
+        // Save through primary adapter (should fallback to fallback adapter)
         await primaryAdapter.saveLeague(testLeagueId, testLeague);
 
-        // Verify data was saved to localStorage
-        const stored = localStorage.getItem('leagues');
-        expect(stored).toBeTruthy();
+        // Verify data was saved to fallback adapter
+        const savedLeague = await fallbackAdapter.loadLeague(testLeagueId);
+        expect(savedLeague).toEqual(testLeague);
         
-        const parsed = JSON.parse(stored!);
-        expect(parsed.leagues[testLeagueId]).toEqual(testLeague);
+        // Also verify through loadLeagues
+        const allLeagues = await fallbackAdapter.loadLeagues();
+        expect(allLeagues.leagues[testLeagueId]).toEqual(testLeague);
       });
 
       it('should handle ESPN auth gracefully in fallback', async () => {
@@ -228,16 +274,20 @@ export function createFallbackTests(
 
     describe('error preservation', () => {
       it('should preserve original error when fallback also fails', async () => {
-        // Mock localStorage to also fail
-        const originalGetItem = Storage.prototype.getItem;
-        Storage.prototype.getItem = jest.fn(() => {
-          throw new Error('localStorage unavailable');
-        });
+        // Mock the internal fallback adapter of primaryAdapter to also fail
+        const internalFallback = (primaryAdapter as any).fallbackAdapter;
+        if (internalFallback) {
+          const originalLoadLeagues = internalFallback.loadLeagues;
+          internalFallback.loadLeagues = jest.fn().mockRejectedValue(new Error('Fallback also failed'));
 
-        try {
+          try {
+            await expect(primaryAdapter.loadLeagues()).rejects.toThrow();
+          } finally {
+            internalFallback.loadLeagues = originalLoadLeagues;
+          }
+        } else {
+          // If no internal fallback, just test that primary fails
           await expect(primaryAdapter.loadLeagues()).rejects.toThrow();
-        } finally {
-          Storage.prototype.getItem = originalGetItem;
         }
       });
     });

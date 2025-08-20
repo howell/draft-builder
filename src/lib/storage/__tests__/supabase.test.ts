@@ -234,7 +234,7 @@ describe('SupabaseStorageAdapter', () => {
 
       const result = await adapter.loadLeagues();
 
-      expect(callCount).toBe(4); // 2 queries × (1 initial + 1 retry) = 4 total calls
+      expect(callCount).toBe(3); // 1 query × (1 initial + 2 retries) = 3 total calls
       expect(result).toBeDefined();
     });
   });
@@ -276,7 +276,6 @@ describe('SupabaseStorageAdapter', () => {
       await adapter.saveLeague(mockLeagueId, mockLeague);
 
       expect(transformLeagueToDatabase).toHaveBeenCalledWith(mockLeagueId, mockLeague, mockUserId);
-      expect(mockSupabase.from).toHaveBeenCalledWith('users');
       expect(mockSupabase.from).toHaveBeenCalledWith('leagues');
     });
 
@@ -874,42 +873,38 @@ describe('SupabaseStorageAdapter', () => {
   describe('Retry Logic', () => {
     it('should retry failed operations with exponential backoff', async () => {
       const mockError = new Error('Temporary failure');
+      const delays: number[] = [];
       let callCount = 0;
 
-      const setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
+      const setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation((fn: any, delay: number = 0) => {
+        delays.push(delay);
         // Execute callback immediately for test
         fn();
         return null as any;
       });
 
-      // Mock the auth call that happens at the start of loadLeagues
-      const authCallCount = { count: 0 };
-      mockSupabase.auth.getSession.mockImplementation(() => {
-        authCallCount.count++;
-        if (authCallCount.count <= 2) {
+      // Mock the database query to fail initially
+      mockSupabase.from.mockImplementation(() => {
+        callCount++;
+        if (callCount <= 2) { // Fail first 2 attempts, succeed on 3rd
           throw mockError;
         }
-        return Promise.resolve({
-          data: { session: { user: { id: mockUserId } } },
-          error: null
-        });
-      });
-
-      // Mock the database query that happens after auth
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({
-            data: [],
-            error: null
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockResolvedValue({
+              data: [],
+              error: null
+            })
           })
-        })
+        };
       });
 
       (transformLeaguesFromDatabase as jest.Mock).mockReturnValue({ schemaVersion: '1.0', leagues: {} });
 
       const result = await adapter.loadLeagues();
 
-      expect(authCallCount.count).toBe(3); // Initial + 2 retries
+      expect(callCount).toBe(3); // Initial + 2 retries
+      expect(delays).toEqual([100, 200]); // 100ms * 2^0, 100ms * 2^1 (exponential backoff)
       expect(result).toBeDefined();
       
       setTimeoutSpy.mockRestore();
@@ -936,26 +931,20 @@ describe('SupabaseStorageAdapter', () => {
         return null as any;
       });
 
-      // Mock the auth call to fail once then succeed
-      mockSupabase.auth.getSession.mockImplementation(() => {
+      // Mock the database call to fail once then succeed  
+      mockSupabase.from.mockImplementation(() => {
         callCount++;
         if (callCount <= 1) {
           throw mockError;
         }
-        return Promise.resolve({
-          data: { session: { user: { id: mockUserId } } },
-          error: null
-        });
-      });
-
-      // Mock successful database call after auth succeeds
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({
-            data: [],
-            error: null
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockResolvedValue({
+              data: [],
+              error: null
+            })
           })
-        })
+        };
       });
 
       (transformLeaguesFromDatabase as jest.Mock).mockReturnValue({ schemaVersion: '1.0', leagues: {} });

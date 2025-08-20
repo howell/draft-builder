@@ -64,7 +64,7 @@ describe('Complete Error Recovery Tests (Isolated)', () => {
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockImplementation(async () => {
             attemptCount++;
-            if (attemptCount <= 2) {
+            if (attemptCount <= 3) {
               throw networkError;
             }
             return Promise.resolve({ data: [], error: null });
@@ -82,7 +82,7 @@ describe('Complete Error Recovery Tests (Isolated)', () => {
 
       expect(attemptCount).toBe(4); // Initial attempt + 3 retries = 4 total attempts
       expect(result).toBeDefined();
-      expect(consoleWarnSpy).toHaveBeenCalledTimes(2); // Only 2 warnings because 3rd retry succeeds
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(3); // 3 warnings for 3 retry attempts
 
       setTimeoutSpy.mockRestore();
     });
