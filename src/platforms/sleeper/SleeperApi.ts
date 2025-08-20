@@ -1,4 +1,3 @@
-import { decode } from 'punycode';
 import { SeasonId, SleeperLeague } from '../common';
 import { PlatformApi, LeagueInfo, DraftDetail, LeagueHistory, LeagueTeam, Player, convertBy, DraftPick, RosterSettings } from '../PlatformApi';
 import { fetchDraftInfo, fetchDraftPicks, fetchLeagueHistory, fetchLeagueInfo, fetchLeagueTeams, fetchPlayers } from './api';
@@ -78,27 +77,39 @@ export class SleeperApi extends PlatformApi {
     }
 
     public async fetchPlayers(season?: SeasonId): Promise<Player[] | number> {
-        console.log('sleeper: fetchPlayers');
+        console.log('[SleeperApi] fetchPlayers called for season:', season);
         let redis: ReturnType<typeof connectRedis> | undefined;
         try {
             redis = connectRedis();
             const cached = await redis.get(PLAYERS_CACHE_KEY);
-            console.log('sleeper: cached?', !!cached);
-            const cached_data = cached && decodeFromRedis(cached);
-            if (cached_data) {
-                return cached_data
+            console.log('[SleeperApi] Redis cache status:', cached ? 'HIT' : 'MISS');
+            
+            if (cached) {
+                try {
+                    const cached_data : Player[] = await decodeFromRedis(cached);
+                    return cached_data;
+                } catch (error) {
+                    console.error('[SleeperApi] Error decoding cached data:', error);
+                    // Continue to fetch fresh data if cache decode fails
+                }
             }
-            console.log('sleeper: fetching players');
+            console.log('[SleeperApi] Fetching fresh players from Sleeper API');
             const sleeperPlayers = await fetchPlayers();
             if (typeof sleeperPlayers === 'number') {
+                console.error('[SleeperApi] Failed to fetch players, got status:', sleeperPlayers);
                 return sleeperPlayers;
             }
-            console.log('sleeper: fetched players');
-            const players = Object.entries(sleeperPlayers).map(([id, player]) => importSleeperPlayer(id, player));
+            
+            const playerEntries = Object.entries(sleeperPlayers);
+            const players = playerEntries.map(([id, player]) => importSleeperPlayer(id, player));
             const playersString = await encodeForRedis(players);
             await redis.set(PLAYERS_CACHE_KEY, playersString);
-            console.log('sleeper: cached players');
+            console.log('[SleeperApi] Cached players to Redis');
+            
             return players;
+        } catch (error) {
+            console.error('[SleeperApi] Error in fetchPlayers:', error);
+            throw error;
         } finally {
             if (redis) redis.quit();
         }
