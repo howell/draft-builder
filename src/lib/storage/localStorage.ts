@@ -334,4 +334,41 @@ export class LocalStorageAdapter implements StorageAdapter {
       );
     }
   }
+
+  /**
+   * Clear all user data from localStorage
+   * This removes all leagues, drafts, and associated data from localStorage
+   */
+  async clearAllData(): Promise<void> {
+    try {
+      console.log('[LocalStorageAdapter] Clearing all localStorage data');
+      
+      if (!this.isClient) {
+        console.log('[LocalStorageAdapter] Not in client environment, skipping data clear');
+        return;
+      }
+
+      // Remove the main leagues data
+      localStorage.removeItem(SAVED_LEAGUES_KEY);
+      
+      // Get all localStorage keys and remove league-specific mock data
+      const keys = Object.keys(localStorage);
+      for (const key of keys) {
+        // Remove league mock data (numeric keys) and other draft builder data
+        if (/^\d+$/.test(key) || key.startsWith('draft-builder-')) {
+          localStorage.removeItem(key);
+        }
+      }
+      
+      console.log('[LocalStorageAdapter] ✅ Successfully cleared all localStorage data');
+    } catch (error) {
+      this.logError('clearAllData', error);
+      throw createStorageError(
+        'DATA_ERROR',
+        'Failed to clear localStorage data',
+        error,
+        { operation: 'clearAllData' }
+      );
+    }
+  }
 } 
