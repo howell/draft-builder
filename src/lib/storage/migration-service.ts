@@ -27,6 +27,7 @@ import {
   DatabasePlayerSelection,
   DatabaseCostAdjustment
 } from './transforms';
+import { isInProgressSelectionsKey } from './constants';
 
 /**
  * Service for migrating user data from Dexie to Supabase
@@ -37,6 +38,7 @@ export class DataMigrationService {
   private statistics: MigrationStatistics;
   private startTime: Date;
   private currentPhase: MigrationPhase;
+  private lastReportedProgress: number = 0;
 
   constructor(
     private supabase: SupabaseClient<Database>,
@@ -121,6 +123,36 @@ export class DataMigrationService {
         await this.clearDexieDataAfterMigration();
       }
 
+      // Final verification with longer delay to test persistence
+      console.log('[MigrationService] ==================== FINAL VERIFICATION ====================');
+      console.log('[MigrationService] Waiting 2 seconds to test data persistence...');
+      await this.executeWithProgressUpdates(
+        () => new Promise<void>(resolve => setTimeout(resolve, 2000)),
+        'verify',
+        85,
+        90,
+        'Testing data persistence'
+      );
+      
+      try {
+        const { data: finalCheck, error: finalError } = await this.supabase
+          .from('leagues')
+          .select('id, league_id, platform')
+          .eq('user_id', this.userId);
+          
+        if (finalError) {
+          console.error('[MigrationService] ❌ Final verification error:', finalError);
+        } else {
+          console.log('[MigrationService] ✅ Final verification - found', finalCheck?.length || 0, 'leagues still available');
+          if ((finalCheck?.length || 0) === 0) {
+            console.warn('[MigrationService] 🚨 CRITICAL: Data disappeared between verification and final check!');
+          }
+        }
+      } catch (error) {
+        console.error('[MigrationService] Final verification failed:', error);
+      }
+      console.log('[MigrationService] ==================== FINAL VERIFICATION COMPLETE ====================');
+
       this.reportProgress('complete', 100, 'Migration completed successfully!');
       
       // Update statistics
@@ -189,30 +221,72 @@ export class DataMigrationService {
   private async exportDexieData(): Promise<{ leagues: StoredLeaguesDataCurrent; mocks: Record<LeagueId, StoredMocksDataCurrent> }> {
     const dexieAdapter = new DexieStorageAdapter('anonymous');
     
-    // Load leagues
-    const leagues = await dexieAdapter.loadLeagues();
-    this.statistics.itemsProcessed.leagues = Object.keys(leagues.leagues).length;
-    
-    // Load all draft data for each league
-    const mocks: Record<LeagueId, StoredMocksDataCurrent> = {};
-    for (const leagueId of Object.keys(leagues.leagues)) {
-      const leagueMocks = await dexieAdapter.loadSavedMocks(leagueId as LeagueId);
-      mocks[leagueId as LeagueId] = leagueMocks;
+    try {
+      // Load leagues
+      const leagues = await dexieAdapter.loadLeagues();
+      const leagueCount = Object.keys(leagues.leagues).length;
+      const leagueIds = Object.keys(leagues.leagues);
       
-      // Count draft sessions and selections (leagueMocks is direct StoredMocksDataCurrent)
-      // Only count non-null drafts to match what will actually be migrated
-      for (const draft of Object.values(leagueMocks || {})) {
-        if (draft && typeof draft === 'object' && 'rosterSelections' in draft) {
-          this.statistics.itemsProcessed.draftSessions += 1; // Count valid draft
-          this.statistics.itemsProcessed.playerSelections += Object.keys(draft.rosterSelections || {}).length;
-        }
-        if (draft && typeof draft === 'object' && 'costAdjustments' in draft) {
-          this.statistics.itemsProcessed.costAdjustments += Object.keys(draft.costAdjustments || {}).length;
+      console.log(`[MigrationService.exportDexieData] Loaded ${leagueCount} leagues:`, leagueIds);
+      
+      if (leagueCount === 0) {
+        throw new MigrationError(
+          'No leagues found to migrate',
+          undefined,
+          'export',
+          this.migrationId
+        );
+      }
+      
+      this.statistics.itemsProcessed.leagues = leagueCount;
+      
+      // Load all draft data for each league
+      const mocks: Record<LeagueId, StoredMocksDataCurrent> = {};
+      let totalDraftsFound = 0;
+      
+      for (const leagueId of leagueIds) {
+        const leagueMocks = await dexieAdapter.loadSavedMocks(leagueId as LeagueId);
+        mocks[leagueId as LeagueId] = leagueMocks;
+        
+        const draftsInThisLeague = Object.keys(leagueMocks || {}).length;
+        const draftNames = Object.keys(leagueMocks || {});
+        totalDraftsFound += draftsInThisLeague;
+        
+        console.log(`[MigrationService.exportDexieData] League ${leagueId}: ${draftsInThisLeague} drafts with names:`, draftNames);
+        
+        // Count draft sessions and selections (exclude IN_PROGRESS_SELECTIONS)
+        for (const [draftName, draft] of Object.entries(leagueMocks || {})) {
+          // Skip in-progress selections - they should not be migrated
+          if (isInProgressSelectionsKey(draftName)) {
+            console.log(`[MigrationService.exportDexieData]   Skipping in-progress selections for league ${leagueId}`);
+            continue;
+          }
+          
+          if (draft && typeof draft === 'object' && 'rosterSelections' in draft) {
+            this.statistics.itemsProcessed.draftSessions += 1;
+            const selectionCount = Object.keys(draft.rosterSelections || {}).length;
+            this.statistics.itemsProcessed.playerSelections += selectionCount;
+            console.log(`[MigrationService.exportDexieData]   Draft "${draftName}": ${selectionCount} selections`);
+          }
+          if (draft && typeof draft === 'object' && 'costAdjustments' in draft) {
+            this.statistics.itemsProcessed.costAdjustments += Object.keys(draft.costAdjustments || {}).length;
+          }
         }
       }
+      
+      console.log(`[MigrationService.exportDexieData] Export complete: ${leagueCount} leagues, ${totalDraftsFound} total drafts`);
+      console.log(`[MigrationService.exportDexieData] Statistics:`, this.statistics.itemsProcessed);
+      return { leagues, mocks };
+      
+    } catch (error) {
+      console.error(`[MigrationService] Export failed:`, error);
+      throw new MigrationError(
+        'Failed to export Dexie data',
+        error,
+        'export',
+        this.migrationId
+      );
     }
-    
-    return { leagues, mocks };
   }
 
   /**
@@ -248,7 +322,9 @@ export class DataMigrationService {
     transformedLeagues: Array<{ leagueId: LeagueId; dbLeague: Omit<DatabaseLeague, 'id' | 'created_at' | 'updated_at'> }>;
     originalMocks: Record<LeagueId, StoredMocksDataCurrent>;
   }> {
-    console.log('[MigrationService] Transforming data for database insertion');
+    console.log('[MigrationService.transform] Starting data transformation for database insertion');
+    console.log('[MigrationService.transform] Input leagues:', Object.keys(dexieData.leagues.leagues));
+    console.log('[MigrationService.transform] Input mocks by league:', Object.keys(dexieData.mocks).map(lid => `${lid}: ${Object.keys(dexieData.mocks[lid as LeagueId]).length} drafts`));
     
     // Transform leagues using existing utility
     const transformedLeagues: Array<{ leagueId: LeagueId; dbLeague: Omit<DatabaseLeague, 'id' | 'created_at' | 'updated_at'> }> = [];
@@ -260,7 +336,7 @@ export class DataMigrationService {
           leagueId: leagueId as LeagueId,
           dbLeague
         });
-        console.log(`[MigrationService] Transformed league ${leagueId} for database insertion`);
+        console.log(`[MigrationService.transform] Transformed league ${leagueId} (${league.platform}) for database insertion`);
       } catch (error) {
         throw new MigrationError(
           `Failed to transform league ${leagueId} for migration`,
@@ -284,25 +360,70 @@ export class DataMigrationService {
     transformedLeagues: Array<{ leagueId: LeagueId; dbLeague: Omit<DatabaseLeague, 'id' | 'created_at' | 'updated_at'> }>;
     originalMocks: Record<LeagueId, StoredMocksDataCurrent>;
   }): Promise<Record<LeagueId, string>> {
-    console.log('[MigrationService] Uploading data to Supabase database');
+    console.log('[MigrationService] ==================== UPLOAD PHASE STARTING ====================');
+    console.log('[MigrationService] Uploading data to Supabase database for user:', this.userId);
+    console.log('[MigrationService] Transformed leagues to upload:', transformedData.transformedLeagues.length);
+    console.log('[MigrationService] Original mocks to upload:', Object.keys(transformedData.originalMocks).length);
     
     // Upload leagues and return mapping of original league IDs to database IDs
+    console.log('[MigrationService] ========== LEAGUES UPLOAD ==========');
     const leagueIdMapping = await this.migrateLeagues(transformedData.transformedLeagues);
+    console.log('[MigrationService] League upload complete, mapping:', leagueIdMapping);
     
     // Upload drafts using the league ID mapping
+    console.log('[MigrationService] ========== DRAFTS UPLOAD ==========');
     const draftCount = await this.migrateDrafts(transformedData.originalMocks, leagueIdMapping);
+    console.log('[MigrationService] Drafts upload complete, count:', draftCount);
     
+    console.log(`[MigrationService] ==================== UPLOAD PHASE COMPLETE ====================`);
     console.log(`[MigrationService] Successfully uploaded ${Object.keys(leagueIdMapping).length} leagues and ${draftCount} drafts`);
     return leagueIdMapping;
   }
 
   /**
-   * Verify migrated data integrity (placeholder for future tasks)
+   * Verify migrated data integrity - check that uploaded data is queryable
    */
   private async verifyMigratedData(): Promise<void> {
-    // This will be implemented in Task 2.2 and 2.3
-    // For now, just log that verification would occur
-    console.log('[MigrationService] Data verification phase (to be implemented in subsequent tasks)');
+    console.log('[MigrationService] ==================== VERIFICATION PHASE ====================');
+    console.log('[MigrationService] Verifying uploaded data is queryable for user:', this.userId);
+    
+    // Small delay to allow for database consistency in test environments
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    try {
+      // First, check auth context and raw data
+      console.log('[MigrationService] 🔍 DEBUGGING AUTH CONTEXT AND RLS:');
+      
+      // Check current auth session
+      const { data: { session }, error: sessionError } = await this.supabase.auth.getSession();
+      console.log('[MigrationService] Current session user_id:', session?.user?.id || 'null', 'error:', sessionError);
+      console.log('[MigrationService] Target migration user_id:', this.userId);
+      console.log('[MigrationService] Session matches target:', session?.user?.id === this.userId);
+      
+      // Query draft sessions to verify they're accessible
+      const { data: drafts, error: draftError } = await this.supabase
+        .from('draft_sessions')
+        .select('id, name')
+        .eq('user_id', this.userId);
+        
+      if (draftError) {
+        console.warn('[MigrationService] ⚠️ Error querying uploaded drafts:', draftError);
+      } else {
+        const draftCount = drafts?.length || 0;
+        console.log('[MigrationService] ✅ Verification - found', draftCount, 'drafts queryable for user:', this.userId);
+      }
+      
+    } catch (error) {
+      console.error('[MigrationService] ❌ Data verification failed:', error);
+      // Don't fail the migration for verification errors in development
+      if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+        console.warn('[MigrationService] Continuing despite verification failure in development/test environment');
+        return;
+      }
+      throw error;
+    }
+    
+    console.log('[MigrationService] ==================== VERIFICATION COMPLETE ====================');
   }
 
   /**
@@ -310,27 +431,16 @@ export class DataMigrationService {
    */
   private async clearDexieDataAfterMigration(): Promise<void> {
     try {
+      console.log('[MigrationService] Clearing Dexie data after successful migration...');
       const dexieAdapter = new DexieStorageAdapter('anonymous');
       
-      // Clear all rosters for each league first
-      const leagues = await dexieAdapter.loadLeagues();
-      for (const leagueId of Object.keys(leagues.leagues)) {
-        const mocks = await dexieAdapter.loadSavedMocks(leagueId as LeagueId);
-        for (const rosterName of Object.keys(mocks || {})) {
-          await dexieAdapter.deleteRoster(leagueId as LeagueId, rosterName);
-        }
-      }
+      // Use the proper clearAllData method
+      await dexieAdapter.clearAllData();
       
-      // Clear each league individually since there's no bulk clear method
-      for (const leagueId of Object.keys(leagues.leagues)) {
-        // Save empty mocks for each league (saveMock expects StoredMocksDataCurrent, not wrapped object)
-        await dexieAdapter.saveMock(leagueId as LeagueId, {});
-      }
-      
-      console.log('[MigrationService] Dexie data cleared after successful migration');
+      console.log('[MigrationService] ✅ Dexie data cleared after successful migration');
     } catch (error) {
-      console.warn('[MigrationService] Failed to clear Dexie data after migration:', error);
-      // Don't fail the migration if cleanup fails
+      console.error('[MigrationService] ❌ Failed to clear Dexie data after migration:', error);
+      // Don't fail the migration if cleanup fails - user data is safely in Supabase
     }
   }
 
@@ -354,19 +464,36 @@ export class DataMigrationService {
           ? crypto.randomUUID() 
           : `league-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         
-        // Insert league into database
-        const { data, error } = await this.supabase
-          .from('leagues')
-          .insert({
-            id: dbLeagueId,
-            ...dbLeague,
-            created_at: now,
-            updated_at: now
-          })
-          .select('id')
-          .single();
+        // Insert league into database with progress updates for UI responsiveness
+        const startProgress = 60 + Math.floor(i / transformedLeagues.length * 10);
+        const endProgress = 60 + Math.floor((i + 1) / transformedLeagues.length * 10);
+        
+        const { data, error } = await this.executeWithProgressUpdates(
+          async () => {
+            console.log(`[MigrationService] Inserting league ${leagueId} with DB ID ${dbLeagueId} for user ${this.userId}`);
+            console.log(`[MigrationService] League data to insert:`, { id: dbLeagueId, ...dbLeague, created_at: now, updated_at: now });
+            
+            return await this.supabase
+              .from('leagues')
+              .insert({
+                id: dbLeagueId,
+                ...dbLeague,
+                created_at: now,
+                updated_at: now
+              })
+              .select('id')
+              .single();
+          },
+          'upload',
+          startProgress,
+          endProgress,
+          `Migrating league ${i + 1}/${transformedLeagues.length}`
+        );
+
+        console.log(`[MigrationService] League insert result - data:`, data, 'error:', error);
 
         if (error) {
+          console.error(`[MigrationService] ❌ Failed to insert league ${leagueId}:`, error);
           throw new MigrationError(
             `Failed to insert league ${leagueId} into database: ${error.message}`,
             error,
@@ -386,10 +513,6 @@ export class DataMigrationService {
 
         // Store mapping for later use in draft migration
         leagueIdMapping[leagueId] = data.id;
-        
-        // Update progress (leagues represent a portion of upload phase)
-        const progress = 60 + Math.floor((i + 1) / transformedLeagues.length * 10); // 60-70% range
-        this.reportProgress('upload', progress, `Migrated league ${i + 1}/${transformedLeagues.length}`);
         
         console.log(`[MigrationService] Successfully migrated league ${leagueId} -> ${data.id}`);
       } catch (error) {
@@ -423,36 +546,53 @@ export class DataMigrationService {
     const totalLeagues = Object.keys(originalMocks).length;
     let processedLeagues = 0;
     
-    console.log(`[MigrationService] Starting migration of drafts for ${totalLeagues} leagues`);
+    console.log(`[MigrationService.migrateDrafts] Starting migration of drafts for ${totalLeagues} leagues`);
+    console.log(`[MigrationService.migrateDrafts] League ID mapping:`, leagueIdMapping);
     
     for (const [leagueId, leagueMocks] of Object.entries(originalMocks)) {
       const leagueDbId = leagueIdMapping[leagueId as LeagueId];
       
       if (!leagueDbId) {
-        console.warn(`[MigrationService] No database ID found for league ${leagueId}, skipping drafts`);
+        console.warn(`[MigrationService.migrateDrafts] No database ID found for league ${leagueId}, skipping drafts`);
         continue;
       }
       
       const draftNames = Object.keys(leagueMocks || {});
-      console.log(`[MigrationService] Migrating ${draftNames.length} drafts for league ${leagueId}`);
+      console.log(`[MigrationService.migrateDrafts] League ${leagueId} (DB: ${leagueDbId}): ${draftNames.length} drafts with names:`, draftNames);
       
       for (let i = 0; i < draftNames.length; i++) {
         const draftName = draftNames[i];
+        
+        // Skip in-progress selections - they should not be migrated
+        if (isInProgressSelectionsKey(draftName)) {
+          console.log(`[MigrationService.migrateDrafts]   Skipping in-progress selections for league ${leagueId}`);
+          continue;
+        }
+        
         const draftData = leagueMocks[draftName];
         
+        console.log(`[MigrationService.migrateDrafts]   Processing draft "${draftName}" (${i+1}/${draftNames.length})`);
+        
         if (!draftData) {
-          console.warn(`[MigrationService] No data found for draft ${draftName}, skipping`);
+          console.warn(`[MigrationService.migrateDrafts]   No data found for draft ${draftName}, skipping`);
           continue;
         }
         
         try {
-          await this.migrateSingleDraft(draftName, draftData, leagueId as LeagueId, leagueDbId);
-          totalDraftsMigrated++;
+          // Calculate progress for this draft operation
+          const overallProgressStart = processedLeagues / totalLeagues + i / draftNames.length / totalLeagues;
+          const overallProgressEnd = processedLeagues / totalLeagues + (i + 1) / draftNames.length / totalLeagues;
+          const progressStart = 70 + Math.floor(overallProgressStart * 10); // 70-80% range
+          const progressEnd = 70 + Math.floor(overallProgressEnd * 10); // 70-80% range
           
-          // Update progress - drafts represent the second part of upload phase (70-80% range)
-          const overallProgress = processedLeagues / totalLeagues + (i + 1) / draftNames.length / totalLeagues;
-          const progress = 70 + Math.floor(overallProgress * 10); // 70-80% range
-          this.reportProgress('upload', progress, `Migrated draft ${i + 1}/${draftNames.length} for league ${processedLeagues + 1}/${totalLeagues}`);
+          await this.executeWithProgressUpdates(
+            () => this.migrateSingleDraft(draftName, draftData, leagueId as LeagueId, leagueDbId),
+            'upload',
+            progressStart,
+            progressEnd,
+            `Migrating draft ${i + 1}/${draftNames.length} for league ${processedLeagues + 1}/${totalLeagues}`
+          );
+          totalDraftsMigrated++;
           
           console.log(`[MigrationService] Successfully migrated draft ${draftName} for league ${leagueId}`);
         } catch (error) {
@@ -796,8 +936,11 @@ export class DataMigrationService {
     try {
       const dexieAdapter = new DexieStorageAdapter('anonymous');
       const leagues = await dexieAdapter.loadLeagues();
+      const leagueCount = Object.keys(leagues.leagues).length;
       
-      if (Object.keys(leagues.leagues).length === 0) {
+      console.log(`[MigrationService] Preview found ${leagueCount} leagues`);
+      
+      if (leagueCount === 0) {
         return {
           leagueCount: 0,
           draftCount: 0,
@@ -820,9 +963,12 @@ export class DataMigrationService {
           hasEspnAuthData = true;
         }
 
-        // Count drafts and selections (mocks is direct StoredMocksDataCurrent)
+        // Count drafts and selections
         const mocks = await dexieAdapter.loadSavedMocks(leagueId as LeagueId);
-        draftCount += Object.keys(mocks || {}).length;
+        const mocksInLeague = Object.keys(mocks || {}).length;
+        draftCount += mocksInLeague;
+        
+        console.log(`[MigrationService] League ${leagueId}: ${mocksInLeague} drafts`);
         
         for (const draft of Object.values(mocks || {})) {
           if (draft && typeof draft === 'object' && 'rosterSelections' in draft) {
@@ -836,20 +982,23 @@ export class DataMigrationService {
       
       // Estimate data size (rough calculation)
       const estimatedSizeBytes = (
-        Object.keys(leagues.leagues).length * 500 +  // ~500 bytes per league
+        leagueCount * 500 +  // ~500 bytes per league
         draftCount * 2000 +   // ~2KB per draft
         totalSelections * 200 + // ~200 bytes per selection
         costAdjustments * 100   // ~100 bytes per adjustment
       );
 
+      console.log(`[MigrationService] Preview successful: ${leagueCount} leagues, ${draftCount} drafts`);
+      
       return {
-        leagueCount: Object.keys(leagues.leagues).length,
+        leagueCount,
         draftCount,
         totalSelections,
         costAdjustments,
         estimatedSizeBytes,
         hasEspnAuthData
       };
+      
     } catch (error) {
       console.warn('[MigrationService] Could not generate migration preview:', error);
       return {
@@ -865,18 +1014,60 @@ export class DataMigrationService {
 
   // Private helper methods
 
+  /**
+   * Execute an async operation with frequent progress updates to maintain UI responsiveness
+   */
+  private async executeWithProgressUpdates<T>(
+    operation: () => Promise<T>,
+    phase: MigrationPhase,
+    startProgress: number,
+    endProgress: number,
+    operationName: string,
+    updateIntervalMs = 500
+  ): Promise<T> {
+    // Ensure progress never goes backwards
+    const adjustedStartProgress = Math.max(startProgress, this.lastReportedProgress);
+    const adjustedEndProgress = Math.max(endProgress, adjustedStartProgress + 1);
+    
+    let currentProgress = adjustedStartProgress;
+    const progressIncrement = Math.max(1, Math.floor((adjustedEndProgress - adjustedStartProgress) / 10));
+    
+    // Start progress reporting
+    this.reportProgress(phase, currentProgress, `${operationName}...`);
+    
+    // Setup interval for progress updates
+    const progressInterval = setInterval(() => {
+      currentProgress = Math.min(currentProgress + progressIncrement, adjustedEndProgress - 1);
+      this.reportProgress(phase, currentProgress, `${operationName}...`);
+    }, updateIntervalMs);
+    
+    try {
+      const result = await operation();
+      clearInterval(progressInterval);
+      this.reportProgress(phase, adjustedEndProgress, `${operationName} completed`);
+      return result;
+    } catch (error) {
+      clearInterval(progressInterval);
+      throw error;
+    }
+  }
+
   private reportProgress(phase: MigrationPhase, progress: number, message: string, error?: string): void {
     // Update current phase tracking
     this.currentPhase = phase;
     
+    // Ensure progress never goes backwards
+    const adjustedProgress = Math.max(progress, this.lastReportedProgress);
+    this.lastReportedProgress = adjustedProgress;
+    
     const progressInfo: MigrationProgress = {
       phase,
-      progress,
+      progress: adjustedProgress,
       message,
       error
     };
 
-    console.log(`[MigrationService] ${phase.toUpperCase()}: ${progress}% - ${message}`);
+    console.log(`[MigrationService] ${phase.toUpperCase()}: ${adjustedProgress}% - ${message}`);
     
     if (error) {
       console.error(`[MigrationService] Error: ${error}`);

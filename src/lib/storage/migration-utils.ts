@@ -5,7 +5,7 @@
 
 import { LeagueId } from '@/platforms/common';
 import { DexieStorageAdapter } from './dexie';
-import { SAVED_LEAGUES_KEY } from './constants';
+import { isInProgressSelectionsKey } from './constants';
 
 /**
  * Summary of user data available for migration
@@ -15,10 +15,6 @@ export interface DataSummary {
   leagueCount: number;
   /** Number of draft sessions saved */
   draftCount: number;
-  /** Total number of player selections across all drafts */
-  totalSelections: number;
-  /** Number of cost adjustments made */
-  costAdjustments: number;
 }
 
 /**
@@ -27,38 +23,37 @@ export interface DataSummary {
  */
 export async function hasMigratableData(): Promise<boolean> {
   try {
+    console.log('[MigrationUtils.hasMigratableData] Checking for migratable data...');
+    
     // Check if running in browser environment
     if (typeof window === 'undefined') {
+      console.log('[MigrationUtils.hasMigratableData] Not in browser environment');
       return false;
     }
     
-    // Use DexieStorageAdapter to check for data
-    const dexieAdapter = new DexieStorageAdapter('anonymous');
+    // Use DexieStorageAdapter for anonymous user
+    const adapter = new DexieStorageAdapter('anonymous');
     
-    // Try to load leagues data
-    const leagues = await dexieAdapter.loadLeagues();
+    // Load leagues using the adapter
+    const leaguesData = await adapter.loadLeagues();
+    const leagueIds = Object.keys(leaguesData.leagues);
     
-    if (leagues && leagues.leagues && typeof leagues.leagues === 'object') {
-      const leagueCount = Object.keys(leagues.leagues).length;
-      return leagueCount > 0;
+    console.log('[MigrationUtils.hasMigratableData] Found leagues:', leagueIds.length);
+    
+    if (leagueIds.length > 0) {
+      console.log(`[MigrationUtils.hasMigratableData] Found ${leagueIds.length} leagues:`, leagueIds);
+      return true;
     }
     
+    console.log('[MigrationUtils.hasMigratableData] No leagues found');
     return false;
   } catch (error) {
+    console.error('[MigrationUtils.hasMigratableData] Error checking for data:', error);
     // Any error means no accessible data
     return false;
   }
 }
 
-/**
- * Legacy function for backward compatibility - now redirects to async function
- * @deprecated Use hasMigratableData() instead
- */
-export function hasLocalStorageData(): boolean {
-  console.warn('[hasLocalStorageData] This function is deprecated. Use hasMigratableData() instead.');
-  // For legacy compatibility, return false and let the async version handle it
-  return false;
-}
 
 /**
  * Get a comprehensive summary of Dexie data for migration preview
@@ -71,9 +66,7 @@ export async function getLocalStorageDataSummary(): Promise<DataSummary> {
     // Initialize summary with zero counts
     const summary: DataSummary = {
       leagueCount: 0,
-      draftCount: 0,
-      totalSelections: 0,
-      costAdjustments: 0
+      draftCount: 0
     };
     
     // Check if running in browser environment
@@ -81,55 +74,44 @@ export async function getLocalStorageDataSummary(): Promise<DataSummary> {
       return summary;
     }
     
-    // Use DexieStorageAdapter for consistent data access
-    const dexieAdapter = new DexieStorageAdapter('anonymous');
+    // Use DexieStorageAdapter for anonymous user
+    const adapter = new DexieStorageAdapter('anonymous');
     
-    // Load leagues data
-    let leagues;
+    // Get leagues for anonymous user
+    let leaguesData;
     try {
-      leagues = await dexieAdapter.loadLeagues();
+      leaguesData = await adapter.loadLeagues();
+      console.log('[MigrationUtils.getDataSummary] Loaded leagues:', Object.keys(leaguesData.leagues).length);
     } catch (error) {
-      console.warn('[MigrationUtils] Failed to load leagues data:', error);
+      console.warn('[MigrationUtils.getDataSummary] Failed to load leagues data:', error);
       return summary;
     }
     
     // Count leagues
-    const leagueIds = Object.keys(leagues.leagues);
+    const leagueIds = Object.keys(leaguesData.leagues);
     summary.leagueCount = leagueIds.length;
+    console.log(`[MigrationUtils.getDataSummary] Found ${summary.leagueCount} leagues:`, leagueIds);
     
     // If no leagues, return early
     if (summary.leagueCount === 0) {
       return summary;
     }
     
-    // Analyze each league's draft data
+    // Analyze each league's draft data using the adapter
     for (const leagueId of leagueIds) {
       try {
-        const mocks = await dexieAdapter.loadSavedMocks(leagueId as LeagueId);
+        // Load mocks/drafts for this league using the adapter
+        const mocksData = await adapter.loadSavedMocks(leagueId as LeagueId);
         
-        const draftNames = Object.keys(mocks);
-        summary.draftCount += draftNames.length;
+        // Filter out in-progress selections from draft count
+        const completedDrafts = Object.keys(mocksData).filter(draftName => {
+          // Filter out any drafts that are in-progress selections
+          return !isInProgressSelectionsKey(draftName);
+        });
         
-        // Count selections and adjustments in each draft
-        for (const draftName of draftNames) {
-          const draft = mocks[draftName];
-          
-          if (draft) {
-            // Count player selections
-            if (draft.rosterSelections && typeof draft.rosterSelections === 'object') {
-              const selectionsCount = Object.keys(draft.rosterSelections).length;
-              summary.totalSelections += selectionsCount;
-            }
-            
-            // Count cost adjustments
-            if (draft.costAdjustments && typeof draft.costAdjustments === 'object') {
-              const adjustmentsCount = Object.keys(draft.costAdjustments).length;
-              summary.costAdjustments += adjustmentsCount;
-            }
-          }
-        }
+        summary.draftCount += completedDrafts.length;
       } catch (error) {
-        console.warn(`[MigrationUtils] Failed to load mocks for league ${leagueId}:`, error);
+        console.warn(`[MigrationUtils] Failed to analyze league ${leagueId}:`, error);
         // Continue processing other leagues even if one fails
         continue;
       }
@@ -141,116 +123,32 @@ export async function getLocalStorageDataSummary(): Promise<DataSummary> {
     // Return zero counts on any error
     return {
       leagueCount: 0,
-      draftCount: 0,
-      totalSelections: 0,
-      costAdjustments: 0
+      draftCount: 0
     };
   }
 }
 
-/**
- * Check if localStorage data appears to be corrupted or invalid
- * This can help determine if migration should be attempted
- */
-export function validateLocalStorageData(): { isValid: boolean; issues: string[] } {
-  const issues: string[] = [];
-  
-  try {
-    // Check if running in browser environment
-    if (typeof window === 'undefined' || !window.localStorage) {
-      issues.push('localStorage not available');
-      return { isValid: false, issues };
-    }
-    
-    // Check leagues data structure
-    const leaguesData = localStorage.getItem(SAVED_LEAGUES_KEY);
-    if (leaguesData) {
-      try {
-        const parsed = JSON.parse(leaguesData);
-        
-        if (!parsed || typeof parsed !== 'object') {
-          issues.push('Leagues data is not a valid object');
-        } else {
-          if (!parsed.schemaVersion) {
-            issues.push('Leagues data missing schema version');
-          }
-          
-          if (!parsed.leagues || typeof parsed.leagues !== 'object') {
-            issues.push('Leagues data missing leagues object');
-          } else {
-            // Validate each league has required properties
-            for (const [leagueId, league] of Object.entries(parsed.leagues)) {
-              if (!league || typeof league !== 'object') {
-                issues.push(`League ${leagueId} is not a valid object`);
-                continue;
-              }
-              
-              const l = league as any;
-              if (!l.platform || !l.id) {
-                issues.push(`League ${leagueId} missing required properties (platform, id)`);
-              }
-            }
-          }
-        }
-      } catch (parseError) {
-        issues.push('Leagues data is not valid JSON');
-      }
-    }
-    
-    return { isValid: issues.length === 0, issues };
-  } catch (error) {
-    issues.push(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    return { isValid: false, issues };
-  }
-}
 
 /**
- * Clear all localStorage data - use with caution!
- * This is primarily intended for testing or post-migration cleanup
+ * Clear all local data - use with caution!
+ * This clears Dexie data for anonymous users and is primarily intended for post-migration cleanup
  */
-export function clearLocalStorageData(): void {
+export async function clearLocalStorageData(): Promise<void> {
   try {
-    if (typeof window === 'undefined' || !window.localStorage) {
+    console.log('[MigrationUtils] Clearing local data...');
+    
+    if (typeof window === 'undefined') {
+      console.log('[MigrationUtils] Not in browser environment, skipping data clear');
       return;
     }
     
-    // Remove leagues data
-    localStorage.removeItem(SAVED_LEAGUES_KEY);
+    // Clear Dexie data for anonymous user
+    const adapter = new DexieStorageAdapter('anonymous');
+    await adapter.clearAllData();
     
-    // Remove in-progress selections if they exist
-    const inProgressKey = '##IN_PROGRESS_SELECTIONS##';
-    localStorage.removeItem(inProgressKey);
-    
-    // Find and remove league-specific mock data
-    // This is more complex as we need to identify which keys are league IDs
-    const keysToRemove: string[] = [];
-    
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key !== SAVED_LEAGUES_KEY && key !== inProgressKey) {
-        // Check if this looks like mock data by trying to parse it
-        try {
-          const data = localStorage.getItem(key);
-          if (data) {
-            const parsed = JSON.parse(data);
-            if (parsed && parsed.schemaVersion && parsed.mocks) {
-              keysToRemove.push(key);
-            }
-          }
-        } catch {
-          // If it doesn't parse as expected, leave it alone
-        }
-      }
-    }
-    
-    // Remove identified mock data keys
-    keysToRemove.forEach(key => {
-      localStorage.removeItem(key);
-    });
-    
-    // Cleared localStorage data
+    console.log('[MigrationUtils] ✅ Successfully cleared all local data');
   } catch (error) {
-    console.error('[MigrationUtils] Error clearing localStorage data:', error);
+    console.error('[MigrationUtils] Error clearing local data:', error);
     throw error;
   }
 }
