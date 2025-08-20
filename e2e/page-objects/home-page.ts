@@ -56,11 +56,43 @@ export class HomePage extends BasePage {
     await this.leagueIdInput.fill(leagueId);
     await this.submitButton.click();
     
-    // Wait for either success (navigation) or error
-    await Promise.race([
-      this.page.waitForURL(/\/league/, { timeout: 30000 }),
-      this.errorMessage.waitFor({ state: 'visible', timeout: 30000 })
-    ]);
+    // Wait for navigation or error with proper handling
+    const navigationPromise = this.page.waitForURL(
+      url => {
+        // url is a URL object in Playwright
+        return url.href.includes(`/league/${leagueId}`) || url.pathname.includes(`/league/${leagueId}`);
+      },
+      { timeout: 20000, waitUntil: 'domcontentloaded' }
+    );
+    
+    const errorPromise = this.errorMessage.waitFor({ 
+      state: 'visible', 
+      timeout: 20000 
+    });
+    
+    try {
+      await Promise.race([navigationPromise, errorPromise]);
+      
+      // Check if we got an error
+      if (await this.errorMessage.isVisible()) {
+        throw new Error('League connection failed - error message displayed');
+      }
+    } catch (error) {
+      // Check if we actually navigated successfully
+      const currentUrl = this.page.url();
+      if (currentUrl.includes(`/league/${leagueId}`)) {
+        console.log(`Navigation succeeded to: ${currentUrl}`);
+        return; // Success
+      }
+      
+      // Check for loading state stuck
+      const loadingDialog = this.page.locator('[role="dialog"]').filter({ hasText: /Loading|Finding League/i });
+      if (await loadingDialog.isVisible()) {
+        console.error('Loading dialog still visible after timeout');
+      }
+      
+      throw error;
+    }
   }
 
   async expectLeagueConnectionSuccess() {

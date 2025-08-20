@@ -160,9 +160,7 @@ export class MigrationDataHelpers {
     // Save the roster using the helper's method with skip confirmation for speed
     await this.mockDraftHelpers.saveRoster(draftName, { skipConfirmation: true });
     
-    // IMPORTANT: Extended wait for IndexedDB persistence
-    // Drafts need time to fully persist to IndexedDB
-    await this.page.waitForTimeout(3000);
+    await this.page.waitForTimeout(100);
     
     console.log(`[MigrationData] ✅ Created draft "${draftName}"`);
   }
@@ -307,13 +305,13 @@ export class MigrationDataHelpers {
    */
   async waitForMigrationDetection(): Promise<void> {
     // Migration detection can take a moment as it scans storage
-    await this.page.waitForTimeout(2000);
+    await this.page.waitForTimeout(500);
     
     // Check if migration preview is visible
     const migrationPreview = this.page.getByTestId('migration-preview');
     
     try {
-      await expect(migrationPreview).toBeVisible({ timeout: 5000 });
+      await expect(migrationPreview).toBeVisible({ timeout: 1000 });
     } catch {
       // Migration preview not found - this is normal if no data to migrate
     }
@@ -347,19 +345,24 @@ export class MigrationDataHelpers {
     await migrateButton.click();
     
     // Wait for migration to complete and redirect to dashboard
-    await expect(this.page).toHaveURL(/\/dashboard/, { timeout: 15000 });
+    await expect(this.page).toHaveURL(/\/dashboard/, { timeout: 2000 });
   }
 
   /**
    * Verify migrated data on the dashboard
    */
   async verifyMigratedDataOnDashboard(expectedCounts: DataCounts): Promise<void> {
-    // Wait for dashboard to load
-    await expect(this.page.getByText(/welcome back/i)).toBeVisible();
+    // Wait for page to load
+    await this.page.waitForLoadState('networkidle');
     
-    // Wait for loading to complete
-    const loadingIndicator = this.page.getByText('Loading your dashboard data...');
-    await expect(loadingIndicator).not.toBeVisible({ timeout: 10000 });
+    // Instead of waiting for loading overlay to disappear, wait for dashboard content to appear
+    // The dashboard should show the league count when loaded
+    console.log('[MigrationTest] Waiting for dashboard to load with data...');
+    await expect(this.page.getByTestId('dashboard-league-count')).toBeVisible({ timeout: 5000 });
+    
+    // Once we see the league count, the dashboard is loaded
+    console.log('[MigrationTest] Dashboard loaded, verifying welcome message...');
+    await expect(this.page.getByText(/welcome back/i)).toBeVisible({ timeout: 1000 });
     
     // Get actual values from dashboard before asserting
     const actualLeagueCount = await this.page.getByTestId('dashboard-league-count').textContent();

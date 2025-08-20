@@ -1,95 +1,117 @@
 import { test, expect } from '@playwright/test';
-import { testJourneys, AuthenticatedSession } from '../../utils/test-journeys';
+import { testJourneys, ConnectedLeagueSession } from '../../utils/test-journeys';
 
 test.describe('Mock Draft Error Cases', () => {
-  let session: AuthenticatedSession;
-
-  test.afterEach(async () => {
-    if (session) {
-      await session.cleanup();
+  test('should handle missing league (404) gracefully', async ({ page }) => {
+    let session: ConnectedLeagueSession | undefined;
+    
+    try {
+      // First connect a valid league - this gets it into storage
+      session = await testJourneys.authenticateAndConnectLeague(page, 'sleeper');
+      
+      // Wait a moment to ensure the league is fully saved
+      await page.waitForTimeout(1000);
+      
+      // Now set up API mocking BEFORE navigation
+      await page.route('**/api/fetch-league?**', async (route) => {
+        const url = route.request().url();
+        if (url.includes('fetch-league-history')) {
+          return route.fallback();
+        }
+        return route.fulfill({ 
+          status: 404, 
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Not Found' })
+        });
+      });
+      
+      // Navigate to the league page - it should exist in storage now
+      await page.goto(`/league/${session.leagueId}`, { waitUntil: 'domcontentloaded' });
+      
+      // The page should show an error because the API returns 404
+      await expect(page.getByText(/Error loading league.*Request failed with status code 404/i)).toBeVisible({ 
+        timeout: 20000 
+      });
+    } finally {
+      if (session) {
+        await session.cleanup();
+      }
     }
   });
 
-  test('should handle missing league gracefully', async ({ page }) => {
-    // First, successfully connect a league so user has it in their database
-    const connectedSession = await testJourneys.authenticateAndConnectLeague(page, 'sleeper');
-    session = connectedSession;
+  test('should handle server errors (500) gracefully', async ({ page }) => {
+    let session: ConnectedLeagueSession | undefined;
     
-    // Then override API calls to return 404 errors for the mock draft page
-    await page.route(/\/api\/fetch-league(?!-history)/, async (route) => {
-      return route.fulfill({ 
-        status: 404, 
-        json: { status: 'League not found' } 
+    try {
+      // First connect a valid league
+      session = await testJourneys.authenticateAndConnectLeague(page, 'sleeper');
+      
+      // Wait a moment to ensure the league is fully saved
+      await page.waitForTimeout(1000);
+      
+      // Set up API mocking to return 500 errors
+      await page.route('**/api/fetch-league?**', async (route) => {
+        const url = route.request().url();
+        if (url.includes('fetch-league-history')) {
+          return route.fallback();
+        }
+        return route.fulfill({ 
+          status: 500, 
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Internal Server Error' })
+        });
       });
-    });
-    
-    await page.route('**/api/fetch-players**', async (route) => {
-      return route.fulfill({ 
-        status: 404, 
-        json: { status: 'League not found' } 
+      
+      // Navigate to the league page
+      await page.goto(`/league/${session.leagueId}`, { waitUntil: 'domcontentloaded' });
+      
+      // The page should show an error
+      await expect(page.getByText(/Error loading league.*Request failed with status code 500/i)).toBeVisible({ 
+        timeout: 20000 
       });
-    });
-    
-    // Navigate to league page (the app redirects here when mock drafts fail)
-    await page.goto(`/league/${connectedSession.leagueId}`);
-    
-    // Should show error message due to API 404 responses
-    await expect(page.getByText(/Error loading league.*Could not load league/i)).toBeVisible({ timeout: 10000 });
+    } finally {
+      if (session) {
+        await session.cleanup();
+      }
+    }
   });
 
-  test('should handle API errors gracefully', async ({ page }) => {
-    // Authenticate and connect league, but then override API responses to return 500 errors
-    const connectedSession = await testJourneys.authenticateAndConnectLeague(page, 'sleeper');
-    session = connectedSession;
+  test('should handle network timeouts (504) gracefully', async ({ page }) => {
+    let session: ConnectedLeagueSession | undefined;
     
-    // Mock all API endpoints to return server errors after league connection
-    await page.route(/\/api\/fetch-league(?!-history)/, async (route) => {
-      return route.fulfill({ 
-        status: 500, 
-        json: { status: 'Server error' } 
+    try {
+      // First connect a valid league
+      session = await testJourneys.authenticateAndConnectLeague(page, 'sleeper');
+      
+      // Wait a moment to ensure the league is fully saved
+      await page.waitForTimeout(1000);
+      
+      // Set up API mocking to return timeout errors
+      await page.route('**/api/fetch-league?**', async (route) => {
+        const url = route.request().url();
+        if (url.includes('fetch-league-history')) {
+          return route.fallback();
+        }
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return route.fulfill({ 
+          status: 504, 
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Gateway Timeout' })
+        });
       });
-    });
-    
-    await page.route('**/api/fetch-players**', async (route) => {
-      return route.fulfill({ 
-        status: 500, 
-        json: { status: 'Server error' } 
+      
+      // Navigate to the league page
+      await page.goto(`/league/${session.leagueId}`, { waitUntil: 'domcontentloaded' });
+      
+      // The page should show an error
+      await expect(page.getByText(/Error loading league.*Request failed with status code 504/i)).toBeVisible({ 
+        timeout: 20000 
       });
-    });
-    
-    // Navigate to league page (the app redirects here when mock drafts fail)
-    await page.goto(`/league/${connectedSession.leagueId}`);
-    
-    // Should show error message instead of data due to 500 API responses
-    await expect(page.getByText(/Error loading league.*Could not load league/i)).toBeVisible({ timeout: 10000 });
-  });
-
-  test('should handle network timeouts gracefully', async ({ page }) => {
-    // First, successfully connect a league so user has it in their database  
-    const connectedSession = await testJourneys.authenticateAndConnectLeague(page, 'sleeper');
-    session = connectedSession;
-    
-    // Then override API calls to simulate timeout
-    await page.route(/\/api\/fetch-league(?!-history)/, async (route) => {
-      // Delay response to simulate timeout
-      await new Promise(resolve => setTimeout(resolve, 100));
-      return route.fulfill({ 
-        status: 504, 
-        json: { status: 'Gateway Timeout' } 
-      });
-    });
-    
-    await page.route('**/api/fetch-players**', async (route) => {
-      return route.fulfill({ 
-        status: 504, 
-        json: { status: 'Gateway Timeout' } 
-      });
-    });
-    
-    // Navigate to league page (the app redirects here when mock drafts fail)
-    await page.goto(`/league/${connectedSession.leagueId}`);
-    
-    // Should show error message due to timeout API responses
-    await expect(page.getByText(/Error loading league.*Could not load league/i)).toBeVisible({ timeout: 15000 });
+    } finally {
+      if (session) {
+        await session.cleanup();
+      }
+    }
   });
 });

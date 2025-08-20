@@ -3,6 +3,8 @@ import { MockDraftPage } from '../../page-objects/mock-draft-page';
 import { MockDraftHelpers } from '../../utils/mock-draft-helpers';
 import { testJourneys, ConnectedLeagueSession } from '../../utils/test-journeys';
 
+// Budget management tests interact heavily with the same UI components
+// Use serial mode to ensure consistent test execution
 test.describe.configure({ mode: 'serial' });
 
 test.describe('Mock Draft Budget Management', () => {
