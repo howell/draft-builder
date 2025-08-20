@@ -262,6 +262,22 @@ export class DraftBuilderDB extends Dexie {
   }
 
   /**
+   * Get all drafts for a specific user
+   */
+  async getDraftsForUser(userId: string): Promise<Draft[]> {
+    const filteredDrafts = await this.drafts.where('userId').equals(userId).toArray();
+    
+    // Sort by updatedAt descending (newest first)
+    const result = filteredDrafts.sort((a, b) => {
+      const aDate = a.updatedAt instanceof Date ? a.updatedAt : new Date(a.updatedAt);
+      const bDate = b.updatedAt instanceof Date ? b.updatedAt : new Date(b.updatedAt);
+      return bDate.getTime() - aDate.getTime();
+    });
+    
+    return result;
+  }
+
+  /**
    * Get all drafts for a specific league
    */
   async getDraftsForLeague(leagueId: number, userId: string): Promise<Draft[]> {
