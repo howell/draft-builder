@@ -196,9 +196,7 @@ export function getDefaultStorageAdapter(): StorageAdapter {
     return createTestStorageAdapter();
   }
   
-  // For now, always return localStorage adapter
-  // In Phase 3, this will include logic for feature flags and user preferences
-  return createStorageAdapter({ type: 'localStorage' });
+  return createStorageAdapter({ type: 'dexie', userId: 'anonymous' });
 }
 
 /**
