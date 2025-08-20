@@ -4,11 +4,11 @@
  */
 
 import React from 'react';
-import type { MigrationDataSummary } from '../../types/migration';
+import type { DataSummary } from '../../lib/storage/migration-utils';
 
 interface DataPreviewProps {
   /** Summary of data to be migrated */
-  dataSummary: MigrationDataSummary;
+  dataSummary: DataSummary;
   /** Whether to show detailed breakdown */
   showDetails?: boolean;
   /** Additional CSS classes */
@@ -32,8 +32,7 @@ export const DataPreview: React.FC<DataPreviewProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
-  const totalItems = dataSummary.leagueCount + dataSummary.draftCount + 
-                    dataSummary.totalSelections + dataSummary.costAdjustments;
+  const totalItems = dataSummary.leagueCount + dataSummary.draftCount;
 
   if (totalItems === 0) {
     return (
@@ -97,63 +96,41 @@ export const DataPreview: React.FC<DataPreviewProps> = ({
         </div>
       </div>
 
-      {/* Detailed Breakdown */}
+      {/* Data Types */}
       {showDetails && (
         <div className="space-y-3">
-          <h4 className="font-medium text-gray-900">Detailed Breakdown</h4>
+          <h4 className="font-medium text-gray-900">What will be migrated</h4>
           
           <div className="space-y-2">
-            {/* Player Selections */}
-            {dataSummary.totalSelections > 0 && (
-              <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <div className="flex items-center space-x-2">
-                  <span className="text-orange-500">👥</span>
-                  <span className="text-sm text-gray-700">Player Selections</span>
-                </div>
-                <span className="text-sm font-medium text-gray-900">
-                  {dataSummary.totalSelections.toLocaleString()}
-                </span>
+            <div className="flex justify-between items-center py-2 border-b border-gray-100">
+              <div className="flex items-center space-x-2">
+                <span className="text-blue-500">🏆</span>
+                <span className="text-sm text-gray-700">League Configurations</span>
               </div>
-            )}
+              <span className="text-sm font-medium text-gray-900">
+                All settings and connections
+              </span>
+            </div>
 
-            {/* Cost Adjustments */}
-            {dataSummary.costAdjustments > 0 && (
-              <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <div className="flex items-center space-x-2">
-                  <span className="text-purple-500">💰</span>
-                  <span className="text-sm text-gray-700">Cost Adjustments</span>
-                </div>
-                <span className="text-sm font-medium text-gray-900">
-                  {dataSummary.costAdjustments.toLocaleString()}
-                </span>
+            <div className="flex justify-between items-center py-2 border-b border-gray-100">
+              <div className="flex items-center space-x-2">
+                <span className="text-green-500">📝</span>
+                <span className="text-sm text-gray-700">Draft Sessions</span>
               </div>
-            )}
+              <span className="text-sm font-medium text-gray-900">
+                Complete draft history and data
+              </span>
+            </div>
 
-            {/* ESPN Authentication */}
-            {dataSummary.hasEspnAuthData && (
-              <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <div className="flex items-center space-x-2">
-                  <span className="text-red-500">🔐</span>
-                  <span className="text-sm text-gray-700">ESPN Login Data</span>
-                </div>
-                <span className="text-sm font-medium text-green-600">
-                  ✓ Saved
-                </span>
+            <div className="flex justify-between items-center py-2">
+              <div className="flex items-center space-x-2">
+                <span className="text-red-500">🔐</span>
+                <span className="text-sm text-gray-700">ESPN Authentication</span>
               </div>
-            )}
-
-            {/* Data Size */}
-            {dataSummary.estimatedSizeBytes && dataSummary.estimatedSizeBytes > 0 && (
-              <div className="flex justify-between items-center py-2">
-                <div className="flex items-center space-x-2">
-                  <span className="text-gray-500">💾</span>
-                  <span className="text-sm text-gray-700">Estimated Size</span>
-                </div>
-                <span className="text-sm font-medium text-gray-900">
-                  {formatFileSize(dataSummary.estimatedSizeBytes)}
-                </span>
-              </div>
-            )}
+              <span className="text-sm font-medium text-green-600">
+                ✓ Securely encrypted
+              </span>
+            </div>
           </div>
         </div>
       )}
@@ -174,30 +151,26 @@ export const DataPreview: React.FC<DataPreviewProps> = ({
             <span className="text-green-500 text-xs">✓</span>
             <span>Enhanced security with encryption</span>
           </li>
-          {dataSummary.hasEspnAuthData && (
-            <li className="flex items-center space-x-2">
-              <span className="text-green-500 text-xs">✓</span>
-              <span>Secure ESPN login preservation</span>
-            </li>
-          )}
+          <li className="flex items-center space-x-2">
+            <span className="text-green-500 text-xs">✓</span>
+            <span>Secure ESPN login preservation</span>
+          </li>
         </ul>
       </div>
 
       {/* Security Note */}
-      {dataSummary.hasEspnAuthData && (
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-start space-x-2">
-            <span className="text-blue-500 text-sm">🔒</span>
-            <div className="text-sm">
-              <div className="font-medium text-blue-900">Secure Migration</div>
-              <div className="text-blue-700 mt-1">
-                Your ESPN login data will be encrypted and securely transferred.
-                We never store your passwords in plain text.
-              </div>
+      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="flex items-start space-x-2">
+          <span className="text-blue-500 text-sm">🔒</span>
+          <div className="text-sm">
+            <div className="font-medium text-blue-900">Secure Migration</div>
+            <div className="text-blue-700 mt-1">
+              Your ESPN login data will be encrypted and securely transferred.
+              We never store your passwords in plain text.
             </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

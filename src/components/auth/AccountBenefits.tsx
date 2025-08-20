@@ -4,11 +4,11 @@
  */
 
 import React from 'react';
-import type { MigrationDataSummary } from '../../types/migration';
+import type { DataSummary } from '../../lib/storage/migration-utils';
 
 interface AccountBenefitsProps {
   /** Current user's data summary to personalize benefits */
-  dataSummary?: MigrationDataSummary;
+  dataSummary?: DataSummary;
   /** Whether to show compact version */
   compact?: boolean;
   /** Additional CSS classes */
@@ -26,8 +26,7 @@ export const AccountBenefits: React.FC<AccountBenefitsProps> = ({
 }) => {
   const hasData = dataSummary && (
     dataSummary.leagueCount > 0 || 
-    dataSummary.draftCount > 0 || 
-    dataSummary.totalSelections > 0
+    dataSummary.draftCount > 0
   );
 
   const benefits = [
@@ -142,9 +141,7 @@ export const AccountBenefits: React.FC<AccountBenefitsProps> = ({
               <li>• SOC 2 compliant infrastructure</li>
               <li>• Regular automated backups</li>
               <li>• Zero downtime data migration</li>
-              {dataSummary?.hasEspnAuthData && (
-                <li>• ESPN credentials encrypted with military-grade security</li>
-              )}
+              <li>• ESPN credentials encrypted with military-grade security</li>
             </ul>
           </div>
         </div>
@@ -180,8 +177,7 @@ export const AccountBenefits: React.FC<AccountBenefitsProps> = ({
               <div className="font-medium text-amber-800">Don&apos;t Lose Your Work</div>
               <div className="text-amber-700 mt-1">
                 Your browser data could be lost due to updates, crashes, or clearing cache. 
-                Create an account to permanently save your {dataSummary?.totalSelections || 0} player selections 
-                and draft strategies.
+                Create an account to permanently save your draft data and strategies.
               </div>
             </div>
           </div>
