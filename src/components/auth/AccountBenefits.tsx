@@ -5,6 +5,9 @@
 
 import React from 'react';
 import type { DataSummary } from '../../lib/storage/migration-utils';
+import { Card } from '../../ui/Card';
+import { Alert } from '../../ui/Alert';
+import { Badge } from '../../ui/Badge';
 
 interface AccountBenefitsProps {
   /** Current user's data summary to personalize benefits */
@@ -73,7 +76,7 @@ export const AccountBenefits: React.FC<AccountBenefitsProps> = ({
   if (compact) {
     return (
       <div className={`account-benefits-compact ${className}`}>
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4">
+        <Card className="bg-gradient-to-r from-primary-50 to-secondary-50 border border-primary-200">
           <div className="flex items-start space-x-3">
             <div className="text-2xl">✨</div>
             <div className="flex-1">
@@ -92,7 +95,7 @@ export const AccountBenefits: React.FC<AccountBenefitsProps> = ({
               </div>
             </div>
           </div>
-        </div>
+        </Card>
       </div>
     );
   }
@@ -116,7 +119,7 @@ export const AccountBenefits: React.FC<AccountBenefitsProps> = ({
       {/* Benefits Grid */}
       <div className="grid md:grid-cols-2 gap-6 mb-8">
         {displayedBenefits.map((benefit, index) => (
-          <div key={index} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+          <Card key={index} className="border border-gray-200" hover>
             <div className="flex items-start space-x-4">
               <div className="text-3xl">{benefit.icon}</div>
               <div className="flex-1">
@@ -126,26 +129,23 @@ export const AccountBenefits: React.FC<AccountBenefitsProps> = ({
                 </p>
               </div>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
 
       {/* Data Security Guarantee */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-        <div className="flex items-start space-x-3">
-          <div className="text-green-600 text-xl">🛡️</div>
-          <div>
-            <h3 className="font-semibold text-green-800 mb-2">Your Data is Safe</h3>
-            <ul className="text-sm text-green-700 space-y-1">
-              <li>• End-to-end encryption for all sensitive data</li>
-              <li>• SOC 2 compliant infrastructure</li>
-              <li>• Regular automated backups</li>
-              <li>• Zero downtime data migration</li>
-              <li>• ESPN credentials encrypted with military-grade security</li>
-            </ul>
-          </div>
+      <Alert variant="success" icon={<span className="text-xl">🛡️</span>} className="mb-6">
+        <div>
+          <h3 className="font-semibold text-green-800 mb-2">Your Data is Safe</h3>
+          <ul className="text-sm text-green-700 space-y-1">
+            <li>• End-to-end encryption for all sensitive data</li>
+            <li>• SOC 2 compliant infrastructure</li>
+            <li>• Regular automated backups</li>
+            <li>• Zero downtime data migration</li>
+            <li>• ESPN credentials encrypted with military-grade security</li>
+          </ul>
         </div>
-      </div>
+      </Alert>
 
       {/* Social Proof */}
       <div className="text-center">
@@ -170,18 +170,12 @@ export const AccountBenefits: React.FC<AccountBenefitsProps> = ({
 
       {/* Urgency Message for Users with Data */}
       {hasData && (
-        <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-          <div className="flex items-start space-x-2">
-            <div className="text-amber-600 text-sm">⚠️</div>
-            <div className="text-sm">
-              <div className="font-medium text-amber-800">Don&apos;t Lose Your Work</div>
-              <div className="text-amber-700 mt-1">
-                Your browser data could be lost due to updates, crashes, or clearing cache. 
-                Create an account to permanently save your draft data and strategies.
-              </div>
-            </div>
+        <Alert variant="warning" title="Don't Lose Your Work" className="mt-6">
+          <div className="text-sm">
+            Your browser data could be lost due to updates, crashes, or clearing cache. 
+            Create an account to permanently save your draft data and strategies.
           </div>
-        </div>
+        </Alert>
       )}
     </div>
   );

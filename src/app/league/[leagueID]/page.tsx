@@ -5,6 +5,8 @@ import LoadingScreen from '@/ui/LoadingScreen';
 import { use, useMemo, useRef } from 'react';
 import { useAuth } from '@/lib/auth/context';
 import { useLeagueInfoQuery } from '@/hooks/queries/useLeagueInfoQuery';
+import { Card, CardBody } from '@/ui/Card';
+import { Badge } from '@/ui/Badge';
 
 export default function LeaguePage(props: Readonly<{ params: Promise<{ leagueID: string }> }>) {
     const params = use(props.params);
@@ -36,9 +38,23 @@ export default function LeaguePage(props: Readonly<{ params: Promise<{ leagueID:
             {leagueInfoQuery.data && 
              typeof leagueInfoQuery.data === 'object' && 
              'name' in leagueInfoQuery.data ? (
-                <div className="flex min-h-screen flex-col items-center p-12 m-auto">
-                    <h1 className="text-2xl mb-4">Welcome to {(leagueInfoQuery.data as any).name}!</h1>
-                    <p>Use the links on the side to explore the previous auctions and plan for the next.</p>
+                <div className="flex min-h-screen flex-col items-center justify-center p-12">
+                    <Card className="max-w-2xl w-full">
+                        <CardBody className="text-center space-y-4">
+                            <div className="mb-2">
+                                <Badge variant="accent" className="mb-4">Fantasy League</Badge>
+                            </div>
+                            <h1 className="text-3xl font-bold text-gray-900">
+                                Welcome to {(leagueInfoQuery.data as any).name}!
+                            </h1>
+                            <p className="text-lg text-gray-600">
+                                Use the links on the side to explore the previous auctions and plan for the next.
+                            </p>
+                            <div className="pt-4 flex justify-center gap-2">
+                                <Badge variant="info">League ID: {leagueID}</Badge>
+                            </div>
+                        </CardBody>
+                    </Card>
                 </div>
             ) : null}
         </LoadingScreen>

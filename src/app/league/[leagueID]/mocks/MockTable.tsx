@@ -15,6 +15,11 @@ import Tooltip from '@/ui/Tooltip';
 import { RosterSettings } from '@/platforms/PlatformApi';
 import { LeagueId, SeasonId } from '@/platforms/common';
 import DropdownMenu, { DropdownStyleOptions } from '@/ui/DropdownMenu';
+import { Button } from '@/ui/Button';
+import { Card, CardBody } from '@/ui/Card';
+import { Input } from '@/ui/Input';
+import { Alert } from '@/ui/Alert';
+import { Badge, PositionBadge } from '@/ui/Badge';
 
 export interface MockTableProps {
     leagueId: LeagueId;
@@ -412,10 +417,12 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     if (isLoadingDraft) {
         return (
             <div className="flex justify-center items-center min-h-[400px]">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-lg">Loading draft data...</p>
-                </div>
+                <Card>
+                    <CardBody className="flex flex-col items-center gap-4">
+                        <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-lg text-gray-700">Loading draft data...</p>
+                    </CardBody>
+                </Card>
             </div>
         );
     }
@@ -424,17 +431,17 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     if (draftLoadError) {
         return (
             <div className="flex justify-center items-center min-h-[400px]">
-                <div className="flex flex-col items-center gap-4 text-center">
-                    <div className="text-red-500 text-xl">⚠️</div>
-                    <p className="text-lg text-red-600">Failed to load draft data</p>
-                    <p className="text-sm text-gray-600">{draftLoadError}</p>
-                    <MockButton 
-                        onClick={() => window.location.reload()} 
-                        styles="text-white border-blue-600 bg-blue-600 hover:bg-blue-400"
-                    >
-                        Retry
-                    </MockButton>
-                </div>
+                <Alert variant="error" title="Failed to load draft data">
+                    <div className="flex flex-col items-center gap-4 text-center">
+                        <p className="text-sm text-gray-600">{draftLoadError}</p>
+                        <Button 
+                            onClick={() => window.location.reload()} 
+                            variant="primary"
+                        >
+                            Retry
+                        </Button>
+                    </div>
+                </Alert>
             </div>
         );
     }
@@ -442,16 +449,17 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     return (
         <div className="flex flex-col md:flex-row justify-evenly gap-8 p-2 mx-auto">
             <div className="md:ml-8">
-                <div className="flex items-center justify-between mb-4">
-                    <PrimaryHeading data-testid="your-roster-heading">Your Roster</PrimaryHeading>
-                    <AutosaveIndicator 
-                        status={autosaveStatus} 
-                        retryCount={retryCount}
-                        errorMessage={lastAutosaveError}
-                        onRetry={manualRetryAutosave}
-                    />
-                </div>
-                <table data-testid="roster-table">
+                <Card className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100" data-testid="your-roster-heading">Your Roster</h1>
+                        <AutosaveIndicator 
+                            status={autosaveStatus} 
+                            retryCount={retryCount}
+                            errorMessage={lastAutosaveError}
+                            onRetry={manualRetryAutosave}
+                        />
+                    </div>
+                    <table data-testid="roster-table" className="w-full">
                     <thead>
                         <tr>
                             <th>Position</th>
@@ -479,118 +487,124 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                             />
                         })}
                     </tbody>
-                </table>
-                <div data-testid="budget-display">
-                    <p data-testid="budget-total">Budget: {auctionBudget} </p>
-                    <p data-testid="budget-remaining">Remaining: {auctionBudget - budgetSpent} </p>
-                </div>
-                <div>
-                    <DarkLightText>
-                        <input
-                            data-testid="roster-name-input"
-                            className="bg-inherit text-inherit text-lg mt-2 p-2 gap-8 w-auto rounded-lg"
-                            type="text"
-                            value={rosterName}
-                            onChange={(e) => {
-                                setRosterName(e.target.value);
-                            }}
-                            placeholder="Enter roster name"
-                        />
-                    </DarkLightText>
-                    <div className="flex items-center gap-2 mt-2">
-                        <MockButton 
-                            onClick={saveRosterSelections} 
-                            styles={`text-white border-blue-600 bg-blue-600 hover:bg-blue-400 ${
-                                savingStatus === 'saving' ? 'opacity-50 cursor-not-allowed' : ''
-                            }`}
-                            disabled={savingStatus === 'saving'}
-                            data-testid="save-roster-button"
-                        >
-                            {savingStatus === 'saving' ? (
-                                <span className="flex items-center gap-2">
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    Saving...
-                                </span>
-                            ) : savingStatus === 'saved' ? (
-                                'Saved ✓'
-                            ) : (
-                                'Save Roster'
-                            )}
-                        </MockButton>
-                    </div>
-                    {saveError && (
-                        <div className="text-red-500 text-sm mt-1">
-                            Error: {saveError}
+                    </table>
+                    <div data-testid="budget-display" className="mt-6 p-4 bg-gradient-to-r from-accent-50 to-accent-100 rounded-lg border border-accent-200 dark:from-accent-900/20 dark:to-accent-800/20 dark:border-accent-700">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <p className="text-sm font-semibold text-accent-900 dark:text-accent-200" data-testid="budget-total">Total Budget</p>
+                                <p className="text-2xl font-bold text-accent-700 dark:text-accent-300">${auctionBudget}</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-sm font-semibold text-accent-900 dark:text-accent-200" data-testid="budget-remaining">Remaining</p>
+                                <p className="text-2xl font-bold text-accent-700 dark:text-accent-300">${auctionBudget - budgetSpent}</p>
+                            </div>
                         </div>
-                    )}
-                </div>
-                <div>
-                    <ResetButton onClick={resetRoster} />
-                    <MockButton 
-                        onClick={deleteRosterSelections} 
-                        styles={`border-red-600 bg-red-600 hover:bg-red-400 text-white mt-2 mx-2 ${
-                            savingStatus === 'saving' ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                        disabled={savingStatus === 'saving'}
-                    >
-                        <i className="fas fa-trash" />
-                    </MockButton>
-                </div>
+                    </div>
+                    <div className="mt-6 space-y-4">
+                        <Input
+                            id="roster-name"
+                            data-testid="roster-name-input"
+                            label="Roster Name"
+                            value={rosterName}
+                            onChange={(e) => setRosterName(e.target.value)}
+                            placeholder="Enter roster name"
+                            disabled={savingStatus === 'saving'}
+                        />
+                        <div className="flex items-center gap-2">
+                            <Button 
+                                onClick={saveRosterSelections} 
+                                variant="primary"
+                                disabled={savingStatus === 'saving'}
+                                loading={savingStatus === 'saving'}
+                                data-testid="save-roster-button"
+                            >
+                                {savingStatus === 'saved' ? 'Saved ✓' : 'Save Roster'}
+                            </Button>
+                            <Button
+                                onClick={resetRoster}
+                                variant="outline"
+                            >
+                                Reset
+                            </Button>
+                            <Button 
+                                onClick={deleteRosterSelections} 
+                                variant="ghost"
+                                disabled={savingStatus === 'saving'}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                                <i className="fas fa-trash" />
+                            </Button>
+                        </div>
+                        {saveError && (
+                            <Alert variant="error">
+                                {saveError}
+                            </Alert>
+                        )}
+                    </div>
+                </Card>
             </div>
-            <div className='flex flex-col items-start '>
-                <PrimaryHeading data-testid="available-players-heading">
-                    Available Players
-                </PrimaryHeading>
-                <div className='grid md:grid-cols-2 w-full'>
-                    <div className='items-start md:min-w-min md:w-1/2'>
-                        {availableRankings.length > 1 &&
-                            <span>
-                                <Tooltip text='Sleeper ADP provided courtesy of Sleeper. Check out https://sleeper.app/'>
-                                    Use Rankings From:
-                                </Tooltip>
+            <div className='flex flex-col items-start'>
+                <Card className="p-6 w-full">
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4" data-testid="available-players-heading">
+                        Available Players
+                    </h1>
+                <div className="mb-6">
+                    {availableRankings.length > 1 && (
+                        <div className="mb-4">
+                            <Tooltip text='Sleeper ADP provided courtesy of Sleeper. Check out https://sleeper.app/'>
+                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Use Rankings From:</span>
+                            </Tooltip>
+                            <div className="mt-2">
                                 <RankingsMenu
                                     rankings={availableRankings}
                                     selectedRanking={currentRanking}
                                     onRankingSelected={setCurrentRanking} />
-                            </span>
-                        }
-                        <CollapsibleComponent 
-                            label={<h2 className='text-lg'>Search Settings</h2>}
-                            testId="search-settings-toggle">
-                            <SearchSettings
-                                onSettingsChanged={onSettingsChanged}
-                                positions={playerPositions}
-                                currentSettings={searchSettings}>
-                                <SearchLabel label='Only Show Available Players'>
-                                    <input
-                                        className='mr-1'
-                                        type="checkbox"
-                                        checked={searchSettings.showOnlyAvailable}
-                                        onChange={() => handleShowingOnlyAvailableToggle()}
-                                    />
-                                    Only Show Available Players
-                                </SearchLabel>
-                                <ResetButton onClick={resetSearchSettings} />
-                            </SearchSettings>
-                        </CollapsibleComponent>
-                    </div>
-                    <div className='items-start md:w-1/2'>
-                        <CollapsibleComponent label={<h2 className='text-lg'>Estimation Settings</h2>}>
-                            <EstimationSettings
-                                onEstimationSettingsChanged={onEstimationSettingsChanged}
-                                years={Array.from(draftHistory.keys())}
-                                currentSettings={estimationSettings} >
-                                <ResetButton onClick={resetEstimationSettings} />
-                            </EstimationSettings>
-                        </CollapsibleComponent>
+                            </div>
+                        </div>
+                    )}
+                    
+                    <div className="flex gap-6 w-full">
+                        <div className="flex-1 max-w-[50%] space-y-4">
+                            <CollapsibleComponent 
+                                label={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Search Settings</h2>}
+                                testId="search-settings-toggle">
+                                <SearchSettings
+                                    onSettingsChanged={onSettingsChanged}
+                                    positions={playerPositions}
+                                    currentSettings={searchSettings}>
+                                    <SearchLabel label='Only Show Available Players'>
+                                        <input
+                                            className='mr-1'
+                                            type="checkbox"
+                                            checked={searchSettings.showOnlyAvailable}
+                                            onChange={() => handleShowingOnlyAvailableToggle()}
+                                        />
+                                        Only Show Available Players
+                                    </SearchLabel>
+                                    <Button onClick={resetSearchSettings} variant="outline">Reset</Button>
+                                </SearchSettings>
+                            </CollapsibleComponent>
+                        </div>
+                        
+                        <div className="flex-1 max-w-[50%] space-y-4">
+                            <CollapsibleComponent label={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Estimation Settings</h2>}>
+                                <EstimationSettings
+                                    onEstimationSettingsChanged={onEstimationSettingsChanged}
+                                    years={Array.from(draftHistory.keys())}
+                                    currentSettings={estimationSettings}>
+                                    <Button onClick={resetEstimationSettings} variant="outline">Reset</Button>
+                                </EstimationSettings>
+                            </CollapsibleComponent>
+                        </div>
                     </div>
                 </div>
-                <PlayerTable
-                    players={availablePlayers}
-                    columns={playerTableColumns}
-                    onPlayerClick={onPlayerClick}
-                    defaultSortColumn='estimatedCost'
-                    defaultSortDirection='desc' />
+                    <PlayerTable
+                        players={availablePlayers}
+                        columns={playerTableColumns}
+                        onPlayerClick={onPlayerClick}
+                        defaultSortColumn='estimatedCost'
+                        defaultSortDirection='desc' />
+                </Card>
             </div>
         </div>
     );
@@ -679,36 +693,6 @@ function sum<T extends object, K extends keyof T>(values: (HasNumberProperty<T, 
     }
 }
 
-type MockButtonProps = {
-    onClick: () => void;
-    styles?: string;
-    children: React.ReactNode;
-    disabled?: boolean;
-    'data-testid'?: string;
-};
-
-const MockButton: React.FC<MockButtonProps> = (props) => (
-        <button 
-        onClick={props.disabled ? undefined : props.onClick}
-            disabled={props.disabled}
-            data-testid={props['data-testid']}
-            className={'py-2 px-2 text-lg rounded-lg border-2 ' + (props.styles ?? '')}>
-            {props.children}
-        </button>
-    );
-
-const ResetButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
-    <MockButton onClick={onClick}
-        styles="bg-white text-black hover:bg-gray-200
-                dark:bg-slate-700 dark:text-white dark:hover:bg-slate-500
-                mt-2">
-        Reset
-    </MockButton>
-);
-
-const PrimaryHeading: React.FC<{ children: React.ReactNode; 'data-testid'?: string }> = ({ children, 'data-testid': testId }) => (
-    <h1 className="text-2xl font-bold" data-testid={testId}>{children}</h1>
-);
 
 interface AutosaveIndicatorProps {
     status: 'idle' | 'saving' | 'saved' | 'error';
@@ -729,23 +713,23 @@ const AutosaveIndicator: React.FC<AutosaveIndicatorProps> = ({
         switch (status) {
             case 'saving':
                 return {
-                    icon: <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>,
+                    icon: <div className="w-3 h-3 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>,
                     text: retryCount > 0 ? `Retrying... (${retryCount}/3)` : 'Saving...',
-                    className: 'text-blue-600',
+                    variant: 'info' as const,
                     showRetry: false
                 };
             case 'saved':
                 return {
                     icon: '✓',
                     text: 'Saved',
-                    className: 'text-green-600',
+                    variant: 'success' as const,
                     showRetry: false
                 };
             case 'error':
                 return {
                     icon: '⚠',
                     text: 'Save failed',
-                    className: 'text-red-600',
+                    variant: 'error' as const,
                     showRetry: true
                 };
             default:
@@ -758,18 +742,22 @@ const AutosaveIndicator: React.FC<AutosaveIndicatorProps> = ({
     
     return (
         <div className="flex items-center gap-2">
-            <div className={`flex items-center gap-1 text-sm ${config.className}`}>
-                {config.icon}
-                <span>{config.text}</span>
-            </div>
+            <Badge variant={config.variant}>
+                <div className="flex items-center gap-1">
+                    {config.icon}
+                    <span>{config.text}</span>
+                </div>
+            </Badge>
             {config.showRetry && onRetry && (
                 <div className="flex flex-col items-end">
-                    <button
+                    <Button
                         onClick={onRetry}
-                        className="text-xs px-2 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded border"
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
                     >
                         Retry
-                    </button>
+                    </Button>
                     {errorMessage && (
                         <div className="text-xs text-red-500 mt-1 max-w-xs text-right">
                             {errorMessage}
@@ -789,13 +777,13 @@ export type RankingsMenuProps = {
 
 const RankingsMenu: React.FC<RankingsMenuProps> = ({ rankings, selectedRanking, onRankingSelected }) => {
     const styles: DropdownStyleOptions = {
-        bgColor: 'bg-gray-500',
-        textColor: 'text-white',
-        hoverBgColor: 'hover:bg-gray-100',
-        hoverTextColor: 'hover:text-black',
-        highlightBgColor: 'bg-gray-100',
-        highlightTextColor: 'text-black',
-        border: '',
+        bgColor: 'bg-white dark:bg-gray-800',
+        textColor: 'text-gray-900 dark:text-gray-100',
+        hoverBgColor: 'hover:bg-primary-50 dark:hover:bg-primary-900/20',
+        hoverTextColor: 'hover:text-primary-700 dark:hover:text-primary-300',
+        highlightBgColor: 'bg-primary-100 dark:bg-primary-900/30',
+        highlightTextColor: 'text-primary-800 dark:text-primary-200',
+        border: 'border border-gray-300 dark:border-gray-600 shadow-sm',
     };
     return <DropdownMenu
         options={rankings.map(r => ({ name: <RankingOption ranking={r} />, value: r}))}

@@ -76,30 +76,34 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
   if (loading) {
     return (
       <div 
-        className="fixed inset-0 flex flex-col justify-center items-center bg-white bg-opacity-90 z-50"
+        className="fixed inset-0 flex flex-col justify-center items-center bg-white bg-opacity-95 backdrop-blur-sm z-50"
         role="dialog"
         aria-modal="true"
         aria-labelledby="loading-title"
         aria-describedby="loading-message"
       >
-        <div 
-          className="border-8 border-gray-200 border-t-blue-500 rounded-full w-16 h-16 animate-spin"
-          role="status"
-          aria-hidden="true"
-        />
-        <h2 id="loading-title" className="mt-5 text-lg text-gray-800 font-medium">
-          Loading...
-        </h2>
-        {message && (
-          <p 
-            id="loading-message" 
-            className="mt-2 text-sm text-gray-600 text-center max-w-md"
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            {message}
-          </p>
-        )}
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full mx-4 animate-fade-in">
+          <div className="flex flex-col items-center">
+            <div 
+              className="border-4 border-gray-200 border-t-primary-600 rounded-full w-16 h-16 animate-spin"
+              role="status"
+              aria-hidden="true"
+            />
+            <h2 id="loading-title" className="mt-6 text-xl text-gray-900 font-semibold">
+              Loading...
+            </h2>
+            {message && (
+              <p 
+                id="loading-message" 
+                className="mt-3 text-sm text-gray-600 text-center"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                {message}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
     );
   }

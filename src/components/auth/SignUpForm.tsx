@@ -3,6 +3,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../lib/auth/context';
 import { AccountBenefits } from './AccountBenefits';
+import { Button } from '../../ui/Button';
+import { Input } from '../../ui/Input';
+import { Alert } from '../../ui/Alert';
+import { Card } from '../../ui/Card';
 
 interface SignUpFormProps {
   onSwitchToLogin: () => void;
@@ -80,99 +84,74 @@ export default function SignUpForm({ onSwitchToLogin, onSuccess }: SignUpFormPro
 
       {/* Error Display */}
       {error && (
-        <div className="rounded-md bg-red-50 p-4 border border-red-200">
-          <p className="text-red-800 text-sm">{error}</p>
-        </div>
+        <Alert variant="error">
+          {error}
+        </Alert>
       )}
 
       {/* Signup Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Email */}
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-            Email Address
-          </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={formData.email}
+        <Input
+          type="email"
+          id="email"
+          name="email"
+          label="Email Address"
+          value={formData.email}
+          onChange={handleInputChange}
+          placeholder="Enter your email address"
+          required
+          disabled={loading}
+        />
+
+        {/* Password */}
+        <div className="relative">
+          <Input
+            type={showPassword ? 'text' : 'password'}
+            id="password"
+            name="password"
+            label="Password"
+            value={formData.password}
             onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter your email address"
+            placeholder="Create a strong password"
             required
             disabled={loading}
           />
-        </div>
-
-        {/* Password */}
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-            Password
-          </label>
-          <div className="relative">
-            <input
-              type={showPassword ? 'text' : 'password'}
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Create a strong password"
-              required
-              disabled={loading}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-              disabled={loading}
-            >
-              <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`} />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute top-8 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+            disabled={loading}
+          >
+            <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`} />
+          </button>
         </div>
 
         {/* Confirm Password */}
-        <div>
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-            Confirm Password
-          </label>
-          <input
-            type={showPassword ? 'text' : 'password'}
-            id="confirmPassword"
-            name="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleInputChange}
-            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 ${
-              passwordsMatch 
-                ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500' 
-                : 'border-red-300 focus:ring-red-500 focus:border-red-500'
-            }`}
-            placeholder="Confirm your password"
-            required
-            disabled={loading}
-          />
-          {!passwordsMatch && (
-            <p className="mt-1 text-sm text-red-600">Passwords do not match</p>
-          )}
-        </div>
+        <Input
+          type={showPassword ? 'text' : 'password'}
+          id="confirmPassword"
+          name="confirmPassword"
+          label="Confirm Password"
+          value={formData.confirmPassword}
+          onChange={handleInputChange}
+          placeholder="Confirm your password"
+          error={!passwordsMatch && formData.confirmPassword ? 'Passwords do not match' : undefined}
+          required
+          disabled={loading}
+        />
 
         {/* Submit Button */}
-        <button
+        <Button
           type="submit"
           disabled={!isFormValid || loading}
-          className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+          loading={loading}
+          fullWidth
+          variant="primary"
+          size="lg"
         >
-          {loading ? (
-            <>
-              <i className="fas fa-spinner fa-spin mr-2" />
-              Creating Account...
-            </>
-          ) : (
-            '🚀 Create Account'
-          )}
-        </button>
+          {loading ? 'Creating Account...' : '🚀 Create Account'}
+        </Button>
       </form>
 
       {/* Account Benefits */}
@@ -184,7 +163,7 @@ export default function SignUpForm({ onSwitchToLogin, onSuccess }: SignUpFormPro
           Already have an account?{' '}
           <button
             onClick={onSwitchToLogin}
-            className="font-medium text-blue-600 hover:text-blue-500 focus:outline-none focus:underline transition-colors"
+            className="font-medium text-primary-600 hover:text-primary-500 focus:outline-none focus:underline transition-colors"
             disabled={loading}
           >
             Sign in here

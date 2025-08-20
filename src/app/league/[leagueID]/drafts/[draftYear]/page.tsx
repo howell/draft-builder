@@ -10,6 +10,9 @@ import SearchSettings from '../../mocks/SearchSettings';
 import CollapsibleComponent from '@/ui/Collapsible';
 import TabContainer, { TabChild, TabTitle } from '@/ui/TabContainer';
 import { isLeagueId, isSeasonId, LeagueId, SeasonId, PlatformLeague } from '@/platforms/common';
+import { Card, CardBody } from '@/ui/Card';
+import { Button } from '@/ui/Button';
+import { Badge, PositionBadge } from '@/ui/Badge';
 import { useAuth } from '@/lib/auth/context';
 import { usePlayersQuery } from '@/hooks/queries/usePlayersQuery';
 import { useDraftDataQuery } from '@/hooks/queries/useDraftDataQuery';
@@ -178,27 +181,35 @@ const Page = (props: Readonly<{ params: Promise<{ leagueID: string, draftYear: s
 
     return (
         <LoadingScreen waitFor={loadingDependencies}>
-            <div className='flex flex-col pl-4 mt-2'>
-                <div className='flex flex-col justify-center m-auto'>
-                    <h1 className='text-left md:text-center text-2xl font-bold'>Your {draftYear} Draft Recap!</h1>
-                    <div className='flex flex-col w-auto items-start'>
-                        <div className='flex-start'>
-                            <CollapsibleComponent label='Settings'>
+            <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+                <Card className="mb-8">
+                    <CardBody>
+                        <div className="text-center mb-6">
+                            <Badge variant="accent" className="mb-2">Draft Recap</Badge>
+                            <h1 className='text-3xl font-bold text-gray-900'>Your {draftYear} Draft Results</h1>
+                        </div>
+                        <div className='mb-6'>
+                            <CollapsibleComponent label={<h2 className='text-lg font-semibold text-gray-800'>Filter Settings</h2>}>
                                 <SearchSettings positions={allPositions} currentSettings={searchSettings} onSettingsChanged={setSearchSettings}>
-                                    <button className="mt-2 px-4 py-2 bg-white text-black rounded hover:bg-slate-300 focus:outline-none focus:ring-2"
-                                        onClick={resetSearchSettings}>
-                                        Reset
-                                    </button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={resetSearchSettings}
+                                    >
+                                        Reset Filters
+                                    </Button>
                                 </SearchSettings>
                             </CollapsibleComponent>
                         </div>
                         <PlayerTable players={showing} columns={tableColumns} defaultSortColumn='auctionPrice' />
-                    </div>
-                </div>
-                <div className='w-[90dvw] m-auto items-center'>
-                    <h1 className='text-center text-2xl'>Price Analysis</h1>
-                    <TabContainer pages={positionGraphs} />
-                </div>
+                    </CardBody>
+                </Card>
+                
+                <Card>
+                    <CardBody>
+                        <h2 className='text-2xl font-bold text-gray-900 text-center mb-6'>Price Analysis</h2>
+                        <TabContainer pages={positionGraphs} />
+                    </CardBody>
+                </Card>
             </div>
         </LoadingScreen>
     );
@@ -240,7 +251,7 @@ function chartTitleFor(position: string) : TabTitle {
     const heading = <span className='text-lg pb-0.5 text-nowrap'>{position}</span>;
     const component = (selected: boolean) => {
         if (selected) {
-            return <span className='font-bold border-blue-400 border-b-2 border-opacity-75'>{heading}</span>;
+            return <span className='font-bold border-primary-500 border-b-2'>{heading}</span>;
         }
         return heading;
     };
@@ -250,7 +261,7 @@ function chartTitleFor(position: string) : TabTitle {
 
 const ChartContainer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return (
-        <div className="border-2 w-dvw">
+        <div className="border border-gray-200 rounded-lg overflow-hidden">
             {children}
         </div>
     );

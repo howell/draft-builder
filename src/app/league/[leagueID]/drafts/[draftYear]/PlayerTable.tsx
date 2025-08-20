@@ -1,6 +1,7 @@
 'use client'
 import Tooltip from '@/ui/Tooltip';
 import React, { useState } from 'react';
+import { PositionBadge } from '@/ui/Badge';
 
 type PlayerData<T extends object> = { id: any; } & T;
 
@@ -60,22 +61,23 @@ const PlayerTable = <T extends object,>({
     };
 
     return (
-        <div className="mx-auto my-5 border-collapse w-full max-h-[90dvh] overflow-y-auto overflow-x-auto md:overflow-x-hidden">
+        <div className="mx-auto my-5 border-collapse w-full max-h-[90dvh] overflow-y-auto overflow-x-auto md:overflow-x-hidden rounded-lg shadow-sm">
             <table data-testid="available-players-table" className="table-auto w-full">
                 <thead>
                     <tr>
                         {columns.map(([column, name], i) => (
                             <th
                                 key={column.toString()}
-                                className={`max-w-fit md:w-max md:max-w-max px-2 py-2 
-                                            ${i === columns.length - 1 ? 'pl-2 pr-4' : 'mx-2'}
+                                className={`max-w-fit md:w-max md:max-w-max px-3 py-3 
+                                            ${i === columns.length - 1 ? 'pl-3 pr-4' : 'mx-2'}
                                             sticky top-0
-                                            border-2 border-black
-                                            text-left
-                                             bg-gray-300 text-black
-                                             ${getSortClass(column)}`}
+                                            border-b-2 border-gray-200 dark:border-gray-700
+                                            text-left font-semibold
+                                            bg-gradient-to-r from-gray-50 to-gray-100 text-gray-900
+                                            dark:from-gray-800 dark:to-gray-750 dark:text-gray-100
+                                            ${getSortClass(column)}`}
                                 >
-                                <div className="inline justify-start items-center w-max">
+                                <div className="inline justify-start items-center w-max cursor-pointer hover:text-primary-600">
                                     <ColumnHeader name={name} onClick={() => handleSort(column)} />
                                 </div>
                             </th>))}
@@ -85,18 +87,32 @@ const PlayerTable = <T extends object,>({
                     {sortedData.map((item, i) => (
                         <tr key={item.id}
                             data-testid={`player-row-${item.id}`}
-                            className={`even:bg-gray-300 even:text-black odd:bg-gray-700 odd:text-white
-                                        ${onPlayerClick ? 'cursor-pointer' : ''}`}
+                            className={`transition-colors
+                                        ${i % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-850'}
+                                        ${onPlayerClick ? 'cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-900/20' : ''}
+                                        border-b border-gray-100 dark:border-gray-700`}
                             onClick={() => onPlayerClick && onPlayerClick(item)}>
-                            {columns.map(([column, _], i) => (
-                                <td key={`${column.toString()} ${item.id}`}
-                                    data-testid={`player-cell-${item.id}-${column.toString()}`}
-                                    className={`border-2 border-black py-2 text-left whitespace-nowrap text-ellipsis
-                                                ${i === columns.length - 1 ? 'pl-2 pr-4' : 'px-2'}`} >
-                                    <div>
-                                        {(item[column] as object).toString()}
-                                    </div>
-                                </td>))}
+                            {columns.map(([column, _], j) => {
+                                const value = item[column];
+                                const columnStr = column.toString();
+                                const isPosition = columnStr === 'position' || columnStr === 'defaultPosition';
+                                const positionValue = value?.toString();
+                                
+                                return (
+                                    <td key={`${columnStr} ${item.id}`}
+                                        data-testid={`player-cell-${item.id}-${columnStr}`}
+                                        className={`py-3 text-left whitespace-nowrap text-ellipsis text-gray-700 dark:text-gray-300
+                                                    ${j === columns.length - 1 ? 'pl-3 pr-4' : 'px-3'}`} >
+                                        <div>
+                                            {isPosition && positionValue ? (
+                                                <PositionBadge position={positionValue} />
+                                            ) : (
+                                                value?.toString()
+                                            )}
+                                        </div>
+                                    </td>
+                                );
+                            })}
                         </tr>
                     ))}
                 </tbody>

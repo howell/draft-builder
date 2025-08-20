@@ -5,6 +5,7 @@ import { XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, Area, LineChart, L
 import { findBestRegression, predictPrice } from '@/app/league/analytics';
 import { Dot } from 'recharts';
 import { ReactElement, useState } from 'react';
+import { getPositionColor } from '@/styles/design-system';
 
 export type ChartData = {
     data: TableData[];
@@ -88,20 +89,6 @@ const CustomTooltip = ({ active, payload }: any) => {
     return null;
 };
 
-function positionColors(position: string): string {
-    switch (position) {
-        case 'QB':
-            return '#00ff00';
-        case 'RB':
-            return '#ff0000';
-        case 'WR':
-            return '#0000ff';
-        case 'TE':
-            return '#ffbd14';
-        default:
-            return '#000000';
-    }
-};
 
 function dotStyle(props: any): ReactElement<SVGElement> {
     const { cx, cy, stroke, payload, value, fill, r, index, strokeWidth } = props;
@@ -111,7 +98,7 @@ function dotStyle(props: any): ReactElement<SVGElement> {
             cy={cy}
             r={3}
             stroke={stroke}
-            fill={positionColors(props.payload.position)}
+            fill={getPositionColor(props.payload.position)}
             strokeWidth={strokeWidth} />
     );
 } 

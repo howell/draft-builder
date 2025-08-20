@@ -59,7 +59,7 @@ Before marking any development task as complete, you MUST:
 - **Framework**: Next.js 15.3.3 with App Router and React 19.1.0
 - **Database**: Supabase (PostgreSQL) with Row Level Security (RLS)
 - **Authentication**: Supabase Auth with email/password
-- **Styling**: Tailwind CSS 3.4.1
+- **Styling**: Tailwind CSS 3.4.1 with custom design system
 - **Testing**: Jest with React Testing Library
 - **Caching**: Redis with ioredis client
 - **Platform APIs**: ESPN and Sleeper fantasy sports platforms
@@ -79,8 +79,17 @@ src/
 │   └── common.ts        # Shared platform interfaces
 ├── rankings/            # Player ranking and analysis systems
 ├── redis/               # Redis caching utilities
+├── styles/              # Design system and style utilities
+│   ├── design-system.ts # Core design tokens (colors, typography, spacing)
+│   └── README.md        # Design system documentation
 ├── types/               # Shared TypeScript type definitions
 └── ui/                  # Reusable UI components
+    ├── Button.tsx       # Button component with variants
+    ├── Input.tsx        # Form input with validation
+    ├── Card.tsx         # Container component
+    ├── Badge.tsx        # Status and position badges
+    ├── Alert.tsx        # Notification component
+    └── ...              # Other UI components
 ```
 
 ### Storage Architecture
@@ -133,6 +142,58 @@ export function useStorageAdapter(): StorageAdapter {
 ```
 
 ## Development Guidelines
+
+### Design System & UI Components
+
+The application uses a comprehensive design system for consistent styling:
+
+#### Core Design Tokens (`/src/styles/design-system.ts`)
+- **Colors**: Primary (blue), Accent (green), Secondary (purple) palettes
+- **Typography**: Consistent font sizes from xs to 5xl
+- **Spacing**: Standardized spacing units
+- **Shadows**: Elevation system for depth
+
+#### Reusable Components (`/src/ui/`)
+All components support both light and dark modes:
+
+1. **Button** - Variants: primary, secondary, accent, ghost, outline
+   ```tsx
+   <Button variant="primary" size="md">Save</Button>
+   ```
+
+2. **Input** - Form inputs with label, error, and helper text
+   ```tsx
+   <Input label="Email" error="Required field" />
+   ```
+
+3. **Card** - Container with header, body, footer sections
+   ```tsx
+   <Card><CardBody>Content</CardBody></Card>
+   ```
+
+4. **Badge** - Status badges and position-specific badges
+   ```tsx
+   <Badge variant="success">Active</Badge>
+   <PositionBadge position="QB" />
+   ```
+
+5. **Alert** - Notifications with semantic variants
+   ```tsx
+   <Alert variant="error">Error message</Alert>
+   ```
+
+#### Dark Mode Support
+- All components use Tailwind's `dark:` prefix for dark mode styles
+- Automatically respects user's system preference
+- Consistent color adjustments for proper contrast
+
+#### Style Guidelines
+- Use design system components instead of custom styles
+- Apply consistent spacing using the spacing scale
+- Ensure all interactive elements have proper hover/focus states
+- Maintain fantasy football theme with accent colors for relevant features
+
+For detailed component usage, see `/src/styles/README.md`
 
 ### **Documentation Management**
 - **ALWAYS** update relevant design documents when working on features

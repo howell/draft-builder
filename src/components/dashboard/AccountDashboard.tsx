@@ -10,6 +10,9 @@ import { QuickActions } from './QuickActions';
 import { RecentDrafts } from './RecentDrafts';
 import UserProfile from '../auth/UserProfile';
 import { useLeaguesQuery, useDraftsQuery } from '../../hooks/queries';
+import { Card, CardHeader, CardTitle, CardBody } from '../../ui/Card';
+import { Button } from '../../ui/Button';
+import { Badge } from '../../ui/Badge';
 
 interface UserDataSummary {
   leagueCount: number;
@@ -93,18 +96,17 @@ export function AccountDashboard({ className = "" }: AccountDashboardProps) {
   if (!user) {
     return (
       <div className={`max-w-4xl mx-auto p-6 ${className}`}>
-        <div className="bg-white rounded-lg shadow-md p-6 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Account Dashboard</h2>
-          <p className="text-gray-600 mb-4">
-            You need to be signed in to view your dashboard.
-          </p>
-          <a 
-            href="/auth" 
-            className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-          >
-            Sign In
-          </a>
-        </div>
+        <Card className="text-center">
+          <CardTitle>Account Dashboard</CardTitle>
+          <CardBody>
+            <p className="text-gray-600 mb-6">
+              You need to be signed in to view your dashboard.
+            </p>
+            <Button variant="primary" onClick={() => router.push('/auth')}>
+              Sign In
+            </Button>
+          </CardBody>
+        </Card>
       </div>
     );
   }
@@ -115,15 +117,15 @@ export function AccountDashboard({ className = "" }: AccountDashboardProps) {
       <div className={className}>
         <ErrorScreen message={error.message || 'Failed to load dashboard data'} />
         <div className="text-center mt-4">
-          <button 
+          <Button 
             onClick={() => {
               leaguesQuery.refetch();
               draftsQuery.refetch();
             }}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            variant="primary"
           >
             Retry Loading Dashboard
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -133,20 +135,20 @@ export function AccountDashboard({ className = "" }: AccountDashboardProps) {
     <LoadingScreen waitFor={loadingDependencies}>
       <div className={`max-w-4xl mx-auto p-6 space-y-6 ${className}`}>
         {/* Welcome Header */}
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <Card>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
                 Welcome back!
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-gray-600 dark:text-gray-400 mt-1">
                 {user.email}
               </p>
             </div>
             <div className="flex items-center space-x-6">
-              <div className="text-right text-sm text-gray-500">
+              <div className="text-right text-sm text-gray-500 dark:text-gray-400">
                 <p>Member since</p>
-                <p className="font-medium text-gray-700">
+                <p className="font-medium text-gray-700 dark:text-gray-300">
                   {summary?.joinDate.toLocaleDateString('en-US', { 
                     year: 'numeric', 
                     month: 'long', 
@@ -161,38 +163,38 @@ export function AccountDashboard({ className = "" }: AccountDashboardProps) {
           {/* Data Summary Cards */}
           {summary && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-                <h3 className="font-semibold text-blue-900 text-sm">Leagues</h3>
-                <p className="text-2xl font-bold text-blue-700" data-testid="dashboard-league-count">{summary.leagueCount}</p>
+              <div className="bg-primary-50 rounded-lg p-4 border border-primary-200 dark:bg-primary-900/20 dark:border-primary-700">
+                <h3 className="font-semibold text-primary-900 dark:text-primary-200 text-sm">Leagues</h3>
+                <p className="text-2xl font-bold text-primary-700 dark:text-primary-300" data-testid="dashboard-league-count">{summary.leagueCount}</p>
               </div>
-              <div className="bg-green-50 rounded-lg p-4 border border-green-100">
-                <h3 className="font-semibold text-green-900 text-sm">Draft Sessions</h3>
-                <p className="text-2xl font-bold text-green-700" data-testid="dashboard-draft-count">{summary.draftCount}</p>
+              <div className="bg-accent-50 rounded-lg p-4 border border-accent-200 dark:bg-accent-900/20 dark:border-accent-700">
+                <h3 className="font-semibold text-accent-900 dark:text-accent-200 text-sm">Draft Sessions</h3>
+                <p className="text-2xl font-bold text-accent-700 dark:text-accent-300" data-testid="dashboard-draft-count">{summary.draftCount}</p>
               </div>
-              <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
-                <h3 className="font-semibold text-purple-900 text-sm">Player Selections</h3>
-                <p className="text-2xl font-bold text-purple-700" data-testid="dashboard-selection-count">{summary.totalSelections}</p>
+              <div className="bg-secondary-50 rounded-lg p-4 border border-secondary-200 dark:bg-secondary-900/20 dark:border-secondary-700">
+                <h3 className="font-semibold text-secondary-900 dark:text-secondary-200 text-sm">Player Selections</h3>
+                <p className="text-2xl font-bold text-secondary-700 dark:text-secondary-300" data-testid="dashboard-selection-count">{summary.totalSelections}</p>
               </div>
-              <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
-                <h3 className="font-semibold text-orange-900 text-sm">Cost Adjustments</h3>
-                <p className="text-2xl font-bold text-orange-700" data-testid="dashboard-adjustment-count">{summary.costAdjustments}</p>
+              <div className="bg-orange-50 rounded-lg p-4 border border-orange-200 dark:bg-orange-900/20 dark:border-orange-700">
+                <h3 className="font-semibold text-orange-900 dark:text-orange-200 text-sm">Cost Adjustments</h3>
+                <p className="text-2xl font-bold text-orange-700 dark:text-orange-300" data-testid="dashboard-adjustment-count">{summary.costAdjustments}</p>
               </div>
             </div>
           )}
 
           {/* Recent Activity */}
           {summary?.recentActivity && (
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Recent Activity</h3>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600">
-                  Last draft: <span className="font-medium text-gray-900">{summary.recentActivity.lastDraftName}</span>
+            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Recent Activity</h3>
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Last draft: <span className="font-medium text-gray-900 dark:text-gray-100">{summary.recentActivity.lastDraftName}</span>
                 </p>
-                <p className="text-sm text-gray-600">
-                  League: <span className="font-medium text-gray-900">{summary.recentActivity.lastLeagueAccessed}</span>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  League: <span className="font-medium text-gray-900 dark:text-gray-100">{summary.recentActivity.lastLeagueAccessed}</span>
                 </p>
-                <p className="text-sm text-gray-600">
-                  Updated: <span className="font-medium text-gray-900">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Updated: <span className="font-medium text-gray-900 dark:text-gray-100">
                     {summary.recentActivity.lastDraftDate?.toLocaleDateString('en-US', { 
                       year: 'numeric', 
                       month: 'short', 
@@ -205,7 +207,7 @@ export function AccountDashboard({ className = "" }: AccountDashboardProps) {
               </div>
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Quick Actions */}
         <QuickActions />
