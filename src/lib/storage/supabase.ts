@@ -9,9 +9,7 @@ import type { EspnAuth as PlatformEspnAuth } from '@/platforms/espn/league';
 import {
   StorageAdapter,
   createStorageError,
-  type StorageConfig
 } from './interface';
-import { LocalStorageAdapter } from './localStorage';
 import { DexieStorageAdapter } from './dexie';
 import { MemoryStorageAdapter } from './memory';
 import {
@@ -21,19 +19,12 @@ import {
   RosterSelections,
   EstimationSettingsState,
   SearchSettingsState,
-  CURRENT_LEAGUES_SCHEMA_VERSION
 } from '@/types/storage';
 import {
   transformLeaguesFromDatabase,
   transformLeagueToDatabase,
   transformMocksFromDatabase,
   transformDraftToDatabase,
-  createLeagueQuery,
-  type DatabaseLeague,
-  type DatabaseDraftSession,
-  type DatabaseDraftSettings,
-  type DatabasePlayerSelection,
-  type DatabaseCostAdjustment
 } from './transforms';
 import { encryptEspnAuth, decryptEspnAuth, type EspnAuth } from '../encryption/utils';
 import type { Database } from '@/lib/database.types';
@@ -71,10 +62,9 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     this.retryConfig = { ...DEFAULT_RETRY_CONFIG, ...options?.retryConfig };
     
     // Set up fallback adapter based on configuration
-    if (options?.fallbackToDexie) {
+    if (options?.fallbackToDexie || options?.fallbackToLocalStorage) {
+      console.log(`[SupabaseAdapter] Creating Dexie fallback adapter with userId: ${this.userId}`);
       this.fallbackAdapter = new DexieStorageAdapter(this.userId);
-    } else if (options?.fallbackToLocalStorage) {
-      this.fallbackAdapter = new LocalStorageAdapter();
     } else if (options?.fallbackToMemory) {
       this.fallbackAdapter = new MemoryStorageAdapter();
     }
@@ -84,13 +74,29 @@ export class SupabaseStorageAdapter implements StorageAdapter {
    * Check if an error is retryable
    */
   private isRetryableError(error: any): boolean {
+    const errorMessage = error?.message?.toLowerCase?.() || '';
+    
     // Don't retry on authentication/authorization errors
-    if (error?.code === '42501' || error?.message?.includes('RLS')) {
+    if (error?.code === '42501' || 
+        errorMessage.includes('rls') || 
+        errorMessage.includes('row level security') ||
+        errorMessage.includes('policy') ||
+        errorMessage.includes('authorization') ||
+        errorMessage.includes('access denied')) {
       return false;
     }
     
     // Don't retry on JWT errors  
-    if (error?.code === 'PGRST301') {
+    if (error?.code === 'PGRST301' || 
+        errorMessage.includes('jwt') ||
+        errorMessage.includes('token')) {
+      return false;
+    }
+    
+    // Don't retry on operation/request timeouts, but do retry on connection timeouts
+    if (errorMessage.includes('timeout') && 
+        !errorMessage.includes('connection timeout') &&
+        !errorMessage.includes('network timeout')) {
       return false;
     }
     
@@ -137,12 +143,14 @@ export class SupabaseStorageAdapter implements StorageAdapter {
       console.error(`[SupabaseStorage] Context:`, context);
     }
 
+    const errorMessage = error?.message?.toLowerCase?.() || '';
+
     // Determine error type based on Supabase error
-    if (error?.code === '42501' || error?.message?.includes('RLS')) {
+    if (error?.code === '42501' || errorMessage.includes('rls') || errorMessage.includes('policy')) {
       throw createStorageError('AUTH_ERROR', 'Access denied - user not authorized', error, { operation, ...context });
     }
     
-    if (error?.code === 'PGRST301' || error?.message?.includes('network')) {
+    if (error?.code === 'PGRST301' || errorMessage.includes('jwt') || errorMessage.includes('network')) {
       throw createStorageError('NETWORK_ERROR', 'Network connection failed', error, { operation, ...context });
     }
     
@@ -159,18 +167,22 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     context?: { leagueId?: LeagueId; rosterName?: string }
   ): Promise<T> {
     try {
-      return await this.withRetry(operation, supabaseOperation, context);
+      const result = await this.withRetry(operation, supabaseOperation, context);
+      return result;
     } catch (error) {
       if (this.fallbackAdapter && fallbackOperation) {
         console.warn(`[SupabaseStorage] Supabase unavailable, falling back to localStorage for ${operation}`);
         try {
-          return await fallbackOperation();
+          const fallbackResult = await fallbackOperation();
+          console.log(`[SupabaseStorage] ${operation} fallback completed successfully`);
+          return fallbackResult;
         } catch (fallbackError) {
           console.error(`[SupabaseStorage] Fallback also failed for ${operation}:`, fallbackError);
           // Throw the original Supabase error, not the fallback error
           throw error;
         }
       }
+      console.error(`[SupabaseStorage] No fallback available for ${operation}, throwing error`);
       throw error;
     }
   }
@@ -187,7 +199,10 @@ export class SupabaseStorageAdapter implements StorageAdapter {
           .select('*')
           .eq('user_id', this.userId);
 
-        if (error) throw error;
+        if (error) {
+          console.error(`[SupabaseAdapter] Supabase error in loadLeagues:`, error);
+          throw error;
+        }
 
         return transformLeaguesFromDatabase(data || []);
       },
