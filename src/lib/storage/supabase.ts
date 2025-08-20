@@ -585,4 +585,66 @@ export class SupabaseStorageAdapter implements StorageAdapter {
       { leagueId, rosterName }
     );
   }
+
+  /**
+   * Clear all data for the current user from Supabase
+   * This removes all leagues, drafts, and associated data
+   */
+  async clearAllData(): Promise<void> {
+    return this.withFallback(
+      'clearAllData',
+      async () => {
+        console.log(`[SupabaseAdapter] Clearing all data for user: ${this.userId}`);
+
+        // Get all draft sessions for this user first (for proper cascade deletion)
+        const { data: draftSessions } = await this.supabase
+          .from('draft_sessions')
+          .select('id')
+          .eq('user_id', this.userId);
+
+        const sessionIds = draftSessions?.map(session => session.id) || [];
+
+        // Delete in reverse dependency order to avoid foreign key violations
+        if (sessionIds.length > 0) {
+          // Delete cost adjustments
+          await this.supabase
+            .from('cost_adjustments')
+            .delete()
+            .in('draft_session_id', sessionIds);
+
+          // Delete player selections
+          await this.supabase
+            .from('player_selections')
+            .delete()
+            .in('draft_session_id', sessionIds);
+
+          // Delete draft settings
+          await this.supabase
+            .from('draft_settings')
+            .delete()
+            .in('draft_session_id', sessionIds);
+        }
+
+        // Delete all draft sessions for this user
+        await this.supabase
+          .from('draft_sessions')
+          .delete()
+          .eq('user_id', this.userId);
+
+        // Delete all leagues for this user
+        await this.supabase
+          .from('leagues')
+          .delete()
+          .eq('user_id', this.userId);
+
+        console.log(`[SupabaseAdapter] ✅ Successfully cleared all data for user: ${this.userId}`);
+      },
+      async () => {
+        console.log('[SupabaseAdapter] Falling back to adapter for clearAllData');
+        if (this.fallbackAdapter) {
+          await this.fallbackAdapter.clearAllData();
+        }
+      }
+    );
+  }
 }
