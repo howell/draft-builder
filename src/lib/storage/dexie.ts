@@ -63,26 +63,14 @@ export class DexieStorageAdapter implements StorageAdapter {
         return { schemaVersion: CURRENT_LEAGUES_SCHEMA_VERSION, leagues: {} };
       }
 
-      const leagues = await Promise.race([
-        (async (): Promise<League[]> => {
-          // Check if database is open
-          if (!db.isOpen()) {
-            try {
-              await db.open();
-            } catch (error) {
-              throw error;
-            }
-          }
-          
-          const result = await db.getLeaguesForUser(this.userId);
-          return result;
-        })(),
-        new Promise<never>((_, reject) => {
-          setTimeout(() => {
-            reject(new Error('DexieAdapter.loadLeagues() timeout after 2 seconds'));
-          }, 2000);
-        })
-      ]) as League[];
+      // Check if database is open
+      if (!db.isOpen()) {
+        await db.open();
+      }
+      
+      const leagues = await db.getLeaguesForUser(this.userId);
+      console.log(`[DexieAdapter] Found ${leagues.length} leagues for user ${this.userId}`);
+      
       const leaguesMap: { [leagueId: LeagueId]: PlatformLeague } = {};
 
       for (const league of leagues) {
@@ -453,6 +441,56 @@ export class DexieStorageAdapter implements StorageAdapter {
         error,
         { operation: 'deleteRoster', leagueId, rosterName, userId: this.userId }
       );
+    }
+  }
+
+  // =============================================================================
+  // DATA MANAGEMENT
+  // =============================================================================
+
+  /**
+   * Clear all data for the current user
+   * This removes all leagues, drafts, and associated data from IndexedDB
+   */
+  async clearAllData(): Promise<void> {
+    try {
+      console.log(`[DexieAdapter] Clearing all data for user: ${this.userId}`);
+      
+      if (!this.isClient) {
+        console.log('[DexieAdapter] Not in client environment, skipping data clear');
+        return;
+      }
+
+      // Check if database is open
+      if (!db.isOpen()) {
+        await db.open();
+      }
+
+      // Get all data for this user first for logging
+      const leagues = await db.getLeaguesForUser(this.userId);
+      const drafts = await db.getDraftsForUser(this.userId);
+      console.log(`[DexieAdapter] Clearing ${leagues.length} leagues and ${drafts.length} drafts for user ${this.userId}`);
+
+      // Use transaction to ensure atomicity
+      await db.transaction('rw', db.leagues, db.drafts, db.players, async () => {
+        // Delete all player selections for user's drafts
+        const draftIds = drafts.map(d => d.id).filter((id): id is number => id !== undefined);
+        if (draftIds.length > 0) {
+          await db.players.where('draftId').anyOf(draftIds).delete();
+        }
+
+        // Delete all drafts for this user
+        await db.drafts.where('userId').equals(this.userId).delete();
+
+        // Delete all leagues for this user
+        await db.leagues.where('userId').equals(this.userId).delete();
+      });
+
+      console.log(`[DexieAdapter] ✅ Successfully cleared all data for user: ${this.userId}`);
+    } catch (error) {
+      this.logError('clearAllData', error, { userId: this.userId });
+      throw createStorageError('DATA_ERROR', 'Failed to clear all user data', error, 
+        { operation: 'clearAllData', userId: this.userId });
     }
   }
 
