@@ -123,6 +123,7 @@ export type Player = {
     rotoworld_id: number;
     search_first_name: string;
     yahoo_id: null | string;
+    active?: boolean;
 };
 
 export type LeagueUser = {
