@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../lib/auth/context';
 import { LeagueId } from '../../platforms/common';
-import LoadingScreen, { LoadingTask, QueryLoadingTask } from '../../ui/LoadingScreen';
+import LoadingScreen from '../../ui/LoadingScreen';
 import ErrorScreen from '../../ui/ErrorScreen';
 import { QuickActions } from './QuickActions';
 import { RecentDrafts } from './RecentDrafts';
@@ -41,9 +41,6 @@ export function AccountDashboard({ className = "" }: AccountDashboardProps) {
   
   const draftsQuery = useDraftsQuery(leagueIds);
   
-  // Track authLoading state with ref to avoid closure capture issue
-  const authLoadingRef = React.useRef(authLoading);
-  authLoadingRef.current = authLoading;
 
   // Component lifecycle logging
   console.log('[AccountDashboard] Component render with React Query - user:', user?.id || 'none', 'authLoading:', authLoading);
@@ -73,32 +70,12 @@ export function AccountDashboard({ className = "" }: AccountDashboardProps) {
     return summary;
   }, [user, leaguesQuery.data, draftsQuery.data, leagueIds]);
 
-  // Create stable loading tasks with individual useMemo to avoid re-creation
-  const authTask = useMemo(() => 
-    new LoadingTask(() => !authLoadingRef.current, 'Authenticating...'), 
-    []
-  );
-
-  const leaguesTask = useMemo(() => 
-    new QueryLoadingTask(leaguesQuery, 'Loading leagues...'), 
-    [leaguesQuery]
-  );
-
-  const draftsTask = useMemo(() => 
-    new QueryLoadingTask(draftsQuery, 'Loading drafts...'), 
-    [draftsQuery]
-  );
-
-  // Combine all tasks into a stable Set
-  const loadingTasks = useMemo(() => {
-    const tasks = new Set([
-      authTask,
-      leaguesTask,
-      draftsTask
-    ]);
-    console.log('[AccountDashboard] Created combined loading tasks:', tasks.size);
-    return tasks;
-  }, [authTask, leaguesTask, draftsTask]);
+  // Create loading dependencies using the new simplified API
+  const loadingDependencies = useMemo(() => [
+    { loading: authLoading, message: 'Authenticating...' },
+    { query: leaguesQuery as any, message: 'Loading leagues...' },
+    { query: draftsQuery as any, message: 'Loading drafts...' }
+  ], [authLoading, leaguesQuery, draftsQuery]);
 
   // Handle query errors
   const error = leaguesQuery.error || draftsQuery.error;
@@ -153,7 +130,7 @@ export function AccountDashboard({ className = "" }: AccountDashboardProps) {
   }
 
   return (
-    <LoadingScreen tasks={loadingTasks}>
+    <LoadingScreen waitFor={loadingDependencies}>
       <div className={`max-w-4xl mx-auto p-6 space-y-6 ${className}`}>
         {/* Welcome Header */}
         <div className="bg-white rounded-lg shadow-md p-6">
