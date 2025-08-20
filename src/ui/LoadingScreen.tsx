@@ -3,9 +3,9 @@ import { UseQueryResult } from '@tanstack/react-query';
 
 // Unified dependency types for the new simple API
 export type LoadingDependency = 
-  | { query: UseQueryResult<any, any>; message: string }
+  | { query: UseQueryResult<unknown, unknown>; message: string }
   | { condition: () => boolean; message: string }
-  | { promise: Promise<any>; message: string }
+  | { promise: Promise<unknown>; message: string }
   | { loading: boolean; message?: string }; // for auth loading
 
 export interface LoadingScreenProps {
@@ -61,7 +61,9 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
     }
     
     return { loading: false, message: undefined };
-  }, [waitFor, pollingTrigger]); // Include pollingTrigger to recheck conditions
+    // pollingTrigger is intentionally included to force re-evaluation of condition functions
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waitFor, pollingTrigger]);
 
   // Stop polling when all conditions are satisfied  
   useEffect(() => {
