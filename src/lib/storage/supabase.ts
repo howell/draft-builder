@@ -231,16 +231,44 @@ export class SupabaseStorageAdapter implements StorageAdapter {
           authDataEncrypted = encrypted.toString('base64');
         }
 
-        const { error } = await this.supabase
+        console.log(`[SupabaseStorage] Upserting league: user_id=${this.userId}, league_id=${leagueId}, platform=${league.platform}`);
+        
+        // Create timeout promise with longer timeout for E2E tests
+        const timeoutMs = process.env.NODE_ENV === 'test' ? 15000 : 5000;
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error(`League upsert timeout after ${timeoutMs}ms`)), timeoutMs);
+        });
+        
+        // Create upsert promise
+        const upsertPromise = this.supabase
           .from('leagues')
           .upsert({
             ...leagueData,
             auth_data_encrypted: authDataEncrypted
           }, {
-            onConflict: 'user_id,league_id,platform'
-          });
-
-        if (error) throw error;
+            onConflict: 'user_id,league_id,platform',
+            ignoreDuplicates: false  // Ensure upsert always updates or inserts
+          })
+          .select()
+          .maybeSingle(); // Use maybeSingle instead of single to handle updates
+        
+        try {
+          // Race between upsert and timeout
+          const { data, error } = await Promise.race([
+            upsertPromise,
+            timeoutPromise.then(() => ({ data: null, error: new Error('Timeout') }))
+          ]) as any;
+          
+          if (error) {
+            console.error(`[SupabaseStorage] Upsert failed:`, error);
+            throw error;
+          }
+          
+          console.log(`[SupabaseStorage] League upserted successfully:`, data?.id || 'no data returned');
+        } catch (upsertError) {
+          console.error(`[SupabaseStorage] Upsert exception:`, upsertError);
+          throw upsertError;
+        }
       },
       () => {
         // Note: ESPN auth data will be lost in localStorage fallback
