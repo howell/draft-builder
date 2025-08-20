@@ -1,11 +1,12 @@
 /**
- * User Accounts E2E Tests - Step 3: User Signup with Migration
+ * User Accounts E2E Tests - Step 3: User Signup Form
  * 
- * Testing user signup when localStorage data exists (triggers migration flow)
+ * Testing the SignUpForm component functionality and integration with AuthProvider.
+ * Note: Migration flow is handled separately by MigrationGate after authentication.
  */
 
-import { render, screen, waitFor, act } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import React, { ReactNode } from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 // Mock Next.js components
@@ -34,216 +35,134 @@ jest.mock('next/link', () => ({
   },
 }));
 
-// Import existing test utilities
-import { 
-  createMockSupabaseClient,
-  clearTestLocalStorage,
-  populateLocalStorageWithTestData,
-  createTestLocalStorageData
-} from '../lib/storage/__tests__/test-utils';
+// Mock the auth context
+const mockUseAuth = jest.fn();
+jest.mock('../lib/auth/context', () => ({
+  useAuth: () => mockUseAuth(),
+  AuthProvider: ({ children }: { children: ReactNode }) => React.createElement('div', {}, children)
+}));
 
 // Import components
-import { AuthProvider } from '../lib/auth/context';
 import SignUpForm from '../components/auth/SignUpForm';
 
-// Mock dependencies
-import { hasMigratableData, getLocalStorageDataSummary } from '../lib/storage/migration-utils';
-import { createStorageAdapter } from '../lib/storage/factory';
-import { supabase } from '../lib/supabase';
-
-jest.mock('../lib/storage/migration-utils');
-jest.mock('../lib/storage/factory');
-jest.mock('../lib/supabase');
-
-describe('User Signup with Migration E2E Test', () => {
-  let mockStorageAdapter: any;
-  let testLocalStorageData: any;
-
+describe('SignUpForm E2E Test', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    // Restore console for debugging
-    jest.restoreAllMocks();
-    
-    // Clear test localStorage 
-    clearTestLocalStorage();
-    
-    // Mock Supabase auth for signup flow
-    const mockSupabaseAuth = {
-      getSession: jest.fn().mockResolvedValue({ data: { session: null }, error: null }), // Not authenticated initially
+  });
+
+  test('renders signup form with correct structure', () => {
+    // Mock auth context for loading state
+    mockUseAuth.mockReturnValue({
       signUp: jest.fn(),
-      onAuthStateChange: jest.fn((callback) => {
-        // Immediately call the callback to set auth state to not loading
-        callback('INITIAL_SESSION', null);
-        return {
-          data: { subscription: { unsubscribe: jest.fn() } }
-        };
-      })
-    };
-
-    (supabase as any).auth = mockSupabaseAuth;
-
-    // Mock storage adapter
-    mockStorageAdapter = {
-      loadLeagues: jest.fn().mockResolvedValue({ leagues: {} }),
-      saveLeague: jest.fn(),
-      loadSavedMocks: jest.fn(),
-      saveMock: jest.fn()
-    };
-
-    (createStorageAdapter as jest.Mock).mockReturnValue(mockStorageAdapter);
-
-    // Mock localStorage data EXISTS (migration scenario)
-    (hasMigratableData as jest.Mock).mockResolvedValue(true);
-    
-    // Mock migratable data summary for migration preview
-    (getLocalStorageDataSummary as jest.Mock).mockResolvedValue({
-      leagueCount: 2,
-      draftCount: 3,
-      totalSelections: 15,
-      costAdjustments: 5,
-      estimatedSizeBytes: 2400000,
-      hasEspnAuthData: false
-    });
-  });
-
-  afterEach(() => {
-    clearTestLocalStorage();
-  });
-
-  test('signup form shows migration content when localStorage data exists', async () => {
-
-    // Mock successful signup
-    const mockSupabaseAuth = (supabase as any).auth;
-    mockSupabaseAuth.signUp.mockResolvedValue({ error: null });
-
-    // Render the signup form and wait for async effects to complete
-    let renderResult: any;
-    await act(async () => {
-      renderResult = render(
-        <AuthProvider>
-          <SignUpForm onSwitchToLogin={jest.fn()} />
-        </AuthProvider>
-      );
-      
-      // Give the useEffect time to run
-      await new Promise(resolve => setTimeout(resolve, 100));
+      loading: false,
+      error: null,
+      clearError: jest.fn(),
     });
 
-    // Basic rendering check
-    expect(renderResult.container).toBeTruthy();
+    render(<SignUpForm onSwitchToLogin={jest.fn()} />);
 
-    // Check what title is actually shown after async data loading
-    const migrationTitle = screen.queryByText(/Secure Your Fantasy Data/i);
-    const defaultTitle = screen.queryByText(/Create Draft Builder Account/i);
+    // Should show default signup title (no migration-specific content)
+    expect(screen.getByText('Create Your Account')).toBeInTheDocument();
+    expect(screen.getByText('Join Draft Builder and take your fantasy drafts to the next level')).toBeInTheDocument();
 
-    // Migration logic is working! Component shows migration-specific title
-    expect(screen.getByText(/Secure Your Fantasy Data/i)).toBeInTheDocument();
-
-    // Should show migration-related content since localStorage data exists
-    expect(screen.getByText(/Your existing data will be automatically migrated/i)).toBeInTheDocument();
-
-    // Should show data preview information with specific counts
-    expect(screen.getByText(/2 leagues? found/i)).toBeInTheDocument();
-
-    // Should show submit button with migration text
-    expect(screen.getByRole('button', { name: /Create Account.*Migrate/i })).toBeInTheDocument();
-
-    // Migration functionality is working - we can see migration UI elements
-    // Note: We test behavior rather than mock calls due to auth context dynamic imports
-
-    // Standard form elements should still be present
+    // Should show standard form elements
     expect(screen.getByLabelText(/Email Address/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^Password$/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Confirm Password/i)).toBeInTheDocument();
 
-  });
-
-  test('migration preview displays correct data summary', async () => {
-
-    let renderResult: any;
-    await act(async () => {
-      renderResult = render(
-        <AuthProvider>
-          <SignUpForm onSwitchToLogin={jest.fn()} />
-        </AuthProvider>
-      );
-      await new Promise(resolve => setTimeout(resolve, 100));
-    });
-
-    // Core verification: migration is triggered and component shows correct title
-    expect(screen.getByText(/Secure Your Fantasy Data/i)).toBeInTheDocument();
-
-    // Should show migration-related content
-    expect(screen.getByText(/Your existing data will be automatically migrated/i)).toBeInTheDocument();
-
-    // Should show the data preview with specific numbers from our mock
-    expect(screen.getByText(/2 leagues? found/i)).toBeInTheDocument();
-
-    // Migration data summary working - tested via UI behavior
-
-  });
-
-  test('form structure accommodates migration flow', async () => {
-
-    let renderResult: any;
-    await act(async () => {
-      renderResult = render(
-        <AuthProvider>
-          <SignUpForm onSwitchToLogin={jest.fn()} />
-        </AuthProvider>
-      );
-      await new Promise(resolve => setTimeout(resolve, 100));
-    });
-
-    // Standard form elements should be present
-    expect(screen.getByLabelText(/Email Address/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Password$/i)).toBeInTheDocument(); 
-    expect(screen.getByLabelText(/Confirm Password/i)).toBeInTheDocument();
-
-    // Submit button should show migration text (since migration is triggered)
-    expect(screen.getByRole('button', { name: /Create Account.*Migrate/i })).toBeInTheDocument();
-
-    // Should show migration-specific title (since migration is triggered)
-    expect(screen.getByText(/Secure Your Fantasy Data/i)).toBeInTheDocument();
+    // Should show standard signup button (no migration text)
+    expect(screen.getByRole('button', { name: /🚀 Create Account/i })).toBeInTheDocument();
 
     // Should have "Sign in here" link
     expect(screen.getByText(/Sign in here/i)).toBeInTheDocument();
-
-    // Verify localStorage check was made
-    // Migration detection working - tested via UI behavior rather than mock calls
-
   });
 
-  test('auth context integrates with migration signup flow', async () => {
-
-    let renderResult: any;
-    await act(async () => {
-      renderResult = render(
-        <AuthProvider>
-          <SignUpForm onSwitchToLogin={jest.fn()} />
-        </AuthProvider>
-      );
-      await new Promise(resolve => setTimeout(resolve, 100));
+  test('form has accessible input fields', () => {
+    mockUseAuth.mockReturnValue({
+      signUp: jest.fn(),
+      loading: false,
+      error: null,
+      clearError: jest.fn(),
     });
 
-    // Should show migration-specific title (since migration detection is working)
-    expect(screen.getByText(/Secure Your Fantasy Data/i)).toBeInTheDocument();
-    
-    // Should have "Sign in here" link indicating context provides both flows
-    expect(screen.getByText(/Sign in here/i)).toBeInTheDocument();
-    
-    // Form should be interactive (not in loading state)
+    render(<SignUpForm onSwitchToLogin={jest.fn()} />);
+
+    // Should have properly labeled form fields
     const emailInput = screen.getByLabelText(/Email Address/i);
-    expect(emailInput).not.toBeDisabled();
+    const passwordInput = screen.getByLabelText(/^Password$/i);
+    const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
 
-    // Should show form elements indicating auth context is working
-    expect(screen.getByLabelText(/Email Address/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Password$/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Confirm Password/i)).toBeInTheDocument();
+    // Verify inputs have correct attributes
+    expect(emailInput).toHaveAttribute('type', 'email');
+    expect(emailInput).toHaveAttribute('required');
+    expect(passwordInput).toHaveAttribute('type', 'password');
+    expect(passwordInput).toHaveAttribute('required');
+    expect(confirmPasswordInput).toHaveAttribute('required');
 
-    // Verify localStorage checks were integrated into auth flow
-    // Migration detection working - tested via UI behavior rather than mock calls
+    // Submit button should be present
+    const submitButton = screen.getByRole('button', { name: /🚀 Create Account/i });
+    expect(submitButton).toHaveAttribute('type', 'submit');
+  });
 
+  test('displays auth error when signup fails', () => {
+    const mockClearError = jest.fn();
+    
+    mockUseAuth.mockReturnValue({
+      signUp: jest.fn(),
+      loading: false,
+      error: 'Email already exists',
+      clearError: mockClearError,
+    });
+
+    render(<SignUpForm onSwitchToLogin={jest.fn()} />);
+
+    // Should display error message
+    expect(screen.getByText('Email already exists')).toBeInTheDocument();
+
+    // Error should be in red background
+    const errorElement = screen.getByText('Email already exists');
+    expect(errorElement.closest('div')).toHaveClass('bg-red-50');
+  });
+
+  test('shows loading state during signup', () => {
+    mockUseAuth.mockReturnValue({
+      signUp: jest.fn(),
+      loading: true,
+      error: null,
+      clearError: jest.fn(),
+    });
+
+    render(<SignUpForm onSwitchToLogin={jest.fn()} />);
+
+    // Should show loading button text
+    expect(screen.getByText('Creating Account...')).toBeInTheDocument();
+    
+    // Form fields should be disabled during loading
+    expect(screen.getByLabelText(/Email Address/i)).toBeDisabled();
+    expect(screen.getByLabelText(/^Password$/i)).toBeDisabled();
+    expect(screen.getByLabelText(/Confirm Password/i)).toBeDisabled();
+
+    // Submit button should be disabled
+    const submitButton = screen.getByRole('button', { name: /Creating Account.../i });
+    expect(submitButton).toBeDisabled();
+  });
+
+  test('calls onSwitchToLogin when sign in link is clicked', () => {
+    const mockOnSwitchToLogin = jest.fn();
+    
+    mockUseAuth.mockReturnValue({
+      signUp: jest.fn(),
+      loading: false,
+      error: null,
+      clearError: jest.fn(),
+    });
+
+    render(<SignUpForm onSwitchToLogin={mockOnSwitchToLogin} />);
+
+    // Click "Sign in here" link
+    fireEvent.click(screen.getByText(/Sign in here/i));
+
+    // Should call onSwitchToLogin callback
+    expect(mockOnSwitchToLogin).toHaveBeenCalled();
   });
 });

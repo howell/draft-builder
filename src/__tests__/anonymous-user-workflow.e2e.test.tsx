@@ -49,7 +49,7 @@ import {
 } from '../lib/storage/__tests__/test-utils';
 
 // Mock dependencies
-import { hasLocalStorageData, getLocalStorageDataSummary } from '../lib/storage/migration-utils';
+import { hasMigratableData, getLocalStorageDataSummary } from '../lib/storage/migration-utils';
 import { createStorageAdapter } from '../lib/storage/factory';
 import { supabase } from '../lib/supabase';
 
@@ -96,8 +96,8 @@ describe('Anonymous User Flow E2E Test', () => {
 
     (createStorageAdapter as jest.Mock).mockReturnValue(mockStorageAdapter);
 
-    // Mock no localStorage data initially
-    (hasLocalStorageData as jest.Mock).mockReturnValue(false);
+    // Mock no migratable data initially
+    (hasMigratableData as jest.Mock).mockResolvedValue(false);
   });
 
   afterEach(() => {
