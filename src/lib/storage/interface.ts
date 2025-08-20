@@ -86,6 +86,12 @@ export interface StorageAdapter {
    * @param rosterName - The name of the roster/draft to delete
    */
   deleteRoster(leagueId: LeagueId, rosterName: string): Promise<void>;
+
+  /**
+   * Clear all data for the current user
+   * This is used for data cleanup after migration or for testing
+   */
+  clearAllData(): Promise<void>;
 }
 
 /**
