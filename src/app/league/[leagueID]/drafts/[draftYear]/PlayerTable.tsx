@@ -53,12 +53,6 @@ const PlayerTable = <T extends object,>({
         }
     });
 
-    const getSortClass = (column: SortColumn) => {
-        if (column === sortColumn) {
-            return sortDirection === 'asc' ? 'after:content-["▲"]' : 'after:content-["▼"]';
-        }
-        return '';
-    };
 
     return (
         <div className="mx-auto my-5 border-collapse w-full max-h-[90dvh] overflow-y-auto overflow-x-auto md:overflow-x-hidden rounded-lg shadow-sm">
@@ -74,11 +68,14 @@ const PlayerTable = <T extends object,>({
                                             border-b-2 border-gray-200 dark:border-gray-700
                                             text-left font-semibold
                                             bg-gradient-to-r from-gray-50 to-gray-100 text-gray-900
-                                            dark:from-gray-800 dark:to-gray-750 dark:text-gray-100
-                                            ${getSortClass(column)}`}
+                                            dark:from-gray-800 dark:to-gray-750 dark:text-gray-100`}
                                 >
                                 <div className="inline justify-start items-center w-max cursor-pointer hover:text-primary-600">
-                                    <ColumnHeader name={name} onClick={() => handleSort(column)} />
+                                    <ColumnHeader 
+                                        name={name} 
+                                        onClick={() => handleSort(column)}
+                                        sortIndicator={column === sortColumn ? (sortDirection === 'asc' ? '▲' : '▼') : undefined}
+                                    />
                                 </div>
                             </th>))}
                     </tr>
@@ -123,24 +120,41 @@ const PlayerTable = <T extends object,>({
 
 export default PlayerTable;
 
-const ColumnHeader: React.FC<{name: ColumnName, onClick: () => void}> = ({ name, onClick }) => {
+const ColumnHeader: React.FC<{name: ColumnName, onClick: () => void, sortIndicator?: string}> = ({ name, onClick, sortIndicator }) => {
     if (typeof name === 'string') {
-        return <span >{name}</span>;
+        return (
+            <span onClick={onClick} className="flex items-center">
+                {name}
+                <span className="ml-1 w-3 text-center">{sortIndicator || ''}</span>
+            </span>
+        );
     }
-    const withTooltip = (nm: String) => {
-        const inner = (
-            <div onClick={onClick}
-                className='cursor-pointer'>
-                {nm}
+    
+    const createHeaderContent = (nm: String) => {
+        const content = (
+            <div onClick={onClick} className='cursor-pointer flex items-center'>
+                <span>{nm}</span>
+                <span className="ml-1 w-3 text-center">{sortIndicator || ''}</span>
             </div>
         );
+        
         if (name.tooltip) {
-            return <Tooltip text={name.tooltip}>
-                {inner}
-            </Tooltip>
+            return (
+                <div className="flex items-center">
+                    <Tooltip text={name.tooltip}>
+                        <div onClick={onClick} className='cursor-pointer'>
+                            {nm}
+                        </div>
+                    </Tooltip>
+                    <span className="ml-1 w-3 text-center">{sortIndicator || ''}</span>
+                </div>
+            );
         }
-        return inner;
+        return content;
     };
-    return [<span key={`short ${name.shortName}`} className='inline md:hidden'>{withTooltip(name.shortName ?? name.name)}</span>,
-        <span key={name.name} className='hidden md:inline'>{withTooltip(name.name)}</span>];
+    
+    return [
+        <span key={`short ${name.shortName}`} className='inline md:hidden'>{createHeaderContent(name.shortName ?? name.name)}</span>,
+        <span key={name.name} className='hidden md:inline'>{createHeaderContent(name.name)}</span>
+    ];
 }
