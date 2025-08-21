@@ -15,6 +15,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import SleeperLogin from './SleeperLogin';
 import { useAuth } from '@/lib/auth/context';
+import { Button } from '@/ui/Button';
 import { AccountBenefits } from '@/components/auth/AccountBenefits';
 import { DataPreview } from '@/components/auth/DataPreview';
 import { hasMigratableData, getLocalStorageDataSummary } from '@/lib/storage/migration-utils';
@@ -22,7 +23,7 @@ import type { DataSummary } from '@/lib/storage/migration-utils';
 
 export default function Home() {
   const router = useRouter();
-  const { user, storageAdapter } = useAuth();
+  const { user, storageAdapter, signOut } = useAuth();
   const [submissionInProgress, setSubmissionInProgress] = useState(false);
   const [isProcessingLeague, setIsProcessingLeague] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
@@ -169,12 +170,12 @@ export default function Home() {
                 Connect your leagues to get started with this season&apos;s drafts.
               </p>
               <div className="mt-4">
-                <Link 
-                  href="/dashboard"
-                  className="inline-block bg-blue-600 hover:bg-blue-700 focus:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-white font-medium py-2 px-4 rounded-lg transition-colors mr-4"
+                <Button 
+                  variant="ghost"
+                  onClick={async () => await signOut()}
                 >
-                  View Dashboard
-                </Link>
+                  Logout
+                </Button>
               </div>
             </section>
           )}

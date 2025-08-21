@@ -99,10 +99,10 @@ test.describe('Sleeper League Integration', () => {
       platform: 'sleeper'
     });
     
-    // Navigate to dashboard to see the saved league
-    await page.goto('/dashboard');
+    // Navigate to home page to see authenticated user
+    await page.goto('/');
     
-    // Wait for dashboard to load
+    // Wait for home page to load with authenticated user
     await expect(page.getByText(/Welcome back!/i)).toBeVisible();
     
     // Should see the league that was saved directly to the database

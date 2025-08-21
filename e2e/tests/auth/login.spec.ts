@@ -26,9 +26,11 @@ test.describe('User Authentication', () => {
     await authPage.signup(credentials.email, credentials.password);
     
     // In test environment, email confirmation is disabled so user gets immediately 
-    // signed in and redirected to dashboard after successful signup
-    await expect(page).toHaveURL(/\/dashboard/);
-    await expect(page.getByText(/Welcome back!/i)).toBeVisible();
+    // signed in and redirected to home page after successful signup
+    await expect(page).toHaveURL(/\/(?:$|[?#])/);
+    
+    // Verify user is authenticated by checking for logout button (unique to authenticated users)
+    await expect(page.getByRole('button', { name: /logout/i })).toBeVisible();
   });
 
   test('should login existing user successfully', async ({ page }) => {
@@ -79,7 +81,7 @@ test.describe('User Authentication', () => {
     await page.reload();
     
     // Should still be logged in
-    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page).toHaveURL(/\/(?:$|[?#])/);
     
     // Cleanup
     await dbHelpers.cleanupUser(user.id);

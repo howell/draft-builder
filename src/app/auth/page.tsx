@@ -9,10 +9,10 @@ export default function AuthenticationPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  // Redirect authenticated users to dashboard
+  // Redirect authenticated users to home page
   useEffect(() => {
     if (!loading && user) {
-      router.push('/dashboard');
+      router.push('/');
     }
   }, [user, loading, router]);
 

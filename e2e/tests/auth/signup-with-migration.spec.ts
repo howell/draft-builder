@@ -156,17 +156,17 @@ test.describe('User Signup with Data Migration', () => {
       throw error;
     }
     
-    // Wait for migration to complete and redirect to dashboard
+    // Wait for migration to complete and redirect to home page
     console.log('[Test] Waiting for migration to complete...');
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(page).toHaveURL(/\/(?:$|[?#])/, { timeout: TEST_TIMEOUTS.NAVIGATION });
     
     // Add more detailed logging before verification
-    console.log('[Test] Waiting for dashboard to load...');
+    console.log('[Test] Waiting for home page to load...');
     await page.waitForLoadState('networkidle');
     
-    // Try to verify migrated data on dashboard
+    // Try to verify migrated data on home page
     try {
-      await migrationHelpers.verifyMigratedDataOnDashboard(dataCounts);
+      await migrationHelpers.verifyMigrationCompletedOnHomePage();
     } catch (error) {
       // If verification fails, dump all console logs for debugging
       console.log('[Test] === Verification failed, dumping browser console logs ===');
@@ -250,21 +250,21 @@ test.describe('User Signup with Data Migration', () => {
     const errorElement = page.locator('.bg-red-50, [data-testid*="error"]');
     await expect(errorElement).toBeVisible({ timeout: TEST_TIMEOUTS.ELEMENT_VISIBLE });
     
-    // User can still delete data and continue to dashboard
+    // User can still delete data and continue to home page
     const deleteButton = page.getByRole('button', { name: /delete local data/i });
     await expect(deleteButton).toBeVisible();
     await deleteButton.click();
     
-    // After deleting corrupt data, should redirect to dashboard
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: TEST_TIMEOUTS.FAST_NAVIGATION });
+    // After deleting corrupt data, should redirect to home page
+    await expect(page).toHaveURL(/\/(?:$|[?#])/, { timeout: TEST_TIMEOUTS.FAST_NAVIGATION });
     
-    // Wait for the dashboard to fully load
+    // Wait for the home page to fully load
     await page.waitForLoadState('networkidle');
     
-    // Wait for dashboard content to appear - both welcome message and league count should be visible
-    // The welcome message indicates the page loaded, league count indicates data queries completed
+    // Wait for home page content to appear - welcome message and logout button should be visible
+    // The welcome message indicates the page loaded and user is authenticated
     await expect(page.getByText(/welcome back/i)).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
-    await expect(page.getByTestId('dashboard-league-count')).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(page.getByRole('button', { name: /logout/i })).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
   });
 
   test('should allow signup without migration when no data exists', async ({ page }) => {
@@ -319,8 +319,8 @@ test.describe('User Signup with Data Migration', () => {
       console.log('Signup error detected:', errorText);
     }
     
-    // Should redirect to dashboard without migration
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: TEST_TIMEOUTS.NAVIGATION });
+    // Should redirect to home page without migration
+    await expect(page).toHaveURL(/\/(?:$|[?#])/, { timeout: TEST_TIMEOUTS.NAVIGATION });
     
     // Should show welcome message for new user
     await expect(page.getByText(/welcome/i)).toBeVisible();

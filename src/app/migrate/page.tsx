@@ -38,7 +38,7 @@ export default function MigratePage() {
         
         // If no data to migrate, redirect to dashboard
         if (summary.leagueCount === 0 && summary.draftCount === 0) {
-          router.push('/dashboard');
+          router.push('/');
           return;
         }
         
@@ -86,7 +86,7 @@ export default function MigratePage() {
       // Migration completed successfully
       setIsProcessing(false);
       setProcessingMessage('');
-      router.push('/dashboard');
+      router.push('/');
       
     } catch (error) {
       console.error('Migration failed:', error);
@@ -117,7 +117,7 @@ export default function MigratePage() {
       // Deletion completed, redirect to dashboard
       setIsProcessing(false);
       setProcessingMessage('');
-      router.push('/dashboard');
+      router.push('/');
       
     } catch (error) {
       console.error('Failed to delete local data:', error);

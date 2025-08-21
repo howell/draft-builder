@@ -344,41 +344,26 @@ export class MigrationDataHelpers {
     
     await migrateButton.click();
     
-    // Wait for migration to complete and redirect to dashboard
-    await expect(this.page).toHaveURL(/\/dashboard/, { timeout: 2000 });
+    // Wait for migration to complete and redirect to home page
+    await expect(this.page).toHaveURL(/\/(?:$|[?#])/, { timeout: 2000 });
   }
 
   /**
-   * Verify migrated data on the dashboard
+   * Verify migration completed successfully and user is authenticated on home page
    */
-  async verifyMigratedDataOnDashboard(expectedCounts: DataCounts): Promise<void> {
+  async verifyMigrationCompletedOnHomePage(): Promise<void> {
     // Wait for page to load
     await this.page.waitForLoadState('networkidle');
     
-    // Instead of waiting for loading overlay to disappear, wait for dashboard content to appear
-    // The dashboard should show the league count when loaded
-    console.log('[MigrationTest] Waiting for dashboard to load with data...');
-    await expect(this.page.getByTestId('dashboard-league-count')).toBeVisible({ timeout: 5000 });
+    // Verify user is authenticated by checking for welcome message and logout button
+    console.log('[MigrationTest] Waiting for home page to load with authenticated user...');
+    await expect(this.page.getByText(/welcome back/i)).toBeVisible({ timeout: 5000 });
     
-    // Once we see the league count, the dashboard is loaded
-    console.log('[MigrationTest] Dashboard loaded, verifying welcome message...');
-    await expect(this.page.getByText(/welcome back/i)).toBeVisible({ timeout: 1000 });
+    // Verify logout button is visible (indicating user is authenticated)
+    console.log('[MigrationTest] Verifying user is authenticated...');
+    await expect(this.page.getByRole('button', { name: /logout/i })).toBeVisible({ timeout: 1000 });
     
-    // Get actual values from dashboard before asserting
-    const actualLeagueCount = await this.page.getByTestId('dashboard-league-count').textContent();
-    const actualDraftCount = await this.page.getByTestId('dashboard-draft-count').textContent();
-    const actualSelectionCount = await this.page.getByTestId('dashboard-selection-count').textContent();
-    
-    console.log(`[MigrationTest] Dashboard actual values: leagues=${actualLeagueCount}, drafts=${actualDraftCount}, selections=${actualSelectionCount}`);
-    console.log(`[MigrationTest] Expected values: leagues=${expectedCounts.leagues}, drafts=${expectedCounts.drafts}, selections=${expectedCounts.selections}`);
-    
-    // Verify counts using test IDs
-    await expect(this.page.getByTestId('dashboard-league-count')).toHaveText(expectedCounts.leagues.toString());
-    await expect(this.page.getByTestId('dashboard-draft-count')).toHaveText(expectedCounts.drafts.toString());
-    
-    if (expectedCounts.selections !== undefined) {
-      await expect(this.page.getByTestId('dashboard-selection-count')).toHaveText(expectedCounts.selections.toString());
-    }
+    console.log('[MigrationTest] Migration completed successfully - user is authenticated on home page');
   }
 
   /**

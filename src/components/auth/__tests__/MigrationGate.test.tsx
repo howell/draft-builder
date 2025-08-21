@@ -2,7 +2,7 @@
  * Unit tests for MigrationGate component
  * 
  * These tests demonstrate the navigation issue where MigrationGate
- * doesn't properly handle navigation from /migrate to /dashboard
+ * doesn't properly handle navigation from /migrate to /league page
  */
 
 import React from 'react';
@@ -38,7 +38,7 @@ describe('MigrationGate', () => {
     
     // Default mocks
     (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
-    (usePathname as jest.Mock).mockReturnValue('/dashboard');
+    (usePathname as jest.Mock).mockReturnValue('/league/test123');
     (migrationUtils.hasMigratableData as jest.Mock).mockResolvedValue(false);
   });
 
@@ -71,8 +71,8 @@ describe('MigrationGate', () => {
       // (migrationCheckComplete is set to true)
       expect(screen.getByText('Child Content')).toBeInTheDocument();
       
-      // Now simulate navigation to /dashboard (as would happen after migration)
-      (usePathname as jest.Mock).mockReturnValue('/dashboard');
+      // Now simulate navigation to /league page (as would happen after migration)
+      (usePathname as jest.Mock).mockReturnValue('/league/test123');
       
       // Clear the hasMigratableData mock to simulate data was migrated
       (migrationUtils.hasMigratableData as jest.Mock).mockResolvedValue(false);
@@ -200,8 +200,8 @@ describe('MigrationGate', () => {
       // Clear mocks to track new calls
       jest.clearAllMocks();
       
-      // Simulate navigation to /dashboard and clear migration data
-      currentPath = '/dashboard';
+      // Simulate navigation to /league page and clear migration data
+      currentPath = '/';
       (migrationUtils.hasMigratableData as jest.Mock).mockResolvedValue(false);
       
       // Re-render with new pathname

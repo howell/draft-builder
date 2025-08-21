@@ -92,7 +92,7 @@ export class AuthPage extends BasePage {
   }
 
   async expectLoginSuccess() {
-    await expect(this.page).toHaveURL(/\/dashboard|\/league/);
+    await expect(this.page).toHaveURL(/\/(?:$|[?#])|\/league/);
   }
 
   async expectSignupSuccess() {
