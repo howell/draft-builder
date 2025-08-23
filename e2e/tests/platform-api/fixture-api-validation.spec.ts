@@ -6,6 +6,7 @@
 import { test, expect } from '../../fixtures';
 import { createFixturePlatformApi } from '../../../src/platforms/FixtureBasedPlatformApi';
 import { setupFixtureApis, cleanupFixtureApis, isUsingFixtures } from '../../utils/platform-api-injection';
+import { ESPN_AUTH_TEST_LEAGUES } from '../../utils/test-constants';
 
 test.describe('Fixture-based PlatformApi', () => {
   test.beforeAll(async () => {
@@ -20,7 +21,7 @@ test.describe('Fixture-based PlatformApi', () => {
 
   test.describe('ESPN Fixtures', () => {
     test('should load ESPN league info from fixtures', async () => {
-      const espnApi = createFixturePlatformApi('espn');
+      const espnApi = createFixturePlatformApi({ platform: 'espn', id: ESPN_AUTH_TEST_LEAGUES.PUBLIC });
       
       const leagueInfo = await espnApi.fetchLeague('2024');
       expect(typeof leagueInfo).not.toBe('number'); // Should not be an error code
@@ -35,7 +36,7 @@ test.describe('Fixture-based PlatformApi', () => {
     });
 
     test('should load ESPN draft data from fixtures', async () => {
-      const espnApi = createFixturePlatformApi('espn');
+      const espnApi = createFixturePlatformApi({ platform: 'espn', id: ESPN_AUTH_TEST_LEAGUES.PUBLIC });
       
       const draftData = await espnApi.fetchDraft('2024');
       expect(typeof draftData).not.toBe('number');
@@ -56,7 +57,7 @@ test.describe('Fixture-based PlatformApi', () => {
     });
 
     test('should load ESPN players from fixtures', async () => {
-      const espnApi = createFixturePlatformApi('espn');
+      const espnApi = createFixturePlatformApi({ platform: 'espn', id: ESPN_AUTH_TEST_LEAGUES.PUBLIC });
       
       const players = await espnApi.fetchPlayers('2024');
       expect(typeof players).not.toBe('number');
@@ -76,7 +77,7 @@ test.describe('Fixture-based PlatformApi', () => {
     });
 
     test('should load ESPN league history from fixtures', async () => {
-      const espnApi = createFixturePlatformApi('espn');
+      const espnApi = createFixturePlatformApi({ platform: 'espn', id: ESPN_AUTH_TEST_LEAGUES.PUBLIC });
       
       const history = await espnApi.fetchLeagueHistory('2024');
       expect(history).toBeInstanceOf(Map);
@@ -93,7 +94,7 @@ test.describe('Fixture-based PlatformApi', () => {
 
   test.describe('Sleeper Fixtures', () => {
     test('should load Sleeper league info from fixtures', async () => {
-      const sleeperApi = createFixturePlatformApi('sleeper');
+      const sleeperApi = createFixturePlatformApi({ platform: 'sleeper', id: ESPN_AUTH_TEST_LEAGUES.PUBLIC });
       
       const leagueInfo = await sleeperApi.fetchLeague('2024');
       expect(typeof leagueInfo).not.toBe('number');
@@ -107,7 +108,7 @@ test.describe('Fixture-based PlatformApi', () => {
     });
 
     test('should load Sleeper draft data from fixtures', async () => {
-      const sleeperApi = createFixturePlatformApi('sleeper');
+      const sleeperApi = createFixturePlatformApi({ platform: 'sleeper', id: ESPN_AUTH_TEST_LEAGUES.PUBLIC });
       
       const draftData = await sleeperApi.fetchDraft('2024');
       expect(typeof draftData).not.toBe('number');
@@ -127,7 +128,7 @@ test.describe('Fixture-based PlatformApi', () => {
     });
 
     test('should load Sleeper players from fixtures', async () => {
-      const sleeperApi = createFixturePlatformApi('sleeper');
+      const sleeperApi = createFixturePlatformApi({ platform: 'sleeper', id: ESPN_AUTH_TEST_LEAGUES.PUBLIC });
       
       const players = await sleeperApi.fetchPlayers('2024');
       expect(typeof players).not.toBe('number');
@@ -154,8 +155,8 @@ test.describe('Fixture-based PlatformApi', () => {
     });
 
     test('should have all required fixture files', async () => {
-      const espnApi = createFixturePlatformApi('espn');
-      const sleeperApi = createFixturePlatformApi('sleeper');
+      const espnApi = createFixturePlatformApi({ platform: 'espn', id: ESPN_AUTH_TEST_LEAGUES.PUBLIC });
+      const sleeperApi = createFixturePlatformApi({ platform: 'sleeper', id: ESPN_AUTH_TEST_LEAGUES.PUBLIC });
       
       // ESPN fixtures
       expect(espnApi.hasFixture('fetch-league-espn')).toBe(true);
@@ -175,8 +176,8 @@ test.describe('Fixture-based PlatformApi', () => {
     });
 
     test('should have fixture summaries', async () => {
-      const espnApi = createFixturePlatformApi('espn');
-      const sleeperApi = createFixturePlatformApi('sleeper');
+      const espnApi = createFixturePlatformApi({ platform: 'espn', id: ESPN_AUTH_TEST_LEAGUES.PUBLIC });
+      const sleeperApi = createFixturePlatformApi({ platform: 'sleeper', id: ESPN_AUTH_TEST_LEAGUES.PUBLIC });
       
       const espnSummary = espnApi.getFixtureSummary();
       expect(espnSummary).toBeDefined();
@@ -192,7 +193,7 @@ test.describe('Fixture-based PlatformApi', () => {
     });
 
     test('should provide consistent data across multiple calls', async () => {
-      const espnApi = createFixturePlatformApi('espn');
+      const espnApi = createFixturePlatformApi({ platform: 'espn', id: ESPN_AUTH_TEST_LEAGUES.PUBLIC });
       
       // Multiple calls should return identical data
       const leagueInfo1 = await espnApi.fetchLeague('2024');
