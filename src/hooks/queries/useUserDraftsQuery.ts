@@ -20,10 +20,6 @@ export function useUserDraftsQuery(leagueIds?: LeagueId[]) {
     queryFn: async (): Promise<DraftInfo[]> => {
       console.log('[useUserDraftsQuery] Fetching drafts for leagues:', leagueIds);
       
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-      
       if (!leagueIds || leagueIds.length === 0) {
         console.log('[useUserDraftsQuery] No leagues to process');
         return [];
@@ -68,7 +64,7 @@ export function useUserDraftsQuery(leagueIds?: LeagueId[]) {
       console.log('[useUserDraftsQuery] ✅ Draft processing complete:', allDrafts.length, 'drafts');
       return allDrafts;
     },
-    enabled: !authLoading && !!user && !!leagueIds,
+    enabled: !authLoading && !!leagueIds,
     // Cache for 2 minutes since draft data changes more frequently than leagues
     staleTime: 2 * 60 * 1000,
   });
