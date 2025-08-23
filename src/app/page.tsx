@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from "react";
 import ApiClient from './api/ApiClient';
 import LoadingScreen from '@/ui/LoadingScreen';
 import { LeagueId, Platform, PlatformLeague, platformLogo } from '@/platforms/common';
-import type { StorageAdapter } from '@/lib/storage/interface';
 import Sidebar from '../ui/Sidebar';
 import { LeagueSubmitCallback } from './leagueInputs';
 import { activateLeague } from './navigation';
@@ -20,34 +19,52 @@ import { AccountBenefits } from '@/components/auth/AccountBenefits';
 import { DataPreview } from '@/components/auth/DataPreview';
 import { hasMigratableData, getLocalStorageDataSummary } from '@/lib/storage/migration-utils';
 import type { DataSummary } from '@/lib/storage/migration-utils';
+import { useSaveLeagueMutation } from '@/hooks/queries/useSaveLeagueMutation';
+import { useLeaguesQuery } from '@/hooks/queries/useLeaguesQuery';
 
 export default function Home() {
   const router = useRouter();
-  const { user, storageAdapter, signOut } = useAuth();
-  const [submissionInProgress, setSubmissionInProgress] = useState(false);
-  const [isProcessingLeague, setIsProcessingLeague] = useState(false);
-  const [processingMessage, setProcessingMessage] = useState('');
-  const [availableLeagues, setAvailableLeagues] = useState<PlatformLeague[]>([]);
-  const [isLoadingLeagues, setIsLoadingLeagues] = useState(true);
+  const { user, signOut } = useAuth();
+  const [findLeagueState, setFindLeagueState] = useState<{
+    isLoading: boolean;
+    error: string | null;
+  }>({ isLoading: false, error: null });
   const [dataSummary, setDataSummary] = useState<DataSummary | null>(null);
   const [showAccountPromotion, setShowAccountPromotion] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const loadData = async () => {
+  
+  // Use unified leagues query
+  const leaguesQuery = useLeaguesQuery();
+  const availableLeagues = leaguesQuery.data?.leagues.leagues ? Object.values(leaguesQuery.data.leagues.leagues) : [];
+  const isLoadingLeagues = leaguesQuery.isLoading;
+  
+  const saveLeagueMutation = useSaveLeagueMutation({
+    onSuccess: (data, variables) => {
+      console.log('[Home] League saved successfully, navigating...');
+      
+      // Clean up all states before navigation
+      setFindLeagueState({ isLoading: false, error: null });
+      setError(null);
+      
       try {
-        setIsLoadingLeagues(true);
-        const availableLeagues = await storageAdapter.loadLeagues();
-        setAvailableLeagues(Object.values(availableLeagues.leagues));
-      } catch (error) {
-        console.error('Failed to load leagues:', error);
-        setAvailableLeagues([]);
-      } finally {
-        setIsLoadingLeagues(false);
+        activateLeague(variables.league, router);
+      } catch (navigationError) {
+        console.error('[Home] Navigation failed:', navigationError);
+        setError('League saved but navigation failed. Please try refreshing the page.');
       }
-    };
-    loadData();
-  }, [storageAdapter]);
+    },
+    onError: (error) => {
+      console.error('[Home] Save league failed:', error);
+      setFindLeagueState({ isLoading: false, error: null });
+      setError(`Failed to save league: ${error.message}`);
+    }
+  });
+
+  // Derived states for loading and processing
+  const isSubmitting = findLeagueState.isLoading || saveLeagueMutation.isPending;
+  const submissionError = findLeagueState.error || (saveLeagueMutation.error ? `Failed to save league: ${saveLeagueMutation.error.message}` : null);
+  const currentProcessingMessage = findLeagueState.isLoading ? 'Finding League' : 
+                                  saveLeagueMutation.isPending ? 'Saving League' : '';
 
   // Check for migratable data and show account promotion for anonymous users
   useEffect(() => {
@@ -72,22 +89,81 @@ export default function Home() {
     checkForMigratableData();
   }, [user]);
 
-  const handleSubmit: LeagueSubmitCallback = useCallback(async (league: PlatformLeague) => {
-    if (submissionInProgress) return;
-    try {
-      setSubmissionInProgress(true);
-      setError(null); // Clear any previous errors
-      await submitLeague(league, router, setIsProcessingLeague, setProcessingMessage, storageAdapter, setError);
-    } finally {
-      setSubmissionInProgress(false);
+  // Add state monitoring and recovery mechanism
+  useEffect(() => {
+    console.log('[Home] State change detected:', {
+      findLeagueLoading: findLeagueState.isLoading,
+      findLeagueError: findLeagueState.error,
+      mutationStatus: saveLeagueMutation.status,
+      mutationPending: saveLeagueMutation.isPending,
+      isSubmitting,
+      currentProcessingMessage
+    });
+    
+    // Recovery mechanism: if mutation is idle but find league is still loading, reset it
+    if (saveLeagueMutation.status === 'idle' && findLeagueState.isLoading) {
+      console.warn('[Home] Recovery: Mutation is idle but findLeague is still loading, resetting...');
+      setFindLeagueState({ isLoading: false, error: null });
     }
-  }, [submissionInProgress, router, storageAdapter]);
+  }, [findLeagueState, saveLeagueMutation.status, saveLeagueMutation.isPending, isSubmitting, currentProcessingMessage]);
 
-  // if (submissionInProgress) {
-  //   return <LoadingScreen tasks={loadingTasks} />;
-  // }
+  const handleSubmit: LeagueSubmitCallback = useCallback(async (league: PlatformLeague) => {
+    if (isSubmitting) return;
+    
+    console.log('[Home] Starting league submission:', league);
+    
+    try {
+      // Clear any previous errors
+      setError(null);
+      setFindLeagueState({ isLoading: true, error: null });
+      
+      // First verify the league exists via API
+      const client = new ApiClient(league);
+      const result = await client.findLeague();
+      
+      if (typeof result === 'string') {
+        setFindLeagueState({ isLoading: false, error: `Failed to find league: ${result}` });
+        return;
+      }
+      
+      if (result?.status !== 'ok') {
+        setFindLeagueState({ isLoading: false, error: `Error finding league: ${result.status}` });
+        return;
+      }
+      
+      // League found, now transition to save phase
+      console.log('[Home] League found, saving...');
+      setFindLeagueState({ isLoading: false, error: null });
+      
+      // Save the league (mutation handles its own loading/error states)
+      try {
+        await saveLeagueMutation.mutateAsync({ league });
+        // Navigation happens in mutation onSuccess callback
+      } catch (mutationError) {
+        console.error('[Home] Save mutation failed:', mutationError);
+        // Don't set findLeagueState error here, let the mutation's onError handle it
+        // This prevents double error handling
+      }
+      
+    } catch (error) {
+      console.error('[Home] Submit error during API phase:', error);
+      // Only handle errors that occurred during the find league phase
+      if (findLeagueState.isLoading) {
+        setFindLeagueState({ isLoading: false, error: `Unexpected error: ${error}` });
+      }
+    }
+  }, [isSubmitting, saveLeagueMutation, findLeagueState.isLoading]);
+
+  // Cleanup effect to reset states when component unmounts
+  useEffect(() => {
+    return () => {
+      console.log('[Home] Component unmounting, cleaning up states');
+      setFindLeagueState({ isLoading: false, error: null });
+      setError(null);
+    };
+  }, []);
   return (
-  <LoadingScreen waitFor={[{ loading: isProcessingLeague, message: processingMessage }]}>
+  <LoadingScreen waitFor={[{ loading: isSubmitting, message: currentProcessingMessage }]}>
       <main className="flex min-h-screen flex-col items-center pt-24 px-4 sm:px-8 lg:px-12 md:ml-44 ">
         {!isLoadingLeagues && availableLeagues.length > 0 && <Sidebar availableLeagues={availableLeagues} />}
         <div className="flex flex-col w-full max-w-6xl">
@@ -193,7 +269,7 @@ export default function Home() {
             )}
             
             {/* Error message display */}
-            {error && (
+            {(error || submissionError) && (
               <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg" role="alert">
                 <div className="flex">
                   <div className="flex-shrink-0">
@@ -202,7 +278,7 @@ export default function Home() {
                     </svg>
                   </div>
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-red-800">{error}</p>
+                    <p className="text-sm font-medium text-red-800">{error || submissionError}</p>
                   </div>
                 </div>
               </div>
@@ -221,49 +297,6 @@ export default function Home() {
   );
 }
 
-async function submitLeague(league: PlatformLeague,
-  router: AppRouterInstance,
-  setIsProcessing: (loading: boolean) => void,
-  setProcessingMessage: (message: string) => void,
-  storageAdapter: StorageAdapter,
-  setError: (error: string | null) => void) {
-  try {
-    console.log('[Home] Starting submitLeague with:', league);
-    
-    const client = new ApiClient(league);
-    const request = client.findLeague();
-    setIsProcessing(true);
-    setProcessingMessage('Finding League');
-    const result = await request;
-
-    console.log('[Home] findLeague result:', result);
-    if (typeof result === 'string') {
-      console.log('[Home] findLeague failed with string result:', result);
-      setError(`Failed to find league: ${result}`);
-      setIsProcessing(false);
-      setProcessingMessage('');
-      return;
-    }
-    if (result?.status !== 'ok') {
-      console.log('[Home] findLeague failed with status:', result.status);
-      setError(`Error finding league: ${result.status}`);
-      setIsProcessing(false);
-      setProcessingMessage('');
-      return;
-    }
-
-    await storageAdapter.saveLeague(league.id, league);
-    
-    // Just navigate - no need to clear loading state since we're leaving the page
-    activateLeague(league, router);
-  } catch (error) {
-    console.error('[Home] Unexpected error in submitLeague:', error);
-    setError(`Unexpected error: ${error}`);
-    setIsProcessing(false);
-    setProcessingMessage('');
-    return;
-  }
-}
 
 function headerFor(platform: Platform): TabTitle {
   const logo = platformLogo(platform);
