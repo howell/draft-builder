@@ -1,4 +1,5 @@
-import { Page, Locator, expect } from '@playwright/test';
+import { Page, Locator } from '@playwright/test';
+import { expect } from '../fixtures';
 
 export abstract class BasePage {
   readonly page: Page;

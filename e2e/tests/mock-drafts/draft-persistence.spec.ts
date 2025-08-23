@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../fixtures';
 import { MockDraftPage } from '../../page-objects/mock-draft-page';
 import { MockDraftHelpers } from '../../utils/mock-draft-helpers';
 import { testJourneys, ConnectedLeagueSession } from '../../utils/test-journeys';

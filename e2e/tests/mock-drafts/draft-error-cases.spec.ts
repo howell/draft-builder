@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../fixtures';
 import { testJourneys, ConnectedLeagueSession } from '../../utils/test-journeys';
 import { TEST_TIMEOUTS } from '../../utils/test-constants';
 

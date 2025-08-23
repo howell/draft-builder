@@ -1,4 +1,5 @@
-import { Page, Locator, expect } from '@playwright/test';
+import { Page, Locator } from '@playwright/test';
+import { expect } from '../fixtures';
 import { BasePage } from './base-page';
 import { TEST_TIMEOUTS } from '../utils/test-constants';
 

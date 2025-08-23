@@ -5,7 +5,8 @@
  * Uses the actual user journey through the app to ensure 100% consistency.
  */
 
-import { Page, expect } from '@playwright/test';
+import { Page } from '@playwright/test';
+import { expect } from '../fixtures';
 import { HomePage } from '../page-objects/home-page';
 import { MockDraftPage } from '../page-objects/mock-draft-page';
 import { MockDraftHelpers } from './mock-draft-helpers';

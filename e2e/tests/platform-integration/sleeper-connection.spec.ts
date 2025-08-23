@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../fixtures';
 import { HomePage } from '../../page-objects/home-page';
 import { DatabaseHelpers } from '../../utils/database-helpers';
 import { setupCommonApiMocks, ApiMockPresets, setupApiMocksWithPreset } from '../../utils/reusable-api-setup';

@@ -3,7 +3,7 @@
  * Ensures that fixture data loads correctly and matches expected format
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../fixtures';
 import { createFixturePlatformApi } from '../../../src/platforms/FixtureBasedPlatformApi';
 import { setupFixtureApis, cleanupFixtureApis, isUsingFixtures } from '../../utils/platform-api-injection';
 

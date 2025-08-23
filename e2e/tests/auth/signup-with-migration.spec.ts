@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../fixtures';
 import { AuthPage } from '../../page-objects/auth-page';
 import { DatabaseHelpers } from '../../utils/database-helpers';
 import { MigrationDataHelpers } from '../../utils/migration-data-helpers';

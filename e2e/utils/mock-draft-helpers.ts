@@ -1,4 +1,5 @@
-import { Page, expect, Locator } from '@playwright/test';
+import { Page, Locator } from '@playwright/test';
+import { expect } from '../fixtures';
 
 /**
  * Robust testing utilities for Mock Draft functionality.
