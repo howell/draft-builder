@@ -17,6 +17,12 @@ jest.mock('@/lib/auth/context', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
+// Mock useLeagueQuery
+const mockUseLeagueQuery = jest.fn();
+jest.mock('../useLeagueQuery', () => ({
+  useLeagueQuery: (leagueId: string) => mockUseLeagueQuery(leagueId),
+}));
+
 // Mock ApiClient
 jest.mock('@/app/api/ApiClient');
 const MockedApiClient = ApiClient as jest.MockedClass<typeof ApiClient>;
@@ -138,6 +144,18 @@ describe('useApiClientQuery', () => {
 
     // Setup default storage mock
     mockStorageAdapter.loadLeague.mockResolvedValue(mockLeague);
+
+    // Setup default league query mock
+    mockUseLeagueQuery.mockReturnValue({
+      data: {
+        league: mockLeague,
+        source: 'adapter' as const,
+      },
+      isLoading: false,
+      error: null,
+      isSuccess: true,
+      isError: false,
+    });
   });
 
   describe('Successful API calls', () => {
@@ -161,7 +179,7 @@ describe('useApiClientQuery', () => {
 
       expect(result.current.isSuccess).toBe(true);
       expect(result.current.data).toEqual(expectedData);
-      expect(mockStorageAdapter.loadLeague).toHaveBeenCalledWith(mockLeagueId);
+      expect(mockUseLeagueQuery).toHaveBeenCalledWith(mockLeagueId);
       expect(MockedApiClient).toHaveBeenCalledWith(mockLeague);
       expect(mockApiClientInstance.fetchPlayers).toHaveBeenCalledWith(mockSeason);
     });
@@ -262,7 +280,14 @@ describe('useApiClientQuery', () => {
 
   describe('Error scenarios', () => {
     test('throws error when league not found', async () => {
-      mockStorageAdapter.loadLeague.mockResolvedValue(undefined);
+      // Mock useLeagueQuery to return error state (league not found)
+      mockUseLeagueQuery.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        error: new Error(`League ${mockLeagueId} not found`),
+        isSuccess: false,
+        isError: true,
+      });
 
       const TestWrapper = createTestWrapper();
       const { result } = renderHook(
@@ -278,10 +303,10 @@ describe('useApiClientQuery', () => {
       // Wait for the query to settle
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      expect(result.current.isError).toBe(true);
-
-      expect(result.current.error).toEqual(new Error(`League ${mockLeagueId} not found`));
-      expect(mockStorageAdapter.loadLeague).toHaveBeenCalledWith(mockLeagueId);
+      // When league query fails, the API query should be disabled, not error
+      expect(result.current.isPending).toBe(true);
+      expect(result.current.fetchStatus).toBe('idle');
+      expect(mockUseLeagueQuery).toHaveBeenCalledWith(mockLeagueId);
       expect(MockedApiClient).not.toHaveBeenCalled();
     });
 
@@ -421,7 +446,7 @@ describe('useApiClientQuery', () => {
 
       expect(result.current.isSuccess).toBe(true);
 
-      expect(mockStorageAdapter.loadLeague).toHaveBeenCalledWith(mockLeagueId);
+      expect(mockUseLeagueQuery).toHaveBeenCalledWith(mockLeagueId);
     });
   });
 
@@ -630,7 +655,15 @@ describe('useApiClientQuery', () => {
 
     test('handles storageAdapter loading error', async () => {
       const storageError = new Error('Storage adapter error');
-      mockStorageAdapter.loadLeague.mockRejectedValue(storageError);
+      
+      // Mock useLeagueQuery to return error state
+      mockUseLeagueQuery.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        error: storageError,
+        isSuccess: false,
+        isError: true,
+      });
 
       const TestWrapper = createTestWrapper();
       const { result } = renderHook(
@@ -646,9 +679,9 @@ describe('useApiClientQuery', () => {
       // Wait for the query to settle
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      expect(result.current.isError).toBe(true);
-
-      expect(result.current.error).toEqual(storageError);
+      // When league query fails, the API query should be disabled, not error
+      expect(result.current.isPending).toBe(true);
+      expect(result.current.fetchStatus).toBe('idle');
     });
   });
 

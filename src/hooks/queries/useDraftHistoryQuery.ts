@@ -1,14 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { LeagueId } from '@/platforms/common';
-import { CURRENT_SEASON } from '@/constants';
 import ApiClient from '@/app/api/ApiClient';
 import { useAuth } from '@/lib/auth/context';
+import { useLeagueQuery } from './useLeagueQuery';
 
 export function useDraftHistoryQuery(
   leagueId: LeagueId,
   leagueHistory?: any // LeagueHistoryData from the league history query
 ) {
-  const { storageAdapter, loading: authLoading } = useAuth();
+  const { loading: authLoading } = useAuth();
+  const leagueQuery = useLeagueQuery(leagueId);
   
   return useQuery({
     queryKey: ['draftHistory', leagueId, leagueHistory],
@@ -19,12 +20,11 @@ export function useDraftHistoryQuery(
       
       console.log('[useDraftHistoryQuery] Building draft history for:', leagueId);
       
-      const league = await storageAdapter.loadLeague(leagueId);
-      if (!league) {
+      if (!leagueQuery.data?.league) {
         throw new Error(`League ${leagueId} not found`);
       }
       
-      const client = new ApiClient(league);
+      const client = new ApiClient(leagueQuery.data.league);
       const result = await client.buildDraftHistory(leagueHistory);
       
       if (typeof result === 'string') {
@@ -34,7 +34,7 @@ export function useDraftHistoryQuery(
       console.log('[useDraftHistoryQuery] Built draft history');
       return result;
     },
-    // Dependent query - also waits for auth and league history
-    enabled: !!leagueId && !!leagueHistory && !authLoading,
+    // Dependent query - waits for auth, league data, and league history
+    enabled: !!leagueId && !!leagueHistory && !authLoading && !!leagueQuery.data?.league,
   });
 }

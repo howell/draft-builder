@@ -2,6 +2,7 @@ import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { LeagueId, SeasonId } from '@/platforms/common';
 import ApiClient from '@/app/api/ApiClient';
 import { useAuth } from '@/lib/auth/context';
+import { useLeagueQuery } from './useLeagueQuery';
 
 type ApiClientMethod = 
   | 'fetchPlayers'
@@ -33,19 +34,19 @@ export function useApiClientQuery<TMethod extends ApiClientMethod>({
   queryKey,
   queryOptions = {}
 }: ApiClientQueryOptions<TMethod>) {
-  const { storageAdapter, loading: authLoading } = useAuth();
+  const { loading: authLoading } = useAuth();
+  const leagueQuery = useLeagueQuery(leagueId);
   
   return useQuery({
     queryKey,
     queryFn: async () => {
       console.log(`[useApiClientQuery:${method}] Fetching for:`, leagueId, ...params);
       
-      const league = await storageAdapter.loadLeague(leagueId);
-      if (!league) {
+      if (!leagueQuery.data?.league) {
         throw new Error(`League ${leagueId} not found`);
       }
       
-      const client = new ApiClient(league);
+      const client = new ApiClient(leagueQuery.data.league);
       const result = await (client[method] as any)(...params);
       
       if (typeof result === 'string') {
@@ -59,7 +60,7 @@ export function useApiClientQuery<TMethod extends ApiClientMethod>({
       console.log(`[useApiClientQuery:${method}] Success`);
       return result.data;
     },
-    enabled: !!leagueId && !authLoading,
+    enabled: !!leagueId && !authLoading && !!leagueQuery.data?.league,
     ...queryOptions,
   });
 }
