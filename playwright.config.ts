@@ -4,8 +4,16 @@ import { config } from 'dotenv';
 // Load environment variables from .env.test.local
 config({ path: '.env.test.local' });
 
+// Mock static image imports for Node.js compatibility
+require.extensions['.webp'] = function (module, filename) {
+  module.exports = { default: filename };
+};
+
 export default defineConfig({
   testDir: './e2e/tests',
+  outputDir: 'test-results',
+  globalSetup: require.resolve('./e2e/global-setup.ts'),
+  globalTeardown: require.resolve('./e2e/global-teardown.ts'),
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -65,9 +73,9 @@ export default defineConfig({
 
   webServer: {
     // Use production build to eliminate Fast Refresh while keeping test environment variables
-    command: 'npm run dev',
+    command: 'mkdir -p test-results && npm run dev 2>&1 | tee test-results/server.log',
     url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false, // Always start fresh server to ensure log capture
     timeout: 60 * 1000, // Increased timeout for build step
     env: {
       // Set environment to test for E2E testing
