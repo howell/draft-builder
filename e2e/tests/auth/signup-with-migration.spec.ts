@@ -6,6 +6,9 @@ import { createUserCredentials } from '../../utils/test-data-factory';
 import { setupGoogleSheetsApiMocks } from '../../utils/google-api-mocks';
 import { TEST_TIMEOUTS } from '../../utils/test-constants';
 
+// data for 'anonymous' user is stored in IndexedDB, so we need to run tests serially
+test.describe.configure({ mode: 'serial' });
+
 test.describe('User Signup with Data Migration', () => {
   let dbHelpers: DatabaseHelpers;
   let authPage: AuthPage;
@@ -255,15 +258,18 @@ test.describe('User Signup with Data Migration', () => {
     await expect(deleteButton).toBeVisible();
     await deleteButton.click();
     
+    // Wait for the page to fully load
+    await page.waitForLoadState('networkidle', { timeout: TEST_TIMEOUTS.BUTTON_CLICK });
+
     // After deleting corrupt data, should redirect to home page
-    await expect(page).toHaveURL(/\/(?:$|[?#])/, { timeout: TEST_TIMEOUTS.FAST_NAVIGATION });
+    await expect(page).toHaveURL(/\/(?:$|[?#])/, { timeout: TEST_TIMEOUTS.NAVIGATION });
     
     // Wait for the home page to fully load
     await page.waitForLoadState('networkidle');
     
     // Wait for home page content to appear - welcome message and logout button should be visible
     // The welcome message indicates the page loaded and user is authenticated
-    await expect(page.getByText(/welcome back/i)).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
+    await expect(page.getByRole('heading', { level: 1, name: /welcome back/i })).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
     await expect(page.getByRole('button', { name: /logout/i })).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
   });
 
