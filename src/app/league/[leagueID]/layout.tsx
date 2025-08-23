@@ -1,216 +1,201 @@
 'use client';
 import Sidebar from '@/ui/Sidebar';
 import LoadingScreen from '@/ui/LoadingScreen';
-import { useState, useEffect, use, useCallback } from 'react';
+import { use, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import ApiClient from '@/app/api/ApiClient';
+import { SeasonId, PlatformLeague } from '@/platforms/common';
 import { CURRENT_SEASON } from '@/constants';
-import { PlatformLeague, SeasonId } from '@/platforms/common';
-import { SAVED_LEAGUES_KEY, loadSavedMocksAsync } from '@/app/storage/localStorage';
 import { isInProgressSelectionsKey } from '@/lib/storage/constants';
 import { useAuth } from '@/lib/auth/context';
+import { useLeaguesQuery } from '@/hooks/queries/useLeaguesQuery';
+import { useMockDraftsQuery } from '@/hooks/queries/useMockDraftsQuery';
+import { useLeagueHistoryQuery } from '@/hooks/queries/useLeagueHistoryQuery';
 import Link from 'next/link';
 import CollapsibleComponent from '@/ui/Collapsible';
 
 const NEW_MOCK_NAME = '##New##';
 
+// Helper functions
+function getAvailableLeagues(leaguesData: any): PlatformLeague[] {
+    if (!leaguesData) return [];
+    return Object.values(leaguesData.leagues.leagues);
+}
+
+function getCurrentLeague(leaguesData: any, leagueID: string) {
+    if (!leaguesData) return null;
+    return leaguesData.leagues.leagues[leagueID] || null;
+}
+
+function processSavedDraftNames(mockDraftsData: any[] | undefined): [SeasonId, string[]][] {
+    console.log('[processSavedDraftNames] mockDraftsData:', mockDraftsData);
+    if (!mockDraftsData) return [];
+    
+    // Group drafts by year
+    const draftsByYear = new Map<SeasonId, string[]>();
+    
+    mockDraftsData.forEach(draft => {
+        if (isInProgressSelectionsKey(draft.draftName)) {
+            return;
+        }
+
+        const year = draft.year as SeasonId;
+        
+        if (!draftsByYear.has(year)) {
+            draftsByYear.set(year, []);
+        }
+        draftsByYear.get(year)!.push(draft.draftName);
+    });
+    
+    // Convert to sorted array format
+    const result: [SeasonId, string[]][] = Array.from(draftsByYear.entries());
+    result.sort((a, b) => a[0].localeCompare(b[0]));
+    
+    return result;
+}
+
+function extractPreviousAuctions(leagueHistoryData: any): number[] {
+    if (!leagueHistoryData || Object.keys(leagueHistoryData).length === 0) return [];
+    
+    const auctions: number[] = [];
+    const historyData = leagueHistoryData as Record<string, any>;
+    
+    for (const [year, info] of Object.entries(historyData)) {
+        if (info && typeof info === 'object' && info.drafted && info.draft?.type === 'auction') {
+            auctions.push(parseInt(year));
+        }
+    }
+    
+    auctions.sort((a, b) => b - a);
+    return auctions;
+}
+
+function extractLeagueName(leagueHistoryData: any): string {
+    if (!leagueHistoryData || Object.keys(leagueHistoryData).length === 0) return '';
+    
+    // Get league name from current season or fall back to most recent available season
+    const historyData = leagueHistoryData as Record<string, any>;
+    const currentSeasonInfo = historyData[CURRENT_SEASON];
+    const fallbackSeasonInfo = Object.values(historyData)[0]; // Just take first available
+    const leagueInfo = currentSeasonInfo || fallbackSeasonInfo;
+    
+    if (!leagueInfo || typeof leagueInfo !== 'object' || !('name' in leagueInfo)) {
+        return '';
+    }
+    
+    return leagueInfo.name as string;
+}
+
+function shouldRedirectToHome(leaguesQuery: any, currentLeague: any, leagueID: string): boolean {
+    // Only check for redirect if leagues query is successful but league is not found
+    if (leaguesQuery.isSuccess && !currentLeague) {
+        console.error('[LeagueLayout] League not found in storage - triggering redirect to home:', {
+            leagueID,
+            leagueIDType: typeof leagueID,
+            availableLeagueIds: Object.keys(leaguesQuery.data?.leagues.leagues || {}),
+            timestamp: new Date().toISOString()
+        });
+        return true;
+    }
+    return false;
+}
+
 const LeagueLayout = (
     props: { children: React.ReactNode, params: Promise<{leagueID: string, draftYear?: string }> }
 ) => {
     const params = use(props.params);
-
-    const {
-        children
-    } = props;
-
+    const { children } = props;
     const leagueID = params.leagueID;
-    // Unified state management
-    interface LayoutState {
-        savedDraftNames: [SeasonId, string[]][];
-        prevAuctions: number[];
-        leagueName: string;
-        availableLeagues: PlatformLeague[];
-        isLoading: boolean;
-        error: string | null;
-    }
-    
-    const [state, setState] = useState<LayoutState>({
-        savedDraftNames: [],
-        prevAuctions: [],
-        leagueName: '',
-        availableLeagues: [],
-        isLoading: true,
-        error: null
-    });
     
     const currentYear = parseDraftYear(usePathname());
     const currentMock = parseMockName(usePathname());
     
     const router = useRouter();
-    const { loading: authLoading, storageAdapter } = useAuth();
-
-    // Unified data loading with proper dependency management
-    const loadLayoutData = useCallback(async () => {
-        // Don't load data if auth is still loading
-        // This prevents using the wrong storage adapter (Dexie instead of Supabase)
-        if (authLoading) {
-            return;
-        }
-        try {
-            setState(prev => ({ ...prev, isLoading: true, error: null }));
-            
-            // Load both data sources in parallel
-            const [availableLeaguesData, locallyStored] = await Promise.all([
-                storageAdapter.loadLeagues(),
-                loadSavedMocksAsync(leagueID)
-            ]);
-            
-            // Process available leagues
-            const availableLeagues = Object.values(availableLeaguesData.leagues);
-            const league = availableLeaguesData.leagues[leagueID];
-            
-            if (!league) {
-                console.error('[LeagueLayout] League not found in storage - triggering redirect to home:', {
-                    leagueID,
-                    leagueIDType: typeof leagueID,
-                    availableLeagueIds: Object.keys(availableLeaguesData.leagues),
-                    availableLeagueIdTypes: Object.keys(availableLeaguesData.leagues).map(id => typeof id),
-                    allLeaguesData: availableLeaguesData,
-                    timestamp: new Date().toISOString()
-                });
-                setState(prev => ({ ...prev, error: 'League not found', isLoading: false }));
-                router.push('/');
-                return;
-            }
-            
-            // Process saved drafts - filter out all in-progress selections (legacy and league-specific)
-            const savedDrafts = { ...locallyStored };
-            
-            // Remove all in-progress selections keys
-            Object.keys(savedDrafts).forEach(key => {
-                if (isInProgressSelectionsKey(key)) {
-                    delete savedDrafts[key];
-                }
-            });
-            
-            const years = new Set(Object.values(savedDrafts).map((draft) => draft.year));
-            const prevDrafts: [SeasonId, string[]][] = [];
-            
-            for (const year of years) {
-                const drafts = Object.entries(savedDrafts)
-                    .filter(([draftName, draftData]) => !isInProgressSelectionsKey(draftName) && draftData.year === year)
-                    .map(([draftName, draftData]) => draftName);
-                prevDrafts.push([year, drafts]);
-            }
-            
-            prevDrafts.sort((a, b) => a[0].localeCompare(b[0]));
-            
-            // Load league history for auctions
-            const client = new ApiClient(league);
-            const resp = await client.fetchLeagueHistory(CURRENT_SEASON);
-            
-            if (typeof resp === 'string') {
-                const errorMsg = `Failed to load league history: ${resp}`;
-                console.error('[LeagueLayout] League history fetch failed - redirecting to home:', {
-                    leagueID,
-                    errorMsg,
-                    currentPath: typeof window !== 'undefined' ? window.location.pathname : 'SSR',
-                    timestamp: new Date().toISOString()
-                });
-                setState(prev => ({ ...prev, error: errorMsg, isLoading: false }));
-                alert(errorMsg);
-                router.push('/');
-                return;
-            }
-            
-            const leagueHistory = resp.data!;
-            const auctions: number[] = [];
-            
-            for (const [year, info] of Object.entries(leagueHistory)) {
-                if (typeof info === 'number') {
-                    console.error(`Failed to fetch league info for ${year}: ${info}`);
-                } else {
-                    if (info.drafted && info.draft.type === 'auction') {
-                        auctions.push(parseInt(year));
-                    }
-                }
-            }
-            
-            auctions.sort((a, b) => b - a);
-            
-            // Get league name from current season or fall back to most recent available season
-            const currentSeasonInfo = leagueHistory[CURRENT_SEASON];
-            const fallbackSeasonInfo = Object.values(leagueHistory).find(info => typeof info !== 'number');
-            const leagueInfo = currentSeasonInfo || fallbackSeasonInfo;
-            
-            if (!leagueInfo || typeof leagueInfo === 'number') {
-                throw new Error('No valid league information found in history');
-            }
-            
-            // Update state with all data at once
-            setState({
-                savedDraftNames: prevDrafts,
-                prevAuctions: auctions,
-                leagueName: leagueInfo.name,
-                availableLeagues,
-                isLoading: false,
-                error: null
-            });
-            
-        } catch (error: any) {
-            const errorMsg = `Error while loading league data: ${error.message}`;
-            console.error('[Layout] League data fetch error:', error);
-            setState(prev => ({ 
-                ...prev, 
-                error: errorMsg, 
-                isLoading: false 
-            }));
-            alert(errorMsg);
-        }
-    }, [leagueID, router, storageAdapter, authLoading]);
+    const { loading: authLoading } = useAuth();
     
-    // Load data on mount and when leagueID changes
-    useEffect(() => {
-        loadLayoutData();
-    }, [loadLayoutData]);
+    // Use query hooks for data fetching
+    const leaguesQuery = useLeaguesQuery();
+    const mockDraftsQuery = useMockDraftsQuery([leagueID]);
+    const leagueHistoryQuery = useLeagueHistoryQuery(leagueID);
+
+    // Compute derived data from queries
+    const availableLeagues = useMemo(() => 
+        getAvailableLeagues(leaguesQuery.data)
+    , [leaguesQuery.data]);
     
-    // Listen for storage events instead of polling
-    useEffect(() => {
-        const handleStorageChange = (e: StorageEvent) => {
-            if (e.key === leagueID || e.key === SAVED_LEAGUES_KEY) {
-                loadLayoutData();
-            }
-        };
-        
-        window.addEventListener('storage', handleStorageChange);
-        return () => window.removeEventListener('storage', handleStorageChange);
-    }, [loadLayoutData, leagueID]);
-
-
-
+    const currentLeague = useMemo(() => 
+        getCurrentLeague(leaguesQuery.data, leagueID)
+    , [leaguesQuery.data, leagueID]);
+    
+    // Process mock drafts into the expected format
+    const savedDraftNames = useMemo(() =>
+        processSavedDraftNames(mockDraftsQuery.data)
+    , [mockDraftsQuery.data]);
+    
+    // Process league history to get auction years
+    const prevAuctions = useMemo(() =>
+        extractPreviousAuctions(leagueHistoryQuery.data)
+    , [leagueHistoryQuery.data]);
+    
+    const leagueName = useMemo(() =>
+        extractLeagueName(leagueHistoryQuery.data)
+    , [leagueHistoryQuery.data]);
+    
+    // Handle league not found - redirect to home
+    const shouldRedirect = useMemo(() =>
+        shouldRedirectToHome(leaguesQuery, currentLeague, leagueID)
+    , [leaguesQuery, currentLeague, leagueID]);
+    
+    // Perform redirect
+    if (shouldRedirect) {
+        router.push('/');
+    }
+    // Determine overall loading state
+    const isLoading = authLoading || leaguesQuery.isLoading || mockDraftsQuery.isLoading || leagueHistoryQuery.isLoading;
+    
+    // Determine if there's an error that should block rendering
+    const hasError = leaguesQuery.error ||
+        (!leaguesQuery.isLoading &&
+             (!currentLeague ||
+              leagueHistoryQuery.error ||
+              mockDraftsQuery.error));
+    const errorMessage = hasError &&
+        leaguesQuery.error?.message ||
+        (!currentLeague && 'League not found') ||
+        leagueHistoryQuery.error?.message ||
+        mockDraftsQuery.error?.message;
+    
+    // Show error for league history only if it fails after leagues load successfully
+    // const historyError = leagueHistoryQuery.error && leaguesQuery.isSuccess && currentLeague;
+    // if (historyError) {
+    //     console.error('[LeagueLayout] League history fetch failed:', leagueHistoryQuery.error);
+    //     // Could show a toast or handle this more gracefully
+    // }
+    
     return (
         <LoadingScreen 
             waitFor={[
                 { loading: authLoading, message: "Authenticating..." },
-                { loading: state.isLoading, message: "Loading league data..." }
+                { loading: leaguesQuery.isLoading, message: "Loading leagues..." },
+                { loading: mockDraftsQuery.isLoading, message: "Loading mock drafts..." },
+                { loading: leagueHistoryQuery.isLoading, message: "Loading league history..." }
             ]}
         >
-            {state.error ? (
+            {hasError ? (
                 <div className="flex justify-center items-center min-h-screen">
-                    <div className="text-xl text-red-500">Error: {state.error}</div>
+                    <div className="text-xl text-red-500">Error: {errorMessage}</div>
                 </div>
             ) : (
                 <div className='flex flex-col md:flex-row'>
                     <Sidebar leagueID={leagueID}
-                        availableLeagues={state.availableLeagues}>
+                        availableLeagues={availableLeagues}>
 
                         {/* League Name Section */}
-                        <h2 className="text-xl"><Link href={`/league/${leagueID}`}>{state.leagueName}</Link></h2>
+                        <h2 className="text-xl"><Link href={`/league/${leagueID}`}>{leagueName}</Link></h2>
 
                         {/* Drafts Section */}
                         <CollapsibleComponent label={<h2 className='mt-2 text-xl'>Drafts</h2>}>
                             <ul className="">
-                                {state.prevAuctions.map((year) => (
+                                {prevAuctions.map((year) => (
                                     <li key={year} className={year === currentYear ? 'font-bold text-lg' : ''}>
                                         <Link href={`/league/${leagueID}/drafts/${year}`}>{year}</Link>
                                     </li>
@@ -225,7 +210,7 @@ const LeagueLayout = (
                                     <Link href={`/league/${leagueID}/mocks`}>New</Link>
                                 </li>
                                 <ul>
-                                    {state.savedDraftNames.map(([year, drafts]) => (
+                                    {savedDraftNames.map(([year, drafts]) => (
                                         <li key={year}>
                                             <CollapsibleComponent label={year.toString()} >
                                                 <ul>
