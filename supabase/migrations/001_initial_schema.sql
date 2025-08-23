@@ -18,7 +18,7 @@ CREATE TABLE leagues (
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     league_id TEXT NOT NULL, -- Platform league ID (ESPN/Sleeper/Yahoo)
     platform TEXT NOT NULL CHECK (platform IN ('espn', 'sleeper')), -- Yahoo planned for future
-    auth_data_encrypted BYTEA, -- Encrypted auth data (ESPN cookies, etc.)
+    auth_data_encrypted TEXT, -- Encrypted auth data (ESPN cookies, etc.)
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(user_id, league_id, platform)
