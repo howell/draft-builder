@@ -26,7 +26,7 @@ export class HomePage extends BasePage {
     this.submitButton = page.getByRole('button', { name: /submit/i });
     this.loadingIndicator = page.getByTestId('loading-screen');
     // API/Network errors shown in main error section
-    this.errorMessage = page.locator('[role="alert"]').filter({ hasText: /Failed to find league|Error finding league/i });
+    this.errorMessage = page.locator('[role="alert"]').filter({ hasText: /Failed to (find|fetch) league|Error finding league|Failed to fetch league info/i });
     // Form validation errors shown inline
     this.validationError = page.locator('[role="alert"]').filter({ hasText: /Please enter|must be a number/i });
     this.sidebar = page.locator('aside, [role="navigation"]');
