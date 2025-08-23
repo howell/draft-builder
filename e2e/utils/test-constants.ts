@@ -21,8 +21,26 @@ export const TEST_LEAGUE_IDS = {
   
   // Special test cases
   INVALID: 'invalid-league' as LeagueId,
-  TIMEOUT: 'timeout-league' as LeagueId,
+  TIMEOUT: '999999999' as LeagueId,  // Triggers timeout in API mocks
   PRIVATE: 'private-league' as LeagueId
+} as const;
+
+/**
+ * ESPN-specific test league IDs for auth testing
+ * These match the ESPN fixture files used by FixtureBasedPlatformApi
+ */
+export const ESPN_AUTH_TEST_LEAGUES = {
+  PRIVATE: '999999' as LeagueId,    // Private league requiring auth
+  PUBLIC: '123456' as LeagueId,      // Public league (no auth needed)
+  AUTH_ERROR: '403403' as LeagueId   // Special ID that always returns auth error
+} as const;
+
+/**
+ * ESPN authentication test credentials
+ */
+export const ESPN_TEST_AUTH = {
+  espnS2: 'test-espn-s2-cookie',
+  swid: '{test-swid-guid}'
 } as const;
 
 /**

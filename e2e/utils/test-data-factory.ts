@@ -4,6 +4,7 @@
  */
 
 import { faker } from '@faker-js/faker';
+import { TEST_LEAGUE_IDS } from './test-constants';
 
 // Re-export useful factories from existing test utilities
 export {
@@ -179,7 +180,7 @@ export function createPlayerData() {
  */
 export const TEST_DATA = {
   ESPN_TEST_LEAGUE: {
-    leagueId: '123456789',
+    leagueId: TEST_LEAGUE_IDS.ESPN,
     settings: {
       name: 'E2E Test League',
       size: 12,
@@ -198,7 +199,7 @@ export const TEST_DATA = {
   },
   
   SLEEPER_TEST_LEAGUE: {
-    leagueId: '987654321',
+    leagueId: TEST_LEAGUE_IDS.SLEEPER,
     name: 'E2E Sleeper Test',
     totalRosters: 12,
     settings: {

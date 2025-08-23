@@ -2,9 +2,8 @@ import { test, expect } from '../../fixtures';
 import { HomePage } from '../../page-objects/home-page';
 import { DatabaseHelpers } from '../../utils/database-helpers';
 import { setupCommonApiMocks, ApiMockPresets, setupApiMocksWithPreset } from '../../utils/reusable-api-setup';
-import { TEST_TIMEOUTS } from '../../utils/test-constants';
-
 test.describe.configure({ mode: 'serial' });
+import { TEST_TIMEOUTS, TEST_LEAGUE_IDS } from '../../utils/test-constants';
 
 test.describe('Sleeper League Integration', () => {
   let homePage: HomePage;
@@ -56,7 +55,7 @@ test.describe('Sleeper League Integration', () => {
   test('should connect to valid Sleeper league', async ({ page }) => {
     await homePage.navigateToHome();
     await homePage.selectPlatform('sleeper');
-    await homePage.connectLeague('123456789'); // This will be mocked by MSW
+    await homePage.connectLeague(TEST_LEAGUE_IDS.SLEEPER);
     
     await homePage.expectLeagueConnectionSuccess();
     
@@ -83,7 +82,7 @@ test.describe('Sleeper League Integration', () => {
   test('should display league information after connection', async ({ page }) => {
     await homePage.navigateToHome();
     await homePage.selectPlatform('sleeper');
-    await homePage.connectLeague('123456789');
+    await homePage.connectLeague(TEST_LEAGUE_IDS.SLEEPER);
     
     await homePage.expectLeagueConnectionSuccess();
     
@@ -95,7 +94,7 @@ test.describe('Sleeper League Integration', () => {
   test('should save connected league to user profile', async ({ page }) => {
     // Create a test league in the database for the authenticated user
     const testLeague = await dbHelpers.createTestLeague(testUser.id, {
-      league_id: '123456789',
+      league_id: TEST_LEAGUE_IDS.SLEEPER,
       platform: 'sleeper'
     });
     
@@ -119,7 +118,7 @@ test.describe('Sleeper League Integration', () => {
     await homePage.selectPlatform('sleeper');
     
     // Fill league ID and submit - this triggers 504 response immediately
-    await homePage.leagueIdInput.fill('999999999');
+    await homePage.leagueIdInput.fill(TEST_LEAGUE_IDS.TIMEOUT);
     await homePage.submitButton.click();
     
     // Should show API error (504 Gateway Timeout gets converted to "Error finding league: 504")

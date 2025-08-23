@@ -12,7 +12,7 @@ import { MockDraftPage } from '../page-objects/mock-draft-page';
 import { MockDraftHelpers } from './mock-draft-helpers';
 import { DatabaseHelpers } from './database-helpers';
 import { setupApiMocksWithPreset } from './reusable-api-setup';
-import { TEST_LEAGUE_IDS, getTestLeagueId } from './test-constants';
+import { getTestLeagueId, TEST_TIMEOUTS } from './test-constants';
 
 export interface TestUser {
   user: any;
@@ -51,14 +51,14 @@ export class TestJourneys {
     // Login through UI (same pattern as working tests)
     await page.goto('/auth');
     await page.getByRole('button', { name: /sign in/i }).first().click();
-    await expect(page.locator('input[type="email"]')).toBeEnabled({ timeout: 5000 });
+    await expect(page.locator('input[type="email"]')).toBeEnabled({ timeout: TEST_TIMEOUTS.ELEMENT_ENABLED });
     
     await page.locator('input[type="email"]').fill(credentials.email);
     await page.locator('input#password').fill(credentials.password);
     await page.locator('form').getByRole('button', { name: /sign in/i }).click();
     
     // Wait for successful login
-    await expect(page).toHaveURL(/\/(dashboard|$)/, { timeout: 10000 });
+    await expect(page).toHaveURL(/\/(dashboard|$)/, { timeout: TEST_TIMEOUTS.SLOW_NAVIGATION });
 
     return {
       user,
@@ -123,7 +123,7 @@ export class TestJourneys {
       await this.dbHelpers.saveConnectedLeague(authSession.user.id, platform, leagueId);
       
       // Give Supabase a moment to persist the data
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(TEST_TIMEOUTS.ELEMENT_VISIBLE);
     }
 
     return {
@@ -144,11 +144,11 @@ export class TestJourneys {
     // Wait for any loading screens to complete
     const loadingScreen = page.locator('[data-testid="loading-screen"]');
     if (await loadingScreen.count() > 0) {
-      await expect(loadingScreen).not.toBeVisible({ timeout: 20000 });
+      await expect(loadingScreen).not.toBeVisible({ timeout: TEST_TIMEOUTS.ERROR_MESSAGE });
     }
     
     // Wait a moment to let the page render
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(TEST_TIMEOUTS.FAST_NAVIGATION);
     
     // Check for error messages indicating league not found
     const errorScreen = page.locator('text=/League not found|Something went wrong/i');
@@ -188,11 +188,11 @@ export class TestJourneys {
     const pageContent = await page.evaluate(() => document.body.innerText);
     if (pageContent.includes('Loading') || pageContent.includes('loading')) {
       console.log('Page appears to be loading, waiting longer...');
-      await page.waitForTimeout(3000);
+      await page.waitForTimeout(TEST_TIMEOUTS.BUTTON_CLICK);
     }
     
     // Wait for the available players table to appear
-    await expect(mockDraftHelpers.getAvailablePlayersTable()).toBeVisible({ timeout: 20000 });
+    await expect(mockDraftHelpers.getAvailablePlayersTable()).toBeVisible({ timeout: TEST_TIMEOUTS.ERROR_MESSAGE });
     
     return mockDraftPage;
   }

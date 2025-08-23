@@ -59,7 +59,7 @@ export async function setupCommonApiMocks(page: Page, config: ApiMockConfig = {}
   await page.route('**/api/find-league**', async (route) => {
     const url = route.request().url();
     
-    if (shouldTimeout || url.includes('timeout') || url.includes('999999999')) {
+    if (shouldTimeout || url.includes('timeout') || url.includes(TEST_LEAGUE_IDS.TIMEOUT)) {
       return route.fulfill({ status: 504, json: { error: 'Gateway Timeout' } });
     }
     
