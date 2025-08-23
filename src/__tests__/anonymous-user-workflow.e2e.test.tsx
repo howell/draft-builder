@@ -38,6 +38,7 @@ jest.mock('next/link', () => ({
 
 // Import components
 import { AuthProvider } from '../lib/auth/context';
+import { QueryProvider } from '../lib/query/QueryProvider';
 import Home from '../app/page';
 
 // Import existing test utilities
@@ -105,13 +106,15 @@ describe('Anonymous User Flow E2E Test', () => {
   });
 
   test('anonymous user can use app without creating account', async () => {
-    // Render the Home component with AuthProvider using act() to handle async effects
+    // Render the Home component with QueryProvider and AuthProvider using act() to handle async effects
     let renderResult: any;
     await act(async () => {
       renderResult = render(
-        <AuthProvider>
-          <Home />
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <Home />
+          </AuthProvider>
+        </QueryProvider>
       );
       // Give async useEffect time to complete
       await new Promise(resolve => setTimeout(resolve, 100));
