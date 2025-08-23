@@ -16,9 +16,10 @@ export type PrivateLeagueInputProps = {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  testId?: string;
 };
 
-export const PrivateLeagueInput: React.FC<PrivateLeagueInputProps> = ({ label, value, onChange }) => {
+export const PrivateLeagueInput: React.FC<PrivateLeagueInputProps> = ({ label, value, onChange, testId }) => {
   return (
     <input
       className="col-span-3 h-12 p-2 mt-2 text-black bg-white border border-gray-300 rounded-lg"
@@ -26,6 +27,7 @@ export const PrivateLeagueInput: React.FC<PrivateLeagueInputProps> = ({ label, v
       name={label}
       value={value}
       onChange={(event) => onChange(event.target.value)}
+      data-testid={testId}
     />
   );
 };
@@ -43,8 +45,17 @@ export const LeagueDataInput: React.FC<{ label: string, value: string, onChange:
 }
 
 export const SubmitButton: React.FC<{ onClick: () => void }> = ({ onClick }) => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent form submission
+    onClick();
+  };
+  
   return (
-    <button onClick={onClick} className="w-full p-2 mt-4 text-white bg-black border border-gray-300 rounded-lg">
+    <button 
+      type="button" 
+      onClick={handleClick} 
+      className="w-full p-2 mt-4 text-white bg-black border border-gray-300 rounded-lg"
+    >
       Submit
     </button>
   );
