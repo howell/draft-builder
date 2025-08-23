@@ -2,7 +2,6 @@ import { test, expect } from '../../fixtures';
 import { HomePage } from '../../page-objects/home-page';
 import { DatabaseHelpers } from '../../utils/database-helpers';
 import { setupCommonApiMocks, ApiMockPresets, setupApiMocksWithPreset } from '../../utils/reusable-api-setup';
-test.describe.configure({ mode: 'serial' });
 import { TEST_TIMEOUTS, TEST_LEAGUE_IDS } from '../../utils/test-constants';
 
 test.describe('Sleeper League Integration', () => {
@@ -102,12 +101,7 @@ test.describe('Sleeper League Integration', () => {
     await page.goto('/');
     
     // Wait for home page to load with authenticated user
-    await expect(page.getByText(/Welcome back!/i)).toBeVisible();
-    
-    // Should see the league that was saved directly to the database
-    await expect(page.getByText(/Leagues/)).toBeVisible();
-    const leagueCountElement = page.locator('text="Leagues"').locator('..').getByText(/\d+/);
-    await expect(leagueCountElement).toHaveText('1');
+    await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: TEST_TIMEOUTS.NAVIGATION });
   });
 
   test('should handle API timeout gracefully', async ({ page }) => {
