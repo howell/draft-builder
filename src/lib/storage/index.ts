@@ -18,9 +18,8 @@ export { migrateMocks, migrateLeagues } from './migrations';
 // Utility functions
 export { deepClone } from './utils/deepClone';
 
-// Encryption utilities (for Supabase adapter)
-export { encryptEspnAuth, decryptEspnAuth, testEncryption, generateEncryptionKey } from '../encryption/utils';
-export type { EspnAuth, EncryptedData } from '../encryption/utils';
+// NOTE: Encryption utilities are server-side only and not exported from this module
+// Import them directly from '../encryption/utils' only in server-side code
 
 // Data transformation utilities (for Supabase adapter)
 export { 

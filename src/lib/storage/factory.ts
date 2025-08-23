@@ -42,17 +42,25 @@ import { supabase } from '@/lib/supabase';
  * ```
  */
 export function createStorageAdapter(config?: StorageConfig): StorageAdapter {
-  // Check if we're running server-side
+  // SSR-safe: always use memory adapter server-side regardless of config
   if (typeof window === 'undefined') {
-    // SSR-safe behavior: return memory adapter for server-side rendering
     console.warn('[Storage] localStorage not available server-side, using memory adapter');
     return new MemoryStorageAdapter();
   }
+  
+  return _createStorageAdapterImpl(config, 'createStorageAdapter');
+}
 
-  const type = config?.type || 'localStorage';
+/**
+ * Internal shared implementation for creating storage adapters.
+ * Handles all the validation logic and adapter creation.
+ */
+function _createStorageAdapterImpl(config?: StorageConfig, operation = 'createStorageAdapter'): StorageAdapter {
+  const type = config?.type || 'memory';
   
   switch (type) {
     case 'localStorage':
+      console.warn('[Storage] use of deprecated localStorage adapter');
       return new LocalStorageAdapter();
     
     case 'memory':
@@ -65,7 +73,7 @@ export function createStorageAdapter(config?: StorageConfig): StorageAdapter {
           'UNKNOWN_ERROR',
           'Invalid userId provided for Dexie adapter. Expected a string value.',
           undefined,
-          { operation: 'createStorageAdapter' }
+          { operation }
         );
       }
       return new DexieStorageAdapter(config?.userId || 'anonymous');
@@ -77,7 +85,7 @@ export function createStorageAdapter(config?: StorageConfig): StorageAdapter {
           'AUTH_ERROR',
           'Supabase client is required for supabase adapter. Please provide a valid Supabase client instance.',
           undefined,
-          { operation: 'createStorageAdapter' }
+          { operation }
         );
       }
       
@@ -86,7 +94,7 @@ export function createStorageAdapter(config?: StorageConfig): StorageAdapter {
           'AUTH_ERROR',
           'User ID is required for supabase adapter. Please ensure user is authenticated before creating adapter.',
           undefined,
-          { operation: 'createStorageAdapter' }
+          { operation }
         );
       }
       
@@ -95,7 +103,7 @@ export function createStorageAdapter(config?: StorageConfig): StorageAdapter {
           'AUTH_ERROR',
           'Invalid Supabase client provided. Expected a properly initialized Supabase client with database operations.',
           undefined,
-          { operation: 'createStorageAdapter' }
+          { operation }
         );
       }
       
@@ -105,7 +113,7 @@ export function createStorageAdapter(config?: StorageConfig): StorageAdapter {
           'UNKNOWN_ERROR',
           `Invalid fallback adapter type: ${config.fallback}. Supported types are: localStorage, dexie, memory`,
           undefined,
-          { operation: 'createStorageAdapter' }
+          { operation }
         );
       }
       
@@ -117,7 +125,7 @@ export function createStorageAdapter(config?: StorageConfig): StorageAdapter {
             'UNKNOWN_ERROR',
             'Invalid retry configuration: maxRetries must be a non-negative number',
             undefined,
-            { operation: 'createStorageAdapter' }
+            { operation }
           );
         }
         
@@ -127,7 +135,7 @@ export function createStorageAdapter(config?: StorageConfig): StorageAdapter {
             'UNKNOWN_ERROR',
             'Invalid retry configuration: backoffMs must be a non-negative number',
             undefined,
-            { operation: 'createStorageAdapter' }
+            { operation }
           );
         }
       }
@@ -144,9 +152,59 @@ export function createStorageAdapter(config?: StorageConfig): StorageAdapter {
         'UNKNOWN_ERROR',
         `Unknown storage adapter type: ${type}. Supported types are: localStorage, memory, dexie, supabase`,
         undefined,
-        { operation: 'createStorageAdapter' }
+        { operation }
       );
   }
+}
+
+/**
+ * Factory function for creating storage adapters specifically for server-side usage.
+ * Only supports storage types that work server-side: 'memory' and 'supabase'.
+ * Browser-specific types (localStorage, dexie) will throw an error.
+ * 
+ * @param config - Configuration object specifying the storage adapter type and options
+ * @returns A storage adapter instance implementing the StorageAdapter interface
+ * @throws {StorageError} When configuration is invalid or unsupported for server-side usage
+ * 
+ * @example
+ * ```typescript
+ * // In API routes - create Supabase adapter on server
+ * export async function GET() {
+ *   const serverAdapter = createServerStorageAdapter({
+ *     type: 'supabase',
+ *     supabase: supabaseServiceClient,
+ *     userId: 'user-123'
+ *   });
+ *   return await serverAdapter.loadLeagues();
+ * }
+ * 
+ * // Background job with temporary storage
+ * const tempAdapter = createServerStorageAdapter({ type: 'memory' });
+ * ```
+ */
+export function createServerStorageAdapter(config?: StorageConfig): StorageAdapter {
+  const type = config?.type || 'memory';
+  
+  // Only allow server-appropriate storage types
+  if (type === 'localStorage') {
+    throw createStorageError(
+      'UNKNOWN_ERROR',
+      'localStorage is not available server-side. Use createStorageAdapter() for client-side usage, or use "memory" or "supabase" types for server-side.',
+      undefined,
+      { operation: 'createServerStorageAdapter' }
+    );
+  }
+  
+  if (type === 'dexie') {
+    throw createStorageError(
+      'UNKNOWN_ERROR',
+      'Dexie (IndexedDB) is not available server-side. Use createStorageAdapter() for client-side usage, or use "memory" or "supabase" types for server-side.',
+      undefined,
+      { operation: 'createServerStorageAdapter' }
+    );
+  }
+  
+  return _createStorageAdapterImpl(config, 'createServerStorageAdapter');
 }
 
 /**

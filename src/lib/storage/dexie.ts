@@ -4,7 +4,7 @@
  * IndexedDB storage implementation using Dexie.js that provides:
  * - Normalized database schema with relationships
  * - Full StorageAdapter interface compliance
- * - ESPN auth encryption/decryption
+ * - Unencrypted client-side storage
  * - Transaction-based operations
  * - Comprehensive error handling
  */
@@ -23,7 +23,6 @@ import {
 } from '@/types/storage';
 import { CURRENT_SEASON } from '@/constants';
 import { db, queries, League, Draft, Player } from './database-schema';
-import { encryptEspnAuth, decryptEspnAuth, EspnAuth } from '@/lib/encryption/utils';
 
 /**
  * DexieStorageAdapter implements the StorageAdapter interface using IndexedDB via Dexie.js
@@ -32,7 +31,7 @@ import { encryptEspnAuth, decryptEspnAuth, EspnAuth } from '@/lib/encryption/uti
  * - Normalized database schema for better performance
  * - Automatic timestamp management
  * - Transaction support for data integrity
- * - ESPN auth encryption
+ * - ESPN auth storage as JSON
  * - User data isolation
  */
 export class DexieStorageAdapter implements StorageAdapter {
@@ -79,13 +78,13 @@ export class DexieStorageAdapter implements StorageAdapter {
           id: league.metadata?.originalId || league.leagueId // Use stored original ID if available
         };
 
-        // Decrypt auth data if present
+        // Deserialize auth data if present (unencrypted client-side storage)
         if (league.authDataEncrypted && league.platform === 'espn') {
           try {
-            const decrypted = await this.decryptEspnAuthData(league.authDataEncrypted);
-            (platformLeague as any).auth = decrypted;
+            const deserialized = this.deserializeEspnAuthData(league.authDataEncrypted);
+            (platformLeague as any).auth = deserialized;
           } catch (error) {
-            console.warn(`Failed to decrypt auth data for league ${league.leagueId}:`, error);
+            console.warn(`Failed to deserialize auth data for league ${league.leagueId}:`, error);
           }
         }
 
@@ -127,13 +126,16 @@ export class DexieStorageAdapter implements StorageAdapter {
         }
       };
 
-      // Handle ESPN auth encryption
+      // Handle ESPN auth serialization (unencrypted client-side storage)
       if (league.platform === 'espn' && (league as any).auth) {
         try {
-          leagueData.authDataEncrypted = await this.encryptEspnAuthData((league as any).auth);
+          leagueData.authDataEncrypted = this.serializeEspnAuthData((league as any).auth);
         } catch (error) {
-          console.warn('Failed to encrypt ESPN auth data:', error);
+          console.warn('Failed to serialize ESPN auth data:', error);
         }
+      } else if (league.platform === 'espn') {
+        // Explicitly clear auth data if ESPN league has no auth
+        leagueData.authDataEncrypted = undefined;
       }
 
       if (existing) {
@@ -182,8 +184,12 @@ export class DexieStorageAdapter implements StorageAdapter {
   // =============================================================================
 
   async loadSavedMocks(leagueId: LeagueId): Promise<StoredMocksDataCurrent> {
+    console.log('[DexieStorageAdapter.loadSavedMocks] Loading mocks for league:', leagueId);
     try {
-      if (!this.isClient) return {};
+      if (!this.isClient) {
+        console.warn('[DexieStorageAdapter.loadSavedMocks] Not in client environment, skipping data clear');
+        return {};
+      }
 
       // Get league database ID
       const league = await db.leagues
@@ -192,7 +198,10 @@ export class DexieStorageAdapter implements StorageAdapter {
         .and(l => l.leagueId === leagueId)
         .first();
 
-      if (!league) return {};
+      if (!league) {
+        console.warn('[DexieStorageAdapter.loadSavedMocks] League not found, skipping data load');
+        return {};
+      }
 
       // Get all drafts for this league
       const drafts = await queries.drafts(this.userId).byLeague(league.id!);
@@ -237,9 +246,10 @@ export class DexieStorageAdapter implements StorageAdapter {
         };
       }
 
+      console.log('[DexieStorageAdapter.loadSavedMocks] Loaded mocks:', mocksData);
       return mocksData;
     } catch (error) {
-      this.logError('loadSavedMocks', error, { leagueId, userId: this.userId });
+      this.logError('[DexieStorageAdapter.loadSavedMocks] Error loading mocks', error, { leagueId, userId: this.userId });
       throw createStorageError(
         'DATA_ERROR',
         'Failed to load saved mocks from IndexedDB',
@@ -499,28 +509,21 @@ export class DexieStorageAdapter implements StorageAdapter {
   // =============================================================================
 
   /**
-   * Encrypt ESPN auth data for secure storage
+   * Serialize ESPN auth data for client-side storage (no encryption needed)
    */
-  private async encryptEspnAuthData(auth: any): Promise<string> {
-    const espnAuth: EspnAuth = {
-      cookies: typeof auth === 'string' ? auth : JSON.stringify(auth)
-    };
-    
-    const encrypted = await encryptEspnAuth(espnAuth);
-    return encrypted.toString('base64');
+  private serializeEspnAuthData(auth: any): string {
+    return JSON.stringify(auth);
   }
 
   /**
-   * Decrypt ESPN auth data from storage
+   * Deserialize ESPN auth data from client-side storage
    */
-  private async decryptEspnAuthData(encryptedData: string): Promise<any> {
-    const buffer = Buffer.from(encryptedData, 'base64');
-    const decrypted = await decryptEspnAuth(buffer);
-    
+  private deserializeEspnAuthData(serializedData: string): any {
     try {
-      return JSON.parse(decrypted.cookies);
-    } catch {
-      return decrypted.cookies;
+      return JSON.parse(serializedData);
+    } catch (error) {
+      console.warn('[DexieAdapter] Failed to deserialize auth data, returning as string:', error);
+      return serializedData;
     }
   }
 }

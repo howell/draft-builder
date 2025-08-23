@@ -2,7 +2,7 @@
  * Integration tests for storage factory with Supabase adapter
  */
 
-import { createStorageAdapter, createTestStorageAdapter } from '../factory';
+import { createStorageAdapter, createServerStorageAdapter, createTestStorageAdapter } from '../factory';
 import { LocalStorageAdapter } from '../localStorage';
 import { MemoryStorageAdapter } from '../memory';
 import { SupabaseStorageAdapter } from '../supabase';
@@ -22,16 +22,47 @@ const mockSupabaseClient = {
 };
 
 describe('Storage Factory Integration', () => {
+  let originalWindow: any;
+  
+  beforeAll(() => {
+    // Save original window
+    originalWindow = global.window;
+  });
+  
+  afterAll(() => {
+    // Restore original window
+    global.window = originalWindow;
+  });
   
   beforeEach(() => {
     jest.clearAllMocks();
+    // Mock browser environment by default
+    global.window = {} as any;
   });
 
   describe('Factory Creation', () => {
-    it('should create localStorage adapter by default', () => {
+    it('should create memory adapter by default', () => {
       const adapter = createStorageAdapter();
       
-      expect(adapter).toBeInstanceOf(LocalStorageAdapter);
+      expect(adapter).toBeInstanceOf(MemoryStorageAdapter);
+    });
+
+    it('should create memory adapter when window is undefined (SSR)', () => {
+      // Simulate server-side environment
+      delete (global as any).window;
+      
+      const adapter = createStorageAdapter();
+      
+      expect(adapter).toBeInstanceOf(MemoryStorageAdapter);
+    });
+
+    it('should create memory adapter when window is undefined even with localStorage config (SSR)', () => {
+      // Simulate server-side environment
+      delete (global as any).window;
+      
+      const adapter = createStorageAdapter({ type: 'localStorage' });
+      
+      expect(adapter).toBeInstanceOf(MemoryStorageAdapter);
     });
 
     it('should create localStorage adapter when explicitly requested', () => {
@@ -69,6 +100,24 @@ describe('Storage Factory Integration', () => {
       expect(adapter).toBeInstanceOf(SupabaseStorageAdapter);
       // Note: We can't easily test that the config was passed without exposing internals
       // but the adapter creation should succeed
+    });
+
+    it('should create server storage adapter for explicit server usage', () => {
+      const adapter = createServerStorageAdapter({
+        type: 'supabase',
+        supabase: mockSupabaseClient as any,
+        userId: 'test-user-123'
+      });
+      
+      expect(adapter).toBeInstanceOf(SupabaseStorageAdapter);
+    });
+
+    it('should throw error when creating server adapter with browser-only types', () => {
+      expect(() => createServerStorageAdapter({ type: 'localStorage' }))
+        .toThrow('localStorage is not available server-side');
+      
+      expect(() => createServerStorageAdapter({ type: 'dexie' }))
+        .toThrow('Dexie (IndexedDB) is not available server-side');
     });
   });
 
@@ -139,12 +188,12 @@ describe('Storage Factory Integration', () => {
       expect(() => createStorageAdapter(null as any)).not.toThrow();
       expect(() => createStorageAdapter(undefined as any)).not.toThrow();
       
-      // Should default to localStorage
+      // Should default to memory
       const adapter1 = createStorageAdapter(null as any);
       const adapter2 = createStorageAdapter(undefined as any);
       
-      expect(adapter1).toBeInstanceOf(LocalStorageAdapter);
-      expect(adapter2).toBeInstanceOf(LocalStorageAdapter);
+      expect(adapter1).toBeInstanceOf(MemoryStorageAdapter);
+      expect(adapter2).toBeInstanceOf(MemoryStorageAdapter);
     });
   });
 
@@ -357,7 +406,7 @@ describe('Storage Factory Integration', () => {
   describe('Configuration Edge Cases', () => {
     it('should handle empty configuration object', () => {
       const adapter = createStorageAdapter({} as any);
-      expect(adapter).toBeInstanceOf(LocalStorageAdapter);
+      expect(adapter).toBeInstanceOf(MemoryStorageAdapter);
     });
 
     it('should handle partial Supabase configuration', () => {

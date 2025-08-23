@@ -29,10 +29,22 @@ export const createSupabaseBrowserClient = () => {
 };
 
 // For server components and API routes in App Router
-export const createSupabaseServerClient = (cookies: any) => {
-  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
-    cookies,
-  });
+// Uses service role key for server-side operations that need to bypass RLS
+export const createSupabaseServerClient = () => {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for server-side operations');
+  }
+  
+  return createClient<Database>(
+    supabaseUrl,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  );
 };
 
 // Type export for the Supabase client

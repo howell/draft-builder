@@ -133,9 +133,25 @@ describe('Storage Adapter Contract', () => {
   });
 
   describe('Factory Functions', () => {
-    it('should create localStorage adapter by default', () => {
+    it('should create memory adapter by default in server environment (SSR-safe)', () => {
+      // In Jest (Node.js environment), createStorageAdapter falls back to memory for SSR safety
       const adapter = createStorageAdapter();
-      expect(adapter).toBeInstanceOf(LocalStorageAdapter);
+      expect(adapter).toBeInstanceOf(MemoryStorageAdapter);
+    });
+
+    it('should create memory adapter by default in browser environment too', () => {
+      // Mock browser environment
+      const originalWindow = global.window;
+      global.window = {} as any;
+      
+      try {
+        const adapter = createStorageAdapter();
+        // Default is now memory adapter regardless of environment
+        expect(adapter).toBeInstanceOf(MemoryStorageAdapter);
+      } finally {
+        // Restore original window
+        global.window = originalWindow;
+      }
     });
 
     it('should create localStorage adapter when explicitly requested', () => {

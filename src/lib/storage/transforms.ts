@@ -28,17 +28,37 @@ export type DatabaseCostAdjustment = Database['public']['Tables']['cost_adjustme
 /**
  * Transform database leagues to localStorage format
  */
-export function transformLeaguesFromDatabase(
+export async function transformLeaguesFromDatabase(
   dbLeagues: DatabaseLeague[]
-): StoredLeaguesDataCurrent {
+): Promise<StoredLeaguesDataCurrent> {
   const leagues: { [leagueId: LeagueId]: PlatformLeague } = {};
   
   for (const dbLeague of dbLeagues) {
     const league: PlatformLeague = {
       platform: dbLeague.platform as any,
       id: dbLeague.league_id as LeagueId,
-      // Note: auth data is handled separately through encryption
     };
+
+    // Decrypt ESPN auth if present
+    if (dbLeague.auth_data_encrypted && dbLeague.platform === 'espn') {
+      try {
+        // Only decrypt on server side
+        if (typeof window === 'undefined') {
+          const { decryptEspnAuth } = await import('../encryption/utils');
+          const decryptedAuth = await decryptEspnAuth(dbLeague.auth_data_encrypted);
+          
+          (league as any).auth = {
+            espnS2: decryptedAuth.espnS2,
+            swid: decryptedAuth.swid
+          };
+        } else {
+          console.warn('[transformLeaguesFromDatabase] Decryption skipped on client side - auth data not available');
+        }
+      } catch (decryptError) {
+        console.warn('[transformLeaguesFromDatabase] Failed to decrypt auth data for league', dbLeague.league_id, ':', decryptError);
+        // Continue without auth data rather than failing completely
+      }
+    }
     
     leagues[dbLeague.league_id as LeagueId] = league;
   }

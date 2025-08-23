@@ -9,7 +9,8 @@ import * as crypto from 'crypto';
  * ESPN authentication data that needs to be encrypted before storage
  */
 export interface EspnAuth {
-  cookies: string;
+  espnS2: string;
+  swid: string;
   // Future: could include other auth tokens or session data
 }
 
@@ -29,12 +30,16 @@ const ALGORITHM = 'aes-256-cbc';
 const IV_LENGTH = 16; // CBC IV length
 
 /**
- * Validate encryption setup on app startup
+ * Validate encryption setup - server-side only
  */
 function validateEncryptionSetup(): void {
-  // Only validate on server side - client side doesn't have access to server env vars
-  if (typeof window === 'undefined' && process.env.NODE_ENV === 'production' && !process.env.ENCRYPTION_KEY) {
-    throw new Error('ENCRYPTION_KEY environment variable is required in production');
+  // Only allow encryption on server side
+  if (typeof window !== 'undefined') {
+    throw new Error('Encryption utilities should only be used server-side');
+  }
+  
+  if (!process.env.ENCRYPTION_KEY) {
+    throw new Error('ENCRYPTION_KEY environment variable is required for server-side encryption');
   }
 }
 
@@ -42,39 +47,38 @@ function validateEncryptionSetup(): void {
 validateEncryptionSetup();
 
 /**
- * Get encryption key from environment or generate a default one
- * In production, this should come from a secure environment variable
+ * Get encryption key from environment variable (server-side only)
+ * Fails fast if key is not available - no fallbacks
  */
 function getEncryptionKey(): Buffer {
   const envKey = process.env.ENCRYPTION_KEY;
-  if (envKey) {
-    // If provided as hex string, convert to buffer
-    if (envKey.length === 64) {
-      return Buffer.from(envKey, 'hex');
-    }
-    // If provided as base64, convert to buffer
-    if (envKey.length === 44) {
-      return Buffer.from(envKey, 'base64');
-    }
-    // Otherwise, hash the string to get consistent 32-byte key
-    return crypto.createHash('sha256').update(envKey).digest();
+  if (!envKey) {
+    throw new Error('ENCRYPTION_KEY environment variable is required');
   }
   
-  // Development fallback - NOT secure for production
-  console.warn('[Encryption] Using default key for development. Set ENCRYPTION_KEY environment variable for production.');
-  return crypto.createHash('sha256').update('dev-key-not-secure-use-env-var-in-prod').digest();
+  // If provided as hex string, convert to buffer
+  if (envKey.length === 64) {
+    return Buffer.from(envKey, 'hex');
+  }
+  // If provided as base64, convert to buffer
+  if (envKey.length === 44) {
+    return Buffer.from(envKey, 'base64');
+  }
+  // Otherwise, hash the string to get consistent 32-byte key
+  return crypto.createHash('sha256').update(envKey).digest();
 }
 
 /**
  * Encrypt ESPN authentication data for secure storage
+ * Returns base64-encoded string suitable for TEXT database fields
  */
-export async function encryptEspnAuth(auth: EspnAuth): Promise<Buffer> {
+export async function encryptEspnAuth(auth: EspnAuth): Promise<string> {
   try {
     const key = getEncryptionKey();
     const iv = crypto.randomBytes(IV_LENGTH);
     const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
     
-    // Serialize the auth data
+    // Serialize the auth data as JSON
     const plaintext = JSON.stringify(auth);
     
     // Encrypt the data
@@ -88,7 +92,8 @@ export async function encryptEspnAuth(auth: EspnAuth): Promise<Buffer> {
       encrypted // remaining bytes: encrypted data
     ]);
     
-    return result;
+    // Return as base64 string for TEXT storage
+    return result.toString('base64');
   } catch (error) {
     console.error('[Encryption] Failed to encrypt ESPN auth:', error);
     throw new Error(`Encryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -97,10 +102,14 @@ export async function encryptEspnAuth(auth: EspnAuth): Promise<Buffer> {
 
 /**
  * Decrypt ESPN authentication data from storage
+ * Accepts base64-encoded string from TEXT database fields
  */
-export async function decryptEspnAuth(encryptedBuffer: Buffer): Promise<EspnAuth> {
+export async function decryptEspnAuth(encryptedBase64: string): Promise<EspnAuth> {
   try {
     const key = getEncryptionKey();
+    
+    // Convert base64 string back to buffer
+    const encryptedBuffer = Buffer.from(encryptedBase64, 'base64');
     
     // Parse the buffer structure
     let offset = 0;
@@ -108,6 +117,12 @@ export async function decryptEspnAuth(encryptedBuffer: Buffer): Promise<EspnAuth
     // Read IV length and IV
     const ivLength = encryptedBuffer.readUInt8(offset);
     offset += 1;
+    
+    // Validate IV length
+    if (ivLength !== IV_LENGTH) {
+      throw new Error(`Invalid IV length: expected ${IV_LENGTH}, got ${ivLength}`);
+    }
+    
     const iv = encryptedBuffer.subarray(offset, offset + ivLength);
     offset += ivLength;
     
@@ -138,7 +153,8 @@ export async function decryptEspnAuth(encryptedBuffer: Buffer): Promise<EspnAuth
 export async function testEncryption(): Promise<boolean> {
   try {
     const testAuth: EspnAuth = {
-      cookies: 'test_session_id=abc123; espn_s2=def456'
+      espnS2: 'test-espn-s2-cookie-value',
+      swid: '{test-swid-guid-value}'
     };
     
     const encrypted = await encryptEspnAuth(testAuth);

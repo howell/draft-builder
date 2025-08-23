@@ -221,7 +221,7 @@ describe('Error Scenario and Recovery Tests', () => {
       });
       
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[SupabaseStorage] Failed to decrypt auth data:'),
+        expect.stringContaining('[SupabaseStorage.loadLeague] Failed to decrypt auth data:'),
         expect.any(Error)
       );
     });

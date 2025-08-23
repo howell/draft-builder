@@ -31,8 +31,8 @@ import type { LeagueId, PlatformLeague } from '@/platforms/common';
 describe('Data Transformation Functions', () => {
   
   describe('transformLeaguesFromDatabase', () => {
-    it('should transform empty database result to valid leagues data', () => {
-      const result = transformLeaguesFromDatabase([]);
+    it('should transform empty database result to valid leagues data', async () => {
+      const result = await transformLeaguesFromDatabase([]);
       
       expect(result).toEqual({
         schemaVersion: CURRENT_LEAGUES_SCHEMA_VERSION,
@@ -40,7 +40,7 @@ describe('Data Transformation Functions', () => {
       });
     });
 
-    it('should transform single league from database format', () => {
+    it('should transform single league from database format', async () => {
       const dbLeagues: DatabaseLeague[] = [{
         id: 'db-id-1',
         user_id: 'user-123',
@@ -51,7 +51,7 @@ describe('Data Transformation Functions', () => {
         updated_at: '2023-01-01T00:00:00Z'
       }];
 
-      const result = transformLeaguesFromDatabase(dbLeagues);
+      const result = await transformLeaguesFromDatabase(dbLeagues);
 
       expect(result).toEqual({
         schemaVersion: CURRENT_LEAGUES_SCHEMA_VERSION,
@@ -64,7 +64,7 @@ describe('Data Transformation Functions', () => {
       });
     });
 
-    it('should transform multiple leagues from database format', () => {
+    it('should transform multiple leagues from database format', async () => {
       const dbLeagues: DatabaseLeague[] = [
         {
           id: 'db-id-1',
@@ -86,7 +86,7 @@ describe('Data Transformation Functions', () => {
         }
       ];
 
-      const result = transformLeaguesFromDatabase(dbLeagues);
+      const result = await transformLeaguesFromDatabase(dbLeagues);
 
       expect(result).toEqual({
         schemaVersion: CURRENT_LEAGUES_SCHEMA_VERSION,
@@ -103,7 +103,7 @@ describe('Data Transformation Functions', () => {
       });
     });
 
-    it('should handle different platform types', () => {
+    it('should handle different platform types', async () => {
       const dbLeagues: DatabaseLeague[] = [
         {
           id: 'db-id-1',
@@ -134,7 +134,7 @@ describe('Data Transformation Functions', () => {
         }
       ];
 
-      const result = transformLeaguesFromDatabase(dbLeagues);
+      const result = await transformLeaguesFromDatabase(dbLeagues);
 
       expect(Object.keys(result.leagues)).toHaveLength(3);
       expect(result.leagues['11111'].platform).toBe('sleeper');
@@ -647,7 +647,7 @@ describe('Data Transformation Functions', () => {
   });
 
   describe('Round-trip transformation', () => {
-    it('should maintain data integrity through league round-trip', () => {
+    it('should maintain data integrity through league round-trip', async () => {
       const originalLeague: PlatformLeague = {
         platform: 'sleeper',
         id: '12345'
@@ -661,7 +661,7 @@ describe('Data Transformation Functions', () => {
         updated_at: '2023-01-01T00:00:00Z',
         ...dbFormat
       };
-      const result = transformLeaguesFromDatabase([dbLeague]);
+      const result = await transformLeaguesFromDatabase([dbLeague]);
 
       expect(result.leagues['12345']).toEqual(originalLeague);
     });

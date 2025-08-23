@@ -289,7 +289,7 @@ describe('SupabaseStorageAdapter', () => {
         }
       };
 
-      const mockEncryptedBuffer = Buffer.from('encrypted-auth-data');
+      const mockEncryptedBase64 = 'ZW5jcnlwdGVkLWF1dGgtZGF0YQ=='; // base64 string
       const mockTransformedData = {
         user_id: mockUserId,
         league_id: mockLeagueId,
@@ -322,16 +322,17 @@ describe('SupabaseStorageAdapter', () => {
       });
 
       (transformLeagueToDatabase as jest.Mock).mockReturnValue(mockTransformedData);
-      (encryptEspnAuth as jest.Mock).mockResolvedValue(mockEncryptedBuffer);
+      (encryptEspnAuth as jest.Mock).mockResolvedValue(mockEncryptedBase64); // Return base64 string
 
       await adapter.saveLeague(mockLeagueId, mockEspnLeague);
 
       expect(encryptEspnAuth).toHaveBeenCalledWith({
-        cookies: 'espn_s2=test-espn-s2; SWID=test-swid'
+        espnS2: 'test-espn-s2',
+        swid: 'test-swid'
       });
       expect(leaguesUpsertMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          auth_data_encrypted: mockEncryptedBuffer.toString('base64')
+          auth_data_encrypted: mockEncryptedBase64 // Expect the base64 string directly
         }),
         { onConflict: 'user_id,league_id,platform', ignoreDuplicates: false }
       );
@@ -431,7 +432,8 @@ describe('SupabaseStorageAdapter', () => {
       };
 
       const mockDecryptedAuth = {
-        cookies: 'espn_s2=test-value; SWID=test-swid'
+        espnS2: 'test-value',
+        swid: 'test-swid'
       };
 
       mockSupabase.from.mockReturnValue({
@@ -451,7 +453,7 @@ describe('SupabaseStorageAdapter', () => {
 
       const result = await adapter.loadLeague(mockLeagueId);
 
-      expect(decryptEspnAuth).toHaveBeenCalledWith(Buffer.from('base64-encrypted-data', 'base64'));
+      expect(decryptEspnAuth).toHaveBeenCalledWith('base64-encrypted-data'); // Pass base64 string directly
       expect(result).toEqual({
         platform: 'espn',
         id: mockLeagueId,
@@ -493,7 +495,7 @@ describe('SupabaseStorageAdapter', () => {
         id: mockLeagueId
       });
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[SupabaseStorage] Failed to decrypt auth data:'),
+        expect.stringContaining('[SupabaseStorage.loadLeague] Failed to decrypt auth data:'),
         expect.any(Error)
       );
 

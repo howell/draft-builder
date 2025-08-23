@@ -33,9 +33,10 @@ describe('Storage Integration Tests (Simplified)', () => {
   });
 
   describe('Storage Adapter Creation', () => {
-    it('should create localStorage adapter by default', () => {
+    it('should create memory adapter by default (SSR-safe)', () => {
+      // In Jest (Node.js environment), createStorageAdapter defaults to memory for SSR safety
       const adapter = createStorageAdapter();
-      expect(adapter).toBeInstanceOf(LocalStorageAdapter);
+      expect(adapter).toBeInstanceOf(MemoryStorageAdapter);
     });
 
     it('should create memory adapter for tests', () => {

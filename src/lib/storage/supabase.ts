@@ -4,7 +4,7 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
-import { LeagueId, PlatformLeague } from '@/platforms/common';
+import { EspnLeague, LeagueId, PlatformLeague } from '@/platforms/common';
 import type { EspnAuth as PlatformEspnAuth } from '@/platforms/espn/league';
 import {
   StorageAdapter,
@@ -26,7 +26,8 @@ import {
   transformMocksFromDatabase,
   transformDraftToDatabase,
 } from './transforms';
-import { encryptEspnAuth, decryptEspnAuth, type EspnAuth } from '../encryption/utils';
+// Import encryption utilities dynamically only when needed (server-side only)
+type EspnAuth = { espnS2: string; swid: string };
 import type { Database } from '@/lib/database.types';
 
 /**
@@ -205,6 +206,8 @@ export class SupabaseStorageAdapter implements StorageAdapter {
         }
 
         return transformLeaguesFromDatabase(data || []);
+
+        return result;
       },
       () => this.fallbackAdapter!.loadLeagues()
     );
@@ -222,17 +225,15 @@ export class SupabaseStorageAdapter implements StorageAdapter {
         // Handle ESPN auth encryption if present
         let authDataEncrypted: string | null = null;
         if (league.platform === 'espn' && 'auth' in league && league.auth) {
-          // ESPN auth has espnS2 and swid properties, convert to cookies format
           const espnAuthData = league.auth as PlatformEspnAuth;
-          const espnAuth: import('../encryption/utils').EspnAuth = { 
-            cookies: `espn_s2=${espnAuthData.espnS2 || ''}; SWID=${espnAuthData.swid || ''}` 
+          const espnAuth: EspnAuth = {
+            espnS2: espnAuthData.espnS2 || '',
+            swid: espnAuthData.swid || ''
           };
-          const encrypted = await encryptEspnAuth(espnAuth);
-          authDataEncrypted = encrypted.toString('base64');
+          const { encryptEspnAuth } = await import('../encryption/utils');
+          authDataEncrypted = await encryptEspnAuth(espnAuth);
         }
 
-        console.log(`[SupabaseStorage] Upserting league: user_id=${this.userId}, league_id=${leagueId}, platform=${league.platform}`);
-        
         // Create timeout promise with longer timeout for E2E tests
         const timeoutMs = process.env.NODE_ENV === 'test' ? 15000 : 5000;
         const timeoutPromise = new Promise((_, reject) => {
@@ -311,23 +312,17 @@ export class SupabaseStorageAdapter implements StorageAdapter {
           id: data.league_id as LeagueId
         };
 
-        // Decrypt ESPN auth if present
         if (data.auth_data_encrypted && data.platform === 'espn') {
           try {
-            const encryptedBuffer = Buffer.from(data.auth_data_encrypted, 'base64');
-            const decryptedAuth = await decryptEspnAuth(encryptedBuffer);
+            const { decryptEspnAuth } = await import('../encryption/utils');
+            const decryptedAuth = await decryptEspnAuth(data.auth_data_encrypted);
             
-            // Parse cookies back to ESPN auth format
-            const cookies = decryptedAuth.cookies;
-            const espnS2Match = cookies.match(/espn_s2=([^;]*)/);
-            const swidMatch = cookies.match(/SWID=([^;]*)/);
-            
-            (league as any).auth = {
-              espnS2: espnS2Match ? espnS2Match[1] : '',
-              swid: swidMatch ? swidMatch[1] : ''
+            (league as EspnLeague).auth = {
+              espnS2: decryptedAuth.espnS2,
+              swid: decryptedAuth.swid
             };
           } catch (decryptError) {
-            console.warn('[SupabaseStorage] Failed to decrypt auth data:', decryptError);
+            console.warn('[SupabaseStorage.loadLeague] Failed to decrypt auth data:', decryptError);
             // Continue without auth data rather than failing completely
           }
         }
