@@ -206,8 +206,6 @@ export class SupabaseStorageAdapter implements StorageAdapter {
         }
 
         return transformLeaguesFromDatabase(data || []);
-
-        return result;
       },
       () => this.fallbackAdapter!.loadLeagues()
     );
