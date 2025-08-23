@@ -6,6 +6,7 @@ import { isInProgressSelectionsKey } from '@/lib/storage/constants';
 export interface DraftInfo {
   draftName: string;
   leagueId: LeagueId;
+  year: string;
   lastModified: Date;
   selectionCount: number;
   adjustmentCount: number;
@@ -49,6 +50,7 @@ export function useUserDraftsQuery(leagueIds?: LeagueId[]) {
             allDrafts.push({
               draftName,
               leagueId,
+              year: draft.year,
               lastModified: new Date(draft.modified),
               selectionCount: Object.keys(draft.rosterSelections).length,
               adjustmentCount: Object.keys(draft.costAdjustments || {}).length,

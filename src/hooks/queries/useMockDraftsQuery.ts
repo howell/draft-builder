@@ -6,6 +6,7 @@ export interface MockDraft {
   draftName: string;
   leagueName: string;
   leagueId: LeagueId;
+  year: string;
   lastModified: Date;
   selectionCount: number;
   adjustmentCount: number;
