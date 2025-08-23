@@ -18,7 +18,7 @@ import { usePlayersQuery } from '@/hooks/queries/usePlayersQuery';
 import { useDraftDataQuery } from '@/hooks/queries/useDraftDataQuery';
 import { useLeagueTeamsQuery } from '@/hooks/queries/useLeagueTeamsQuery';
 import { useLeagueInfoQuery } from '@/hooks/queries/useLeagueInfoQuery';
-import { useLeagueFromStorage } from '@/hooks/queries/useLeagueFromStorage';
+import { useLeagueQuery } from '@/hooks/queries/useLeagueQuery';
 // Dynamically import PlayerScatterChart with no SSR
 const PlayerScatterChart = dynamic(() => import('./PlayerScatterChart'), { ssr: false });
 
@@ -51,7 +51,7 @@ const Page = (props: Readonly<{ params: Promise<{ leagueID: string, draftYear: s
     const draftDataQuery = useDraftDataQuery(leagueID, draftYear);
     const teamsQuery = useLeagueTeamsQuery(leagueID, draftYear);
     const leagueInfoQuery = useLeagueInfoQuery(leagueID);
-    const leagueFromStorage = useLeagueFromStorage(leagueID);
+    const leagueQuery = useLeagueQuery(leagueID);
 
     // Process data when all queries complete
     const { tableData, allPositions, positionGraphs } = useMemo(() => {
@@ -64,7 +64,7 @@ const Page = (props: Readonly<{ params: Promise<{ leagueID: string, draftYear: s
             !teamsQuery.data ||
             !Array.isArray(teamsQuery.data) ||
             !leagueInfoQuery.data ||
-            !leagueFromStorage.data) {
+            !leagueQuery.data?.league) {
             return { 
                 tableData: [], 
                 allPositions: [], 
@@ -78,8 +78,8 @@ const Page = (props: Readonly<{ params: Promise<{ leagueID: string, draftYear: s
         const validTeamsData = teamsQuery.data as any[];
 
         // Get the platform from the loaded league information
-        const platform = leagueFromStorage.data.platform;
-        console.log('[DraftPage] Using platform from storage:', platform);
+        const platform = leagueQuery.data.league.platform;
+        console.log('[DraftPage] Using platform from query:', platform, 'source:', leagueQuery.data.source);
 
         const resultData = mergeDraftAndPlayerInfo(
             validDraftData.picks, 
@@ -110,7 +110,7 @@ const Page = (props: Readonly<{ params: Promise<{ leagueID: string, draftYear: s
             allPositions: positions, 
             positionGraphs: allGraphs 
         };
-    }, [playersQuery.data, draftDataQuery.data, teamsQuery.data, leagueInfoQuery.data, leagueFromStorage.data]);
+    }, [playersQuery.data, draftDataQuery.data, teamsQuery.data, leagueInfoQuery.data, leagueQuery.data]);
 
     // Default search settings
     const defaultSearchSettings = useMemo(() => 
@@ -133,12 +133,12 @@ const Page = (props: Readonly<{ params: Promise<{ leagueID: string, draftYear: s
     // Create loading dependencies using the new simplified API
     const loadingDependencies = useMemo(() => [
         { loading: authLoading, message: 'Checking authentication...' },
-        { loading: leagueFromStorage.loading, message: 'Loading League Information' },
+        { query: leagueQuery as any, message: 'Loading League Information' },
         { query: playersQuery as any, message: 'Fetching Players' },
         { query: draftDataQuery as any, message: 'Fetching Draft' },
         { query: teamsQuery as any, message: 'Fetching Team History' },
         { query: leagueInfoQuery as any, message: 'Fetching League Information' }
-    ], [authLoading, leagueFromStorage.loading, playersQuery, draftDataQuery, teamsQuery, leagueInfoQuery]);
+    ], [authLoading, leagueQuery, playersQuery, draftDataQuery, teamsQuery, leagueInfoQuery]);
 
     // Update search settings when positions change
     useEffect(() => {
@@ -173,7 +173,7 @@ const Page = (props: Readonly<{ params: Promise<{ leagueID: string, draftYear: s
     }
 
     // Handle query errors
-    const error = playersQuery.error || draftDataQuery.error || teamsQuery.error || leagueFromStorage.error;
+    const error = playersQuery.error || draftDataQuery.error || teamsQuery.error || leagueQuery.error;
     if (error) {
         return <ErrorScreen message={error.message || 'Failed to load draft data'} />;
     }
