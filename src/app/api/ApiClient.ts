@@ -4,7 +4,9 @@ import { FetchLeagueTeamsResponse, FetchLeagueTeamsRequest } from "./fetch-leagu
 import { FetchLeagueResponse, FetchLeagueRequest } from "./fetch-league/interface";
 import { FetchPlayersResponse, FetchPlayersRequest } from "./fetch-players/interface";
 import { FindLeagueRequest, FindLeagueResponse } from "./find-league/interface";
-import { FETCH_DRAFT_ENDPOINT, FETCH_LEAGUE_ENDPOINT, FETCH_LEAGUE_HISTORY_ENDPOINT, FETCH_LEAGUE_TEAMS_ENDPOINT, FETCH_PLAYERS_ENDPOINT, FIND_LEAGUE_ENDPOINT } from "./interface";
+import { SaveLeagueRequest, SaveLeagueResponse } from "./save-league/interface";
+import { LoadLeaguesRequest, LoadLeaguesResponse } from "./load-leagues/interface";
+import { FETCH_DRAFT_ENDPOINT, FETCH_LEAGUE_ENDPOINT, FETCH_LEAGUE_HISTORY_ENDPOINT, FETCH_LEAGUE_TEAMS_ENDPOINT, FETCH_PLAYERS_ENDPOINT, FIND_LEAGUE_ENDPOINT, SAVE_LEAGUE_ENDPOINT, LOAD_LEAGUES_ENDPOINT } from "./interface";
 import { PlatformLeague, SeasonId } from "@/platforms/common";
 import { makeApiRequest } from "./utils";
 import { DraftDetail, LeagueInfo, Player } from "@/platforms/PlatformApi";
@@ -16,11 +18,30 @@ export default class ApiClient {
         this.league = league;
     }
 
+    /**
+     * Static method to load all leagues from server-side storage
+     * This doesn't require an existing league instance
+     */
+    public static loadLeagues(userId: string): Promise<string | LoadLeaguesResponse> {
+        const req: LoadLeaguesRequest = {
+            userId
+        };
+        return makeApiRequest<LoadLeaguesRequest, LoadLeaguesResponse>(LOAD_LEAGUES_ENDPOINT, 'GET', req);
+    }
+
     public findLeague(): Promise<string | FindLeagueResponse> {
         const req: FindLeagueRequest = {
             league: this.league
         };
         return makeApiRequest<FindLeagueRequest, FindLeagueResponse>(FIND_LEAGUE_ENDPOINT, 'GET', req);
+    }
+
+    public saveLeague(userId: string): Promise<string | SaveLeagueResponse> {
+        const req: SaveLeagueRequest = {
+            league: this.league,
+            userId: userId
+        };
+        return makeApiRequest<SaveLeagueRequest, SaveLeagueResponse>(SAVE_LEAGUE_ENDPOINT, 'POST', req);
     }
 
     public fetchLeagueHistory(startSeason: SeasonId): Promise<string | FetchLeagueHistoryResponse> {

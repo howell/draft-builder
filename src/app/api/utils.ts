@@ -5,19 +5,35 @@ export const DEFAULT_CACHE_LENGTH = 60 * 60 * 24; // 1 day
 
 export async function makeApiRequest<T, U>(endpoint: string, method: string, body: T, headers?: Record<string, string>): Promise<U | string> {
     try {
-        const searchParams = new URLSearchParams();
-        for (const key in body) {
-            searchParams.append(key, JSON.stringify(body[key]));
+        if (method.toLowerCase() === 'get') {
+            // GET requests: send data as query parameters
+            const searchParams = new URLSearchParams();
+            for (const key in body) {
+                searchParams.append(key, JSON.stringify(body[key]));
+            }
+            const url = `${endpoint}?${searchParams.toString()}`;
+            const response = await axios.get(url, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...headers
+                },
+                timeout: 10_000
+            });
+            return response.data;
+        } else {
+            // POST/PUT/etc requests: send data as JSON body
+            const response = await axios.request({
+                method: method.toLowerCase(),
+                url: endpoint,
+                data: body,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...headers
+                },
+                timeout: 10_000
+            });
+            return response.data;
         }
-        const url = `${endpoint}?${searchParams.toString()}`;
-        const response = await axios.get(url, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...headers
-            },
-            timeout: 10_000
-        });
-        return response.data;
     } catch (error) {
         if (axios.isAxiosError(error)) {
             return (error.message);
