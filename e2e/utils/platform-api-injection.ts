@@ -13,7 +13,7 @@ import type { Platform, PlatformLeague } from '../../src/platforms/common';
  * This allows E2E tests to override the real API implementations
  */
 class PlatformApiRegistry {
-  private overrides = new Map<Platform, () => PlatformApi>();
+  private overrides = new Map<Platform, (league: PlatformLeague) => PlatformApi>();
   private fixtureValidation = new Map<Platform, boolean>();
 
   /**
@@ -27,7 +27,7 @@ class PlatformApiRegistry {
     }
 
     this.fixtureValidation.set(platform, true);
-    this.overrides.set(platform, () => createFixturePlatformApi(platform, fixturesDir));
+    this.overrides.set(platform, (league: PlatformLeague) => createFixturePlatformApi(league, fixturesDir));
   }
 
   /**
@@ -37,7 +37,7 @@ class PlatformApiRegistry {
   createApiFor(league: PlatformLeague): PlatformApi {
     const override = this.overrides.get(league.platform);
     if (override) {
-      return override();
+      return override(league);
     }
 
     // Fallback to real API implementation
@@ -130,7 +130,9 @@ export function getFixtureSummary(platform: Platform): any {
     return null;
   }
   
-  const api = createFixturePlatformApi(platform);
+  // Create a mock league object for fixture summary retrieval
+  const mockLeague: PlatformLeague = { platform, id: 'fixture-summary' };
+  const api = createFixturePlatformApi(mockLeague);
   return api.getFixtureSummary();
 }
 
