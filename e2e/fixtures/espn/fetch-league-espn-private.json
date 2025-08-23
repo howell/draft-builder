@@ -1,0 +1,157 @@
+{
+  "status": "ok",
+  "data": {
+    "id": "999999",
+    "gameId": 1,
+    "scoringPeriodId": 0,
+    "seasonId": 2025,
+    "segmentId": 0,
+    "settings": {
+      "name": "Test Private League 2025",
+      "isPublic": false,
+      "acquisitionSettings": {
+        "acquisitionBudget": 100,
+        "acquisitionLimit": -1,
+        "acquisitionType": "WAIVERS_TRADITIONAL",
+        "isUsingAcquisitionBudget": true,
+        "matchupAcquisitionLimit": 0,
+        "matchupLimitPerScoringPeriod": false,
+        "minimumBid": 0,
+        "waiverHours": 24,
+        "waiverOrderReset": true,
+        "waiverProcessDays": [3],
+        "waiverProcessHour": 11
+      },
+      "draftSettings": {
+        "auctionBudget": 200,
+        "availableDate": 0,
+        "date": 1693776000000,
+        "isTradingEnabled": false,
+        "keeperCount": 0,
+        "keeperCountFuture": 0,
+        "keeperOrderType": "TRADITIONAL",
+        "leagueSubType": "NONE",
+        "orderType": "MANUAL",
+        "pickOrder": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        "timePerSelection": 90,
+        "type": "AUCTION"
+      },
+      "financeSettings": {
+        "entryFee": 0,
+        "miscFee": 0,
+        "perLoss": 0,
+        "perTrade": 0,
+        "playerAcquisition": 0,
+        "playerDrop": 0,
+        "playerMoveToActive": 0,
+        "playerMoveToIR": 0
+      },
+      "isCustomizable": true,
+      "isPublic": false,
+      "name": "Test Private League 2025",
+      "restrictionType": "NONE",
+      "rosterSettings": {
+        "isBenchUnlimited": false,
+        "isUsingUndroppableList": true,
+        "lineupLocktimeType": "INDIVIDUAL_GAME",
+        "lineupSlotCounts": {
+          "0": 1,
+          "2": 2,
+          "4": 2,
+          "6": 1,
+          "16": 1,
+          "17": 1,
+          "20": 6,
+          "21": 1,
+          "23": 1
+        },
+        "moveLimit": -1,
+        "positionLimits": {
+          "0": 4,
+          "1": 0,
+          "2": 8,
+          "3": 8,
+          "4": 8,
+          "5": 3,
+          "16": 3
+        },
+        "rosterLocktimeType": "INDIVIDUAL_GAME",
+        "universeIds": [0]
+      },
+      "scheduleSettings": {
+        "divisions": [
+          {
+            "id": 0,
+            "name": "Division 1",
+            "size": 12
+          }
+        ],
+        "matchupPeriodCount": 14,
+        "matchupPeriodLength": 1,
+        "matchupPeriods": {},
+        "periodTypeId": 1,
+        "playoffMatchupPeriodLength": 1,
+        "playoffReseed": true,
+        "playoffSeedingRule": "TOTAL_POINTS_SCORED",
+        "playoffSeedingRuleBy": 0,
+        "playoffTeamCount": 6
+      },
+      "scoringSettings": {
+        "scoringItems": [
+          {
+            "isReverseItem": false,
+            "leagueRanking": 0,
+            "leagueTotal": 0,
+            "pointsOverrides": {},
+            "points": 0.1,
+            "statId": 24
+          },
+          {
+            "isReverseItem": false,
+            "leagueRanking": 0,
+            "leagueTotal": 0,
+            "pointsOverrides": {},
+            "points": 0.04,
+            "statId": 25
+          }
+        ],
+        "scoringType": "PPR"
+      },
+      "size": 12,
+      "tradeSettings": {
+        "allowOutOfUniverse": false,
+        "deadlineDate": 1700611200000,
+        "max": -1,
+        "revisionHours": 24,
+        "vetoVotesRequired": 4
+      }
+    },
+    "status": {
+      "activatedDate": 1693776000000,
+      "createdAsLeagueType": 0,
+      "currentLeagueType": 0,
+      "currentMatchupPeriod": 1,
+      "finalScoringPeriod": 16,
+      "firstScoringPeriod": 1,
+      "isActive": true,
+      "isFull": true,
+      "isPlayoffMatchupEdited": false,
+      "isToBeDeleted": false,
+      "isViewable": true,
+      "isWaiverOrderEdited": false,
+      "latestScoringPeriod": 1,
+      "previousSeasons": [2023, 2022, 2021],
+      "standingsUpdateDate": 1693776000000,
+      "teamsJoined": 12,
+      "transactionScoringPeriod": 1,
+      "waiverLastExecutionDate": 1693776000000,
+      "waiverProcessStatus": {
+        "2024-09-06T09:07:21.607+0000": 4
+      }
+    },
+    "draftDetail": {
+      "drafted": true,
+      "inProgress": false
+    }
+  }
+}

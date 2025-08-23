@@ -1,0 +1,68 @@
+{
+  "status": "ok",
+  "data": {
+    "season": "2023",
+    "picks": [
+      {
+        "playerId": "2576623",
+        "team": "1",
+        "price": 75,
+        "overallPickNumber": 1
+      },
+      {
+        "playerId": "3139477",
+        "team": "2",
+        "price": 72,
+        "overallPickNumber": 2
+      },
+      {
+        "playerId": "4241389",
+        "team": "3",
+        "price": 68,
+        "overallPickNumber": 3
+      },
+      {
+        "playerId": "4426502",
+        "team": "4",
+        "price": 65,
+        "overallPickNumber": 4
+      },
+      {
+        "playerId": "15795",
+        "team": "5",
+        "price": 62,
+        "overallPickNumber": 5
+      },
+      {
+        "playerId": "3916148",
+        "team": "6",
+        "price": 60,
+        "overallPickNumber": 6
+      },
+      {
+        "playerId": "4361579",
+        "team": "7",
+        "price": 58,
+        "overallPickNumber": 7
+      },
+      {
+        "playerId": "3116385",
+        "team": "8",
+        "price": 55,
+        "overallPickNumber": 8
+      },
+      {
+        "playerId": "4035538",
+        "team": "9",
+        "price": 52,
+        "overallPickNumber": 9
+      },
+      {
+        "playerId": "4360438",
+        "team": "10",
+        "price": 50,
+        "overallPickNumber": 10
+      }
+    ]
+  }
+}

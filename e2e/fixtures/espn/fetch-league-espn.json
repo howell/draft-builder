@@ -1,39 +1,38 @@
 {
   "status": "ok",
   "data": {
-    "name": "Flavortown",
-    "drafted": false,
-    "scoringType": "half-ppr",
-    "draft": {
-      "type": "auction",
-      "auctionBudget": 200
+    "id": "123456",
+    "gameId": 1,
+    "scoringPeriodId": 0,
+    "seasonId": 2025,
+    "segmentId": 0,
+    "settings": {
+      "name": "Flavortown",
+      "isPublic": true,
+      "draftSettings": {
+        "auctionBudget": 200,
+        "type": "AUCTION"
+      },
+      "scoringSettings": {
+        "scoringType": "HALF_PPR"
+      },
+      "rosterSettings": {
+        "lineupSlotCounts": {
+          "0": 1,
+          "2": 2,
+          "4": 2,
+          "6": 1,
+          "16": 1,
+          "17": 1,
+          "20": 6,
+          "21": 1,
+          "23": 1
+        }
+      }
     },
-    "rosterSettings": {
-      "QB": 1,
-      "TQB": 0,
-      "RB": 2,
-      "RB/WR": 0,
-      "WR": 2,
-      "WR/TE": 0,
-      "TE": 1,
-      "OP": 0,
-      "DT": 0,
-      "DE": 0,
-      "LB": 0,
-      "DL": 0,
-      "CB": 0,
-      "S": 0,
-      "DB": 0,
-      "DP": 0,
-      "D/ST": 1,
-      "K": 0,
-      "P": 0,
-      "HC": 0,
-      "Bench": 6,
-      "IR": 1,
-      "INVALID_CODE": 0,
-      "RB/WR/TE": 1,
-      "ER": 0
+    "draftDetail": {
+      "drafted": false,
+      "inProgress": false
     }
   }
 }

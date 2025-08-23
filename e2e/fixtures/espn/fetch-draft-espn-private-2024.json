@@ -1,0 +1,128 @@
+{
+  "status": "ok",
+  "data": {
+    "season": "2024",
+    "picks": [
+      {
+        "playerId": "3139477",
+        "team": "1",
+        "price": 71,
+        "overallPickNumber": 1
+      },
+      {
+        "playerId": "4241389",
+        "team": "2",
+        "price": 68,
+        "overallPickNumber": 2
+      },
+      {
+        "playerId": "4361579",
+        "team": "3",
+        "price": 65,
+        "overallPickNumber": 3
+      },
+      {
+        "playerId": "3916148",
+        "team": "4",
+        "price": 60,
+        "overallPickNumber": 4
+      },
+      {
+        "playerId": "4426502",
+        "team": "5",
+        "price": 58,
+        "overallPickNumber": 5
+      },
+      {
+        "playerId": "15795",
+        "team": "6",
+        "price": 55,
+        "overallPickNumber": 6
+      },
+      {
+        "playerId": "3116385",
+        "team": "7",
+        "price": 52,
+        "overallPickNumber": 7
+      },
+      {
+        "playerId": "4035538",
+        "team": "8",
+        "price": 50,
+        "overallPickNumber": 8
+      },
+      {
+        "playerId": "4360438",
+        "team": "9",
+        "price": 48,
+        "overallPickNumber": 9
+      },
+      {
+        "playerId": "4379399",
+        "team": "10",
+        "price": 45,
+        "overallPickNumber": 10
+      },
+      {
+        "playerId": "3117251",
+        "team": "11",
+        "price": 42,
+        "overallPickNumber": 11
+      },
+      {
+        "playerId": "4040761",
+        "team": "12",
+        "price": 40,
+        "overallPickNumber": 12
+      },
+      {
+        "playerId": "2576623",
+        "team": "1",
+        "price": 38,
+        "overallPickNumber": 13
+      },
+      {
+        "playerId": "3915511",
+        "team": "2",
+        "price": 35,
+        "overallPickNumber": 14
+      },
+      {
+        "playerId": "4047365",
+        "team": "3",
+        "price": 33,
+        "overallPickNumber": 15
+      },
+      {
+        "playerId": "4361050",
+        "team": "4",
+        "price": 30,
+        "overallPickNumber": 16
+      },
+      {
+        "playerId": "3886377",
+        "team": "5",
+        "price": 28,
+        "overallPickNumber": 17
+      },
+      {
+        "playerId": "3043078",
+        "team": "6",
+        "price": 25,
+        "overallPickNumber": 18
+      },
+      {
+        "playerId": "4241985",
+        "team": "7",
+        "price": 22,
+        "overallPickNumber": 19
+      },
+      {
+        "playerId": "3128874",
+        "team": "8",
+        "price": 20,
+        "overallPickNumber": 20
+      }
+    ]
+  }
+}

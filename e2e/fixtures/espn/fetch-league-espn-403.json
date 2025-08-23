@@ -1,0 +1,5 @@
+{
+  "status": "error",
+  "error": "status: 403",
+  "message": "Invalid authentication credentials for private league"
+}
