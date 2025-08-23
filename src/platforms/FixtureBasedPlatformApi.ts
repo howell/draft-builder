@@ -7,7 +7,8 @@
 import fs from 'fs';
 import path from 'path';
 import { PlatformApi, LeagueInfo, LeagueHistory, DraftDetail, LeagueTeam, Player } from './PlatformApi';
-import type { Platform, SeasonId } from './common';
+import type { Platform, SeasonId, PlatformLeague, EspnLeague } from './common';
+import { importEspnLeagueInfo, importEspnLeagueHistory } from './espn/EspnApi';
 
 export interface FixtureData {
   status: 'ok' | 'error';
@@ -21,17 +22,25 @@ export interface FixtureData {
  */
 export class FixtureBasedPlatformApi extends PlatformApi {
   private platform: Platform;
+  private league: PlatformLeague;
   private fixturesDir: string;
   private fixtureCache = new Map<string, any>();
 
-  constructor(platform: Platform, fixturesDir?: string) {
+  constructor(league: PlatformLeague, fixturesDir?: string) {
     console.log('🏗️ [FixtureBasedPlatformApi.constructor] *** CONSTRUCTOR CALLED ***');
-    console.log('[FixtureBasedPlatformApi.constructor] Platform:', platform);
+    console.log('[FixtureBasedPlatformApi.constructor] League:', league);
     console.log('[FixtureBasedPlatformApi.constructor] Custom fixtures dir:', fixturesDir);
     
     super();
-    this.platform = platform;
+    this.league = league;
+    this.platform = league.platform;
     this.fixturesDir = fixturesDir || this.getDefaultFixturesDir();
+    
+    // Log auth presence for ESPN leagues
+    if (this.platform === 'espn') {
+      const hasAuth = !!(league as EspnLeague).auth;
+      console.log('[FixtureBasedPlatformApi.constructor] ESPN auth present:', hasAuth);
+    }
     
     console.log('[FixtureBasedPlatformApi.constructor] Final fixtures dir:', this.fixturesDir);
     console.log('✅ [FixtureBasedPlatformApi.constructor] Instance created successfully');
@@ -45,6 +54,32 @@ export class FixtureBasedPlatformApi extends PlatformApi {
     } else {
       throw new Error('FixtureBasedPlatformApi requires Node.js environment or explicit fixtures directory');
     }
+  }
+
+  /**
+   * Check if this league requires authentication based on fixture configuration
+   */
+  private requiresAuth(): boolean {
+    // Private league IDs that require auth
+    const privateLeagueIds = ['999999', '403403'];
+    return this.platform === 'espn' && privateLeagueIds.includes(this.league.id);
+  }
+
+  /**
+   * Check if this league should return auth error (for testing invalid auth scenarios)
+   */
+  private shouldReturnAuthError(): boolean {
+    // Special league ID that always returns auth error
+    return this.platform === 'espn' && this.league.id === '403403';
+  }
+
+  /**
+   * Check if auth is provided for ESPN leagues
+   */
+  private hasAuth(): boolean {
+    if (this.platform !== 'espn') return false;
+    const espnLeague = this.league as EspnLeague;
+    return !!(espnLeague.auth && espnLeague.auth.espnS2 && espnLeague.auth.swid);
   }
 
   /**
@@ -100,32 +135,139 @@ export class FixtureBasedPlatformApi extends PlatformApi {
     return match ? parseInt(match[1], 10) : 500;
   }
 
+  /**
+   * Transform raw fixture data to match expected format for each platform
+   */
+  private transformLeagueData(rawData: any): LeagueInfo | number {
+    console.log(`[FixtureBasedPlatformApi.transformLeagueData] *** TRANSFORMATION CALLED *** platform: ${this.platform}`);
+    console.log(`[FixtureBasedPlatformApi.transformLeagueData] Input data type: ${typeof rawData}`);
+    console.log(`[FixtureBasedPlatformApi.transformLeagueData] Input data keys: ${typeof rawData === 'object' ? Object.keys(rawData).slice(0, 10) : 'N/A'}`);
+    
+    // Handle error codes
+    if (typeof rawData === 'number') {
+      console.log(`[FixtureBasedPlatformApi.transformLeagueData] Returning number: ${rawData}`);
+      return rawData;
+    }
+
+    // Apply platform-specific transformations
+    if (this.platform === 'espn') {
+      console.log(`[FixtureBasedPlatformApi.transformLeagueData] Applying ESPN transformation...`);
+      const result = importEspnLeagueInfo(rawData);
+      console.log(`[FixtureBasedPlatformApi.transformLeagueData] ESPN transformation result:`, result);
+      console.log(`[FixtureBasedPlatformApi.transformLeagueData] Result has name: ${typeof result === 'object' && result && 'name' in result ? result.name : 'NO NAME'}`);
+      return result;
+    }
+
+    // For other platforms, return as-is (they may not need transformation)
+    console.log(`[FixtureBasedPlatformApi.transformLeagueData] No transformation needed, returning raw data`);
+    return rawData;
+  }
+
   public async fetchLeague(season?: SeasonId): Promise<LeagueInfo | number> {
-    const endpoint = `fetch-league-${this.platform}`;
-    return this.loadFixture(endpoint);
+    // Special handling for auth error test league
+    if (this.shouldReturnAuthError()) {
+      console.log('[FixtureBasedPlatformApi.fetchLeague] Returning auth error for test league');
+      return 403; // Always return auth error for this special league
+    }
+    
+    // Check auth requirements for private leagues
+    if (this.requiresAuth() && !this.hasAuth()) {
+      console.log('[FixtureBasedPlatformApi.fetchLeague] Auth required but not provided');
+      return 403; // Unauthorized
+    }
+    
+    const endpoint = this.requiresAuth() ? `fetch-league-${this.platform}-private` : `fetch-league-${this.platform}`;
+    
+    // Try to load auth-specific fixture first if auth is provided
+    if (this.hasAuth() && this.hasFixture(endpoint)) {
+      const rawData = this.loadFixture(endpoint);
+      return this.transformLeagueData(rawData);
+    }
+    
+    // Fall back to standard fixture
+    const fallbackEndpoint = `fetch-league-${this.platform}`;
+    if (this.hasFixture(fallbackEndpoint)) {
+      const rawData = this.loadFixture(fallbackEndpoint);
+      return this.transformLeagueData(rawData);
+    }
+    
+    return 404; // Not found
   }
 
   public async fetchLeagueHistory(startYear?: SeasonId): Promise<LeagueHistory> {
-    const endpoint = `fetch-league-history-${this.platform}`;
-    const historyData = this.loadFixture(endpoint);
-    
-    if (typeof historyData === 'number') {
-      // API error occurred
-      return new Map();
+    // Special handling for auth error test league
+    if (this.shouldReturnAuthError()) {
+      console.log('[FixtureBasedPlatformApi.fetchLeagueHistory] Returning empty history for auth error test');
+      return new Map(); // Return empty history for auth error
     }
     
-    // Convert object back to Map (fixtures store as objects for JSON compatibility)
-    return new Map(Object.entries(historyData));
+    // Check auth requirements for private leagues
+    if (this.requiresAuth() && !this.hasAuth()) {
+      console.log('[FixtureBasedPlatformApi.fetchLeagueHistory] Auth required but not provided');
+      return new Map(); // Return empty history for unauthorized
+    }
+    
+    const endpoint = this.requiresAuth() ? `fetch-league-history-${this.platform}-private` : `fetch-league-history-${this.platform}`;
+    
+    // Try to load auth-specific fixture first
+    if (this.hasAuth() && this.hasFixture(endpoint)) {
+      const historyData = this.loadFixture(endpoint);
+      if (typeof historyData === 'number') {
+        return new Map();
+      }
+      return new Map(Object.entries(historyData));
+    }
+    
+    // Fall back to standard fixture
+    const fallbackEndpoint = `fetch-league-history-${this.platform}`;
+    if (this.hasFixture(fallbackEndpoint)) {
+      const historyData = this.loadFixture(fallbackEndpoint);
+      if (typeof historyData === 'number') {
+        return new Map();
+      }
+      return new Map(Object.entries(historyData));
+    }
+    
+    return new Map();
   }
 
   public async fetchDraft(season?: SeasonId): Promise<DraftDetail | number> {
     console.log(`[FixtureBasedPlatformApi.fetchDraft] *** METHOD CALLED *** platform: ${this.platform}, season: ${season}`);
+    
+    // Special handling for auth error test league
+    if (this.shouldReturnAuthError()) {
+      console.log('[FixtureBasedPlatformApi.fetchDraft] Returning auth error for test league');
+      return 403; // Always return auth error for this special league
+    }
+    
+    // Check auth requirements for private leagues
+    if (this.requiresAuth() && !this.hasAuth()) {
+      console.log('[FixtureBasedPlatformApi.fetchDraft] Auth required but not provided');
+      return 403; // Unauthorized
+    }
+    
     const seasonSuffix = season || '2024'; // Default to current season
-    const endpoint = `fetch-draft-${this.platform}-${seasonSuffix}`;
+    const authSuffix = this.requiresAuth() ? '-private' : '';
+    const endpoint = `fetch-draft-${this.platform}${authSuffix}-${seasonSuffix}`;
+    
     console.log(`[FixtureBasedPlatformApi.fetchDraft] Loading fixture: ${endpoint}`);
-    const result = this.loadFixture(endpoint);
-    console.log(`[FixtureBasedPlatformApi.fetchDraft] Result loaded, returning:`, typeof result);
-    return result;
+    
+    // Try auth-specific fixture first
+    if (this.hasFixture(endpoint)) {
+      const result = this.loadFixture(endpoint);
+      console.log(`[FixtureBasedPlatformApi.fetchDraft] Result loaded, returning:`, typeof result);
+      return result;
+    }
+    
+    // Fall back to standard fixture
+    const fallbackEndpoint = `fetch-draft-${this.platform}-${seasonSuffix}`;
+    if (this.hasFixture(fallbackEndpoint)) {
+      const result = this.loadFixture(fallbackEndpoint);
+      console.log(`[FixtureBasedPlatformApi.fetchDraft] Fallback result loaded, returning:`, typeof result);
+      return result;
+    }
+    
+    return 404; // Not found
   }
 
   public async fetchLeagueTeams(season?: SeasonId): Promise<LeagueTeam[] | number> {
@@ -206,12 +348,12 @@ export class FixtureBasedPlatformApi extends PlatformApi {
 /**
  * Factory function to create fixture-based APIs for dependency injection
  */
-export function createFixturePlatformApi(platform: Platform, fixturesDir?: string): FixtureBasedPlatformApi {
+export function createFixturePlatformApi(league: PlatformLeague, fixturesDir?: string): FixtureBasedPlatformApi {
   console.log('🏭 [createFixturePlatformApi] *** FACTORY FUNCTION CALLED ***');
-  console.log('[createFixturePlatformApi] Creating FixtureBasedPlatformApi for platform:', platform);
+  console.log('[createFixturePlatformApi] Creating FixtureBasedPlatformApi for league:', league);
   console.log('[createFixturePlatformApi] Fixtures directory:', fixturesDir || 'default');
   
-  const api = new FixtureBasedPlatformApi(platform, fixturesDir);
+  const api = new FixtureBasedPlatformApi(league, fixturesDir);
   console.log('[createFixturePlatformApi] ✅ Created instance:', api.constructor.name);
   return api;
 }
@@ -220,7 +362,9 @@ export function createFixturePlatformApi(platform: Platform, fixturesDir?: strin
  * Utility to verify fixture data integrity
  */
 export function validateFixtures(platform: Platform, fixturesDir?: string): { valid: boolean; errors: string[] } {
-  const api = new FixtureBasedPlatformApi(platform, fixturesDir);
+  // Create a dummy league for validation
+  const dummyLeague: PlatformLeague = { platform, id: '000000' };
+  const api = new FixtureBasedPlatformApi(dummyLeague, fixturesDir);
   const errors: string[] = [];
   
   // Required endpoints for platform functionality
