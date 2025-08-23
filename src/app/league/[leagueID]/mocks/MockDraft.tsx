@@ -12,6 +12,7 @@ import { LeagueId, Platform, PlatformLeague, SeasonId } from "@/platforms/common
 import RankingsClient from "@/rankings/RankingsClient";
 import { useAuth } from '@/lib/auth/context';
 import { usePlayersQuery, useLeagueHistoryQuery, useDraftHistoryQuery, useRankingsQuery } from '@/hooks/queries';
+import { useLeagueQuery } from '@/hooks/queries/useLeagueQuery';
 
 export type MockDraftProps = {
     leagueId: LeagueId;
@@ -20,16 +21,11 @@ export type MockDraftProps = {
 }
 
 const MockDraft: React.FC<MockDraftProps> = ({ leagueId, draftName, googleApiKey }) => {
-    const { storageAdapter, loading: authLoading } = useAuth();
-    const [league, setLeague] = useState<PlatformLeague>();
+    const { loading: authLoading } = useAuth();
     
-    
-    // Load league data after auth is ready
-    useEffect(() => {
-        if (!authLoading && storageAdapter) {
-            storageAdapter.loadLeague(leagueId).then(setLeague);
-        }
-    }, [leagueId, storageAdapter, authLoading]);
+    // Use React Query for league loading with authentication-aware source selection
+    const leagueQuery = useLeagueQuery(leagueId);
+    const league = leagueQuery.data?.league;
 
     // React Query hooks for data fetching (will wait for auth)
     const playersQuery = usePlayersQuery(leagueId);
@@ -49,11 +45,12 @@ const MockDraft: React.FC<MockDraftProps> = ({ leagueId, draftName, googleApiKey
     // Create loading dependencies using the new simplified API
     const loadingDependencies = useMemo(() => [
         { loading: authLoading, message: 'Authenticating...' },
+        { query: leagueQuery as any, message: 'Loading League Information' },
         { query: playersQuery as any, message: 'Fetching Players' },
         { query: historyQuery as any, message: 'Fetching League History' },
         { query: draftQuery as any, message: 'Building Draft History' },
         { query: rankingsQuery as any, message: 'Loading Rankings' }
-    ], [authLoading, playersQuery, historyQuery, draftQuery, rankingsQuery]);
+    ], [authLoading, leagueQuery, playersQuery, historyQuery, draftQuery, rankingsQuery]);
 
     // Prepare table data when all queries complete (must be before early returns)
     const tableData = useMemo(() => {
@@ -106,7 +103,7 @@ const MockDraft: React.FC<MockDraftProps> = ({ leagueId, draftName, googleApiKey
     }, [playersQuery.data, historyQuery.data, draftQuery.data, rankingsQuery.data, league, leagueId]);
 
     // Handle errors (after all hooks)
-    const error = playersQuery.error || historyQuery.error || 
+    const error = leagueQuery.error || playersQuery.error || historyQuery.error || 
                   draftQuery.error || rankingsQuery.error;
 
     if (error) {
