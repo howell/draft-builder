@@ -69,16 +69,19 @@ const EspnLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
             <SubmitButton onClick={handleSubmit} />
 
             <div className="mt-5">
-                <CollapsibleComponent label={<h2 className="">Private League?</h2>}>
+                <CollapsibleComponent 
+                    label={<h2 className="">Private League?</h2>}
+                    testId="private-league-toggle"
+                >
                     <div className="flex flex-col items-start">
                         <div>
                             <label>For private leagues, enter your espn_S2 and SWID:</label>
                         </div>
                         <div className="w-full grid grid-cols-2 gap-1 items-center justify-start mt-2">
                             <PrivateLeagueLabel label="espn_S2" />
-                            <PrivateLeagueInput label="espn_S2" value={espnS2} onChange={setEspnS2} />
+                            <PrivateLeagueInput label="espn_S2" value={espnS2} onChange={setEspnS2} testId="espn-s2-input" />
                             <PrivateLeagueLabel label="SWID" />
-                            <PrivateLeagueInput label="SWID" value={swid} onChange={setSwid} />
+                            <PrivateLeagueInput label="SWID" value={swid} onChange={setSwid} testId="swid-input" />
                         </div>
                         <div className='max-w-prose mt-2'>
                             To find your espn_S2 and SWID, log into ESPN Fantasy Football in your browser, open the developer tools, and look for the cookies associated with the ESPN website.
