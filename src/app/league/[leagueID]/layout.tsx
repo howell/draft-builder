@@ -204,7 +204,7 @@ const LeagueLayout = (
                         </CollapsibleComponent>
 
                         {/* Mocks Section */}
-                        <CollapsibleComponent label={<h2 className='mt-2 text-xl'>Mocks</h2>}>
+                        <CollapsibleComponent label={<h2 className='mt-2 text-xl'>Mocks</h2>} testId="sidebar-mocks-toggle">
                             <ul className=''>
                                 <li key="newMock" className={currentMock === NEW_MOCK_NAME ? 'font-bold text-lg' : ''}>
                                     <Link href={`/league/${leagueID}/mocks`}>New</Link>
@@ -212,7 +212,7 @@ const LeagueLayout = (
                                 <ul>
                                     {savedDraftNames.map(([year, drafts]) => (
                                         <li key={year}>
-                                            <CollapsibleComponent label={year.toString()} >
+                                            <CollapsibleComponent label={year.toString()} testId={`sidebar-mocks-year-${year}-toggle`}>
                                                 <ul>
                                                     {drafts.map((draftName) => (
                                                         <li key={draftName} className={draftName === currentMock ? 'font-bold text-lg' : ''}>

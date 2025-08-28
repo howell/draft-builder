@@ -30,18 +30,24 @@ const Sidebar: React.FC<SidebarProps> = ({leagueID, availableLeagues = [], child
     };
 
     return (
-        <div className={`fixed z-50 top-0 left-0 h-fit md:h-full bg-gradient-to-b from-gray-900 to-gray-800 text-white transition-all shadow-xl ${isOpen ? 'pb-10 w-48' : 'w-12'}`}>
+        <nav 
+            className={`fixed z-50 top-0 left-0 h-fit md:h-full bg-gradient-to-b from-gray-900 to-gray-800 text-white transition-all shadow-xl ${isOpen ? 'pb-10 w-48' : 'w-12'}`}
+            role="navigation"
+            aria-label="Main navigation"
+            data-testid="sidebar"
+        >
             <button 
                 onClick={toggleSidebar} 
                 className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-700 transition-colors"
                 aria-label="Toggle sidebar"
+                data-testid="sidebar-toggle"
             >
                 <i className={`text-xl text-gray-300 fas ${isOpen ? 'fa-times' : 'fa-bars'}`} />
             </button>
             {isOpen && <OpenSidebar leagueID={leagueID} availableLeagues={availableLeagues} handleLeagueChange={handleLeagueChange}>
                 {children}
             </OpenSidebar>}
-        </div>
+        </nav>
     );
 };
 
@@ -49,26 +55,30 @@ export default Sidebar;
 
 const OpenSidebar: React.FC<SidebarProps & { handleLeagueChange: (league: PlatformLeague) => any}> = ({ leagueID, availableLeagues = [], children, handleLeagueChange }) => {
     return (
-        <div className="pt-12 px-3">
-            <Link href='/' className="flex items-center justify-start w-full py-2 px-3 rounded-md hover:bg-gray-700 transition-colors mb-4">
+        <aside className="pt-12 px-3" data-testid="sidebar-content">
+            <Link 
+                href='/' 
+                className="flex items-center justify-start w-full py-2 px-3 rounded-md hover:bg-gray-700 transition-colors mb-4"
+                data-testid="sidebar-home-link"
+            >
                 <i className="fas fa-home text-lg" />
                 <span className="ml-2">Home</span>
             </Link>
             {availableLeagues.length > 0 && (
                 <div>
-                    <div className="mb-4">
+                    <div className="mb-4" data-testid="sidebar-leagues-section">
                         <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">Leagues</p>
                         <DropdownMenu
                             options={availableLeagues.map((lg) => ({ name: <LeagueOption league={lg} />, value: lg }))}
                             selectedOption={availableLeagues.find(lg => lg.id === leagueID)}
                             onSelect={(name, value) => handleLeagueChange(value)} />
                     </div>
-                    <div className="border-t border-gray-700 pt-4">
+                    <div className="border-t border-gray-700 pt-4" data-testid="sidebar-navigation-content">
                         {children}
                     </div>
                 </div>
             )}
-        </div>
+        </aside>
     )
 }
 

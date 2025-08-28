@@ -3,6 +3,7 @@ import ApiClient from '@/app/api/ApiClient';
 import { useAuth } from '@/lib/auth/context';
 import type { PlatformLeague } from '@/platforms/common';
 import type { SaveLeagueResponse } from '@/app/api/save-league/interface';
+import { cacheKeys } from './cache-keys';
 
 interface SaveLeagueParams {
   league: PlatformLeague;
@@ -60,7 +61,7 @@ export function useSaveLeagueMutation(
       // Invalidate leagues query cache to refetch updated data
       console.log('[useSaveLeagueMutation] Invalidating leagues query cache');
       queryClient.invalidateQueries({
-        queryKey: ['leagues', user?.id ?? 'anonymous']
+        queryKey: cacheKeys.leagues(user?.id)
       });
       
       // Call the original onSuccess if provided

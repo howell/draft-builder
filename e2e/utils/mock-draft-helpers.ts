@@ -1,5 +1,8 @@
 import { Page, Locator } from '@playwright/test';
 import { expect } from '../fixtures';
+import { TEST_TIMEOUTS } from './test-constants';
+import { CURRENT_SEASON } from '@/constants';
+import { waitForNetworkIdle } from './test-helpers';
 
 /**
  * Robust testing utilities for Mock Draft functionality.
@@ -7,6 +10,13 @@ import { expect } from '../fixtures';
  */
 export class MockDraftHelpers {
   constructor(private page: Page) {}
+
+  /**
+   * Get the Playwright page instance for direct access in tests
+   */
+  get pageInstance(): Page {
+    return this.page;
+  }
 
   // =============================================================================
   // PLAYER SELECTION
@@ -157,7 +167,7 @@ export class MockDraftHelpers {
     const nameInput = this.getRosterNameInput();
     
     // Wait for input to be ready
-    await expect(nameInput).toBeEditable({ timeout: 5000 });
+    await expect(nameInput).toBeEditable({ timeout: TEST_TIMEOUTS.ELEMENT_ENABLED });
     
     // Clear existing value and type new name
     await nameInput.clear();
@@ -193,8 +203,8 @@ export class MockDraftHelpers {
     const saveButton = this.getSaveRosterButton();
     
     // Ensure button is visible and enabled before clicking
-    await expect(saveButton).toBeVisible({ timeout: 5000 });
-    await expect(saveButton).toBeEnabled({ timeout: 5000 });
+    await expect(saveButton).toBeVisible({ timeout: TEST_TIMEOUTS.ELEMENT_ENABLED });
+    await expect(saveButton).toBeEnabled({ timeout: TEST_TIMEOUTS.ELEMENT_ENABLED });
     
     console.log(`[MockDraftHelpers] About to click save button`);
     
@@ -262,8 +272,19 @@ export class MockDraftHelpers {
     }
     
     // Wait for save confirmation - button text changes to "Saved ✓"
-    await expect(saveButton).toHaveText(/Saved.*✓|✓.*Saved/i, { timeout: 3000 });
+    await expect(saveButton).toHaveText(/Saved.*✓|✓.*Saved/i, { timeout: TEST_TIMEOUTS.BUTTON_CLICK });
     console.log(`[MockDraftHelpers] Roster saved successfully with name: "${name}"`);
+  }
+
+  /**
+   * Wait for roster inputs to be populated with data (indicates draft state has loaded)
+   */
+  async waitForRosterInputsReady(): Promise<void> {
+    await this.page.waitForFunction(() => {
+      // Check if roster inputs have been populated (non-empty values indicate loaded state)
+      const inputs = document.querySelectorAll('[data-testid^="roster-player-input-"]');
+      return inputs.length > 0 && Array.from(inputs).some(input => (input as HTMLInputElement).value.trim() !== '');
+    }, { timeout: TEST_TIMEOUTS.API_RESPONSE });
   }
 
   /**
@@ -471,5 +492,210 @@ export class MockDraftHelpers {
       path: `debug-${name}-${timestamp}.png`, 
       fullPage: true 
     });
+  }
+
+  // =============================================================================
+  // DRAFT LOADING AND NAVIGATION
+  // =============================================================================
+
+  /**
+   * Navigate away from mock draft interface to test persistence
+   */
+  async navigateAwayFromDraft(): Promise<void> {
+    // Navigate to home page to test draft persistence
+    await this.page.goto('/');
+    await waitForNetworkIdle(this.page);
+  }
+
+  /**
+   * Load a saved draft by name from the sidebar
+   */
+  async loadSavedDraft(leagueId: string, draftName: string): Promise<void> {
+    // Navigate to the mock drafts page first if not already there
+    const currentUrl = this.page.url();
+    if (!currentUrl.includes('/mocks')) {
+      await this.page.goto(`/league/${leagueId}/mocks`);
+      await waitForNetworkIdle(this.page);
+    }
+
+    // Wait for sidebar to be visible using the new test ID
+    const sidebar = this.page.getByTestId('sidebar');
+    await expect(sidebar).toBeVisible();
+
+    // Wait for the navigation content area to be visible
+    const navigationContent = this.page.getByTestId('sidebar-navigation-content');
+    await expect(navigationContent).toBeVisible();
+
+    // Ensure the main Mocks section is expanded
+    const mocksToggle = this.page.getByTestId('sidebar-mocks-toggle');
+    const mocksBody = this.page.getByTestId('sidebar-mocks-toggle-body');
+    
+    await expect(mocksToggle).toBeVisible({ timeout: TEST_TIMEOUTS.ELEMENT_VISIBLE });
+    
+    const isMocksBodyVisible = await mocksBody.isVisible().catch(() => false);
+    
+    if (!isMocksBodyVisible) {
+      console.log(`[loadSavedDraft] Main Mocks section is collapsed, expanding it`);
+      await mocksToggle.click();
+      await expect(mocksBody).toBeVisible({ timeout: TEST_TIMEOUTS.BUTTON_CLICK });
+      console.log(`[loadSavedDraft] Main Mocks section expanded successfully`);
+    } else {
+      console.log(`[loadSavedDraft] Main Mocks section is already expanded`);
+    }
+    
+    // Wait for sidebar data to load
+    await waitForNetworkIdle(this.page, TEST_TIMEOUTS.API_RESPONSE);
+
+    // Now expand year sections - look for year toggle buttons with test IDs
+    console.log(`[loadSavedDraft] Looking for year section toggle for current season: ${CURRENT_SEASON}`);
+    
+    // Expand the current season year section
+    const yearToggleId = `sidebar-mocks-year-${CURRENT_SEASON}-toggle`;
+    const yearToggle = this.page.getByTestId(yearToggleId);
+    const yearBodyId = `sidebar-mocks-year-${CURRENT_SEASON}-toggle-body`;
+    const yearBody = this.page.getByTestId(yearBodyId);
+    
+    if (await yearToggle.count() > 0) {
+      // Check if the menu body is already visible
+      const isBodyVisible = await yearBody.isVisible().catch(() => false);
+      
+      if (!isBodyVisible) {
+        console.log(`[loadSavedDraft] Year ${CURRENT_SEASON} menu is collapsed, expanding it`);
+        try {
+          await yearToggle.click();
+          // Wait for the body to become visible
+          await expect(yearBody).toBeVisible({ timeout: TEST_TIMEOUTS.BUTTON_CLICK });
+          console.log(`[loadSavedDraft] Year ${CURRENT_SEASON} menu expanded successfully`);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.log(`[loadSavedDraft] Could not expand year ${CURRENT_SEASON} menu: ${errorMessage}`);
+        }
+      } else {
+        console.log(`[loadSavedDraft] Year ${CURRENT_SEASON} menu is already expanded`);
+      }
+    } else {
+      console.log(`[loadSavedDraft] No toggle found for year: ${CURRENT_SEASON}`);
+    }
+
+    // Wait for the specific draft link to appear
+    console.log(`[loadSavedDraft] Looking for specific draft: "${draftName}"`);
+    
+    const draftLink = this.page.locator(`a[href*="mocks/${encodeURIComponent(draftName)}"]`);
+    
+    // Wait with longer timeout and more debugging
+    try {
+      await expect(draftLink).toBeVisible({ timeout: TEST_TIMEOUTS.TABLE_RENDER });
+      console.log(`[loadSavedDraft] Found draft link for: "${draftName}"`);
+    } catch (error) {
+      // Debug: List all available links
+      console.log(`[loadSavedDraft] Could not find draft "${draftName}". Available mock links:`);
+      const allLinks = await this.page.locator('a[href*="/mocks/"]').all();
+      for (const link of allLinks) {
+        const href = await link.getAttribute('href');
+        const text = await link.textContent();
+        console.log(`[loadSavedDraft] Available link: "${text}" -> ${href}`);
+      }
+      throw error;
+    }
+    
+    const href = await draftLink.first().getAttribute('href');
+    console.log(`[loadSavedDraft] draftLink: ${href}`);
+    console.log(`[loadSavedDraft] Found draft link, clicking: "${draftName}"`);
+    
+    // Click the draft link to load it
+    await draftLink.click();
+    
+    // Wait for the URL to change (navigation to start)
+    const expectedUrl = href ? new URL(href, this.page.url()).href : '';
+    console.log(`[loadSavedDraft] Waiting for navigation to: ${expectedUrl}`);
+    
+    try {
+      await this.page.waitForURL(expectedUrl, { timeout: TEST_TIMEOUTS.NAVIGATION });
+      console.log(`[loadSavedDraft] Navigation successful to: ${this.page.url()}`);
+    } catch (error) {
+      console.log(`[loadSavedDraft] Navigation timeout. Current URL: ${this.page.url()}, Expected: ${expectedUrl}`);
+      // Try direct navigation as fallback
+      console.log(`[loadSavedDraft] Attempting direct navigation to: ${expectedUrl}`);
+      await this.page.goto(expectedUrl);
+    }
+    
+    // Wait for the draft to load completely
+    await waitForNetworkIdle(this.page);
+    console.log(`[loadSavedDraft] Final URL after load: ${this.page.url()}`);
+    await this.expectMockDraftReady();
+    
+    // Wait for the draft state to be restored - look for player inputs to be populated
+    console.log(`[loadSavedDraft] Waiting for draft state to be restored`);
+    await waitForNetworkIdle(this.page, TEST_TIMEOUTS.API_RESPONSE);
+    await this.waitForRosterInputsReady();
+    
+    console.log(`[loadSavedDraft] Successfully loaded draft: "${draftName}"`);
+  }
+
+  /**
+   * Get the current roster state for comparison
+   */
+  async getCurrentRosterState(): Promise<{
+    players: Array<{ position: string; index: number; name: string }>;
+    budgetRemaining: number;
+  }> {
+    console.log(`[getCurrentRosterState] Starting roster state check`);
+    const players: Array<{ position: string; index: number; name: string }> = [];
+    const rosterTable = this.getRosterTable();
+    
+    // Define positions to check
+    const positions = ['QB', 'RB', 'WR', 'TE', 'FLEX'];
+    
+    for (const position of positions) {
+      for (let index = 0; index < 2; index++) { // Check up to 2 slots per position
+        try {
+          const input = rosterTable.locator(`[data-testid="roster-player-input-${position}-${index}"]`);
+          if (await input.count() > 0) {
+            const value = await input.inputValue();
+            console.log(`[getCurrentRosterState] ${position}-${index}: "${value}"`);
+            if (value.trim()) {
+              players.push({ position, index, name: value.trim() });
+              console.log(`[getCurrentRosterState] Added player: ${position}-${index} = ${value.trim()}`);
+            }
+          } else {
+            console.log(`[getCurrentRosterState] No input found for ${position}-${index}`);
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.log(`[getCurrentRosterState] Error checking ${position}-${index}: ${errorMessage}`);
+        }
+      }
+    }
+    
+    const budgetRemaining = await this.getBudgetRemaining();
+    console.log(`[getCurrentRosterState] Found ${players.length} players, budget: ${budgetRemaining}`);
+    
+    return { players, budgetRemaining };
+  }
+
+  /**
+   * Verify that the current roster state matches the expected state
+   */
+  async expectRosterStateMatches(expectedState: {
+    players: Array<{ position: string; index: number; name: string }>;
+    budgetRemaining: number;
+  }): Promise<void> {
+    const currentState = await this.getCurrentRosterState();
+    
+    // Check player count
+    expect(currentState.players.length).toBe(expectedState.players.length);
+    
+    // Check each player
+    for (const expectedPlayer of expectedState.players) {
+      const matchingPlayer = currentState.players.find(
+        p => p.position === expectedPlayer.position && 
+             p.index === expectedPlayer.index &&
+             p.name === expectedPlayer.name
+      );
+      expect(matchingPlayer).toBeTruthy();
+    }
+    
+    // Check budget (allow small differences due to rounding)
+    expect(Math.abs(currentState.budgetRemaining - expectedState.budgetRemaining)).toBeLessThanOrEqual(1);
   }
 }

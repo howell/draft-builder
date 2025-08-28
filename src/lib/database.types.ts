@@ -41,6 +41,7 @@ export type Database = {
           draft_session_id: string | null
           id: string
           player_id: string
+          roster_position: string
           updated_at: string | null
         }
         Insert: {
@@ -49,6 +50,7 @@ export type Database = {
           draft_session_id?: string | null
           id?: string
           player_id: string
+          roster_position: string
           updated_at?: string | null
         }
         Update: {
@@ -57,6 +59,7 @@ export type Database = {
           draft_session_id?: string | null
           id?: string
           player_id?: string
+          roster_position?: string
           updated_at?: string | null
         }
         Relationships: [

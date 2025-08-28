@@ -11,8 +11,9 @@ import { HomePage } from '../page-objects/home-page';
 import { MockDraftPage } from '../page-objects/mock-draft-page';
 import { MockDraftHelpers } from './mock-draft-helpers';
 import { DatabaseHelpers } from './database-helpers';
-import { setupApiMocksWithPreset } from './reusable-api-setup';
+import { setupApiMocksWithPreset, setupMinimalApiMocks } from './reusable-api-setup';
 import { getTestLeagueId, TEST_TIMEOUTS } from './test-constants';
+import { waitForNetworkIdle, waitForDOMContentLoaded } from './test-helpers';
 
 export interface TestUser {
   user: any;
@@ -108,8 +109,8 @@ export class TestJourneys {
       mockPreset = 'mockDraftReady'
     } = options;
 
-    // Setup API mocks for the selected platform
-    await setupApiMocksWithPreset(page, mockPreset, { platform });
+    // Setup minimal mocks - only Google Sheets API, let FixtureBasedPlatformApi handle everything else
+    await setupMinimalApiMocks(page);
 
     // Authenticate user
     const authSession = await this.authenticateUser(page, userOverrides);
@@ -122,8 +123,8 @@ export class TestJourneys {
     if (authSession.user?.id) {
       await this.dbHelpers.saveConnectedLeague(authSession.user.id, platform, leagueId);
       
-      // Give Supabase a moment to persist the data
-      await page.waitForTimeout(TEST_TIMEOUTS.ELEMENT_VISIBLE);
+      // Wait for network to complete database operations
+      await waitForNetworkIdle(page);
     }
 
     return {
@@ -147,8 +148,9 @@ export class TestJourneys {
       await expect(loadingScreen).not.toBeVisible({ timeout: TEST_TIMEOUTS.ERROR_MESSAGE });
     }
     
-    // Wait a moment to let the page render
-    await page.waitForTimeout(TEST_TIMEOUTS.FAST_NAVIGATION);
+    // Wait for page navigation and rendering to complete
+    await waitForNetworkIdle(page);
+    await waitForDOMContentLoaded(page);
     
     // Check for error messages indicating league not found
     const errorScreen = page.locator('text=/League not found|Something went wrong/i');
@@ -184,14 +186,8 @@ export class TestJourneys {
     // Alternative: wait for either the table or a loading state
     const mockDraftHelpers = new MockDraftHelpers(page);
     
-    // Debug: Check what's actually on the page
-    const pageContent = await page.evaluate(() => document.body.innerText);
-    if (pageContent.includes('Loading') || pageContent.includes('loading')) {
-      console.log('Page appears to be loading, waiting longer...');
-      await page.waitForTimeout(TEST_TIMEOUTS.BUTTON_CLICK);
-    }
-    
-    // Wait for the available players table to appear
+    // Wait for the mock draft interface to be ready
+    // The table visibility check below will wait for actual loading completion
     await expect(mockDraftHelpers.getAvailablePlayersTable()).toBeVisible({ timeout: TEST_TIMEOUTS.ERROR_MESSAGE });
     
     return mockDraftPage;
@@ -219,6 +215,54 @@ export class TestJourneys {
     const mockDraftPage = await this.navigateToMockDrafts(page, session.leagueId);
 
     return { session, mockDraftPage };
+  }
+
+  /**
+   * Setup for anonymous (unauthenticated) user mock draft testing:
+   * Connect League + Navigate to Mock Drafts (no authentication required)
+   * Uses FixtureBasedPlatformApi for deterministic data
+   */
+  async setupAnonymousMockDraftTest(
+    page: Page,
+    platform: 'sleeper' | 'espn' = 'sleeper',
+    options: {
+      leagueId?: string;
+    } = {}
+  ): Promise<{
+    leagueId: string;
+    platform: 'sleeper' | 'espn';
+    mockDraftPage: MockDraftPage;
+    cleanup: () => Promise<void>;
+  }> {
+    const leagueId = options.leagueId || getTestLeagueId(platform);
+
+    // Setup minimal mocks - only Google Sheets API, let FixtureBasedPlatformApi handle everything else
+    await setupMinimalApiMocks(page);
+
+    // Connect league without authentication (anonymous user flow)
+    await this.connectLeague(page, platform, leagueId);
+    
+    // Navigate to mock drafts interface
+    const mockDraftPage = await this.navigateToMockDrafts(page, leagueId);
+
+    return {
+      leagueId,
+      platform,
+      mockDraftPage,
+      cleanup: async () => {
+        // Clear anonymous user data from Dexie database
+        await page.evaluate(async () => {
+          try {
+            // Clear Dexie database (primary storage for anonymous users)
+            if (window.indexedDB) {
+              await indexedDB.deleteDatabase('DraftBuilderDB');
+            }
+          } catch (error) {
+            console.error('[AnonymousCleanup] Error clearing Dexie database:', error);
+          }
+        });
+      }
+    };
   }
 }
 

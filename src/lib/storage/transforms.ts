@@ -146,7 +146,7 @@ export function transformMocksFromDatabase(
     // Transform cost adjustments
     const costAdjustmentMap: Record<string, number> = {};
     for (const adjustment of adjustments) {
-      costAdjustmentMap[adjustment.player_id] = adjustment.adjusted_cost;
+      costAdjustmentMap[adjustment.roster_position] = adjustment.adjusted_cost;
     }
     
     // Transform settings or use defaults
@@ -242,11 +242,16 @@ export function transformDraftToDatabase(
   
   // Transform cost adjustments
   const adjustments: Omit<DatabaseCostAdjustment, 'id' | 'draft_session_id' | 'created_at' | 'updated_at'>[] = [];
-  for (const [playerId, adjustedCost] of Object.entries(draft.costAdjustments)) {
-    adjustments.push({
-      player_id: playerId,
-      adjusted_cost: adjustedCost
-    });
+  for (const [rosterPosition, adjustedCost] of Object.entries(draft.costAdjustments)) {
+    // Extract player_id from corresponding roster selection for reference
+    const player = draft.rosterSelections[rosterPosition];
+    if (player) {
+      adjustments.push({
+        roster_position: rosterPosition,
+        player_id: player.id,
+        adjusted_cost: adjustedCost
+      });
+    }
   }
   
   return {

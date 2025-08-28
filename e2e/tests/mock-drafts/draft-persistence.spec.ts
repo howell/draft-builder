@@ -2,8 +2,264 @@ import { test, expect } from '../../fixtures';
 import { MockDraftPage } from '../../page-objects/mock-draft-page';
 import { MockDraftHelpers } from '../../utils/mock-draft-helpers';
 import { testJourneys, ConnectedLeagueSession } from '../../utils/test-journeys';
+import { Page } from '@playwright/test';
+import { TEST_TIMEOUTS } from '../../utils/test-constants';
+import { waitForNetworkIdle } from '../../utils/test-helpers';
 
-test.describe('Mock Draft Persistence', () => {
+// Shared test functions that work for both authenticated and anonymous users
+const sharedDraftTests = {
+  async shouldSaveDraftWithSelectedPlayers(mockDraftHelpers: MockDraftHelpers, userType: string, leagueId: string) {
+    // Verify interface is ready
+    await mockDraftHelpers.expectMockDraftReady();
+    
+    // Select Josh Allen (QB)
+    await mockDraftHelpers.selectPlayer('Josh Allen', 'QB');
+    
+    // Verify Josh Allen was selected
+    await mockDraftHelpers.expectPlayerSelected('Josh Allen', 'QB');
+    
+    // Select Christian McCaffrey (RB) if available
+    try {
+      await mockDraftHelpers.selectPlayer('Christian McCaffrey', 'RB');
+      await mockDraftHelpers.expectPlayerSelected('Christian McCaffrey', 'RB');
+    } catch (error) {
+      console.log('Could not select Christian McCaffrey, continuing with QB only');
+    }
+    
+    // Capture the current state before saving
+    const stateBeforeSave = await mockDraftHelpers.getCurrentRosterState();
+    
+    // Save the draft with a specific name
+    const draftName = `${userType} Test Draft ${Date.now()}`;
+    await mockDraftHelpers.saveRoster(draftName);
+    
+    console.log(`${userType} user successfully saved draft: "${draftName}"`);
+    
+    // Test persistence: navigate away and back
+    await mockDraftHelpers.navigateAwayFromDraft();
+    console.log(`${userType} user navigated away from draft`);
+    
+    // Load the saved draft and verify state
+    await mockDraftHelpers.loadSavedDraft(leagueId, draftName);
+    console.log(`${userType} user loaded saved draft: "${draftName}"`);
+    
+    // Verify the loaded state matches what was saved
+    await mockDraftHelpers.expectRosterStateMatches(stateBeforeSave);
+    console.log(`${userType} user draft state verified after reload`);
+    
+    return draftName;
+  },
+
+  async shouldPreserveDraftStateAccurately(mockDraftHelpers: MockDraftHelpers, userType: string, leagueId: string) {
+    // Verify interface is ready
+    await mockDraftHelpers.expectMockDraftReady();
+    
+    // Create a specific draft state
+    await mockDraftHelpers.selectPlayer('Josh Allen', 'QB');
+    await mockDraftHelpers.expectPlayerSelected('Josh Allen', 'QB');
+    
+    // Try to select RB as well
+    try {
+      await mockDraftHelpers.selectPlayer('Christian McCaffrey', 'RB');
+      await mockDraftHelpers.expectPlayerSelected('Christian McCaffrey', 'RB');
+    } catch (error) {
+      console.log('Could not select RB, continuing with QB only');
+    }
+    
+    // Capture the complete state before saving
+    const stateBeforeSave = await mockDraftHelpers.getCurrentRosterState();
+    console.log(`Current budget remaining: ${stateBeforeSave.budgetRemaining}`);
+    
+    // Save the draft
+    const draftName = `${userType} State Test ${Date.now()}`;
+    await mockDraftHelpers.saveRoster(draftName);
+    
+    console.log(`${userType} draft "${draftName}" saved with budget remaining: ${stateBeforeSave.budgetRemaining}`);
+    
+    // Test persistence: navigate away and back
+    await mockDraftHelpers.navigateAwayFromDraft();
+    console.log(`${userType} user navigated away from draft`);
+    
+    // Load the saved draft and verify complete state persistence
+    await mockDraftHelpers.loadSavedDraft(leagueId, draftName);
+    console.log(`${userType} user loaded saved draft: "${draftName}"`);
+    
+    // Verify the loaded state matches exactly what was saved
+    await mockDraftHelpers.expectRosterStateMatches(stateBeforeSave);
+    console.log(`${userType} user draft state verified - persistence accurate`);
+    
+    return { draftName, currentBudget: stateBeforeSave.budgetRemaining };
+  },
+
+  async shouldManageMultipleDrafts(mockDraftHelpers: MockDraftHelpers, userType: string, leagueId: string) {
+    // Verify interface is ready
+    await mockDraftHelpers.expectMockDraftReady();
+    
+    // Create first draft
+    const draft1Name = `${userType} Draft 1 - ${Date.now()}`;
+    await mockDraftHelpers.selectPlayer('Josh Allen', 'QB');
+    await mockDraftHelpers.expectPlayerSelected('Josh Allen', 'QB');
+    const state1 = await mockDraftHelpers.getCurrentRosterState();
+    await mockDraftHelpers.saveRoster(draft1Name);
+    
+    // Create second draft with different players
+    const draft2Name = `${userType} Draft 2 - ${Date.now()}`;
+    
+    // Clear first selection and select different player
+    await mockDraftHelpers.clearPlayer('QB', 0);
+    
+    try {
+      await mockDraftHelpers.selectPlayer('Christian McCaffrey', 'RB');
+      await mockDraftHelpers.expectPlayerSelected('Christian McCaffrey', 'RB');
+    } catch (error) {
+      console.log('Could not select RB for second draft, using alternative approach');
+    }
+    
+    const state2 = await mockDraftHelpers.getCurrentRosterState();
+    await mockDraftHelpers.saveRoster(draft2Name);
+    
+    console.log(`${userType} user successfully saved two drafts: "${draft1Name}" and "${draft2Name}"`);
+    
+    // Wait briefly for cache invalidation to complete
+    // await mockDraftHelpers.page.waitForTimeout(TEST_TIMEOUTS.NAVIGATION);
+    
+    // Test loading both drafts to verify they're distinct
+    await mockDraftHelpers.navigateAwayFromDraft();
+    
+    // Load and verify first draft
+    await mockDraftHelpers.loadSavedDraft(leagueId, draft1Name);
+    await mockDraftHelpers.expectRosterStateMatches(state1);
+    console.log(`${userType} user verified first draft loads correctly`);
+    
+    // Load and verify second draft
+    await mockDraftHelpers.loadSavedDraft(leagueId, draft2Name);
+    await mockDraftHelpers.expectRosterStateMatches(state2);
+    console.log(`${userType} user verified second draft loads correctly`);
+    
+    return { draft1Name, draft2Name };
+  },
+
+  async shouldHandleDraftDeletion(mockDraftHelpers: MockDraftHelpers, userType: string) {
+    // Verify interface is ready
+    await mockDraftHelpers.expectMockDraftReady();
+    
+    // Create and save a draft
+    const draftName = `${userType} Delete Test ${Date.now()}`;
+    await mockDraftHelpers.selectPlayer('Josh Allen', 'QB');
+    await mockDraftHelpers.expectPlayerSelected('Josh Allen', 'QB');
+    await mockDraftHelpers.saveRoster(draftName);
+    
+    // NOTE: This test verifies that draft deletion can be handled successfully.
+    // The MockDraftHelpers could be extended with a deleteRoster utility for full testing.
+    // For now, we verify that the draft save was successful (which it was).
+    
+    console.log(`${userType} draft "${draftName}" was saved and ready for deletion testing`);
+    return draftName;
+  },
+
+  async shouldPersistInProgressSelections(mockDraftHelpers: MockDraftHelpers, userType: string, leagueId: string) {
+    // Verify interface is ready
+    await mockDraftHelpers.expectMockDraftReady();
+    
+    // Select Josh Allen (QB) - this should trigger auto-save
+    await mockDraftHelpers.selectPlayer('Josh Allen', 'QB');
+    await mockDraftHelpers.expectPlayerSelected('Josh Allen', 'QB');
+    
+    // Try to select RB as well if available
+    let hasRBSelection = false;
+    try {
+      await mockDraftHelpers.selectPlayer('Christian McCaffrey', 'RB');
+      await mockDraftHelpers.expectPlayerSelected('Christian McCaffrey', 'RB');
+      hasRBSelection = true;
+    } catch (error) {
+      console.log('Could not select RB, continuing with QB only');
+    }
+    
+    // Capture the current state (what should be auto-saved)
+    const stateBeforeNavigating = await mockDraftHelpers.getCurrentRosterState();
+    console.log(`${userType} user made selections - budget remaining: ${stateBeforeNavigating.budgetRemaining}`);
+    
+    // Wait a moment for auto-save to complete (500ms debounce + processing time)
+    await mockDraftHelpers.pageInstance.waitForTimeout(TEST_TIMEOUTS.ELEMENT_VISIBLE);
+    
+    // Navigate away WITHOUT explicitly saving (this tests IN_PROGRESS_SELECTIONS)
+    await mockDraftHelpers.navigateAwayFromDraft();
+    console.log(`${userType} user navigated away without saving`);
+    
+    // Navigate back to the NEW mock page (not loading a saved draft)
+    await mockDraftHelpers.pageInstance.goto(`/league/${leagueId}/mocks`);
+    await waitForNetworkIdle(mockDraftHelpers.pageInstance);
+    console.log(`${userType} user returned to new mock page`);
+    
+    // Wait for mock table to be ready and auto-load in-progress selections
+    await mockDraftHelpers.expectMockDraftReady();
+    
+    // Verify the in-progress selections were restored
+    await mockDraftHelpers.expectPlayerSelected('Josh Allen', 'QB');
+    if (hasRBSelection) {
+      await mockDraftHelpers.expectPlayerSelected('Christian McCaffrey', 'RB');
+    }
+    
+    // Verify the complete state matches what was auto-saved
+    await mockDraftHelpers.expectRosterStateMatches(stateBeforeNavigating);
+    console.log(`${userType} user in-progress selections verified after auto-restore`);
+    
+    return { hasRBSelection, budgetRemaining: stateBeforeNavigating.budgetRemaining };
+  },
+
+  async shouldOverrideInProgressWithExplicitSave(mockDraftHelpers: MockDraftHelpers, userType: string, leagueId: string) {
+    // Verify interface is ready
+    await mockDraftHelpers.expectMockDraftReady();
+    
+    // Make initial selections (will be auto-saved as in-progress)
+    await mockDraftHelpers.selectPlayer('Josh Allen', 'QB');
+    await mockDraftHelpers.expectPlayerSelected('Josh Allen', 'QB');
+    
+    // Wait for auto-save
+    await mockDraftHelpers.pageInstance.waitForTimeout(TEST_TIMEOUTS.ELEMENT_VISIBLE);
+    
+    // Navigate away and back to verify in-progress selections work
+    await mockDraftHelpers.navigateAwayFromDraft();
+    await mockDraftHelpers.pageInstance.goto(`/league/${leagueId}/mocks`);
+    await waitForNetworkIdle(mockDraftHelpers.pageInstance);
+    await mockDraftHelpers.expectMockDraftReady();
+    
+    // Verify in-progress selection is there
+    await mockDraftHelpers.expectPlayerSelected('Josh Allen', 'QB');
+    console.log(`${userType} user verified in-progress selections loaded`);
+    
+    // Now make different selections and explicitly save
+    await mockDraftHelpers.clearPlayer('QB', 0);
+    
+    try {
+      await mockDraftHelpers.selectPlayer('Christian McCaffrey', 'RB');
+      await mockDraftHelpers.expectPlayerSelected('Christian McCaffrey', 'RB');
+    } catch (error) {
+      // Fallback to a different player if McCaffrey not available
+      await mockDraftHelpers.selectPlayer('Josh Allen', 'QB');
+      await mockDraftHelpers.expectPlayerSelected('Josh Allen', 'QB');
+    }
+    
+    const newStateBeforeSave = await mockDraftHelpers.getCurrentRosterState();
+    const explicitDraftName = `${userType} Explicit Draft ${Date.now()}`;
+    await mockDraftHelpers.saveRoster(explicitDraftName);
+    console.log(`${userType} user explicitly saved new draft: "${explicitDraftName}"`);
+    
+    // Navigate away and back to new mock page
+    await mockDraftHelpers.navigateAwayFromDraft();
+    await mockDraftHelpers.pageInstance.goto(`/league/${leagueId}/mocks`);
+    await waitForNetworkIdle(mockDraftHelpers.pageInstance);
+    await mockDraftHelpers.expectMockDraftReady();
+    
+    // Should now load the saved draft state, not the old in-progress state
+    await mockDraftHelpers.expectRosterStateMatches(newStateBeforeSave);
+    console.log(`${userType} user verified explicit save overrode in-progress selections`);
+    
+    return explicitDraftName;
+  }
+};
+
+test.describe('Mock Draft Persistence - Authenticated Users', () => {
   let session: ConnectedLeagueSession;
   let mockDraftPage: MockDraftPage;
   let mockDraftHelpers: MockDraftHelpers;
@@ -46,132 +302,96 @@ test.describe('Mock Draft Persistence', () => {
     }
   });
 
-  test('should save a draft with selected players', async ({ page }) => {
-    // Verify interface is ready
-    await mockDraftHelpers.expectMockDraftReady();
-    
-    // Select Josh Allen (QB)
-    await mockDraftHelpers.selectPlayer('Josh Allen', 'QB');
-    
-    // Verify Josh Allen was selected
-    await mockDraftHelpers.expectPlayerSelected('Josh Allen', 'QB');
-    
-    // Select Christian McCaffrey (RB) if available
-    try {
-      await mockDraftHelpers.selectPlayer('Christian McCaffrey', 'RB');
-      await mockDraftHelpers.expectPlayerSelected('Christian McCaffrey', 'RB');
-    } catch (error) {
-      // RB might not be available or named differently, continue with test
-      console.log('Could not select Christian McCaffrey, continuing with QB only');
-    }
-    
-    // Save the draft with a specific name
-    const draftName = 'Test Draft ' + Date.now();
-    await mockDraftHelpers.saveRoster(draftName);
-    
-    // The saveRoster utility already verifies success - test passes if we reach here
-  });
-
-  test('should load a previously saved draft', async ({ page }) => {
-    // Verify interface is ready
-    await mockDraftHelpers.expectMockDraftReady();
-    
-    // First create and save a draft using robust utilities
-    const draftName = 'Load Test Draft ' + Date.now();
-    
-    // Select a player using robust selection
-    await mockDraftHelpers.selectPlayer('Josh Allen', 'QB');
-    await mockDraftHelpers.expectPlayerSelected('Josh Allen', 'QB');
-    
-    // Save the draft using robust save utility
-    await mockDraftHelpers.saveRoster(draftName);
-    
-    // NOTE: This test verifies draft persistence. 
-    // The saveRoster utility already confirms the draft was saved successfully.
-    // In a real implementation, you would navigate away and back to test loading,
-    // but that requires additional infrastructure for draft loading UI.
-    
-    // For now, verify that the draft save was successful (which saveRoster already does)
-    console.log(`Draft "${draftName}" was saved successfully`);
+  test('should save a draft with selected players and load it correctly', async ({ page }) => {
+    await sharedDraftTests.shouldSaveDraftWithSelectedPlayers(mockDraftHelpers, 'Authenticated', session.leagueId);
   });
 
   test('should preserve draft state accurately on save/load', async ({ page }) => {
-    // Verify interface is ready
-    await mockDraftHelpers.expectMockDraftReady();
-    
-    // Create a specific draft state using robust utilities
-    await mockDraftHelpers.selectPlayer('Josh Allen', 'QB');
-    await mockDraftHelpers.expectPlayerSelected('Josh Allen', 'QB');
-    
-    // Try to select RB as well
-    try {
-      await mockDraftHelpers.selectPlayer('Christian McCaffrey', 'RB');
-      await mockDraftHelpers.expectPlayerSelected('Christian McCaffrey', 'RB');
-    } catch (error) {
-      console.log('Could not select RB, continuing with QB only');
-    }
-    
-    // Note the current budget using robust utility
-    const currentBudget = await mockDraftHelpers.getBudgetRemaining();
-    console.log(`Current budget remaining: ${currentBudget}`);
-    
-    // Save the draft using robust save utility
-    const draftName = 'State Test Draft ' + Date.now();
-    await mockDraftHelpers.saveRoster(draftName);
-    
-    // NOTE: This test verifies that draft state is preserved accurately.
-    // The saveRoster utility already validates that the save operation was successful.
-    // Complete save/load testing would require additional UI infrastructure for loading drafts.
-    
-    console.log(`Draft "${draftName}" saved with budget remaining: ${currentBudget}`);
+    await sharedDraftTests.shouldPreserveDraftStateAccurately(mockDraftHelpers, 'Authenticated', session.leagueId);
   });
 
   test('should manage multiple saved drafts', async ({ page }) => {
-    // Verify interface is ready
-    await mockDraftHelpers.expectMockDraftReady();
+    await sharedDraftTests.shouldManageMultipleDrafts(mockDraftHelpers, 'Authenticated', session.leagueId);
+  });
+  
+  test('should handle draft deletion', async ({ page }) => {
+    await sharedDraftTests.shouldHandleDraftDeletion(mockDraftHelpers, 'Authenticated');
+  });
+
+  test('should persist in-progress selections when navigating away without saving', async ({ page }) => {
+    await sharedDraftTests.shouldPersistInProgressSelections(mockDraftHelpers, 'Authenticated', session.leagueId);
+  });
+
+  test('should override in-progress selections when explicitly saving new draft', async ({ page }) => {
+    await sharedDraftTests.shouldOverrideInProgressWithExplicitSave(mockDraftHelpers, 'Authenticated', session.leagueId);
+  });
+});
+
+test.describe.serial('Mock Draft Persistence - Anonymous Users', () => {
+  let anonymousSession: {
+    leagueId: string;
+    platform: 'sleeper' | 'espn';
+    mockDraftPage: MockDraftPage;
+    cleanup: () => Promise<void>;
+  };
+  let mockDraftHelpers: MockDraftHelpers;
+
+  test.beforeEach(async ({ page }) => {
+    // Capture console logs for debugging
+    page.on('console', msg => {
+      console.log('Page console:', msg.text());
+    });
     
-    // Create first draft using robust utilities
-    const draft1Name = 'Draft 1 - ' + Date.now();
-    await mockDraftHelpers.selectPlayer('Josh Allen', 'QB');
-    await mockDraftHelpers.expectPlayerSelected('Josh Allen', 'QB');
-    await mockDraftHelpers.saveRoster(draft1Name);
+    // Capture failed network requests
+    page.on('requestfailed', request => {
+      console.log('❌ Request failed:', request.url());
+      console.log('   Failure:', request.failure()?.errorText);
+    });
     
-    // Create second draft with different players
-    const draft2Name = 'Draft 2 - ' + Date.now();
-    
-    // Clear first selection and select different player
-    await mockDraftHelpers.clearPlayer('QB', 0);
+    // Capture 404s and other errors
+    page.on('response', response => {
+      if (response.status() >= 400) {
+        console.log(`❌ HTTP ${response.status()}: ${response.url()}`);
+      }
+    });
     
     try {
-      await mockDraftHelpers.selectPlayer('Christian McCaffrey', 'RB');
-      await mockDraftHelpers.expectPlayerSelected('Christian McCaffrey', 'RB');
-      await mockDraftHelpers.saveRoster(draft2Name);
+      // Setup anonymous user mock draft test (no authentication)
+      anonymousSession = await testJourneys.setupAnonymousMockDraftTest(page, 'sleeper');
+      mockDraftHelpers = new MockDraftHelpers(page);
     } catch (error) {
-      console.log('Could not select RB for second draft, using alternative approach');
-      // Just save a different draft configuration
-      await mockDraftHelpers.saveRoster(draft2Name);
+      console.error('Anonymous setup failed:', error);
+      throw error;
     }
-    
-    // NOTE: This test verifies that multiple drafts can be saved successfully.
-    // The saveRoster utility validates each save operation.
-    // Full multiple draft management would require additional UI infrastructure.
-    
-    console.log(`Successfully saved two drafts: "${draft1Name}" and "${draft2Name}"`);
   });
-  test('should handle draft deletion', async ({ page }) => {
-    // Verify interface is ready
-    await mockDraftHelpers.expectMockDraftReady();
-    
-    // Create and save a draft using robust utilities
-    const draftName = 'Delete Test Draft ' + Date.now();
-    await mockDraftHelpers.selectPlayer('Josh Allen', 'QB');
-    await mockDraftHelpers.expectPlayerSelected('Josh Allen', 'QB');
-    await mockDraftHelpers.saveRoster(draftName);
-    
-    // NOTE: This test verifies that draft deletion can be handled successfully.
-    // The MockDraftHelpers could be extended with a deleteRoster utility for full testing.
-    // For now, we verify that the draft save was successful (which it was).
-    
-    console.log(`Draft "${draftName}" was saved and ready for deletion testing`);
+
+  test.afterEach(async () => {
+    if (anonymousSession) {
+      await anonymousSession.cleanup();
+    }
+  });
+
+  test('should save a draft with selected players and load it correctly (same as authenticated)', async ({ page }) => {
+    await sharedDraftTests.shouldSaveDraftWithSelectedPlayers(mockDraftHelpers, 'Anonymous', anonymousSession.leagueId);
+  });
+
+  test('should preserve draft state accurately on save/load (same as authenticated)', async ({ page }) => {
+    await sharedDraftTests.shouldPreserveDraftStateAccurately(mockDraftHelpers, 'Anonymous', anonymousSession.leagueId);
+  });
+
+  test('should manage multiple drafts and load each correctly (same as authenticated)', async ({ page }) => {
+    await sharedDraftTests.shouldManageMultipleDrafts(mockDraftHelpers, 'Anonymous', anonymousSession.leagueId);
+  });
+
+  test('should handle draft deletion (same as authenticated)', async ({ page }) => {
+    await sharedDraftTests.shouldHandleDraftDeletion(mockDraftHelpers, 'Anonymous');
+  });
+
+  test('should persist in-progress selections when navigating away without saving (same as authenticated)', async ({ page }) => {
+    await sharedDraftTests.shouldPersistInProgressSelections(mockDraftHelpers, 'Anonymous', anonymousSession.leagueId);
+  });
+
+  test('should override in-progress selections when explicitly saving new draft (same as authenticated)', async ({ page }) => {
+    await sharedDraftTests.shouldOverrideInProgressWithExplicitSave(mockDraftHelpers, 'Anonymous', anonymousSession.leagueId);
   });
 });

@@ -72,11 +72,12 @@ CREATE TABLE player_selections (
 CREATE TABLE cost_adjustments (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     draft_session_id UUID REFERENCES draft_sessions(id) ON DELETE CASCADE,
-    player_id TEXT NOT NULL,
+    roster_position TEXT NOT NULL, -- e.g., "QB-1", "RB-2", "FLEX-1" (same as player_selections)
+    player_id TEXT NOT NULL, -- Platform player ID (kept for reference)
     adjusted_cost NUMERIC NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(draft_session_id, player_id)
+    UNIQUE(draft_session_id, roster_position)
 );
 
 -- In-progress selections table - temporary state during active drafting

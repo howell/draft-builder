@@ -245,6 +245,7 @@ describe('Data Transformation Functions', () => {
       const costAdjustments: DatabaseCostAdjustment[] = [{
         id: 'adjustment-1',
         draft_session_id: 'session-1',
+        roster_position: 'QB1', // Should match the player selection roster_position  
         player_id: 'player-123',
         adjusted_cost: 50,
         created_at: '2023-01-01T00:00:00Z',
@@ -276,7 +277,7 @@ describe('Data Transformation Functions', () => {
             }
           },
           costAdjustments: {
-            'player-123': 50
+            'QB1': 50
           },
           estimationSettings: {
             years: ['2022', '2023'],
@@ -471,8 +472,8 @@ describe('Data Transformation Functions', () => {
         }
       },
       costAdjustments: {
-        'player-123': 50,
-        'player-456': 70
+        'QB1': 50,
+        'RB1': 70
       },
       estimationSettings: {
         years: ['2022', '2023'] as any[],
@@ -527,8 +528,14 @@ describe('Data Transformation Functions', () => {
 
       expect(result.adjustments).toHaveLength(2);
       expect(result.adjustments).toContainEqual({
+        roster_position: 'QB1',
         player_id: 'player-123',
         adjusted_cost: 50
+      });
+      expect(result.adjustments).toContainEqual({
+        roster_position: 'RB1',
+        player_id: 'player-456',
+        adjusted_cost: 70
       });
     });
 
@@ -684,7 +691,7 @@ describe('Data Transformation Functions', () => {
           }
         },
         costAdjustments: {
-          'player-123': 40
+          'QB1': 40
         },
         estimationSettings: {
           years: ['2022', '2023'] as any[],

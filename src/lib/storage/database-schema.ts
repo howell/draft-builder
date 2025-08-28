@@ -57,7 +57,7 @@ export const SCHEMA_DEFINITION = {
       ]
     },
     players: {
-      dexieSchema: '++id, draftId, playerId, name, position, selected, overallRank, positionRank, [draftId+selected]',
+      dexieSchema: '++id, draftId, playerId, name, position, selected, overallRank, positionRank, rosterSlotKey, [draftId+selected]',
       keyPath: 'id',
       autoIncrement: true,
       indexes: [
@@ -160,6 +160,7 @@ export interface Player {
   overallRank: number;
   positionRank: number;
   selected: boolean;
+  rosterSlotKey: string; // Serialized RosterSlot key for MockTable mapping
   metadata?: {
     platformSpecific?: any;
     notes?: string;

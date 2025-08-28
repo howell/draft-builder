@@ -368,6 +368,7 @@ export function createMockPlayer(draftId: number, overrides: Partial<Player> = {
     overallRank: 1,
     positionRank: 1,
     selected: false,
+    rosterSlotKey: '{"position":"RB","index":0}',
     ...overrides
   };
 }

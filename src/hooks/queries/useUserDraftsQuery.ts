@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth/context';
 import { LeagueId } from '@/platforms/common';
 import { isInProgressSelectionsKey } from '@/lib/storage/constants';
+import { cacheKeys } from './cache-keys';
 
 export interface DraftInfo {
   draftName: string;
@@ -16,7 +17,7 @@ export function useUserDraftsQuery(leagueIds?: LeagueId[]) {
   const { user, storageAdapter, loading: authLoading } = useAuth();
   
   return useQuery({
-    queryKey: ['userDrafts', user?.id, leagueIds],
+    queryKey: cacheKeys.userDrafts(user?.id, leagueIds),
     queryFn: async (): Promise<DraftInfo[]> => {
       console.log('[useUserDraftsQuery] Fetching drafts for leagues:', leagueIds);
       

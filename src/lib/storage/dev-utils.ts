@@ -172,6 +172,7 @@ export function generateTestPlayers(draftId: number, count: number = 50): Omit<P
       overallRank: i + 1,
       positionRank: Math.floor(i / positions.length) + 1,
       selected: i < 16, // First 16 players are selected (roster)
+      rosterSlotKey: `{"position":"${position}","index":${Math.floor(i / positions.length)}}`,
       metadata: {
         platformSpecific: {
           id: `platform_${i + 1}`,

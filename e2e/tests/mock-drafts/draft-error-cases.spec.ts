@@ -2,6 +2,8 @@ import { test, expect } from '../../fixtures';
 import { testJourneys, ConnectedLeagueSession } from '../../utils/test-journeys';
 import { TEST_TIMEOUTS } from '../../utils/test-constants';
 
+test.describe.configure({ mode: 'serial' });
+
 test.describe('Mock Draft Error Cases', () => {
   test('should handle missing league (404) gracefully', async ({ page }) => {
     let session: ConnectedLeagueSession | undefined;

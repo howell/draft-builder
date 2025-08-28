@@ -3,7 +3,7 @@
  * This provides persistent, multi-device storage with proper authentication and RLS
  */
 
-import { SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient, PostgrestResponse } from '@supabase/supabase-js';
 import { EspnLeague, LeagueId, PlatformLeague } from '@/platforms/common';
 import type { EspnAuth as PlatformEspnAuth } from '@/platforms/espn/league';
 import {
@@ -156,6 +156,24 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     }
     
     throw createStorageError('DATA_ERROR', `Database operation failed: ${operation}`, error, { operation, ...context });
+  }
+
+  /**
+   * Execute a Supabase operation with timeout protection
+   * @param operation The Promise or thenable to execute (supports Supabase query builders)
+   * @param operationName Description for error messages (required)
+   * @param timeoutMs Timeout in milliseconds (default: 8000ms)
+   */
+  private async withTimeout<T>(
+    operation: Promise<T> | PromiseLike<T>, 
+    operationName: string,
+    timeoutMs: number = 8000
+  ): Promise<T> {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error(`${operationName} timeout after ${timeoutMs}ms`)), timeoutMs);
+    });
+    
+    return Promise.race([Promise.resolve(operation), timeoutPromise]);
   }
 
   /**
@@ -339,13 +357,16 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     return this.withFallback(
       'loadSavedMocks',
       async () => {
-        // First get the league database ID
-        const { data: leagues, error: leagueError } = await this.supabase
-          .from('leagues')
-          .select('id')
-          .eq('user_id', this.userId)
-          .eq('league_id', leagueId.toString())
-          .single();
+        // First get the league database ID with timeout protection
+        const { data: leagues, error: leagueError } = await this.withTimeout(
+          this.supabase
+            .from('leagues')
+            .select('id')
+            .eq('user_id', this.userId)
+            .eq('league_id', leagueId.toString())
+            .single(),
+          'loadSavedMocks leagues query'
+        );
 
         if (leagueError) {
           if (leagueError.code === 'PGRST116') { // No league found
@@ -356,11 +377,14 @@ export class SupabaseStorageAdapter implements StorageAdapter {
 
         const leagueDbId = leagues.id;
 
-        // Get all draft sessions for this league
-        const { data: sessions, error: sessionsError } = await this.supabase
-          .from('draft_sessions')
-          .select('*')
-          .eq('league_id', leagueDbId);
+        // Get all draft sessions for this league with timeout protection
+        const { data: sessions, error: sessionsError } = await this.withTimeout(
+          this.supabase
+            .from('draft_sessions')
+            .select('*')
+            .eq('league_id', leagueDbId),
+          'loadSavedMocks sessions query'
+        );
 
         if (sessionsError) throw sessionsError;
 
@@ -370,25 +394,29 @@ export class SupabaseStorageAdapter implements StorageAdapter {
 
         const sessionIds = sessions.map(s => s.id);
 
-        // Get all related data in parallel
+        // Get all related data in parallel with timeout protection
         const [
           { data: settings, error: settingsError },
           { data: selections, error: selectionsError },
           { data: adjustments, error: adjustmentsError }
-        ] = await Promise.all([
-          this.supabase
-            .from('draft_settings')
-            .select('*')
-            .in('draft_session_id', sessionIds),
-          this.supabase
-            .from('player_selections')
-            .select('*')
-            .in('draft_session_id', sessionIds),
-          this.supabase
-            .from('cost_adjustments')
-            .select('*')
-            .in('draft_session_id', sessionIds)
-        ]);
+        ] = await this.withTimeout(
+          Promise.all([
+            this.supabase
+              .from('draft_settings')
+              .select('*')
+              .in('draft_session_id', sessionIds),
+            this.supabase
+              .from('player_selections')
+              .select('*')
+              .in('draft_session_id', sessionIds),
+            this.supabase
+              .from('cost_adjustments')
+              .select('*')
+              .in('draft_session_id', sessionIds)
+          ]),
+          'loadSavedMocks parallel queries',
+          10000 // Longer timeout for parallel queries
+        );
 
         if (settingsError) throw settingsError;
         if (selectionsError) throw selectionsError;
@@ -472,13 +500,16 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     return this.withFallback(
       'saveSelectedRoster',
       async () => {
-        // Get the league database ID
-        const { data: leagues, error: leagueError } = await this.supabase
-          .from('leagues')
-          .select('id')
-          .eq('user_id', this.userId)
-          .eq('league_id', leagueId.toString())
-          .single();
+        // Get the league database ID with timeout protection
+        const { data: leagues, error: leagueError } = await this.withTimeout(
+          this.supabase
+            .from('leagues')
+            .select('id')
+            .eq('user_id', this.userId)
+            .eq('league_id', leagueId.toString())
+            .single(),
+          'saveSelectedRoster leagues query'
+        );
 
         if (leagueError) throw leagueError;
         const leagueDbId = leagues.id;
@@ -498,37 +529,43 @@ export class SupabaseStorageAdapter implements StorageAdapter {
 
         const transformed = transformDraftToDatabase(rosterName, draftData, this.userId, leagueDbId);
 
-        // Use a transaction to ensure consistency
-        const { data: session, error: sessionError } = await this.supabase
-          .from('draft_sessions')
-          .upsert({
-            ...transformed.session,
-            user_id: this.userId,
-            league_id: leagueDbId
-          }, {
-            onConflict: 'user_id,league_id,name'
-          })
-          .select('id')
-          .single();
+        // Use a transaction to ensure consistency with timeout protection
+        const { data: session, error: sessionError } = await this.withTimeout(
+          this.supabase
+            .from('draft_sessions')
+            .upsert({
+              ...transformed.session,
+              user_id: this.userId,
+              league_id: leagueDbId
+            }, {
+              onConflict: 'user_id,league_id,name'
+            })
+            .select('id')
+            .single(),
+          'saveSelectedRoster session upsert'
+        );
 
         if (sessionError) throw sessionError;
         const sessionId = session.id;
 
-        // Delete existing related data
-        await Promise.all([
-          this.supabase
-            .from('draft_settings')
-            .delete()
-            .eq('draft_session_id', sessionId),
-          this.supabase
-            .from('player_selections')
-            .delete()
-            .eq('draft_session_id', sessionId),
-          this.supabase
-            .from('cost_adjustments')
-            .delete()
-            .eq('draft_session_id', sessionId)
-        ]);
+        // Delete existing related data with timeout protection
+        await this.withTimeout(
+          Promise.all([
+            this.supabase
+              .from('draft_settings')
+              .delete()
+              .eq('draft_session_id', sessionId),
+            this.supabase
+              .from('player_selections')
+              .delete()
+              .eq('draft_session_id', sessionId),
+            this.supabase
+              .from('cost_adjustments')
+              .delete()
+              .eq('draft_session_id', sessionId)
+          ]),
+          'saveSelectedRoster delete operations'
+        );
 
         // Insert new data
         const insertPromises = [];
@@ -571,7 +608,10 @@ export class SupabaseStorageAdapter implements StorageAdapter {
           );
         }
 
-        const results = await Promise.all(insertPromises);
+        const results = await this.withTimeout(
+          Promise.all(insertPromises),
+          'saveSelectedRoster insert operations'
+        );
         for (const result of results) {
           if (result.error) throw result.error;
         }

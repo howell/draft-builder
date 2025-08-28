@@ -13,6 +13,8 @@ const CollapsibleComponent: React.FC<ToggleComponentProps> = ({ label, children,
         setIsVisible(!isVisible);
     };
 
+    const bodyTestId = testId ? `${testId}-body` : undefined;
+
     return (
         <div>
             <div className="flex items-center">
@@ -21,7 +23,11 @@ const CollapsibleComponent: React.FC<ToggleComponentProps> = ({ label, children,
                     <i className={`ml-2 pt-1 fas ${isVisible ? 'fa-chevron-down' : 'fa-chevron-up'}`} />
                 </button>
             </div>
-            {isVisible && children}
+            {isVisible && (
+                <div data-testid={bodyTestId}>
+                    {children}
+                </div>
+            )}
         </div>
     );
 };

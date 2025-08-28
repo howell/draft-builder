@@ -20,6 +20,7 @@ import { Card, CardBody } from '@/ui/Card';
 import { Input } from '@/ui/Input';
 import { Alert } from '@/ui/Alert';
 import { Badge, PositionBadge } from '@/ui/Badge';
+import { useSaveRosterMutation } from '@/hooks/queries/useSaveRosterMutation';
 
 export interface MockTableProps {
     leagueId: LeagueId;
@@ -61,6 +62,9 @@ const defaultCostPredictor: CostPredictor = {
 
 const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, auctionBudget, players, draftHistory, playerPositions, availableRankings }) => {
     const storageAdapter = useStorageAdapter();
+    
+    // Mutation for saving rosters with automatic cache invalidation
+    const saveRosterMutation = useSaveRosterMutation();
     const defaultSearchSettings: SearchSettingsState = { positions: playerPositions, playerCount: 200, minPrice: 1, maxPrice: auctionBudget, showOnlyAvailable: true };
     const defaultEstimationSettings: EstimationSettingsState = { years: Array.from(draftHistory.keys()), weight: 50 };
     const [playerDb, _setPlayerDb] = useState<MockPlayer[]>(players);
@@ -92,17 +96,14 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
 
     useEffect(() => {
         const loadDraftData = async () => {
-            if (!draftName) {
-                setFinishedLoading(true);
-                return;
-            }
-            
             setIsLoadingDraft(true);
             setDraftLoadError(null);
             
             try {
+                // Always attempt to load draft data - if no draftName is provided, load in-progress selections
                 const name = draftName === '' ? getInProgressSelectionsKey(leagueId) : (draftName || getInProgressSelectionsKey(leagueId));
                 const loadedDraft = await storageAdapter.loadDraftByName(leagueId, name);
+                console.log('[MockTable] Loaded draft:', loadedDraft);
                 if (loadedDraft && loadedDraft.rosterSelections && loadedDraft.costAdjustments && loadedDraft.estimationSettings && loadedDraft.searchSettings) {
                     setRosterSelections(loadedDraft.rosterSelections);
                     setCostAdjustments(new Map(Object.entries(loadedDraft.costAdjustments)));
@@ -223,6 +224,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                     nextRosterSelections[slot] = { ...player, estimatedCost };
                 }
             });
+            console.log('[MockTable] Cost-adjusted roster selections:', nextRosterSelections);
             setCostAdjustedRosterSelections(nextRosterSelections);
         }
     }, [finishedLoading, costPredictor, rosterSelections]);
@@ -249,6 +251,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
 
     useEffect(() => {
         const nextSelected = Object.values(rosterSelections).filter(p => p !== undefined) as CostEstimatedPlayer[];
+        console.log('[MockTable] Selected players:', nextSelected);
         setSelectedPlayers(nextSelected);
     }, [rosterSelections]);
 
@@ -327,46 +330,42 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
             return;
         }
         
+        // Set saving state before starting mutation
         setSavingStatus('saving');
         setSaveError(null);
         
-        // Add a small delay to ensure UI updates
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        const saveStartTime = Date.now();
-        try {
-            
-            await storageAdapter.saveSelectedRoster(
-                leagueId, 
-                rosterName, 
-                rosterSelections, 
-                Object.fromEntries(costAdjustments.entries()), 
-                estimationSettings, 
-                searchSettings
-            );
-            const saveEndTime = Date.now();
-            
-            setSavingStatus('saved');
-            
-            // Show success feedback briefly
-            setTimeout(() => {
-                setSavingStatus('idle');
-            }, 2000);
-            
-        } catch (error) {
-            console.error('[MockTable] Save operation failed after attempting for:', Date.now() - saveStartTime, 'ms');
-            const errorMessage = error instanceof StorageError 
-                ? error.message 
-                : 'Failed to save roster';
-            console.error('[MockTable] Error details:', {
-                error,
-                errorMessage,
-                rosterName,
-                leagueId
-            });
-            setSaveError(errorMessage);
-            setSavingStatus('error');
-        }
+        // Use the mutation hook which handles loading states, errors, and cache invalidation
+        saveRosterMutation.mutate({
+            leagueId,
+            rosterName,
+            rosterSelections,
+            costAdjustments: Object.fromEntries(costAdjustments.entries()),
+            estimationSettings,
+            searchSettings
+        }, {
+            onSuccess: () => {
+                setSavingStatus('saved');
+                setSaveError(null);
+                
+                // Show success feedback briefly
+                setTimeout(() => {
+                    setSavingStatus('idle');
+                }, 2000);
+            },
+            onError: (error) => {
+                const errorMessage = error instanceof StorageError 
+                    ? error.message 
+                    : 'Failed to save roster';
+                console.error('[MockTable] Error details:', {
+                    error,
+                    errorMessage,
+                    rosterName,
+                    leagueId
+                });
+                setSaveError(errorMessage);
+                setSavingStatus('error');
+            }
+        });
     };
 
     const deleteRosterSelections = async () => {

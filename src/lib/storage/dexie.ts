@@ -214,7 +214,7 @@ export class DexieStorageAdapter implements StorageAdapter {
         
         const rosterSelections: RosterSelections = {};
 
-        // Build roster selections from players
+        // Build roster selections from players using original roster slot keys
         for (const player of players) {
           const rosterPlayer: any = {
             id: player.playerId,
@@ -231,7 +231,8 @@ export class DexieStorageAdapter implements StorageAdapter {
             rosterPlayer.suggestedCost = player.suggestedCost;
           }
           
-          rosterSelections[player.playerId] = rosterPlayer;
+          // Use the stored roster slot key for proper MockTable mapping
+          rosterSelections[player.rosterSlotKey] = rosterPlayer;
         }
 
         mocksData[draft.name] = {
@@ -340,22 +341,23 @@ export class DexieStorageAdapter implements StorageAdapter {
       // Clear existing players for this draft
       await db.players.where('draftId').equals(draftId).delete();
 
-      // Add new players
-      const players: Player[] = Object.values(mockData.rosterSelections)
-        .filter((player): player is NonNullable<typeof player> => player !== undefined)
-        .map(player => ({
+      // Add new players with roster slot keys preserved
+      const players: Player[] = Object.entries(mockData.rosterSelections)
+        .filter(([key, player]) => player !== undefined)
+        .map(([rosterSlotKey, player]) => ({
           draftId,
-          playerId: player.id,
-          name: player.name,
-          position: player.defaultPosition,
-          defaultPosition: player.defaultPosition,
-          positions: player.positions,
-          cost: player.estimatedCost,
-          estimatedCost: player.estimatedCost,
-          suggestedCost: player.suggestedCost,
-          overallRank: player.overallRank,
-          positionRank: player.positionRank,
-          selected: true
+          playerId: player!.id,
+          name: player!.name,
+          position: player!.defaultPosition,
+          defaultPosition: player!.defaultPosition,
+          positions: player!.positions,
+          cost: player!.estimatedCost,
+          estimatedCost: player!.estimatedCost,
+          suggestedCost: player!.suggestedCost,
+          overallRank: player!.overallRank,
+          positionRank: player!.positionRank,
+          selected: true,
+          rosterSlotKey // Store the roster slot key for proper reconstruction
         }));
 
       if (players.length > 0) {

@@ -8,14 +8,9 @@
 
 import { Page } from '@playwright/test';
 import { 
-  createMockESPNLeagueResponse, 
-  createMockSleeperLeagueResponse,
   createPlayerData,
-  createTestLeague,
-  createTestDraftData
 } from './test-data-factory';
 import { Platform } from '../../src/platforms/common';
-import { CURRENT_SEASON } from '../../src/constants';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { TEST_LEAGUE_IDS, getTestLeagueId } from './test-constants';
@@ -302,6 +297,50 @@ export const ApiMockPresets = {
     customPlayerData: Array.from({ length: 200 }, () => createPlayerData())
   })
 };
+
+/**
+ * Minimal API mocking - only mocks Google Sheets API for rankings
+ * Everything else uses real app code with FixtureBasedPlatformApi
+ */
+export async function setupMinimalApiMocks(page: Page) {
+  // Mock Google Sheets API for rankings data using real fixtures
+  const rankingsFixturesDir = join(__dirname, '..', 'fixtures', 'rankings');
+  
+  await page.route('https://sheets.googleapis.com/v4/**', async (route) => {
+    // Return the real spreadsheet metadata from fixtures
+    const metadataPath = join(rankingsFixturesDir, 'spreadsheet-metadata.json');
+    if (!existsSync(metadataPath)) {
+      throw new Error(`Rankings fixture not found: ${metadataPath}\nRun 'node scripts/fetch-rankings-fixtures.js' to generate fixtures`);
+    }
+    
+    const metadata = JSON.parse(readFileSync(metadataPath, 'utf8'));
+    return route.fulfill({
+      status: 200,
+      json: metadata
+    });
+  });
+  
+  // Mock Google Docs CSV export for rankings data
+  await page.route('https://docs.google.com/spreadsheets/d/**', async (route) => {
+    if (route.request().url().includes('gviz/tq?tqx=out:csv')) {
+      // Return the real CSV data from fixtures
+      const csvPath = join(rankingsFixturesDir, 'rankings-latest.csv');
+      if (!existsSync(csvPath)) {
+        throw new Error(`Rankings CSV fixture not found: ${csvPath}\nRun 'node scripts/fetch-rankings-fixtures.js' to generate fixtures`);
+      }
+      
+      const csvData = readFileSync(csvPath, 'utf8');
+      return route.fulfill({
+        status: 200,
+        contentType: 'text/csv',
+        body: csvData
+      });
+    }
+    
+    // Pass through other requests
+    return route.continue();
+  });
+}
 
 /**
  * Quick setup with presets
