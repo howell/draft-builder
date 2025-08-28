@@ -7,6 +7,7 @@ import {
   EstimationSettingsState,
   SearchSettingsState
 } from '@/types/storage';
+import { LiveDraftState, LiveDraftPick } from '@/app/storage/savedLiveDraftTypes';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/database.types';
 
@@ -92,6 +93,62 @@ export interface StorageAdapter {
    * This is used for data cleanup after migration or for testing
    */
   clearAllData(): Promise<void>;
+
+  // Live Draft Methods
+  
+  /**
+   * Load all live drafts for a specific league
+   * @param leagueId - The league identifier
+   * @returns Promise resolving to array of live draft states
+   */
+  loadLiveDrafts(leagueId: LeagueId): Promise<LiveDraftState[]>;
+
+  /**
+   * Load a specific live draft by ID
+   * @param leagueId - The league identifier
+   * @param draftId - The draft identifier
+   * @returns Promise resolving to live draft state or undefined if not found
+   */
+  loadLiveDraft(leagueId: LeagueId, draftId: string): Promise<LiveDraftState | undefined>;
+
+  /**
+   * Save/create a live draft
+   * @param leagueId - The league identifier
+   * @param draftState - The complete draft state to save
+   */
+  saveLiveDraft(leagueId: LeagueId, draftState: LiveDraftState): Promise<void>;
+
+  /**
+   * Add a pick to a live draft
+   * @param leagueId - The league identifier
+   * @param draftId - The draft identifier
+   * @param pick - The pick to add
+   */
+  addLiveDraftPick(leagueId: LeagueId, draftId: string, pick: LiveDraftPick): Promise<void>;
+
+  /**
+   * Update an existing pick in a live draft
+   * @param leagueId - The league identifier
+   * @param draftId - The draft identifier
+   * @param pickNumber - The pick number to update
+   * @param updatedPick - The updated pick data
+   */
+  updateLiveDraftPick(leagueId: LeagueId, draftId: string, pickNumber: number, updatedPick: LiveDraftPick): Promise<void>;
+
+  /**
+   * Delete a pick from a live draft
+   * @param leagueId - The league identifier
+   * @param draftId - The draft identifier
+   * @param pickNumber - The pick number to delete
+   */
+  deleteLiveDraftPick(leagueId: LeagueId, draftId: string, pickNumber: number): Promise<void>;
+
+  /**
+   * Delete a complete live draft
+   * @param leagueId - The league identifier
+   * @param draftId - The draft identifier
+   */
+  deleteLiveDraft(leagueId: LeagueId, draftId: string): Promise<void>;
 }
 
 /**
