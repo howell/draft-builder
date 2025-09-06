@@ -77,6 +77,13 @@ describe('Clean User Signup Flow E2E Test', () => {
       saveSelectedRoster: jest.fn(),
       deleteRoster: jest.fn(),
       clearAllData: jest.fn(),
+      loadLiveDrafts: jest.fn().mockResolvedValue([]),
+      loadLiveDraft: jest.fn().mockResolvedValue(undefined),
+      saveLiveDraft: jest.fn(),
+      addLiveDraftPick: jest.fn(),
+      updateLiveDraftPick: jest.fn(),
+      deleteLiveDraftPick: jest.fn(),
+      deleteLiveDraft: jest.fn(),
     };
 
     // Mock NO migratable data (clean signup scenario)

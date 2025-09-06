@@ -209,7 +209,8 @@ export function transformDraftToDatabase(
     league_id: leagueDbId,
     name: rosterName,
     year: draft.year.toString(),
-    notes: draft.notes || ''
+    notes: draft.notes || '',
+    draft_type: 'mock' // Default to mock drafts for localStorage->DB migration
   };
   
   // Transform draft settings

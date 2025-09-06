@@ -46,6 +46,13 @@ const mockStorageAdapter: jest.Mocked<StorageAdapter> = {
   saveSelectedRoster: jest.fn(),
   deleteRoster: jest.fn(),
   clearAllData: jest.fn(),
+  loadLiveDrafts: jest.fn(),
+  loadLiveDraft: jest.fn(),
+  saveLiveDraft: jest.fn(),
+  addLiveDraftPick: jest.fn(),
+  updateLiveDraftPick: jest.fn(),
+  deleteLiveDraftPick: jest.fn(),
+  deleteLiveDraft: jest.fn(),
 };
 
 // Sample response data for each method

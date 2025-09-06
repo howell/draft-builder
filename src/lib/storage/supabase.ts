@@ -10,6 +10,7 @@ import {
   StorageAdapter,
   createStorageError,
 } from './interface';
+import { LiveDraftState, LiveDraftPick } from '@/app/storage/savedLiveDraftTypes';
 import { DexieStorageAdapter } from './dexie';
 import { MemoryStorageAdapter } from './memory';
 import {
@@ -719,6 +720,353 @@ export class SupabaseStorageAdapter implements StorageAdapter {
         console.log('[SupabaseAdapter] Falling back to adapter for clearAllData');
         if (this.fallbackAdapter) {
           await this.fallbackAdapter.clearAllData();
+        }
+      }
+    );
+  }
+
+  // Live Draft Methods
+
+  async loadLiveDrafts(leagueId: LeagueId): Promise<LiveDraftState[]> {
+    return this.withFallback(
+      'loadLiveDrafts',
+      async () => {
+        // Get league UUID first
+        const leagueResponse = await this.supabase
+          .from('leagues')
+          .select('id')
+          .eq('user_id', this.userId)
+          .eq('league_id', leagueId)
+          .single();
+
+        if (leagueResponse.error) {
+          return []; // No league found
+        }
+
+        // Load live drafts with picks and teams
+        const draftsResponse = await this.supabase
+          .from('live_drafts')
+          .select(`
+            *,
+            live_draft_picks (*),
+            live_draft_teams (*)
+          `)
+          .eq('user_id', this.userId)
+          .eq('league_id', leagueResponse.data.id);
+
+        if (draftsResponse.error) {
+          throw new Error(`Failed to load live drafts: ${draftsResponse.error.message}`);
+        }
+
+        // Transform to LiveDraftState format
+        return draftsResponse.data.map(draft => {
+          const picks = draft.live_draft_picks.map(pick => ({
+            pickNumber: pick.pick_number,
+            teamId: pick.team_id,
+            teamName: pick.team_name,
+            player: {
+              id: pick.player_id,
+              name: pick.player_name,
+              defaultPosition: pick.player_position,
+              positions: [pick.player_position],
+              overallRank: 0,
+              positionRank: 0
+            },
+            price: pick.price,
+            timestamp: new Date(pick.timestamp || '')
+          }));
+
+          const teams = draft.live_draft_teams.map(team => ({
+            id: team.team_id,
+            name: team.team_name,
+            budget: team.budget,
+            remainingBudget: team.remaining_budget,
+            rosterSlots: team.roster_slots ? JSON.parse(team.roster_slots as string) : [],
+            filledPositions: team.filled_positions ? JSON.parse(team.filled_positions as string) : {}
+          }));
+
+          return {
+            leagueId: leagueId,
+            draftId: draft.draft_id,
+            draftName: draft.draft_name,
+            created: new Date(draft.created_at || '').getTime(),
+            modified: new Date(draft.updated_at || '').getTime(),
+            picks,
+            teams,
+            currentPickNumber: draft.current_pick_number || 1,
+            settings: draft.settings ? JSON.parse(draft.settings as string) : {},
+            stateSnapshot: {
+              pickNumber: draft.current_pick_number || 1,
+              totalMoneySpent: picks.reduce((sum, pick) => sum + pick.price, 0),
+              moneySpentByPosition: {},
+              playersPickedByPosition: {},
+              budgetDistribution: {
+                averageRemaining: teams.reduce((sum, team) => sum + team.remainingBudget, 0) / teams.length,
+                medianRemaining: 0,
+                minRemaining: Math.min(...teams.map(t => t.remainingBudget)),
+                maxRemaining: Math.max(...teams.map(t => t.remainingBudget)),
+                teamsWithLowBudget: 0
+              },
+              positionScarcityMetrics: {}
+            }
+          };
+        });
+      },
+      async () => {
+        console.log('[SupabaseAdapter] Falling back to adapter for loadLiveDrafts');
+        return this.fallbackAdapter?.loadLiveDrafts(leagueId) || [];
+      }
+    );
+  }
+
+  async loadLiveDraft(leagueId: LeagueId, draftId: string): Promise<LiveDraftState | undefined> {
+    return this.withFallback(
+      'loadLiveDraft',
+      async () => {
+        const drafts = await this.loadLiveDrafts(leagueId);
+        return drafts.find(d => d.draftId === draftId);
+      },
+      async () => {
+        console.log('[SupabaseAdapter] Falling back to adapter for loadLiveDraft');
+        return this.fallbackAdapter?.loadLiveDraft(leagueId, draftId);
+      }
+    );
+  }
+
+  async saveLiveDraft(leagueId: LeagueId, draftState: LiveDraftState): Promise<void> {
+    return this.withFallback(
+      'saveLiveDraft',
+      async () => {
+        // Get league UUID first
+        const leagueResponse = await this.supabase
+          .from('leagues')
+          .select('id')
+          .eq('user_id', this.userId)
+          .eq('league_id', leagueId)
+          .single();
+
+        if (leagueResponse.error) {
+          throw new Error(`League ${leagueId} not found for user`);
+        }
+
+        const leagueUuid = leagueResponse.data.id;
+
+        try {
+          // Check if live draft already exists
+          const existingDraft = await this.supabase
+            .from('live_drafts')
+            .select('id')
+            .eq('user_id', this.userId)
+            .eq('league_id', leagueUuid)
+            .eq('draft_id', draftState.draftId)
+            .single();
+
+          let liveDraftId: string;
+
+          if (existingDraft.data) {
+            // Update existing draft
+            liveDraftId = existingDraft.data.id;
+            const updateResponse = await this.supabase
+              .from('live_drafts')
+              .update({
+                draft_name: draftState.draftName,
+                current_pick_number: draftState.currentPickNumber,
+                settings: JSON.stringify(draftState.settings),
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', liveDraftId);
+
+            if (updateResponse.error) {
+              throw updateResponse.error;
+            }
+
+            // Delete existing picks and teams for clean update
+            await this.supabase.from('live_draft_picks').delete().eq('live_draft_id', liveDraftId);
+            await this.supabase.from('live_draft_teams').delete().eq('live_draft_id', liveDraftId);
+          } else {
+            // Create new draft
+            const insertResponse = await this.supabase
+              .from('live_drafts')
+              .insert({
+                user_id: this.userId,
+                league_id: leagueUuid,
+                draft_id: draftState.draftId,
+                draft_name: draftState.draftName,
+                current_pick_number: draftState.currentPickNumber,
+                settings: JSON.stringify(draftState.settings)
+              })
+              .select('id')
+              .single();
+
+            if (insertResponse.error) {
+              throw insertResponse.error;
+            }
+
+            liveDraftId = insertResponse.data.id;
+          }
+
+          // Insert picks
+          if (draftState.picks.length > 0) {
+            const picksToInsert = draftState.picks.map(pick => ({
+              live_draft_id: liveDraftId,
+              pick_number: pick.pickNumber,
+              team_id: pick.teamId,
+              team_name: pick.teamName,
+              player_id: pick.player.id,
+              player_name: pick.player.name,
+              player_position: pick.player.defaultPosition,
+              price: pick.price,
+              timestamp: pick.timestamp.toISOString()
+            }));
+
+            const picksResponse = await this.supabase
+              .from('live_draft_picks')
+              .insert(picksToInsert);
+
+            if (picksResponse.error) {
+              throw picksResponse.error;
+            }
+          }
+
+          // Insert teams
+          if (draftState.teams.length > 0) {
+            const teamsToInsert = draftState.teams.map(team => ({
+              live_draft_id: liveDraftId,
+              team_id: team.id,
+              team_name: team.name,
+              budget: team.budget,
+              remaining_budget: team.remainingBudget,
+              roster_slots: JSON.stringify(team.rosterSlots),
+              filled_positions: JSON.stringify(team.filledPositions)
+            }));
+
+            const teamsResponse = await this.supabase
+              .from('live_draft_teams')
+              .insert(teamsToInsert);
+
+            if (teamsResponse.error) {
+              throw teamsResponse.error;
+            }
+          }
+
+        } catch (error) {
+          throw error;
+        }
+      },
+      async () => {
+        console.log('[SupabaseAdapter] Falling back to adapter for saveLiveDraft');
+        if (this.fallbackAdapter) {
+          await this.fallbackAdapter.saveLiveDraft(leagueId, draftState);
+        }
+      }
+    );
+  }
+
+  async addLiveDraftPick(leagueId: LeagueId, draftId: string, pick: LiveDraftPick): Promise<void> {
+    return this.withFallback(
+      'addLiveDraftPick',
+      async () => {
+        const draft = await this.loadLiveDraft(leagueId, draftId);
+        if (!draft) {
+          throw new Error(`Live draft ${draftId} not found in league ${leagueId}`);
+        }
+
+        draft.picks.push(pick);
+        draft.currentPickNumber = Math.max(draft.currentPickNumber, pick.pickNumber + 1);
+        await this.saveLiveDraft(leagueId, draft);
+      },
+      async () => {
+        console.log('[SupabaseAdapter] Falling back to adapter for addLiveDraftPick');
+        if (this.fallbackAdapter) {
+          await this.fallbackAdapter.addLiveDraftPick(leagueId, draftId, pick);
+        }
+      }
+    );
+  }
+
+  async updateLiveDraftPick(leagueId: LeagueId, draftId: string, pickNumber: number, updatedPick: LiveDraftPick): Promise<void> {
+    return this.withFallback(
+      'liveDraftOperation',
+      async () => {
+        const draft = await this.loadLiveDraft(leagueId, draftId);
+        if (!draft) {
+          throw new Error(`Live draft ${draftId} not found in league ${leagueId}`);
+        }
+
+        const pickIndex = draft.picks.findIndex(p => p.pickNumber === pickNumber);
+        if (pickIndex === -1) {
+          throw new Error(`Pick ${pickNumber} not found in draft ${draftId}`);
+        }
+
+        draft.picks[pickIndex] = updatedPick;
+        await this.saveLiveDraft(leagueId, draft);
+      },
+      async () => {
+        console.log('[SupabaseAdapter] Falling back to adapter for updateLiveDraftPick');
+        if (this.fallbackAdapter) {
+          await this.fallbackAdapter.updateLiveDraftPick(leagueId, draftId, pickNumber, updatedPick);
+        }
+      }
+    );
+  }
+
+  async deleteLiveDraftPick(leagueId: LeagueId, draftId: string, pickNumber: number): Promise<void> {
+    return this.withFallback(
+      'liveDraftOperation',
+      async () => {
+        const draft = await this.loadLiveDraft(leagueId, draftId);
+        if (!draft) {
+          throw new Error(`Live draft ${draftId} not found in league ${leagueId}`);
+        }
+
+        const pickIndex = draft.picks.findIndex(p => p.pickNumber === pickNumber);
+        if (pickIndex === -1) {
+          throw new Error(`Pick ${pickNumber} not found in draft ${draftId}`);
+        }
+
+        draft.picks.splice(pickIndex, 1);
+        await this.saveLiveDraft(leagueId, draft);
+      },
+      async () => {
+        console.log('[SupabaseAdapter] Falling back to adapter for deleteLiveDraftPick');
+        if (this.fallbackAdapter) {
+          await this.fallbackAdapter.deleteLiveDraftPick(leagueId, draftId, pickNumber);
+        }
+      }
+    );
+  }
+
+  async deleteLiveDraft(leagueId: LeagueId, draftId: string): Promise<void> {
+    return this.withFallback(
+      'liveDraftOperation',
+      async () => {
+        // First get the league database ID since we need it for the foreign key
+        const leagueDbIdResponse = await this.supabase
+          .from('leagues')
+          .select('id')
+          .eq('user_id', this.userId)
+          .eq('league_id', leagueId)
+          .single();
+
+        if (leagueDbIdResponse.error || !leagueDbIdResponse.data) {
+          throw new Error(`League ${leagueId} not found: ${leagueDbIdResponse.error?.message || 'No data'}`);
+        }
+
+        const deleteResponse = await this.supabase
+          .from('live_drafts')
+          .delete()
+          .eq('user_id', this.userId)
+          .eq('league_id', leagueDbIdResponse.data.id)
+          .eq('draft_id', draftId);
+
+        if (deleteResponse.error) {
+          throw new Error(`Failed to delete live draft: ${deleteResponse.error.message}`);
+        }
+      },
+      async () => {
+        console.log('[SupabaseAdapter] Falling back to adapter for deleteLiveDraft');
+        if (this.fallbackAdapter) {
+          await this.fallbackAdapter.deleteLiveDraft(leagueId, draftId);
         }
       }
     );

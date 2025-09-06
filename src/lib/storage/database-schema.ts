@@ -17,7 +17,7 @@ import type { EstimationSettingsStateV4, SearchSettingsState } from '@/types/sto
  * Current Dexie schema version (used in this.version() calls)
  * Dexie multiplies this by 10 internally for the actual IndexedDB version
  */
-export const DEXIE_SCHEMA_VERSION = 1;
+export const DEXIE_SCHEMA_VERSION = 2;
 
 /**
  * Actual IndexedDB database version (Dexie schema version * 10)
@@ -46,14 +46,15 @@ export const SCHEMA_DEFINITION = {
       ]
     },
     drafts: {
-      dexieSchema: '++id, leagueId, userId, name, year, isTemplate, createdAt, updatedAt, [leagueId+userId], [userId+name]',
+      dexieSchema: '++id, leagueId, userId, name, year, isTemplate, draftType, created, modified, createdAt, updatedAt, [leagueId+userId], [userId+name]',
       keyPath: 'id',
       autoIncrement: true,
       indexes: [
         { name: 'userId', keyPath: 'userId', options: { unique: false } },
         { name: 'updatedAt', keyPath: 'updatedAt', options: { unique: false } },
         { name: 'leagueId+userId', keyPath: ['leagueId', 'userId'], options: { unique: false } },
-        { name: 'userId+name', keyPath: ['userId', 'name'], options: { unique: false } }
+        { name: 'userId+name', keyPath: ['userId', 'name'], options: { unique: false } },
+        { name: 'draftType', keyPath: 'draftType', options: { unique: false } }
       ]
     },
     players: {
@@ -79,6 +80,34 @@ export const SCHEMA_DEFINITION = {
       autoIncrement: true,
       indexes: [
         { name: 'key', keyPath: 'key', options: { unique: false } }
+      ]
+    },
+    liveDrafts: {
+      dexieSchema: '++id, leagueId, userId, draftId, draftName, currentPickNumber, created, modified, [leagueId+userId], [userId+draftId]',
+      keyPath: 'id',
+      autoIncrement: true,
+      indexes: [
+        { name: 'userId', keyPath: 'userId', options: { unique: false } },
+        { name: 'leagueId+userId', keyPath: ['leagueId', 'userId'], options: { unique: false } },
+        { name: 'userId+draftId', keyPath: ['userId', 'draftId'], options: { unique: true } }
+      ]
+    },
+    liveDraftPicks: {
+      dexieSchema: '++id, liveDraftId, pickNumber, teamId, teamName, playerName, playerId, playerPosition, price, timestamp, [liveDraftId+pickNumber]',
+      keyPath: 'id',
+      autoIncrement: true,
+      indexes: [
+        { name: 'liveDraftId', keyPath: 'liveDraftId', options: { unique: false } },
+        { name: 'liveDraftId+pickNumber', keyPath: ['liveDraftId', 'pickNumber'], options: { unique: true } }
+      ]
+    },
+    liveDraftTeams: {
+      dexieSchema: '++id, liveDraftId, teamId, teamName, budget, remainingBudget, [liveDraftId+teamId]',
+      keyPath: 'id',
+      autoIncrement: true,
+      indexes: [
+        { name: 'liveDraftId', keyPath: 'liveDraftId', options: { unique: false } },
+        { name: 'liveDraftId+teamId', keyPath: ['liveDraftId', 'teamId'], options: { unique: true } }
       ]
     }
   }
@@ -142,6 +171,10 @@ export interface Draft {
     lastModified?: Date;
   };
   isTemplate: boolean;
+  draftType?: 'mock' | 'live'; // Type of draft
+  created?: number; // Unix timestamp for compatibility
+  modified?: number; // Unix timestamp for compatibility
+  data?: string; // JSON data for complex draft types like live drafts
   createdAt: Date;
   updatedAt: Date;
 }
@@ -183,6 +216,43 @@ export interface AppMetadata {
   updatedAt: Date;
 }
 
+// Live Draft Interfaces
+export interface LiveDraft {
+  id?: number;
+  leagueId: number; // Foreign key to leagues.id
+  userId: string;
+  draftId: string; // Unique draft identifier
+  draftName: string;
+  currentPickNumber: number;
+  settings?: string; // JSON serialized LiveDraftSettings
+  created: number; // Unix timestamp
+  modified: number; // Unix timestamp
+}
+
+export interface LiveDraftPick {
+  id?: number;
+  liveDraftId: number; // Foreign key to liveDrafts.id
+  pickNumber: number;
+  teamId: string;
+  teamName: string;
+  playerName: string;
+  playerId: string;
+  playerPosition: string;
+  price: number;
+  timestamp: Date;
+}
+
+export interface LiveDraftTeam {
+  id?: number;
+  liveDraftId: number; // Foreign key to liveDrafts.id
+  teamId: string;
+  teamName: string;
+  budget: number;
+  remainingBudget: number;
+  rosterSlots?: string; // JSON serialized RosterSlot[]
+  filledPositions?: string; // JSON serialized position counts
+}
+
 // =============================================================================
 // DATABASE CLASS
 // =============================================================================
@@ -194,17 +264,36 @@ export class DraftBuilderDB extends Dexie {
   players!: Table<Player>;
   userSettings!: Table<UserSettings>;
   appMetadata!: Table<AppMetadata>;
+  liveDrafts!: Table<LiveDraft>;
+  liveDraftPicks!: Table<LiveDraftPick>;
+  liveDraftTeams!: Table<LiveDraftTeam>;
 
   constructor() {
     super('DraftBuilderDB');
 
-    // Use canonical schema definition to ensure consistency with tests
+    // Version 1 schema (original)
+    this.version(1).stores({
+      leagues: '++id, userId, platform, leagueId, favorite, createdAt, updatedAt, [userId+leagueId]',
+      drafts: '++id, leagueId, userId, name, year, isTemplate, createdAt, updatedAt, [leagueId+userId], [userId+name]',
+      players: '++id, draftId, playerId, name, position, selected, overallRank, positionRank, rosterSlotKey, [draftId+selected]',
+      userSettings: '++id, userId, type, key, updatedAt, [userId+type+key]',
+      appMetadata: '++id, key, updatedAt'
+    });
+
+    // Version 2 schema (adds live draft support)
     const storesConfig: { [tableName: string]: string } = {};
     Object.entries(SCHEMA_DEFINITION.stores).forEach(([storeName, storeConfig]) => {
       storesConfig[storeName] = storeConfig.dexieSchema;
     });
 
-    this.version(SCHEMA_DEFINITION.version).stores(storesConfig);
+    this.version(SCHEMA_DEFINITION.version).stores(storesConfig).upgrade(trans => {
+      // Migration from v1 to v2: add draftType field to existing drafts
+      return trans.table('drafts').toCollection().modify((draft: any) => {
+        if (!draft.draftType) {
+          draft.draftType = 'mock';
+        }
+      });
+    });
 
     // Define hooks for automatic timestamp updates
     this.leagues.hook('creating', (primKey, obj, trans) => {

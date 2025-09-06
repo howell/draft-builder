@@ -11,6 +11,7 @@
 
 import { LeagueId, PlatformLeague } from '@/platforms/common';
 import { StorageAdapter, createStorageError } from './interface';
+import { LiveDraftState, LiveDraftPick } from '@/app/storage/savedLiveDraftTypes';
 import {
   StoredLeaguesDataCurrent,
   StoredMocksDataCurrent,
@@ -50,6 +51,24 @@ export class DexieStorageAdapter implements StorageAdapter {
     if (context) {
       console.error(`[Dexie] Context:`, context);
     }
+  }
+
+  /**
+   * Convert date strings back to Date objects when deserializing live draft data
+   */
+  private deserializeLiveDraftState(data: string): LiveDraftState {
+    const parsed = JSON.parse(data) as LiveDraftState;
+    
+    // Convert pick timestamps from strings to Date objects
+    if (parsed.picks) {
+      parsed.picks.forEach(pick => {
+        if (typeof pick.timestamp === 'string') {
+          pick.timestamp = new Date(pick.timestamp);
+        }
+      });
+    }
+    
+    return parsed;
   }
 
   // =============================================================================
@@ -526,6 +545,215 @@ export class DexieStorageAdapter implements StorageAdapter {
     } catch (error) {
       console.warn('[DexieAdapter] Failed to deserialize auth data, returning as string:', error);
       return serializedData;
+    }
+  }
+
+  // Live Draft Methods
+
+  async loadLiveDrafts(leagueId: LeagueId): Promise<LiveDraftState[]> {
+    try {
+      if (!this.isClient) return [];
+
+      // Get league
+      const league = await db.leagues
+        .where('userId')
+        .equals(this.userId)
+        .and(l => l.leagueId === leagueId)
+        .first();
+
+      if (!league || !league.id) return [];
+
+      // For now, store as JSON in drafts table with a special type
+      const liveDrafts = await db.drafts
+        .where('leagueId')
+        .equals(league.id)
+        .and(d => d.userId === this.userId && d.draftType === 'live')
+        .toArray();
+
+      return liveDrafts.map(draft => this.deserializeLiveDraftState(draft.data || '{}'));
+    } catch (error) {
+      this.logError('loadLiveDrafts', error, { leagueId, userId: this.userId });
+      throw createStorageError(
+        'DATA_ERROR',
+        'Failed to load live drafts from IndexedDB',
+        error,
+        { operation: 'loadLiveDrafts', leagueId, userId: this.userId }
+      );
+    }
+  }
+
+  async loadLiveDraft(leagueId: LeagueId, draftId: string): Promise<LiveDraftState | undefined> {
+    try {
+      const drafts = await this.loadLiveDrafts(leagueId);
+      return drafts.find(d => d.draftId === draftId);
+    } catch (error) {
+      this.logError('loadLiveDraft', error, { leagueId, userId: this.userId });
+      throw createStorageError(
+        'DATA_ERROR',
+        'Failed to load live draft from IndexedDB',
+        error,
+        { operation: 'loadLiveDraft', leagueId, userId: this.userId }
+      );
+    }
+  }
+
+  async saveLiveDraft(leagueId: LeagueId, draftState: LiveDraftState): Promise<void> {
+    try {
+      if (!this.isClient) return;
+
+      // Get league
+      const league = await db.leagues
+        .where('userId')
+        .equals(this.userId)
+        .and(l => l.leagueId === leagueId)
+        .first();
+
+      if (!league || !league.id) {
+        throw new Error(`League ${leagueId} not found for user ${this.userId}`);
+      }
+
+      // Check if draft already exists - use explicit filtering for reliability
+      const allDrafts = await db.drafts
+        .where('leagueId')
+        .equals(league.id)
+        .toArray();
+      
+      const existingDraft = allDrafts.find(d => 
+        d.userId === this.userId && 
+        d.name === draftState.draftId && 
+        d.draftType === 'live'
+      );
+
+      const draftData: Partial<Draft> = {
+        leagueId: league.id,
+        userId: this.userId,
+        name: draftState.draftId,
+        year: draftState.settings.estimationSettings.years[0] || '2024',
+        notes: '',
+        estimationSettings: draftState.settings.estimationSettings,
+        searchSettings: draftState.settings.searchSettings,
+        costAdjustments: {},
+        isTemplate: false,
+        draftType: 'live' as const,
+        data: JSON.stringify(draftState),
+        created: existingDraft?.created || Date.now(),
+        modified: Date.now()
+      };
+
+      if (existingDraft) {
+        await db.drafts.update(existingDraft.id!, draftData);
+      } else {
+        await db.drafts.add(draftData as Draft);
+      }
+    } catch (error) {
+      this.logError('saveLiveDraft', error, { leagueId, userId: this.userId });
+      throw createStorageError(
+        'DATA_ERROR',
+        'Failed to save live draft to IndexedDB',
+        error,
+        { operation: 'saveLiveDraft', leagueId, userId: this.userId }
+      );
+    }
+  }
+
+  async addLiveDraftPick(leagueId: LeagueId, draftId: string, pick: LiveDraftPick): Promise<void> {
+    try {
+      const draft = await this.loadLiveDraft(leagueId, draftId);
+      if (!draft) {
+        throw new Error(`Live draft ${draftId} not found in league ${leagueId}`);
+      }
+
+      draft.picks.push(pick);
+      draft.currentPickNumber = Math.max(draft.currentPickNumber, pick.pickNumber + 1);
+      await this.saveLiveDraft(leagueId, draft);
+    } catch (error) {
+      this.logError('addLiveDraftPick', error, { leagueId, userId: this.userId });
+      throw createStorageError(
+        'DATA_ERROR',
+        'Failed to add pick to live draft in IndexedDB',
+        error,
+        { operation: 'addLiveDraftPick', leagueId, userId: this.userId }
+      );
+    }
+  }
+
+  async updateLiveDraftPick(leagueId: LeagueId, draftId: string, pickNumber: number, updatedPick: LiveDraftPick): Promise<void> {
+    try {
+      const draft = await this.loadLiveDraft(leagueId, draftId);
+      if (!draft) {
+        throw new Error(`Live draft ${draftId} not found in league ${leagueId}`);
+      }
+
+      const pickIndex = draft.picks.findIndex(p => p.pickNumber === pickNumber);
+      if (pickIndex === -1) {
+        throw new Error(`Pick ${pickNumber} not found in draft ${draftId}`);
+      }
+
+      draft.picks[pickIndex] = updatedPick;
+      await this.saveLiveDraft(leagueId, draft);
+    } catch (error) {
+      this.logError('updateLiveDraftPick', error, { leagueId, userId: this.userId });
+      throw createStorageError(
+        'DATA_ERROR',
+        'Failed to update pick in live draft in IndexedDB',
+        error,
+        { operation: 'updateLiveDraftPick', leagueId, userId: this.userId }
+      );
+    }
+  }
+
+  async deleteLiveDraftPick(leagueId: LeagueId, draftId: string, pickNumber: number): Promise<void> {
+    try {
+      const draft = await this.loadLiveDraft(leagueId, draftId);
+      if (!draft) {
+        throw new Error(`Live draft ${draftId} not found in league ${leagueId}`);
+      }
+
+      const pickIndex = draft.picks.findIndex(p => p.pickNumber === pickNumber);
+      if (pickIndex === -1) {
+        throw new Error(`Pick ${pickNumber} not found in draft ${draftId}`);
+      }
+
+      draft.picks.splice(pickIndex, 1);
+      await this.saveLiveDraft(leagueId, draft);
+    } catch (error) {
+      this.logError('deleteLiveDraftPick', error, { leagueId, userId: this.userId });
+      throw createStorageError(
+        'DATA_ERROR',
+        'Failed to delete pick from live draft in IndexedDB',
+        error,
+        { operation: 'deleteLiveDraftPick', leagueId, userId: this.userId }
+      );
+    }
+  }
+
+  async deleteLiveDraft(leagueId: LeagueId, draftId: string): Promise<void> {
+    try {
+      if (!this.isClient) return;
+
+      // Get league
+      const league = await db.leagues
+        .where('userId')
+        .equals(this.userId)
+        .and(l => l.leagueId === leagueId)
+        .first();
+
+      if (!league || !league.id) return;
+
+      // Delete the live draft
+      await db.drafts
+        .where('leagueId')
+        .equals(league.id)
+        .and(d => d.userId === this.userId && d.name === draftId && d.draftType === 'live')
+        .delete();
+    } catch (error) {
+      this.logError('deleteLiveDraft', error, { leagueId, userId: this.userId });
+      throw createStorageError(
+        'DATA_ERROR',
+        'Failed to delete live draft from IndexedDB',
+        error,
+        { operation: 'deleteLiveDraft', leagueId, userId: this.userId }
+      );
     }
   }
 }

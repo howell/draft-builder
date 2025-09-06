@@ -29,23 +29,18 @@ import {
 } from '../transforms';
 
 import { encryptEspnAuth, decryptEspnAuth } from '../../encryption/utils';
+import { 
+  createLiveDraftErrorHandlingTests
+} from './test-utils/storage-test-patterns';
 
-// Check if local Supabase is available for integration tests
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const SUPABASE_AVAILABLE = SUPABASE_URL?.includes('localhost:54321') && SUPABASE_ANON_KEY;
 
 describe('SupabaseStorageAdapter', () => {
   let mockSupabase: any;
-  let realSupabase: any;
   let adapter: SupabaseStorageAdapter;
-  let realAdapter: SupabaseStorageAdapter;
   let consoleSpy: jest.SpyInstance;
 
   const mockUserId = 'test-user-123';
-  const realTestUserId = 'integration-test-user';
   const mockLeagueId = '12345';
-  const realTestLeagueId = 'integration-test-league';
 
   beforeEach(() => {
     // Mock Supabase client for unit tests
@@ -82,42 +77,12 @@ describe('SupabaseStorageAdapter', () => {
       retryConfig: { maxRetries: 2, backoffMs: 100 }
     });
 
-    // Create real Supabase client for integration tests
-    if (SUPABASE_AVAILABLE) {
-      realSupabase = createClient<Database>(SUPABASE_URL!, SUPABASE_ANON_KEY!);
-      realAdapter = new SupabaseStorageAdapter(realSupabase, realTestUserId, {
-        retryConfig: { maxRetries: 1, backoffMs: 50 }
-      });
-    }
-
     // Spy on console methods
     consoleSpy = jest.spyOn(console, 'error').mockImplementation();
     jest.spyOn(console, 'warn').mockImplementation();
 
     // Reset mocks
     jest.clearAllMocks();
-  });
-
-  beforeAll(() => {
-    if (!SUPABASE_AVAILABLE) {
-      console.warn('Skipping Supabase integration tests - local Supabase not available at localhost:54321');
-    }
-  });
-
-  afterEach(async () => {
-    // Clean up test data if using real Supabase
-    if (SUPABASE_AVAILABLE && realSupabase) {
-      try {
-        // Clean up test data in reverse dependency order
-        await realSupabase.from('cost_adjustments').delete().like('draft_session_id', '%');
-        await realSupabase.from('player_selections').delete().like('draft_session_id', '%');
-        await realSupabase.from('draft_settings').delete().like('draft_session_id', '%');
-        await realSupabase.from('draft_sessions').delete().eq('user_id', realTestUserId);
-        await realSupabase.from('leagues').delete().eq('user_id', realTestUserId);
-      } catch (error) {
-        // Ignore cleanup errors - they might be expected if tests failed
-      }
-    }
   });
 
   afterEach(() => {
@@ -610,138 +575,6 @@ describe('SupabaseStorageAdapter', () => {
     });
   });
 
-  // Integration tests with real Supabase (skipped for now until DB schema is set up)
-  describe.skip('saveSelectedRoster (Integration)', () => {
-    beforeEach(async () => {
-      if (!SUPABASE_AVAILABLE) return;
-      
-      // Set up a test league for roster operations
-      await realAdapter.saveLeague(realTestLeagueId, {
-        platform: 'sleeper',
-        id: realTestLeagueId
-      });
-    });
-
-    it('should save complete roster data to real database', async () => {
-      if (!SUPABASE_AVAILABLE) return;
-
-      const rosterSelections = { 
-        'QB1': { 
-          id: 'player-123', 
-          name: 'Josh Allen',
-          defaultPosition: 'QB',
-          positions: ['QB'],
-          overallRank: 5,
-          positionRank: 1,
-          estimatedCost: 45
-        } 
-      };
-      const costAdjustments = { 'player-123': 50 };
-      const estimationSettings = { years: ['2023'], weight: 0.7 };
-      const searchSettings = { 
-        positions: ['QB', 'RB'], 
-        playerCount: 50, 
-        minPrice: 1, 
-        maxPrice: 100, 
-        showOnlyAvailable: true 
-      };
-
-      // Save the roster
-      await realAdapter.saveSelectedRoster(
-        realTestLeagueId,
-        'Integration Test Roster',
-        rosterSelections as any,
-        costAdjustments,
-        estimationSettings as any,
-        searchSettings as any,
-        'Test notes'
-      );
-
-      // Verify it was saved by loading it back
-      const loadedMocks = await realAdapter.loadSavedMocks(realTestLeagueId);
-      expect(loadedMocks['Integration Test Roster']).toBeDefined();
-      
-      const savedRoster = loadedMocks['Integration Test Roster'];
-      expect(savedRoster.rosterSelections).toEqual(rosterSelections);
-      expect(savedRoster.costAdjustments).toEqual(costAdjustments);
-      expect(savedRoster.estimationSettings).toEqual(estimationSettings);
-      expect(savedRoster.searchSettings).toEqual(searchSettings);
-      expect(savedRoster.notes).toBe('Test notes');
-    });
-
-    it('should handle empty selections and adjustments', async () => {
-      if (!SUPABASE_AVAILABLE) return;
-
-      const emptySelections = {};
-      const emptyCostAdjustments = {};
-      const defaultEstimationSettings = { years: [], weight: 0.5 };
-      const defaultSearchSettings = { 
-        positions: [], 
-        playerCount: 50, 
-        minPrice: 0, 
-        maxPrice: 999, 
-        showOnlyAvailable: false 
-      };
-
-      // Save empty roster
-      await realAdapter.saveSelectedRoster(
-        realTestLeagueId,
-        'Empty Roster',
-        emptySelections as any,
-        emptyCostAdjustments,
-        defaultEstimationSettings as any,
-        defaultSearchSettings as any
-      );
-
-      // Verify it was saved correctly
-      const loadedMocks = await realAdapter.loadSavedMocks(realTestLeagueId);
-      expect(loadedMocks['Empty Roster']).toBeDefined();
-      
-      const savedRoster = loadedMocks['Empty Roster'];
-      expect(savedRoster.rosterSelections).toEqual({});
-      expect(savedRoster.costAdjustments).toEqual({});
-      expect(savedRoster.estimationSettings).toEqual(defaultEstimationSettings);
-      expect(savedRoster.searchSettings).toEqual(defaultSearchSettings);
-    });
-
-    it('should update existing roster data', async () => {
-      if (!SUPABASE_AVAILABLE) return;
-
-      const rosterName = 'Updatable Roster';
-      
-      // Save initial roster
-      await realAdapter.saveSelectedRoster(
-        realTestLeagueId,
-        rosterName,
-        { 'QB1': { id: 'player-1', name: 'Player 1', defaultPosition: 'QB', positions: ['QB'], overallRank: 1, positionRank: 1, estimatedCost: 30 } } as any,
-        { 'player-1': 35 },
-        { years: ['2023'], weight: 0.5 } as any,
-        { positions: ['QB'], playerCount: 25, minPrice: 1, maxPrice: 50, showOnlyAvailable: true } as any,
-        'Initial notes'
-      );
-
-      // Update the roster
-      await realAdapter.saveSelectedRoster(
-        realTestLeagueId,
-        rosterName,
-        { 'QB1': { id: 'player-2', name: 'Player 2', defaultPosition: 'QB', positions: ['QB'], overallRank: 2, positionRank: 1, estimatedCost: 40 } } as any,
-        { 'player-2': 45 },
-        { years: ['2023', '2024'], weight: 0.8 } as any,
-        { positions: ['QB', 'RB'], playerCount: 50, minPrice: 5, maxPrice: 100, showOnlyAvailable: false } as any,
-        'Updated notes'
-      );
-
-      // Verify the update
-      const loadedMocks = await realAdapter.loadSavedMocks(realTestLeagueId);
-      const updatedRoster = loadedMocks[rosterName];
-      
-      expect(updatedRoster?.rosterSelections['QB1']?.id).toBe('player-2');
-      expect(updatedRoster?.costAdjustments['player-2']).toBe(45);
-      expect(updatedRoster?.costAdjustments['player-1']).toBeUndefined(); // Old adjustment should be gone
-      expect(updatedRoster?.estimationSettings.weight).toBe(0.8);
-      expect(updatedRoster?.notes).toBe('Updated notes');
-    });
-  });
 
   describe('deleteRoster', () => {
     it('should delete roster successfully', async () => {
@@ -1052,5 +885,13 @@ describe('SupabaseStorageAdapter', () => {
 
       saveRosterSpy.mockRestore();
     });
+  });
+
+  describe('live draft operations', () => {
+    // Note: Mock-based tests removed due to complexity of mocking multi-table relationships
+    // Integration tests with real Supabase provide better coverage and reliability
+
+    // Note: Integration tests moved to supabase.integration.test.ts
+    // Run integration tests with: npm test -- supabase.integration
   });
 });

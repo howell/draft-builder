@@ -14,6 +14,7 @@ const config: Config = {
   // Automatically clear mock calls, instances, contexts and results before every test
   clearMocks: true,
 
+
   // Indicates whether the coverage information should be collected while executing the test
   collectCoverage: true,
 
@@ -34,10 +35,11 @@ const config: Config = {
   // The test environment that will be used for testing
   testEnvironment: "jsdom",
 
-  // Ignore test utility files and Playwright e2e tests
+  // Ignore test utility files, integration tests, and Playwright e2e tests
   testPathIgnorePatterns: [
     '<rootDir>/node_modules/',
     '<rootDir>/src/.*/__tests__/test-utils/',
+    '<rootDir>/src/.*\\.integration\\.test\\.(ts|tsx)$',
     '<rootDir>/e2e/'
   ],
 

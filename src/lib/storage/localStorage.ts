@@ -16,6 +16,7 @@ import {
   StoredData,
   StoredDataCurrent
 } from '@/types/storage';
+import { LiveDraftState, LiveDraftPick } from '@/app/storage/savedLiveDraftTypes';
 import { CURRENT_SEASON } from '@/constants';
 import { IN_PROGRESS_SELECTIONS_KEY, SAVED_LEAGUES_KEY } from './constants';
 import { migrateMocks, migrateLeagues } from './migrations';
@@ -370,5 +371,70 @@ export class LocalStorageAdapter implements StorageAdapter {
         { operation: 'clearAllData' }
       );
     }
+  }
+
+  // Live Draft Methods - Not implemented (localStorage is deprecated)
+
+  async loadLiveDrafts(leagueId: LeagueId): Promise<LiveDraftState[]> {
+    throw createStorageError(
+      'NOT_AVAILABLE_SSR',
+      'Live drafts not supported in deprecated localStorage adapter',
+      undefined,
+      { operation: 'loadLiveDrafts', leagueId }
+    );
+  }
+
+  async loadLiveDraft(leagueId: LeagueId, draftId: string): Promise<LiveDraftState | undefined> {
+    throw createStorageError(
+      'NOT_AVAILABLE_SSR',
+      'Live drafts not supported in deprecated localStorage adapter',
+      undefined,
+      { operation: 'loadLiveDraft', leagueId }
+    );
+  }
+
+  async saveLiveDraft(leagueId: LeagueId, draftState: LiveDraftState): Promise<void> {
+    throw createStorageError(
+      'NOT_AVAILABLE_SSR',
+      'Live drafts not supported in deprecated localStorage adapter',
+      undefined,
+      { operation: 'saveLiveDraft', leagueId }
+    );
+  }
+
+  async addLiveDraftPick(leagueId: LeagueId, draftId: string, pick: LiveDraftPick): Promise<void> {
+    throw createStorageError(
+      'NOT_AVAILABLE_SSR',
+      'Live drafts not supported in deprecated localStorage adapter',
+      undefined,
+      { operation: 'addLiveDraftPick', leagueId }
+    );
+  }
+
+  async updateLiveDraftPick(leagueId: LeagueId, draftId: string, pickNumber: number, updatedPick: LiveDraftPick): Promise<void> {
+    throw createStorageError(
+      'NOT_AVAILABLE_SSR',
+      'Live drafts not supported in deprecated localStorage adapter',
+      undefined,
+      { operation: 'updateLiveDraftPick', leagueId }
+    );
+  }
+
+  async deleteLiveDraftPick(leagueId: LeagueId, draftId: string, pickNumber: number): Promise<void> {
+    throw createStorageError(
+      'NOT_AVAILABLE_SSR',
+      'Live drafts not supported in deprecated localStorage adapter',
+      undefined,
+      { operation: 'deleteLiveDraftPick', leagueId }
+    );
+  }
+
+  async deleteLiveDraft(leagueId: LeagueId, draftId: string): Promise<void> {
+    throw createStorageError(
+      'NOT_AVAILABLE_SSR',
+      'Live drafts not supported in deprecated localStorage adapter',
+      undefined,
+      { operation: 'deleteLiveDraft', leagueId }
+    );
   }
 } 

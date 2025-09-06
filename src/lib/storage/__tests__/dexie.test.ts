@@ -10,6 +10,13 @@ import { DexieStorageAdapter } from '../dexie';
 import { dexieTestUtils } from './test-utils/dexie-test-utils';
 import { CURRENT_LEAGUES_SCHEMA_VERSION } from '@/types/storage';
 import type { PlatformLeague, EspnLeague } from '@/platforms/common';
+import { 
+  testLiveDraftStorageCRUD,
+  testLiveDraftDataIntegrity,
+  testLiveDraftConcurrency,
+  createLiveDraftErrorHandlingTests
+} from './test-utils/storage-test-patterns';
+import { createTestLiveDraftState, createTestLiveDraftPick } from './test-utils/storage-factories';
 
 describe('DexieStorageAdapter', () => {
   let adapter: DexieStorageAdapter;
@@ -376,5 +383,160 @@ describe('DexieStorageAdapter', () => {
       expect(Math.abs(loaded['Test Draft'].created - timestamp)).toBeLessThan(100);
       expect(Math.abs(loaded['Test Draft'].modified - timestamp)).toBeLessThan(100);
     });
+  });
+
+  describe('live draft operations', () => {
+    it('should perform all live draft CRUD operations correctly', async () => {
+      await testLiveDraftStorageCRUD(adapter);
+    });
+
+    it('should maintain data integrity across multiple drafts and picks', async () => {
+      await testLiveDraftDataIntegrity(adapter);
+    });
+
+    it('should handle concurrent pick operations', async () => {
+      await testLiveDraftConcurrency(adapter);
+    });
+
+    it('should handle live draft operations with user isolation', async () => {
+      const user1Adapter = new DexieStorageAdapter('user1');
+      const user2Adapter = new DexieStorageAdapter('user2');
+      const testLeagueId = 'isolation-test';
+      
+      // Set up leagues for both users
+      const league = { platform: 'sleeper' as const, id: testLeagueId };
+      await user1Adapter.saveLeague(testLeagueId, league);
+      await user2Adapter.saveLeague(testLeagueId, league);
+      
+      // Create drafts for each user
+      const user1Draft = createTestLiveDraftState({ 
+        leagueId: testLeagueId,
+        draftName: 'User 1 Draft'
+      });
+      const user2Draft = createTestLiveDraftState({ 
+        leagueId: testLeagueId,
+        draftName: 'User 2 Draft'
+      });
+      
+      await user1Adapter.saveLiveDraft(testLeagueId, user1Draft);
+      await user2Adapter.saveLiveDraft(testLeagueId, user2Draft);
+      
+      // Verify drafts are isolated
+      const user1Drafts = await user1Adapter.loadLiveDrafts(testLeagueId);
+      const user2Drafts = await user2Adapter.loadLiveDrafts(testLeagueId);
+      
+      expect(user1Drafts).toHaveLength(1);
+      expect(user2Drafts).toHaveLength(1);
+      expect(user1Drafts[0].draftName).toBe('User 1 Draft');
+      expect(user2Drafts[0].draftName).toBe('User 2 Draft');
+      
+      // Add picks and verify they don't cross-contaminate
+      const user1Pick = createTestLiveDraftPick({ 
+        pickNumber: 1, 
+        player: { ...createTestLiveDraftPick().player, id: 'user1-player', name: 'User 1 Player' }
+      });
+      const user2Pick = createTestLiveDraftPick({ 
+        pickNumber: 1, 
+        player: { ...createTestLiveDraftPick().player, id: 'user2-player', name: 'User 2 Player' }
+      });
+      
+      await user1Adapter.addLiveDraftPick(testLeagueId, user1Draft.draftId, user1Pick);
+      await user2Adapter.addLiveDraftPick(testLeagueId, user2Draft.draftId, user2Pick);
+      
+      const user1UpdatedDraft = await user1Adapter.loadLiveDraft(testLeagueId, user1Draft.draftId);
+      const user2UpdatedDraft = await user2Adapter.loadLiveDraft(testLeagueId, user2Draft.draftId);
+      
+      // Verify correct picks are in correct drafts
+      expect(user1UpdatedDraft!.picks).toHaveLength(user1Draft.picks.length + 1);
+      expect(user2UpdatedDraft!.picks).toHaveLength(user2Draft.picks.length + 1);
+      
+      // Check picks by unique identifier rather than object equality
+      const user1HasUser1Pick = user1UpdatedDraft!.picks.some(p => p.player.id === 'user1-player');
+      const user1HasUser2Pick = user1UpdatedDraft!.picks.some(p => p.player.id === 'user2-player');
+      const user2HasUser2Pick = user2UpdatedDraft!.picks.some(p => p.player.id === 'user2-player');
+      const user2HasUser1Pick = user2UpdatedDraft!.picks.some(p => p.player.id === 'user1-player');
+      
+      expect(user1HasUser1Pick).toBe(true);
+      expect(user1HasUser2Pick).toBe(false);
+      expect(user2HasUser2Pick).toBe(true);
+      expect(user2HasUser1Pick).toBe(false);
+    });
+
+    it('should handle edge cases with empty drafts and non-existent records', async () => {
+      const testLeagueId = 'edge-case-test';
+      const league = { platform: 'sleeper' as const, id: testLeagueId };
+      await adapter.saveLeague(testLeagueId, league);
+      
+      // Test loading non-existent draft
+      const nonExistentDraft = await adapter.loadLiveDraft(testLeagueId, 'does-not-exist');
+      expect(nonExistentDraft).toBeUndefined();
+      
+      // Test loading drafts from league with no drafts
+      const noDrafts = await adapter.loadLiveDrafts(testLeagueId);
+      expect(noDrafts).toEqual([]);
+      
+      // Test operations on draft with no picks
+      const emptyDraft = createTestLiveDraftState({ 
+        leagueId: testLeagueId,
+        picks: []
+      });
+      
+      await adapter.saveLiveDraft(testLeagueId, emptyDraft);
+      const loadedEmptyDraft = await adapter.loadLiveDraft(testLeagueId, emptyDraft.draftId);
+      
+      expect(loadedEmptyDraft).toEqual(emptyDraft);
+      expect(loadedEmptyDraft!.picks).toHaveLength(0);
+    });
+
+    it('should maintain pick order consistency', async () => {
+      const testLeagueId = 'pick-order-test';
+      const league = { platform: 'sleeper' as const, id: testLeagueId };
+      await adapter.saveLeague(testLeagueId, league);
+      
+      const draft = createTestLiveDraftState({ 
+        leagueId: testLeagueId,
+        picks: []
+      });
+      await adapter.saveLiveDraft(testLeagueId, draft);
+      
+      // Add picks in non-sequential order
+      const picks = [
+        createTestLiveDraftPick({ pickNumber: 5 }),
+        createTestLiveDraftPick({ pickNumber: 1 }),
+        createTestLiveDraftPick({ pickNumber: 3 }),
+        createTestLiveDraftPick({ pickNumber: 2 }),
+        createTestLiveDraftPick({ pickNumber: 4 })
+      ];
+      
+      for (const pick of picks) {
+        await adapter.addLiveDraftPick(testLeagueId, draft.draftId, pick);
+      }
+      
+      const draftWithPicks = await adapter.loadLiveDraft(testLeagueId, draft.draftId);
+      expect(draftWithPicks!.picks).toHaveLength(5);
+      
+      // Verify all picks are present regardless of insertion order
+      for (let i = 1; i <= 5; i++) {
+        const pick = draftWithPicks!.picks.find(p => p.pickNumber === i);
+        expect(pick).toBeDefined();
+        expect(pick!.pickNumber).toBe(i);
+      }
+    });
+
+    describe('error handling', createLiveDraftErrorHandlingTests(() => {
+      // Create an adapter that will fail for all operations
+      const failingAdapter = new DexieStorageAdapter('failing-user');
+      
+      // Mock all live draft methods to throw errors
+      jest.spyOn(failingAdapter, 'loadLiveDrafts').mockRejectedValue(new Error('Database error'));
+      jest.spyOn(failingAdapter, 'loadLiveDraft').mockRejectedValue(new Error('Database error'));
+      jest.spyOn(failingAdapter, 'saveLiveDraft').mockRejectedValue(new Error('Database error'));
+      jest.spyOn(failingAdapter, 'addLiveDraftPick').mockRejectedValue(new Error('Database error'));
+      jest.spyOn(failingAdapter, 'updateLiveDraftPick').mockRejectedValue(new Error('Database error'));
+      jest.spyOn(failingAdapter, 'deleteLiveDraftPick').mockRejectedValue(new Error('Database error'));
+      jest.spyOn(failingAdapter, 'deleteLiveDraft').mockRejectedValue(new Error('Database error'));
+      
+      return failingAdapter;
+    }));
   });
 });

@@ -1,10 +1,17 @@
+/**
+ * Jest setup for integration tests
+ * 
+ * This setup file is specifically for integration tests that need real dependencies.
+ * It includes necessary polyfills but DOES NOT mock external services like Supabase.
+ */
+
 import '@testing-library/jest-dom/matchers';
 import '@testing-library/jest-dom';
 
 // Web API polyfills for Next.js API routes
 import 'whatwg-fetch'; // Provides proper fetch, Request, Response, Headers
 
-// IndexedDB polyfill for testing Dexie
+// IndexedDB polyfill for testing Dexie (integration tests might still use Dexie as fallback)
 import 'fake-indexeddb/auto';
 
 // Mock window object for client-side checks in tests
@@ -75,9 +82,6 @@ global.performance = {
   getEntries: jest.fn(),
 } as any;
 
-// Mock fetch for webhook tests
-global.fetch = jest.fn();
-
 // Mock crypto.randomUUID for consistent test IDs
 global.crypto = {
   randomUUID: jest.fn(() => 'test-uuid-12345'),
@@ -91,37 +95,4 @@ if (typeof global.setImmediate === 'undefined') {
   }) as any;
 }
 
-// Mock Supabase modules to avoid ES module issues
-jest.mock('@supabase/supabase-js', () => ({
-  createClient: jest.fn(() => ({
-    from: jest.fn(),
-    auth: { getSession: jest.fn() },
-    storage: {}
-  }))
-}));
-
-jest.mock('@supabase/ssr', () => ({
-  createBrowserClient: jest.fn(),
-  createServerClient: jest.fn()
-}));
-
-// Suppress console logs in tests unless explicitly testing them
-// const originalConsole = { ...console };
-// beforeEach(() => {
-//   jest.spyOn(console, 'log').mockImplementation(() => {});
-//   jest.spyOn(console, 'warn').mockImplementation(() => {});
-//   jest.spyOn(console, 'error').mockImplementation(() => {});
-// });
-
-// afterEach(() => {
-//   // Restore console if not explicitly mocked in test
-//   if (!jest.isMockFunction(console.log)) {
-//     console.log = originalConsole.log;
-//   }
-//   if (!jest.isMockFunction(console.warn)) {
-//     console.warn = originalConsole.warn;
-//   }
-//   if (!jest.isMockFunction(console.error)) {
-//     console.error = originalConsole.error;
-//   }
-// });
+// NOTE: We DO NOT mock Supabase modules here - integration tests need real Supabase clients

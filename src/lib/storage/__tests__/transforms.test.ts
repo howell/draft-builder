@@ -210,6 +210,7 @@ describe('Data Transformation Functions', () => {
         name: 'Test Draft',
         year: '2023',
         notes: 'Test notes',
+        draft_type: 'mock',
         created_at: '2023-01-01T00:00:00Z',
         updated_at: '2023-01-01T00:00:00Z'
       }];
@@ -245,7 +246,7 @@ describe('Data Transformation Functions', () => {
       const costAdjustments: DatabaseCostAdjustment[] = [{
         id: 'adjustment-1',
         draft_session_id: 'session-1',
-        roster_position: 'QB1', // Should match the player selection roster_position  
+        roster_position: 'QB1',
         player_id: 'player-123',
         adjusted_cost: 50,
         created_at: '2023-01-01T00:00:00Z',
@@ -302,6 +303,7 @@ describe('Data Transformation Functions', () => {
         name: 'Test Draft',
         year: '2023',
         notes: 'Test notes',
+        draft_type: 'mock',
         created_at: '2023-01-01T00:00:00Z',
         updated_at: '2023-01-01T00:00:00Z'
       }];
@@ -338,6 +340,7 @@ describe('Data Transformation Functions', () => {
         name: 'Test Draft',
         year: '2023',
         notes: null,
+        draft_type: 'mock',
         created_at: '2023-01-01T00:00:00Z',
         updated_at: '2023-01-01T00:00:00Z'
       }];
@@ -381,6 +384,7 @@ describe('Data Transformation Functions', () => {
           name: 'Draft 1',
           year: '2023',
           notes: 'First draft',
+          draft_type: 'mock',
           created_at: '2023-01-01T00:00:00Z',
           updated_at: '2023-01-01T00:00:00Z'
         },
@@ -391,6 +395,7 @@ describe('Data Transformation Functions', () => {
           name: 'Draft 2',
           year: '2023',
           notes: 'Second draft',
+          draft_type: 'mock',
           created_at: '2023-01-02T00:00:00Z',
           updated_at: '2023-01-02T00:00:00Z'
         }
@@ -413,6 +418,7 @@ describe('Data Transformation Functions', () => {
         name: 'Test Draft',
         year: '2023',
         notes: 'Test notes',
+        draft_type: 'mock',
         created_at: '2023-01-01T00:00:00Z',
         updated_at: '2023-01-01T00:00:00Z'
       }];
@@ -501,7 +507,8 @@ describe('Data Transformation Functions', () => {
         league_id: 'league-db-id',
         name: 'Test Roster',
         year: '2023',
-        notes: 'Test draft notes'
+        notes: 'Test draft notes',
+        draft_type: 'mock'
       });
 
       expect(result.settings).toEqual({
