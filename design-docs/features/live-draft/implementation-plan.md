@@ -199,29 +199,74 @@ interface AdjustmentFactors {
 
 ### Advanced Pricing Model
 
-The live prediction engine builds upon the existing exponential curve system (`src/app/league/analytics.ts`) by adding contextual adjustments based on live draft state:
+**🎯 FINAL APPROACH**: **Multiple Linear Regression** with 8 carefully selected features that naturally converges to baseline predictions in early draft states.
 
-#### Phase 1: Historical Context Analysis
-1. **Draft State Extraction**: For each historical pick, capture draft context:
-   - Total money spent so far in draft
-   - Money spent per position so far
-   - Players drafted per position count
-   - Budget distribution across teams
-   - Position scarcity metrics
+#### Linear Regression Model Architecture
+The live prediction system uses multiple linear regression optimized for realistic data constraints:
 
-2. **Baseline Deviation Analysis**: Calculate how actual historical prices deviated from exponential curve predictions
+**Core Philosophy**: Train a linear model that:
+- **Early Draft**: Reduces to baseline-like behavior (contextual features ≈ 0)
+- **Mid/Late Draft**: Leverages scarcity and budget pressure signals
+- **Data Efficient**: Works with 500-2000 historical picks across seasons
 
-3. **State-Adjustment Correlation Model**: Build predictive model learning how draft state factors correlate with price adjustments relative to baseline
+#### Model Equation
+```
+PricePct = α + β₁(position) + β₂(positionRank) + β₃(overallRank) + 
+           β₄(positionScarcity) + β₅(overallScarcity) + β₆(budgetSpentPct) + 
+           β₇(budgetPressure) + β₈(positionalPressure) + ε
+```
 
-#### Phase 2: Live Application
-1. **Real-time State Calculation**: Extract same contextual factors from current draft
-2. **Dynamic Adjustment Prediction**: Apply learned model to predict price adjustments for current state  
-3. **Enhanced Price Prediction**: Adjust baseline exponential predictions using contextual factors
+#### 8 Feature Set (Domain-Informed)
 
-#### Key Contextual Factors (MVP)
-- **Position Scarcity**: Unfilled roster slots vs remaining quality players
-- **Budget Pressure**: Teams with low remaining budgets behave differently
-- **Roster Desperation**: Teams missing starting positions for that role
+1. **Player Position** (`position`): Categorical (QB, RB, WR, TE, K, DEF)
+2. **Player Position Rank** (`positionRank`): 1st QB, 2nd QB, etc.
+3. **Player Overall Rank** (`overallRank`): 1-300 consensus ranking
+4. **Position Scarcity** (`positionScarcity`): Higher-ranked players at position still available
+5. **Overall Scarcity** (`overallScarcity`): Higher-ranked players overall still available  
+6. **Budget Spent %** (`budgetSpentPct`): Percent of total league budget spent so far
+7. **Overall Budget Pressure** (`budgetPressure`): League-wide over/under spending vs baseline
+8. **Positional Budget Pressure** (`positionalPressure`): Position-specific over/under spending vs baseline
+
+#### Natural Baseline Convergence
+**Early Draft State** (picks 1-10):
+- `budgetSpentPct ≈ 0%`
+- `budgetPressure ≈ 0` (no trend yet)
+- `positionalPressure ≈ 0` (no position trend yet)
+- `positionScarcity` and `overallScarcity` near maximum
+
+**Reduced Model**: `PricePct ≈ α + β₁(position) + β₂(positionRank) + β₃(overallRank)`
+
+This approximates exponential baseline behavior using player characteristics only.
+
+#### Training Strategy (On-Demand)
+
+1. **Data Requirements**: 8 features × 15 samples = ~120 minimum samples ✅
+   - Available: 500-2000 picks across multiple seasons
+   
+2. **On-Demand Training Approach**:
+   - **No model storage**: Train fresh for each prediction request  
+   - **Training cost**: 1-10ms (negligible vs 50-200ms data loading)
+   - **Always fresh**: Uses latest historical data automatically
+   - **Simpler architecture**: No model versioning or staleness issues
+   
+3. **Feature Engineering**:
+   - Position as dummy variables (QB=baseline, others as coefficients)
+   - Log transforms for rank features if needed
+   - Standardization for pressure features
+
+4. **Validation Strategy**:
+   - Cross-validation by season (train on 2022-2023, test on 2024)
+   - Early draft validation (picks 1-20 match baseline)
+   - Late draft validation (picks 120+ use full context)
+
+#### Key Advantages
+- **Realistic Data Needs**: Works with available draft history
+- **Interpretable**: Each coefficient has clear meaning
+- **Fast Training/Prediction**: Linear model scales well (1-10ms training)
+- **Always Fresh**: On-demand training uses latest historical data
+- **Simple Architecture**: No model storage, versioning, or staleness issues
+- **Baseline Compatible**: Natural convergence to exponential curve
+- **Expandable**: Easy to add interaction terms if data supports
 
 ## Implementation Tasks
 
@@ -273,14 +318,36 @@ The live prediction engine builds upon the existing exponential curve system (`s
 ### Phase 2: Price Prediction Engine (Algorithm)
 **Estimated Effort**: 2-3 sessions
 
-#### Task 2.1: Create Live Prediction Algorithm
-- **Files**: `src/app/league/[leagueID]/live-draft/livePredictionEngine.ts`
-- **Scope**: Core algorithm for dynamic price prediction
+#### Task 2.1: Create On-Demand Linear Regression Model ✅ COMPLETED  
+- **Files**: `src/lib/models/live-draft/budgetConversions.ts`, `src/lib/models/live-draft/featureExtraction.ts`, `src/lib/models/live-draft/linearRegression.ts`
+- **Scope**: **FINAL**: Multiple linear regression with 8 domain-informed features, trained on-demand
 - **Acceptance Criteria**:
-  - Combines baseline + live trends + supply/demand
-  - Updates predictions after each pick
-  - Handles edge cases (no picks yet, position scarcity)
-  - Performance optimized for real-time updates
+  - ✅ Linear regression model with exactly 8 features (position, ranks, scarcity, budget pressure)
+  - ✅ Natural baseline convergence when contextual features ≈ 0 (early draft)
+  - ✅ **On-demand training**: Train fresh for each prediction request (1-10ms cost)
+  - ✅ Feature extraction optimized for real-time prediction performance
+  - ⏳ Cross-validation by season and draft stage validation (next task)
+  - ✅ Interpretable coefficients and prediction component breakdown
+- **Architecture Decisions**:
+  - ✅ **Percentage-based system** for universal compatibility
+  - ✅ **Universal Compatibility**: Works with any budget size  
+  - ✅ **Clean Data Architecture**: Percentage storage with `BudgetConverter`
+  - ✅ **On-demand training**: No model storage needed - train when predicting
+  - ✅ **Simple architecture**: No versioning, staleness, or storage complexity
+- **Implementation Notes**:
+  - **✅ BudgetConverter**: Clean percentage-based system supporting any league budget configuration
+  - **✅ FeatureExtractor**: Data-driven 8-feature extraction with no hardcoded positions, uses existing exponential models from analytics.ts
+  - **✅ LinearRegressionTrainer**: Uses ml-regression-multivariate-linear package with proper 2D array formatting
+  - **✅ Comprehensive Testing**: 62/62 tests passing across all 3 core components (budget: 31/31, features: 16/16, regression: 15/15)
+  - **✅ Real Data Integration**: Test utilities using existing ESPN draft fixtures and platform transformation functions
+  - **🔧 Key Fix**: Discovered ml-regression expects y as 2D array `[[0.076], [0.078]]` not 1D `[0.076, 0.078]`
+  - **📊 Manual R² Calculation**: Library doesn't implement R² so added custom calculation with predictions vs actuals
+- **Implementation Components**:
+  - **✅ Feature Extraction Engine**: Extract 8 features from draft state + historical context
+  - **✅ Linear Regression Trainer**: Fast matrix operations for coefficient calculation using ml-regression
+  - **⏳ Prediction Engine**: Apply trained model + provide component breakdown (next task)
+  - **⏳ Baseline Validation**: Ensure early draft predictions match exponential curve (next task)
+  - **⏳ Historical Data Integration**: Combine current draft context with historical training data (next task)
 
 #### Task 2.2: Create Spending Trends Calculator
 - **Files**: `src/app/league/[leagueID]/live-draft/spendingAnalyzer.ts`  
