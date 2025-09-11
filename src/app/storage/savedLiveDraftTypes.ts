@@ -78,8 +78,6 @@ export interface LivePricePrediction extends CostEstimatedPlayer {
 export interface SpendingTrends {
     positionSpending: Record<string, PositionSpending>;
     overallInflation: number;
-    premiumPositionInflation: number;
-    utilityPositionInflation: number;
 }
 
 export interface PositionSpending {

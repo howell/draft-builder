@@ -354,14 +354,21 @@ This approximates exponential baseline behavior using player characteristics onl
   - **✅ Graceful Degradation**: Baseline predictions always available as fallback option
   - **✅ Clean API**: `getBaselinePrediction()` and `getLivePrediction()` with separate training via `trainModel()`
 
-#### Task 2.2: Create Spending Trends Calculator
+#### Task 2.2: Create Spending Trends Calculator ✅ COMPLETED
 - **Files**: `src/app/league/[leagueID]/live-draft/spendingAnalyzer.ts`  
 - **Scope**: Analyze current draft for spending patterns
 - **Acceptance Criteria**:
-  - Position-by-position trend analysis
-  - Premium vs utility position inflation tracking
-  - Inflation rates vs baseline predictions
-  - Roster need calculations
+  - ✅ Position-by-position trend analysis
+  - ✅ Inflation rates vs baseline predictions  
+  - ✅ Roster need calculations
+  - ✅ Budget status analysis across teams
+- **Implementation Notes**:
+  - Simplified design per user feedback - removed hardcoded position classifications ("premium" vs "utility")
+  - Focus on providing spending information by position without assumptions about position importance
+  - Uses `defaultPosition` from RankedPlayer type for position analysis
+  - Includes both `analyzeSpendingTrends()` and `analyzeRosterNeeds()` functions
+  - Provides inflation calculations vs baseline predictions
+  - Includes budget status tracking with teams in trouble identification
 
 #### Task 2.3: Create Live Draft Hook
 - **Files**: `src/app/league/[leagueID]/live-draft/useLiveDraft.ts`
