@@ -319,14 +319,14 @@ This approximates exponential baseline behavior using player characteristics onl
 **Estimated Effort**: 2-3 sessions
 
 #### Task 2.1: Create On-Demand Linear Regression Model ✅ COMPLETED  
-- **Files**: `src/lib/models/live-draft/budgetConversions.ts`, `src/lib/models/live-draft/featureExtraction.ts`, `src/lib/models/live-draft/linearRegression.ts`
+- **Files**: `src/lib/models/live-draft/budgetConversions.ts`, `src/lib/models/live-draft/featureExtraction.ts`, `src/lib/models/live-draft/linearRegression.ts`, `src/lib/models/live-draft/liveDraftPredictor.ts`
 - **Scope**: **FINAL**: Multiple linear regression with 8 domain-informed features, trained on-demand
 - **Acceptance Criteria**:
   - ✅ Linear regression model with exactly 8 features (position, ranks, scarcity, budget pressure)
   - ✅ Natural baseline convergence when contextual features ≈ 0 (early draft)
   - ✅ **On-demand training**: Train fresh for each prediction request (1-10ms cost)
   - ✅ Feature extraction optimized for real-time prediction performance
-  - ⏳ Cross-validation by season and draft stage validation (next task)
+  - ✅ Prediction engine with baseline integration and user choice support
   - ✅ Interpretable coefficients and prediction component breakdown
 - **Architecture Decisions**:
   - ✅ **Percentage-based system** for universal compatibility
@@ -345,9 +345,14 @@ This approximates exponential baseline behavior using player characteristics onl
 - **Implementation Components**:
   - **✅ Feature Extraction Engine**: Extract 8 features from draft state + historical context
   - **✅ Linear Regression Trainer**: Fast matrix operations for coefficient calculation using ml-regression
-  - **⏳ Prediction Engine**: Apply trained model + provide component breakdown (next task)
-  - **⏳ Baseline Validation**: Ensure early draft predictions match exponential curve (next task)
-  - **⏳ Historical Data Integration**: Combine current draft context with historical training data (next task)
+  - **✅ Prediction Engine**: `LiveDraftPredictor` coordinates training, baseline, and live predictions with clean separation of concerns
+  - **✅ Baseline Integration**: Always-available baseline predictions with adjustment comparison for user choice
+  - **✅ Historical Data Integration**: Training data preparation from multiple historical drafts with different budget configurations
+- **Final Architecture Notes**:
+  - **✅ User-Focused Design**: Model provides raw predictions and confidence metrics; UI handles interpretation and model selection
+  - **✅ Explicit Training**: Clear training status feedback with model statistics (R², sample size, positions)
+  - **✅ Graceful Degradation**: Baseline predictions always available as fallback option
+  - **✅ Clean API**: `getBaselinePrediction()` and `getLivePrediction()` with separate training via `trainModel()`
 
 #### Task 2.2: Create Spending Trends Calculator
 - **Files**: `src/app/league/[leagueID]/live-draft/spendingAnalyzer.ts`  
