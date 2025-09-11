@@ -7,7 +7,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import LoadingScreen from "@/ui/LoadingScreen";
 import ErrorScreen from "@/ui/ErrorScreen";
 import { CURRENT_SEASON } from "@/constants";
-import { findBestRegression } from "../../analytics";
+import { createBaselineModels, BaselineDraftPick } from "../../analytics";
 import { LeagueId, Platform, PlatformLeague, SeasonId } from "@/platforms/common";
 import RankingsClient from "@/rankings/RankingsClient";
 import { useAuth } from '@/lib/auth/context';
@@ -204,21 +204,22 @@ function rankByPlatformPrice(platform: Platform, players: Player[], scoringType:
 }
 
 function analyzeDraft(draftedPlayers: DraftedPlayer[]): DraftAnalysis {
-    const sortedPicks = draftedPlayers.sort((a, b) => b.price - a.price);
-    const data = sortedPicks.map((pick, index) => [index, pick.price] as [number, number]);
-    const overall = findBestRegression(data).equation as [number, number];
-    const positions = new Map<string, ExponentialCoefficients>();
+    // Convert to BaselineDraftPick format and use shared utility
+    const picks: BaselineDraftPick[] = draftedPlayers.map(player => ({
+        price: player.price,
+        position: player.position
+    }));
 
-    for (const pick of sortedPicks) {
-        const position = pick.position;
-        if (!positions.has(position)) {
-            const positionData = sortedPicks
-                .filter(p => p.position === position)
-                .map((p, index) => [index, p.price] as [number, number]);
-            const positionRegression = findBestRegression(positionData);
-            positions.set(position, positionRegression.equation as [number, number]);
-        }
+    const baselineModels = createBaselineModels(picks);
+    
+    // Convert back to legacy DraftAnalysis format for compatibility
+    const overall = baselineModels.overall.equation as [number, number];
+    const positions = new Map<string, ExponentialCoefficients>();
+    
+    for (const [position, model] of Object.entries(baselineModels.positions)) {
+        positions.set(position, model.equation as [number, number]);
     }
+
     return {
         overall,
         positions
