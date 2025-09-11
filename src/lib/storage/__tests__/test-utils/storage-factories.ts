@@ -344,11 +344,11 @@ export function createTestBudgetDistribution(overrides: Partial<BudgetDistributi
   const sorted = [...budgets].sort((a, b) => a - b);
   
   return {
-    averageRemaining: budgets.reduce((sum, b) => sum + b, 0) / budgets.length,
-    medianRemaining: sorted[Math.floor(sorted.length / 2)],
-    minRemaining: Math.min(...budgets),
-    maxRemaining: Math.max(...budgets),
-    teamsWithLowBudget: budgets.filter(b => b < 20).length,
+    averageRemainingPct: budgets.reduce((sum, b) => sum + b, 0) / budgets.length / 200, // Convert to percentage
+    medianRemainingPct: sorted[Math.floor(sorted.length / 2)] / 200,
+    minRemainingPct: Math.min(...budgets) / 200,
+    maxRemainingPct: Math.max(...budgets) / 200,
+    teamsWithLowBudgetPct: budgets.filter(b => b < 20).length / 12, // Percentage of teams
     ...overrides
   };
 }
@@ -382,15 +382,15 @@ export function createTestDraftStateSnapshot(overrides: Partial<DraftStateSnapsh
   const positionScarcity: Record<string, PositionScarcity> = {};
   
   positions.forEach(pos => {
-    positionSpending[pos] = faker.number.int({ min: 0, max: 500 });
+    positionSpending[pos] = faker.number.float({ min: 0, max: 0.3 }); // 0-30% of total budget spent per position
     positionCounts[pos] = faker.number.int({ min: 0, max: 12 });
     positionScarcity[pos] = createTestPositionScarcity(pos);
   });
   
   return {
     pickNumber: faker.number.int({ min: 1, max: 200 }),
-    totalMoneySpent: faker.number.int({ min: 0, max: 3000 }),
-    moneySpentByPosition: positionSpending,
+    totalBudgetSpentPct: faker.number.float({ min: 0, max: 1 }), // 0-100% of budget spent
+    budgetSpentByPositionPct: positionSpending, // Already initialized above
     playersPickedByPosition: positionCounts,
     budgetDistribution: createTestBudgetDistribution(),
     positionScarcityMetrics: positionScarcity,

@@ -163,7 +163,7 @@ export class LinearRegressionTrainer {
      * Extract and structure coefficients from trained model
      */
     private extractCoefficients(regression: MultivariateLinearRegression): ModelCoefficients {
-        const coeffs = regression.weights.map(w => Array.isArray(w) ? w[0] : w); // Extract scalars from 2D weights
+        const coeffs = regression.weights.map((w: number | number[]) => Array.isArray(w) ? w[0] : w); // Extract scalars from 2D weights
         let index = 0;
         
         // Position coefficients (first position is reference category, coefficient = 0)

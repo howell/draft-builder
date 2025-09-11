@@ -88,9 +88,9 @@ describe('FeatureExtractor', () => {
         it('should calculate overall scarcity correctly', () => {
             // Create context with higher overall ranked players drafted
             const context = createMockContext([
-                { player: { overallRank: 1 }, price: 90 },
-                { player: { overallRank: 5 }, price: 70 },
-                { player: { overallRank: 10 }, price: 60 }
+                { player: { defaultPosition: 'RB', positionRank: 1, overallRank: 1 }, price: 90 },
+                { player: { defaultPosition: 'WR', positionRank: 2, overallRank: 5 }, price: 70 },
+                { player: { defaultPosition: 'RB', positionRank: 3, overallRank: 10 }, price: 60 }
             ]);
 
             const features = extractor.extractFeatures(mockPlayer, context);

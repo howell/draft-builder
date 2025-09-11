@@ -797,15 +797,15 @@ export class SupabaseStorageAdapter implements StorageAdapter {
             settings: draft.settings ? JSON.parse(draft.settings as string) : {},
             stateSnapshot: {
               pickNumber: draft.current_pick_number || 1,
-              totalMoneySpent: picks.reduce((sum, pick) => sum + pick.price, 0),
-              moneySpentByPosition: {},
+              totalBudgetSpentPct: this.calculateTotalBudgetSpentPct(picks, teams),
+              budgetSpentByPositionPct: {},
               playersPickedByPosition: {},
               budgetDistribution: {
-                averageRemaining: teams.reduce((sum, team) => sum + team.remainingBudget, 0) / teams.length,
-                medianRemaining: 0,
-                minRemaining: Math.min(...teams.map(t => t.remainingBudget)),
-                maxRemaining: Math.max(...teams.map(t => t.remainingBudget)),
-                teamsWithLowBudget: 0
+                averageRemainingPct: this.calculateAverageRemainingPct(teams),
+                medianRemainingPct: 0,
+                minRemainingPct: this.calculateMinRemainingPct(teams),
+                maxRemainingPct: this.calculateMaxRemainingPct(teams),
+                teamsWithLowBudgetPct: 0
               },
               positionScarcityMetrics: {}
             }
@@ -1070,5 +1070,33 @@ export class SupabaseStorageAdapter implements StorageAdapter {
         }
       }
     );
+  }
+
+  // Helper methods for percentage calculations
+  private calculateTotalBudgetSpentPct(picks: any[], teams: any[]): number {
+    const totalSpent = picks.reduce((sum, pick) => sum + pick.price, 0);
+    const totalLeagueBudget = teams.reduce((sum, team) => sum + (team.budget || 200), 0);
+    return totalLeagueBudget > 0 ? totalSpent / totalLeagueBudget : 0;
+  }
+
+  private calculateAverageRemainingPct(teams: any[]): number {
+    if (teams.length === 0) return 0;
+    const totalRemaining = teams.reduce((sum, team) => sum + (team.remainingBudget || 0), 0);
+    const totalOriginalBudget = teams.reduce((sum, team) => sum + (team.budget || 200), 0);
+    return totalOriginalBudget > 0 ? totalRemaining / totalOriginalBudget : 0;
+  }
+
+  private calculateMinRemainingPct(teams: any[]): number {
+    if (teams.length === 0) return 0;
+    const minRemaining = Math.min(...teams.map(t => t.remainingBudget || 0));
+    const avgBudget = teams.reduce((sum, team) => sum + (team.budget || 200), 0) / teams.length;
+    return avgBudget > 0 ? minRemaining / avgBudget : 0;
+  }
+
+  private calculateMaxRemainingPct(teams: any[]): number {
+    if (teams.length === 0) return 0;
+    const maxRemaining = Math.max(...teams.map(t => t.remainingBudget || 0));
+    const avgBudget = teams.reduce((sum, team) => sum + (team.budget || 200), 0) / teams.length;
+    return avgBudget > 0 ? maxRemaining / avgBudget : 0;
   }
 }

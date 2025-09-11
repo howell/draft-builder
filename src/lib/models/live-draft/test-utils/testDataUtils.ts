@@ -39,7 +39,8 @@ export function loadEspn2024DraftData(): DraftDetail {
     try {
         return importEspnDraftDetail(fixture.data);
     } catch (error) {
-        throw new Error(`Failed to transform ESPN draft data: ${error.message}`);
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        throw new Error(`Failed to transform ESPN draft data: ${message}`);
     }
 }
 

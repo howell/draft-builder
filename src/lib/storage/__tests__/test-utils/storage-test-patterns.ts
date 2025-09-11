@@ -76,15 +76,15 @@ function normalizeLiveDraftForStorage(draft: LiveDraftState): LiveDraftState {
     // stateSnapshot varies by adapter - use flexible matchers
     stateSnapshot: {
       pickNumber: expect.any(Number),
-      totalMoneySpent: expect.any(Number),
-      moneySpentByPosition: expect.any(Object), // May be empty (Supabase) or populated (Dexie)
+      totalBudgetSpentPct: expect.any(Number),
+      budgetSpentByPositionPct: expect.any(Object), // May be empty (Supabase) or populated (Dexie)
       playersPickedByPosition: expect.any(Object), // May be empty (Supabase) or populated (Dexie)
       budgetDistribution: {
-        averageRemaining: expect.any(Number),
-        medianRemaining: expect.any(Number), // May be 0 (Supabase) or computed (Dexie)
-        minRemaining: expect.any(Number),
-        maxRemaining: expect.any(Number),
-        teamsWithLowBudget: expect.any(Number) // May be 0 (Supabase) or computed (Dexie)
+        averageRemainingPct: expect.any(Number),
+        medianRemainingPct: expect.any(Number), // May be 0 (Supabase) or computed (Dexie)
+        minRemainingPct: expect.any(Number),
+        maxRemainingPct: expect.any(Number),
+        teamsWithLowBudgetPct: expect.any(Number) // May be 0 (Supabase) or computed (Dexie)
       },
       positionScarcityMetrics: expect.any(Object) // May be empty (Supabase) or populated (Dexie)
     }
