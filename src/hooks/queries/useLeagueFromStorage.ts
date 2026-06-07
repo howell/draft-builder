@@ -27,14 +27,6 @@ export function useLeagueFromStorage(leagueId: LeagueId): UseLeagueFromStorageRe
           setError(null);
           const league = await storageAdapter.loadLeague(leagueId);
           setData(league ?? null);
-          
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[useLeagueFromStorage] Loaded league:', {
-              leagueId,
-              platform: league?.platform,
-              id: league?.id
-            });
-          }
         } catch (err) {
           const error = err instanceof Error ? err : new Error('Failed to load league from storage');
           console.error('[useLeagueFromStorage] Error loading league:', error);

@@ -1,13 +1,14 @@
 'use client'
 import { PlatformLeague, SeasonId } from '@/platforms/common';
 import React, { useEffect, useState } from 'react';
-import { loadLeaguesAsync } from '../storage/localStorage';
+import { useStorageAdapter } from '@/lib/storage/hooks';
 import Sidebar from '@/ui/Sidebar';
 import MockTable, { MockTableProps } from '../league/[leagueID]/mocks/MockTable';
 import { DraftAnalysis, Rankings, } from '../storage/savedMockTypes';
 
 
 export default function Demo() {
+  const storageAdapter = useStorageAdapter();
   const [availableLeagues, setAvailableLeagues] = useState<PlatformLeague[]>([]);
   const [isLoadingLeagues, setIsLoadingLeagues] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,10 +18,10 @@ export default function Demo() {
       try {
         setIsLoadingLeagues(true);
         setError(null);
-        const availableLeaguesData = await loadLeaguesAsync();
+        const availableLeaguesData = await storageAdapter.loadLeagues();
         setAvailableLeagues(Object.values(availableLeaguesData.leagues));
-      } catch (error) {
-        console.error('Failed to load leagues for demo:', error);
+      } catch (err) {
+        console.error('Failed to load leagues for demo:', err);
         setError('Failed to load leagues');
         setAvailableLeagues([]);
       } finally {
@@ -28,7 +29,7 @@ export default function Demo() {
       }
     };
     loadData();
-  }, []);
+  }, [storageAdapter]);
 
   return (
         <div className='flex flex-col md:flex-row'>

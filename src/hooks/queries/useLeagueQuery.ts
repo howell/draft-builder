@@ -59,12 +59,6 @@ export function useLeagueQuery(
     const league = leaguesQuery.data.leagues.leagues[leagueId];
     
     if (!league) {
-      console.log('[useLeagueQuery] League not found:', {
-        leagueId,
-        availableLeagues: Object.keys(leaguesQuery.data.leagues.leagues),
-        source: leaguesQuery.data.source
-      });
-      
       return {
         data: undefined,
         isLoading: false,
@@ -73,13 +67,6 @@ export function useLeagueQuery(
         isError: true
       };
     }
-
-    console.log('[useLeagueQuery] Successfully selected league from master data:', {
-      leagueId,
-      platform: league.platform,
-      source: leaguesQuery.data.source,
-      hasAuth: !!(league.platform === 'espn' && (league as any).auth)
-    });
 
     return {
       data: {

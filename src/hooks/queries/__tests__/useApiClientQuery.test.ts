@@ -538,45 +538,6 @@ describe('useApiClientQuery', () => {
     });
   });
 
-  describe('Console logging', () => {
-    let consoleSpy: jest.SpyInstance;
-
-    beforeEach(() => {
-      consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-    });
-
-    afterEach(() => {
-      consoleSpy.mockRestore();
-    });
-
-    test('logs start and success messages', async () => {
-      mockApiClientInstance.fetchDraft.mockResolvedValue({ status: 'ok', data: mockResponseData.fetchDraft });
-
-      const TestWrapper = createTestWrapper();
-      const { result } = renderHook(
-        () => useApiClientQuery({
-          leagueId: mockLeagueId,
-          method: 'fetchDraft',
-          params: [mockSeason],
-          queryKey: ['draft', mockLeagueId, mockSeason],
-        }),
-        { wrapper: TestWrapper }
-      );
-
-      // Wait for the query to settle
-      await new Promise(resolve => setTimeout(resolve, 10));
-
-      expect(result.current.isSuccess).toBe(true);
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[useApiClientQuery:fetchDraft] Fetching for:',
-        mockLeagueId,
-        mockSeason
-      );
-      expect(consoleSpy).toHaveBeenCalledWith('[useApiClientQuery:fetchDraft] Success');
-    });
-  });
-
   describe('Parameter validation', () => {
     test('handles multiple parameters correctly for fetchLeagueTeams', async () => {
       const scoringPeriodId = 5;

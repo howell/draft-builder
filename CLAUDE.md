@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-This repository holds the source code for the web application Know Your League, know-your-league.com
+This repository holds the source code for the web application **Draft Builder** (know-your-league.com) — a fantasy football auction draft prep tool.
 
 ## Development Commands
 
@@ -11,6 +11,8 @@ This repository holds the source code for the web application Know Your League, 
 - `npm run dev:db` - Start only Supabase database
 - `npm run dev:stop` - Stop Supabase database
 - `npm run dev:reset` - Reset Supabase database to clean state
+
+> **IMPORTANT**: Docker must be running before `npm run dev` — local Supabase is Docker-based.
 
 ### Development Server Management
 - **IMPORTANT**: Always cleanly shut down the development server when finished
@@ -60,7 +62,8 @@ Before marking any development task as complete, you MUST:
 - **Database**: Supabase (PostgreSQL) with Row Level Security (RLS)
 - **Authentication**: Supabase Auth with email/password
 - **Styling**: Tailwind CSS 3.4.1 with custom design system
-- **Testing**: Jest with React Testing Library
+- **Data Fetching**: TanStack React Query v5 (`@tanstack/react-query`) — primary fetch/cache layer
+- **Testing**: Jest with React Testing Library; Playwright for E2E
 - **Caching**: Redis with ioredis client
 - **Platform APIs**: ESPN and Sleeper fantasy sports platforms
 
@@ -69,8 +72,9 @@ Before marking any development task as complete, you MUST:
 src/
 ├── app/                    # Next.js App Router - pages and API routes
 ├── components/            # React components (auth, UI)
+├── hooks/queries/         # React Query hooks (useLeaguesQuery, useSaveLeagueMutation, etc.)
 ├── lib/                   # Core utilities and services
-│   ├── auth/             # Authentication context and hooks
+│   ├── auth/             # Authentication context and hooks (AuthProvider, useAuth)
 │   ├── storage/          # Storage abstraction layer
 │   └── supabase.ts       # Supabase client configuration
 ├── platforms/            # External platform integrations
@@ -92,27 +96,52 @@ src/
     └── ...              # Other UI components
 ```
 
+### Data Fetching Architecture
+
+**React Query** (`src/hooks/queries/`) is the primary data-fetching layer. All fetches go through these hooks — do not call `fetch` or storage adapters directly in components.
+
+```typescript
+// ✅ CORRECT: Use React Query hooks
+const leaguesQuery = useLeaguesQuery();
+const saveLeagueMutation = useSaveLeagueMutation();
+
+// ❌ WRONG: Calling storage directly in components
+const leagues = await storageAdapter.loadLeagues();
+```
+
+Available hooks: `useLeaguesQuery`, `useLeagueQuery`, `useLeagueFromStorage`, `useSaveLeagueMutation`, `useSaveRosterMutation`, `useUserDraftsQuery`, `useDraftHistoryQuery`, `useApiClientQuery`, `useRankingsQuery`.
+
 ### Storage Architecture
+
 The application uses a **storage abstraction layer** that supports multiple backends:
 
 - **Interface**: `StorageAdapter` in `src/lib/storage/interface.ts`
 - **Dexie**: IndexedDB-based storage for anonymous users and fallback scenarios
-- **Supabase**: Production async storage with encryption for sensitive data and RLS
-- **LocalStorage**: DEPRECATED synchronous storage wrapped as async for compatibility
+- **Supabase**: Production async storage with RLS; ESPN auth is encrypted server-side
 - **Memory**: Temporary storage for testing and SSR protection
-- **Factory**: `createStorageAdapter()` selects appropriate implementation
+- **LocalStorage adapter**: DEPRECATED — still present but not used in production paths
 
-**Key Patterns**: 
-- All storage operations are async even when using localStorage to maintain consistency
-- **Authentication-aware selection**: Storage adapter automatically selected based on user auth state
-- **Fallback support**: Authenticated users can fallback to Dexie when Supabase is unavailable
-- **Progressive enhancement**: Anonymous users get high-performance Dexie, authenticated users get cloud sync
+**Storage adapter selection** is centralized in `AuthProvider` (`src/lib/auth/context.tsx`), NOT in the factory:
+- Server-side → `MemoryStorageAdapter`
+- Authenticated user → `SupabaseStorageAdapter` with Dexie fallback
+- Anonymous / loading → `DexieStorageAdapter('anonymous')`
+
+Access the adapter via `useStorageAdapter()` hook or `useAuth().storageAdapter`.
+
+**League saves use a different code path**: Authenticated league saves (which may include ESPN cookies) go through `/api/save-league` and `/api/load-leagues` (server routes using the service-role client and `ENCRYPTION_KEY`). All other data types (mocks, rosters, drafts) use the client-side `SupabaseStorageAdapter` directly via React Query hooks, relying on RLS.
+
+**Key rules**:
+- Never add `NEXT_PUBLIC_` prefix to `SUPABASE_SERVICE_ROLE_KEY` or `ENCRYPTION_KEY` — these are server-only
+- `src/lib/encryption/utils.ts` throws if called in the browser (server-only guard)
+- Do not bypass the auth-aware adapter with `getDefaultStorageAdapter()` — that function is not auth-aware
 
 ### Platform Integration Architecture
-External fantasy platforms are abstracted through a common interface:
+External fantasy platforms are abstracted through a common interface in `src/platforms/`.
 
 ### Authentication & Security
 - **Authentication**: Supabase Auth with React Context (`useAuth()`)
+- **RLS**: All 10 database tables have Row Level Security enabled (`auth.uid() = user_id`)
+- **Data migration**: On signup, `MigrationGate` (`src/components/auth/MigrationGate.tsx`) detects existing Dexie data and redirects to `/migrate`, which runs `DataMigrationService` to copy data to Supabase
 
 #### Loading States
 Use `LoadingScreen` component with `LoadingTask` objects for complex loading scenarios:
@@ -130,15 +159,14 @@ return (
 );
 ```
 
-#### Authentication-Aware Hooks Pattern
-Use hooks that automatically adapt to authentication state:
+#### Authentication-Aware Storage
+The `storageAdapter` lives on the auth context — don't create one manually:
 
 ```typescript
-// ✅ CORRECT: Authentication-aware storage selection
-export function useStorageAdapter(): StorageAdapter {
-  const { user, loading } = useAuth();
-  ...
-}
+// ✅ CORRECT: Get auth-aware adapter from context
+const { storageAdapter } = useAuth();
+// or
+const storageAdapter = useStorageAdapter();
 ```
 
 ## Development Guidelines
@@ -217,102 +245,21 @@ Use structured error handling with proper user feedback
 ### Accessibility Patterns
 Ensure all components are accessible from the start.
 
+### **E2E Testing Key Rules**
 
-### **CRITICAL**: E2E Testing Best Practices
+- Use `act()` when rendering components with async `useEffect` initialization
+- Use `waitFor` only for DOM queries that need to settle — not for mock function assertions
+- Mock Supabase auth by setting `(supabase as any).auth = mockSupabaseAuth` with `getSession`, `signUp`, and `onAuthStateChange` methods
+- Test user-visible behavior, not internal state or log output
+- Do not assert on `console.log` output in tests — those assertions are brittle and should be removed
 
-Based on hard-won experience implementing the user accounts E2E test suite, follow these patterns:
+## Feature Status
 
-#### 1. **Idiomatic React Testing Library Usage**
-```typescript
-// ✅ CORRECT: Direct DOM assertions
-expect(screen.getByText(/Create Draft Builder Account/i)).toBeInTheDocument();
-expect(screen.getByLabelText(/Email Address/i)).toBeInTheDocument();
+### Active branch: `setup_db`
+This branch contains significant storage/auth work that is production-ready but not yet merged to `main`.
 
-// ❌ WRONG: Wrapping simple assertions in waitFor
-await waitFor(() => {
-  expect(screen.getByText(/Some Text/i)).toBeInTheDocument();
-});
-```
-
-#### 2. **Handling Async useEffect Hooks**
-```typescript
-// ✅ CORRECT: Use act() for async component initialization
-let renderResult: any;
-await act(async () => {
-  renderResult = render(
-    <AuthProvider>
-      <ComponentWithAsyncEffects />
-    </AuthProvider>
-  );
-  // Give async useEffect time to complete
-  await new Promise(resolve => setTimeout(resolve, 100));
-});
-
-// ❌ WRONG: Expecting immediate sync behavior from async effects
-render(<Component />);
-expect(screen.getByText(/Async Content/i)).toBeInTheDocument(); // May fail
-```
-
-#### 3. **Mock Supabase Auth Properly**
-```typescript
-// ✅ CORRECT: Complete auth mock setup
-const mockSupabaseAuth = {
-  getSession: jest.fn().mockResolvedValue({ data: { session: null }, error: null }),
-  signUp: jest.fn(),
-  onAuthStateChange: jest.fn((callback) => {
-    // Immediately call callback to set auth state to not loading
-    callback('INITIAL_SESSION', null);
-    return {
-      data: { subscription: { unsubscribe: jest.fn() } }
-    };
-  })
-};
-(supabase as any).auth = mockSupabaseAuth;
-```
-
-#### 4. **Test What Users See, Not Implementation**
-```typescript
-// ✅ CORRECT: Test user-visible behavior
-expect(screen.getByText(/Secure Your Fantasy Data/i)).toBeInTheDocument();
-expect(screen.getByRole('button', { name: /Create Account.*Migrate/i })).toBeInTheDocument();
-
-// ✅ ALSO CORRECT: Verify mocks were called (but don't wrap in waitFor)
-expect(hasLocalStorageData).toHaveBeenCalled();
-
-// ❌ WRONG: Testing internal state or complex mock call patterns
-await waitFor(() => {
-  expect(mockFunction).toHaveBeenCalledWith(specificArg);
-});
-```
-
-#### 5. **Container Errors with waitFor**
-The error "Expected container to be an Element, a Document or a DocumentFragment but got Object" happens when:
-- Using `waitFor` to check mock function calls instead of DOM queries
-- Passing callbacks that don't interact with the DOM to `waitFor`
-
-```typescript
-// ✅ CORRECT: Use waitFor only for DOM queries that may take time
-await waitFor(() => {
-  expect(screen.getByText(/Dynamic Content/i)).toBeInTheDocument();
-});
-
-// ❌ WRONG: Using waitFor for mock assertions
-await waitFor(() => {
-  expect(mockFunction).toHaveBeenCalled(); // Causes container error
-});
-```
-
-#### 6. **Component Testing Flow**
-1. **Setup**: Mock all external dependencies (Supabase, localStorage, etc.)
-2. **Render**: Use `act()` if component has async initialization
-3. **Assert**: Test DOM content directly, verify mocks separately
-4. **Focus**: Test user-visible behavior, not internal implementation
-
-
-
-These patterns ensure reliable, maintainable E2E tests that actually reflect user behavior.
-
-## Important Implementation Notes
+### Deferred feature: Live Draft
+The live-draft feature (`src/app/league/[leagueID]/live-draft/`) is fully implemented (model, hooks, components, storage types) but intentionally unreachable — there is no `page.tsx` and no sidebar nav link. It is deferred to post-v1. Do not add a page or nav link until the post-v1 live-draft integration work is planned.
 
 ## Feature Planning Guidelines
 

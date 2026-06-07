@@ -65,7 +65,6 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     
     // Set up fallback adapter based on configuration
     if (options?.fallbackToDexie || options?.fallbackToLocalStorage) {
-      console.log(`[SupabaseAdapter] Creating Dexie fallback adapter with userId: ${this.userId}`);
       this.fallbackAdapter = new DexieStorageAdapter(this.userId);
     } else if (options?.fallbackToMemory) {
       this.fallbackAdapter = new MemoryStorageAdapter();
@@ -194,7 +193,6 @@ export class SupabaseStorageAdapter implements StorageAdapter {
         console.warn(`[SupabaseStorage] Supabase unavailable, falling back to localStorage for ${operation}`);
         try {
           const fallbackResult = await fallbackOperation();
-          console.log(`[SupabaseStorage] ${operation} fallback completed successfully`);
           return fallbackResult;
         } catch (fallbackError) {
           console.error(`[SupabaseStorage] Fallback also failed for ${operation}:`, fallbackError);
@@ -239,9 +237,22 @@ export class SupabaseStorageAdapter implements StorageAdapter {
       async () => {
         const leagueData = transformLeagueToDatabase(leagueId, league, this.userId);
         
-        // Handle ESPN auth encryption if present
+        // Handle ESPN auth encryption if present.
+        //
+        // Encryption is server-side only (it requires ENCRYPTION_KEY and the Node
+        // crypto module). In the app, authenticated league saves are routed through
+        // the /api/save-league server route, which uses this adapter via
+        // createServerStorageAdapter() — so this path runs with `window` undefined.
+        // If this adapter is ever used to save an ESPN league with auth from the
+        // browser, fail loudly with an actionable message rather than throwing a
+        // cryptic crypto error (or, worse, silently persisting plaintext credentials).
         let authDataEncrypted: string | null = null;
         if (league.platform === 'espn' && 'auth' in league && league.auth) {
+          // Encryption is server-only (requires ENCRYPTION_KEY + Node crypto module).
+          // In production, authenticated ESPN league saves route through /api/save-league
+          // which uses createServerStorageAdapter(), so this code runs in Node.
+          // If accidentally called from a browser context without ENCRYPTION_KEY set,
+          // the dynamically-imported encryption/utils module will throw at validation time.
           const espnAuthData = league.auth as PlatformEspnAuth;
           const espnAuth: EspnAuth = {
             espnS2: espnAuthData.espnS2 || '',
@@ -282,7 +293,6 @@ export class SupabaseStorageAdapter implements StorageAdapter {
             throw error;
           }
           
-          console.log(`[SupabaseStorage] League upserted successfully:`, data?.id || 'no data returned');
         } catch (upsertError) {
           console.error(`[SupabaseStorage] Upsert exception:`, upsertError);
           throw upsertError;
@@ -671,7 +681,6 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     return this.withFallback(
       'clearAllData',
       async () => {
-        console.log(`[SupabaseAdapter] Clearing all data for user: ${this.userId}`);
 
         // Get all draft sessions for this user first (for proper cascade deletion)
         const { data: draftSessions } = await this.supabase
@@ -714,10 +723,8 @@ export class SupabaseStorageAdapter implements StorageAdapter {
           .delete()
           .eq('user_id', this.userId);
 
-        console.log(`[SupabaseAdapter] ✅ Successfully cleared all data for user: ${this.userId}`);
       },
       async () => {
-        console.log('[SupabaseAdapter] Falling back to adapter for clearAllData');
         if (this.fallbackAdapter) {
           await this.fallbackAdapter.clearAllData();
         }
@@ -813,7 +820,6 @@ export class SupabaseStorageAdapter implements StorageAdapter {
         });
       },
       async () => {
-        console.log('[SupabaseAdapter] Falling back to adapter for loadLiveDrafts');
         return this.fallbackAdapter?.loadLiveDrafts(leagueId) || [];
       }
     );
@@ -827,7 +833,6 @@ export class SupabaseStorageAdapter implements StorageAdapter {
         return drafts.find(d => d.draftId === draftId);
       },
       async () => {
-        console.log('[SupabaseAdapter] Falling back to adapter for loadLiveDraft');
         return this.fallbackAdapter?.loadLiveDraft(leagueId, draftId);
       }
     );
@@ -954,7 +959,6 @@ export class SupabaseStorageAdapter implements StorageAdapter {
         }
       },
       async () => {
-        console.log('[SupabaseAdapter] Falling back to adapter for saveLiveDraft');
         if (this.fallbackAdapter) {
           await this.fallbackAdapter.saveLiveDraft(leagueId, draftState);
         }
@@ -976,7 +980,6 @@ export class SupabaseStorageAdapter implements StorageAdapter {
         await this.saveLiveDraft(leagueId, draft);
       },
       async () => {
-        console.log('[SupabaseAdapter] Falling back to adapter for addLiveDraftPick');
         if (this.fallbackAdapter) {
           await this.fallbackAdapter.addLiveDraftPick(leagueId, draftId, pick);
         }
@@ -1002,7 +1005,6 @@ export class SupabaseStorageAdapter implements StorageAdapter {
         await this.saveLiveDraft(leagueId, draft);
       },
       async () => {
-        console.log('[SupabaseAdapter] Falling back to adapter for updateLiveDraftPick');
         if (this.fallbackAdapter) {
           await this.fallbackAdapter.updateLiveDraftPick(leagueId, draftId, pickNumber, updatedPick);
         }
@@ -1028,7 +1030,6 @@ export class SupabaseStorageAdapter implements StorageAdapter {
         await this.saveLiveDraft(leagueId, draft);
       },
       async () => {
-        console.log('[SupabaseAdapter] Falling back to adapter for deleteLiveDraftPick');
         if (this.fallbackAdapter) {
           await this.fallbackAdapter.deleteLiveDraftPick(leagueId, draftId, pickNumber);
         }
@@ -1064,7 +1065,6 @@ export class SupabaseStorageAdapter implements StorageAdapter {
         }
       },
       async () => {
-        console.log('[SupabaseAdapter] Falling back to adapter for deleteLiveDraft');
         if (this.fallbackAdapter) {
           await this.fallbackAdapter.deleteLiveDraft(leagueId, draftId);
         }

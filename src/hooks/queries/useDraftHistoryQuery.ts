@@ -18,8 +18,6 @@ export function useDraftHistoryQuery(
         throw new Error('League history required to build draft history');
       }
       
-      console.log('[useDraftHistoryQuery] Building draft history for:', leagueId);
-      
       if (!leagueQuery.data?.league) {
         throw new Error(`League ${leagueId} not found`);
       }
@@ -31,7 +29,6 @@ export function useDraftHistoryQuery(
         throw new Error(`Failed to build draft history: ${result}`);
       }
       
-      console.log('[useDraftHistoryQuery] Built draft history');
       return result;
     },
     // Dependent query - waits for auth, league data, and league history

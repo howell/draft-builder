@@ -40,8 +40,6 @@ export function useApiClientQuery<TMethod extends ApiClientMethod>({
   return useQuery({
     queryKey,
     queryFn: async () => {
-      console.log(`[useApiClientQuery:${method}] Fetching for:`, leagueId, ...params);
-      
       if (!leagueQuery.data?.league) {
         throw new Error(`League ${leagueId} not found`);
       }
@@ -57,7 +55,6 @@ export function useApiClientQuery<TMethod extends ApiClientMethod>({
         throw new Error(`No data returned from ${method}`);
       }
       
-      console.log(`[useApiClientQuery:${method}] Success`);
       return result.data;
     },
     enabled: !!leagueId && !authLoading && !!leagueQuery.data?.league,

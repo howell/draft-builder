@@ -19,31 +19,18 @@ export function useUserDraftsQuery(leagueIds?: LeagueId[]) {
   return useQuery({
     queryKey: cacheKeys.userDrafts(user?.id, leagueIds),
     queryFn: async (): Promise<DraftInfo[]> => {
-      console.log('[useUserDraftsQuery] Fetching drafts for leagues:', leagueIds);
-      
       if (!leagueIds || leagueIds.length === 0) {
-        console.log('[useUserDraftsQuery] No leagues to process');
         return [];
       }
 
       const allDrafts: DraftInfo[] = [];
 
-      // Process each league
-      console.log('[useUserDraftsQuery] Processing', leagueIds.length, 'leagues');
       for (const leagueId of leagueIds) {
         try {
-          console.log(`[useUserDraftsQuery] Loading mocks for league ${leagueId}`);
-          const startTime = Date.now();
           const mocks = await storageAdapter.loadSavedMocks(leagueId);
-          const endTime = Date.now();
-          console.log(`[useUserDraftsQuery] ✅ Mocks loaded for league ${leagueId} in ${endTime - startTime}ms`);
-          
-          const draftNames = Object.keys(mocks);
-          console.log(`[useUserDraftsQuery] League ${leagueId} drafts:`, draftNames);
-          
-          for (const draftName of draftNames) {
+
+          for (const draftName of Object.keys(mocks)) {
             const draft = mocks[draftName];
-            
             allDrafts.push({
               draftName,
               leagueId,
@@ -54,15 +41,12 @@ export function useUserDraftsQuery(leagueIds?: LeagueId[]) {
             });
           }
         } catch (draftError) {
-          console.error(`[useUserDraftsQuery] ❌ Failed to load drafts for league ${leagueId}:`, draftError);
+          console.error(`[useUserDraftsQuery] Failed to load drafts for league ${leagueId}:`, draftError);
           // Continue processing other leagues even if one fails
         }
       }
-      
-      // Sort drafts by most recent first
+
       allDrafts.sort((a, b) => b.lastModified.getTime() - a.lastModified.getTime());
-      
-      console.log('[useUserDraftsQuery] ✅ Draft processing complete:', allDrafts.length, 'drafts');
       return allDrafts;
     },
     enabled: !authLoading && !!leagueIds,

@@ -46,49 +46,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     error: null,
   });
 
-  // Create storage adapter based on current auth state
+  // Create storage adapter based on current auth state.
+  // - Server-side: MemoryStorageAdapter (no IndexedDB/Supabase available)
+  // - Authenticated: SupabaseStorageAdapter with Dexie fallback for offline
+  // - Anonymous / loading: DexieStorageAdapter (better performance than localStorage)
   const storageAdapter = useMemo(() => {
-    // Server-side rendering protection
     if (typeof window === 'undefined') {
-      console.log('[AuthContext] Server-side rendering detected, using MemoryStorageAdapter');
       return new MemoryStorageAdapter();
     }
-    
-    // Authenticated user: use Supabase storage with Dexie fallback for offline scenarios
+
     if (authState.user && !authState.loading) {
-      console.log('[AuthContext] ==================== AUTHENTICATED USER STORAGE ====================');
-      console.log(`[AuthContext] Authenticated user detected:`);
-      console.log(`[AuthContext]   User ID: ${authState.user.id}`);
-      console.log(`[AuthContext]   User email: ${authState.user.email}`);
-      console.log(`[AuthContext] Creating SupabaseStorageAdapter with Dexie fallback...`);
-      const adapter = createStorageAdapter({
+      return createStorageAdapter({
         type: 'supabase',
         supabase: supabase,
         userId: authState.user.id,
-        fallback: 'dexie' // Use Dexie instead of localStorage as fallback
+        fallback: 'dexie',
       });
-      console.log(`[AuthContext] Created adapter:`, adapter.constructor.name);
-      console.log('[AuthContext] ==================== STORAGE ADAPTER READY ====================');
-      return adapter;
     }
-    
-    // Anonymous or loading state: consistently use Dexie for data persistence
-    // This ensures data saved during auth loading is accessible after loading completes
-    console.log('[AuthContext] Anonymous/loading state detected, creating DexieStorageAdapter');
-    return createStorageAdapter({ 
-      type: 'dexie', 
-      userId: 'anonymous' // Anonymous users use Dexie for better performance
+
+    return createStorageAdapter({
+      type: 'dexie',
+      userId: 'anonymous',
     });
-  }, [authState.user, authState.loading]); // Only recreate when user or loading state changes
+  }, [authState.user, authState.loading]);
 
   // Initialize auth state and listen for changes
   useEffect(() => {
     // Get initial session
     const initializeAuth = async () => {
       try {
-        console.log('[AuthContext] ==================== INITIALIZING AUTH ====================');
         const { data: { session }, error } = await supabase.auth.getSession();
-        
+
         if (error) {
           console.error('[AuthContext] Error getting session:', error);
           setAuthState(prev => ({
@@ -99,30 +87,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
-        console.log('[AuthContext] Initial session user ID:', session?.user?.id || 'null');
-        console.log('[AuthContext] Initial session email:', session?.user?.email || 'null');
-        console.log('[AuthContext] Initial session token preview:', session?.access_token?.substring(0, 20) + '...' || 'null');
-
-        // Apply same reference stability logic for initial auth state
+        // Only update state when values actually changed to prevent unnecessary re-renders
         setAuthState(prev => {
           const newUser = session?.user ?? null;
           const newLoading = false;
-          
+
           const userChanged = prev.user?.id !== newUser?.id;
           const sessionChanged = prev.session?.access_token !== session?.access_token;
           const loadingChanged = prev.loading !== newLoading;
-          
+
           if (!userChanged && !sessionChanged && !loadingChanged) {
-            console.log('[AuthContext] Initial auth: No state changes detected, preserving existing references');
             return prev;
           }
-          
-          console.log('[AuthContext] Initial auth: State changes detected:', {
-            userChanged,
-            sessionChanged,
-            loadingChanged
-          });
-          
+
           return {
             ...prev,
             user: newUser,
@@ -131,13 +108,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           };
         });
 
-        // Create user record if it doesn't exist
         if (session?.user) {
-          console.log('[AuthContext] Creating user record for initial session user:', session.user.id);
           await ensureUserRecord(session.user);
         }
-        
-        console.log('[AuthContext] ==================== AUTH INITIALIZATION COMPLETE ====================');
       } catch (error) {
         console.error('[AuthContext] Error initializing auth:', error);
         setAuthState(prev => ({
@@ -153,44 +126,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('[AuthContext] ==================== AUTH STATE CHANGE ====================');
-        console.log('[AuthContext] Event:', event);
-        console.log('[AuthContext] User ID:', session?.user?.id || 'null');
-        console.log('[AuthContext] Session ID:', session?.access_token?.substring(0, 20) + '...' || 'null');
-        console.log('[AuthContext] User email:', session?.user?.email || 'null');
-        
         // Only update state if values actually changed to prevent unnecessary re-renders
         setAuthState(prev => {
-          console.log('[AuthContext] Previous user ID:', prev.user?.id || 'null');
-          
-          // Log user ID changes specifically
-          if (prev.user?.id && session?.user?.id && prev.user.id !== session?.user?.id) {
-            console.log('[AuthContext] 🚨 CRITICAL: USER ID CHANGED!');
-            console.log('[AuthContext] Previous user ID:', prev.user.id);
-            console.log('[AuthContext] New user ID:', session.user.id);
-          }
           const newUser = session?.user ?? null;
           const newLoading = false;
           const newError = null;
-          
-          // Check if any values actually changed
+
           const userChanged = prev.user?.id !== newUser?.id;
           const sessionChanged = prev.session?.access_token !== session?.access_token;
           const loadingChanged = prev.loading !== newLoading;
           const errorChanged = prev.error !== newError;
-          
+
           if (!userChanged && !sessionChanged && !loadingChanged && !errorChanged) {
-            console.log('[AuthContext] No state changes detected, preserving existing references');
-            return prev; // Return same reference to prevent downstream re-renders
+            return prev;
           }
-          
-          console.log('[AuthContext] State changes detected:', {
-            userChanged,
-            sessionChanged, 
-            loadingChanged,
-            errorChanged
-          });
-          
+
           return {
             ...prev,
             user: newUser,
@@ -200,13 +150,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           };
         });
 
-        // Create user record for new users
         if (event === 'SIGNED_IN' && session?.user) {
-          console.log('[AuthContext] Creating user record for SIGNED_IN user:', session.user.id);
           await ensureUserRecord(session.user);
         }
-        
-        console.log('[AuthContext] ==================== AUTH STATE CHANGE COMPLETE ====================');
       }
     );
 

@@ -94,7 +94,7 @@ const DraftHistoryRow: React.FC<DraftHistoryRowProps> = ({
       .slice(0, 6);
 
     setSuggestions(filteredSuggestions);
-  }, [availablePlayers, pick.player]);
+  }, [availablePlayers]);
 
   const handlePlayerSelected = useCallback((player: CostEstimatedPlayer) => {
     setEditData(prev => ({ ...prev, player }));
