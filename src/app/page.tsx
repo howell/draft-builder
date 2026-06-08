@@ -89,23 +89,12 @@ export default function Home() {
     checkForMigratableData();
   }, [user]);
 
-  // Add state monitoring and recovery mechanism
-  useEffect(() => {
-    console.log('[Home] State change detected:', {
-      findLeagueLoading: findLeagueState.isLoading,
-      findLeagueError: findLeagueState.error,
-      mutationStatus: saveLeagueMutation.status,
-      mutationPending: saveLeagueMutation.isPending,
-      isSubmitting,
-      currentProcessingMessage
-    });
-    
-    // Recovery mechanism: if mutation is idle but find league is still loading, reset it
-    if (saveLeagueMutation.status === 'idle' && findLeagueState.isLoading) {
-      console.warn('[Home] Recovery: Mutation is idle but findLeague is still loading, resetting...');
-      setFindLeagueState({ isLoading: false, error: null });
-    }
-  }, [findLeagueState, saveLeagueMutation.status, saveLeagueMutation.isPending, isSubmitting, currentProcessingMessage]);
+  // Recovery mechanism: if the save mutation is idle but findLeague is still marked
+  // loading, reset it. Done during render (guarded so it self-terminates) rather than
+  // in an effect to avoid an extra render pass.
+  if (saveLeagueMutation.status === 'idle' && findLeagueState.isLoading) {
+    setFindLeagueState({ isLoading: false, error: null });
+  }
 
   const handleSubmit: LeagueSubmitCallback = useCallback(async (league: PlatformLeague) => {
     if (isSubmitting) return;

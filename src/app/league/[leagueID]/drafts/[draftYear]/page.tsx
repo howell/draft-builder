@@ -1,7 +1,7 @@
 "use client";
 import PlayerTable, { ColumnName } from './PlayerTable';
 import { DraftedPlayer, LeagueTeam, mergeDraftAndPlayerInfo } from "@/platforms/PlatformApi";
-import React, { useState, useCallback, use, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, use, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import LoadingScreen from '@/ui/LoadingScreen';
 import ErrorScreen from '@/ui/ErrorScreen';
@@ -122,7 +122,6 @@ const Page = (props: Readonly<{ params: Promise<{ leagueID: string, draftYear: s
     const [searchSettings, setSearchSettings] = useState<SearchSettingsState>(
         defaultSearchSettings
     );
-    const [showing, setShowing] = useState<TableData[]>([]);
 
     // Reset callback
     const resetSearchSettings = useCallback(() => 
@@ -140,29 +139,28 @@ const Page = (props: Readonly<{ params: Promise<{ leagueID: string, draftYear: s
         { query: leagueInfoQuery as any, message: 'Fetching League Information' }
     ], [authLoading, leagueQuery, playersQuery, draftDataQuery, teamsQuery, leagueInfoQuery]);
 
-    // Update search settings when positions change
-    useEffect(() => {
+    // Merge the available positions into the (user-editable) search settings whenever
+    // they change. Done during render (guarded by a reference check) rather than in an
+    // effect to avoid an extra render pass.
+    const [prevAllPositions, setPrevAllPositions] = useState(allPositions);
+    if (allPositions !== prevAllPositions) {
+        setPrevAllPositions(allPositions);
         if (allPositions.length > 0) {
             setSearchSettings(prevSettings => {
                 // Only update if positions actually changed
                 const positionsChanged = prevSettings.positions.length !== allPositions.length ||
                     !prevSettings.positions.every(pos => allPositions.includes(pos));
-                
-                if (positionsChanged) {
-                    return { ...prevSettings, positions: allPositions };
-                }
-                return prevSettings;
+
+                return positionsChanged ? { ...prevSettings, positions: allPositions } : prevSettings;
             });
         }
-    }, [allPositions]);
+    }
 
-    // Filter displayed players based on search settings
-    useEffect(() => {
-        const includePlayer = (p: TableData) => showPlayer(p, searchSettings);
-        const nextShowing = tableData.filter(includePlayer)
-            .slice(0, searchSettings.playerCount);
-        setShowing(nextShowing);
-    }, [searchSettings, tableData]);
+    // Displayed players, derived from the current search settings
+    const showing = useMemo(
+        () => tableData.filter(p => showPlayer(p, searchSettings)).slice(0, searchSettings.playerCount),
+        [tableData, searchSettings]
+    );
 
     // NOW VALIDATE PARAMETERS AFTER ALL HOOKS
     if (!isLeagueId(leagueID)) {

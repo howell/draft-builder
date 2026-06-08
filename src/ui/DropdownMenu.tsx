@@ -42,12 +42,6 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ options, selectedOption, on
     }, [onSelect, setIsOpen]);
 
     useEffect(() => {
-        if (!isOpen) {
-            setHighlightedIndex(-1);
-        }
-    }, [isOpen]);
-
-    useEffect(() => {
         const handleKeyDown = (event: globalThis.KeyboardEvent) => {
             if (parentRef.current && isFocused && isOpen) {
                 if (event.key === 'ArrowDown') {
@@ -82,7 +76,13 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ options, selectedOption, on
             ref={parentRef}>
             <div className={`w-full h-full p-2 cursor-pointer flex justify-between items-center
              ${styles.bgColor} ${styles.textColor} `}
-                onClick={() => { setIsOpen(!isOpen); setIsFocused(true); }}
+                onClick={() => {
+                    const nextOpen = !isOpen;
+                    setIsOpen(nextOpen);
+                    // Reset highlight when opening so a fresh open starts unhighlighted
+                    if (nextOpen) setHighlightedIndex(-1);
+                    setIsFocused(true);
+                }}
                 onFocus={() => setIsFocused(true)} >
                 {options.find(option => option.value === selectedOption)?.name || ''}
                     <div className="absolute top-1 right-2">

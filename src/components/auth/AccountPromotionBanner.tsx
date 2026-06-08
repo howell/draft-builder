@@ -31,6 +31,9 @@ export const AccountPromotionBanner: React.FC<AccountPromotionBannerProps> = ({
   className = ''
 }) => {
   const [isDismissed, setIsDismissed] = useState(false);
+  // Pick a random gradient once on mount (lazy state init) so it stays stable across
+  // renders and avoids calling an impure function during render.
+  const [randomGradientIndex] = useState(() => Math.floor(Math.random() * 3));
 
   const handleDismiss = () => {
     setIsDismissed(true);
@@ -88,9 +91,9 @@ export const AccountPromotionBanner: React.FC<AccountPromotionBannerProps> = ({
     'bg-gradient-to-r from-orange-500 to-red-600'
   ];
 
-  const gradientClass = hasSignificantData 
+  const gradientClass = hasSignificantData
     ? backgroundGradients[3] // Urgent orange-red for users with lots of data
-    : backgroundGradients[Math.floor(Math.random() * 3)]; // Random for others
+    : backgroundGradients[randomGradientIndex]; // Random for others
 
   return (
     <div className={`account-promotion-banner ${positionClasses[position]} ${className}`}>

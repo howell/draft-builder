@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import MockRosterEntry from './MockRosterEntry';
 import PlayerTable, { ColumnName } from '../drafts/[draftYear]/PlayerTable';
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer, CostEstimatedPlayer, RosterSlot, RosterSelections, SearchSettingsState, EstimationSettingsState, StoredDraftDataCurrent, Rankings, RankedPlayer, Ranking } from '@/app/storage/savedMockTypes';
@@ -70,15 +70,9 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     const [playerDb, _setPlayerDb] = useState<MockPlayer[]>(players);
     const [estimationSettings, setEstimationSettings] = useState<EstimationSettingsState>(defaultEstimationSettings);
     const [searchSettings, setSearchSettings] = useState<SearchSettingsState>(defaultSearchSettings);
-    const [availablePlayers, setAvailablePlayers] = useState<DisplayPlayer[]>([]);
-    const [positionallyAvailablePlayers, setPositionallyAvailablePlayers] = useState<Map<string, CostEstimatedPlayer[]>>(new Map());
-    const [budgetSpent, setBudgetSpent] = useState(0);
-    const [selectedPlayers, setSelectedPlayers] = useState<RankedPlayer[]>([]);
     const [rosterSelections, setRosterSelections] = useState<RosterSelections>({});
-    const [costAdjustedRosterSelections, setCostAdjustedRosterSelections] = useState<RosterSelections>({});
     const [rosterName, setRosterName] = useState<string>(draftName || '');
     const [costAdjustments, setCostAdjustments] = useState<Map<string, number>>(new Map())
-    const [costPredictor, setCostPredictor] = useState<CostPredictor>(defaultCostPredictor);
     const [finishedLoading, setFinishedLoading] = useState(false);
     const [isLoadingDraft, setIsLoadingDraft] = useState(false);
     const [draftLoadError, setDraftLoadError] = useState<string | null>(null);
@@ -92,7 +86,60 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     const [rosterSpots, _setRosterSpots] = useState(rosterSlots.length);
     const [playerTableColumns, _setPlayerTableColumns] = useState(columnsFor(players));
     const [currentRanking, setCurrentRanking] = useState<Ranking>(availableRankings[0]);
-    const [rankedPlayers, setRankedPlayers] = useState<RankedPlayer[]>(() => rankPlayers(playerDb, currentRanking.value));
+
+    // Derived values. These are computed during render (memoized) rather than stored in
+    // state and synced via effects, which avoids extra render passes and cascading updates.
+    const rankedPlayers = useMemo(
+        () => rankPlayers(playerDb, currentRanking.value),
+        [playerDb, currentRanking]
+    );
+
+    const costPredictor = useMemo<CostPredictor>(
+        () => ({ predict: (player: RankedPlayer) => predictCostWithSettings(player, estimationSettings, draftHistory) }),
+        [estimationSettings, draftHistory]
+    );
+
+    const selectedPlayers = useMemo<RankedPlayer[]>(
+        () => Object.values(rosterSelections).filter(p => p !== undefined) as CostEstimatedPlayer[],
+        [rosterSelections]
+    );
+
+    const budgetSpent = useMemo(
+        () => calculateAmountSpent(costPredictor, rosterSpots, selectedPlayers, costAdjustments),
+        [costPredictor, rosterSpots, selectedPlayers, costAdjustments]
+    );
+
+    const costAdjustedRosterSelections = useMemo<RosterSelections>(() => {
+        if (!finishedLoading) return {};
+        const nextRosterSelections = { ...rosterSelections };
+        Object.keys(nextRosterSelections).forEach((slot) => {
+            const player = nextRosterSelections[slot];
+            if (player) {
+                const estimatedCost = costPredictor.predict(player);
+                nextRosterSelections[slot] = { ...player, estimatedCost };
+            }
+        });
+        return nextRosterSelections;
+    }, [finishedLoading, costPredictor, rosterSelections]);
+
+    const { availablePlayers, positionallyAvailablePlayers } = useMemo(() => {
+        const pricedPlayers = rankedPlayers.map(p => ({ ...p, estimatedCost: costPredictor.predict(p) }));
+        const displayRankedPlayers: DisplayPlayer[] = pricedPlayers.map(p => ({
+             ...p,
+             displayOverallRank: p.overallRank === UNRANKED ? UNRANKED : p.overallRank + 1,
+             displayPositionRank: p.positionRank === UNRANKED ? UNRANKED : p.positionRank + 1
+        }));
+        const nextPositionallyAvailablePlayers = new Map<string, CostEstimatedPlayer[]>();
+        const includePlayer = (s: SearchSettingsState) => (p: CostEstimatedPlayer) => playerAvailable(p, s, selectedPlayers, auctionBudget, budgetSpent);
+        for (const position of playerPositions) {
+            const settingsWithPosition = { ...searchSettings, positions: [position] };
+            nextPositionallyAvailablePlayers.set(position, displayRankedPlayers.filter(includePlayer(settingsWithPosition)));
+        }
+        const nextPlayers = displayRankedPlayers.filter(includePlayer(searchSettings))
+            .sort((a, b) => b.estimatedCost - a.estimatedCost)
+            .slice(0, searchSettings.playerCount);
+        return { availablePlayers: nextPlayers, positionallyAvailablePlayers: nextPositionallyAvailablePlayers };
+    }, [costPredictor, searchSettings, rankedPlayers, selectedPlayers, budgetSpent, auctionBudget, playerPositions]);
 
     useEffect(() => {
         const loadDraftData = async () => {
@@ -124,6 +171,10 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
         
         loadDraftData();
     }, [leagueId, draftName, storageAdapter]);
+
+    // Holds the latest performAutosave so the retry timeout can call it without the
+    // callback referencing itself before it is declared.
+    const performAutosaveRef = useRef<(attempt?: number) => Promise<void>>(undefined);
 
     const performAutosave = useCallback(async (attempt: number = 0) => {
         const maxRetries = 3;
@@ -162,7 +213,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                 setAutosaveStatus('saving');
                 
                 setTimeout(() => {
-                    performAutosave(attempt + 1);
+                    performAutosaveRef.current?.(attempt + 1);
                 }, backoffMs);
             } else {
                 // All retries exhausted
@@ -176,18 +227,20 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     }, [leagueId, draftName, rosterSelections, costAdjustments, estimationSettings, searchSettings, storageAdapter]);
 
     useEffect(() => {
+        performAutosaveRef.current = performAutosave;
+    }, [performAutosave]);
+
+    useEffect(() => {
         if (finishedLoading) {
             const hasSelections = Object.keys(rosterSelections).length > 0;
-            
+
             if (hasSelections) {
-                // Optimistic update: Show saving status immediately
-                setAutosaveStatus('saving');
-                
                 // Autosave in-progress selections with debouncing
                 const timeoutId = setTimeout(async () => {
+                    setAutosaveStatus('saving');
                     await performAutosave();
                 }, 500); // 500ms debounce
-                
+
                 return () => clearTimeout(timeoutId);
             }
         }
@@ -198,63 +251,6 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
         setAutosaveStatus('saving');
         await performAutosave();
     };
-
-    useEffect(() => {
-        const nextPlayers = rankPlayers(playerDb, currentRanking.value);
-        setRankedPlayers(nextPlayers);
-    }, [currentRanking, playerDb]);
-
-
-    useEffect(() => {
-        setBudgetSpent(calculateAmountSpent(costPredictor, rosterSpots, selectedPlayers, costAdjustments))
-    }, [costPredictor, selectedPlayers, costAdjustments, rosterSpots]);
-
-    useEffect(() => {
-        const nextCostEstimator = { predict: (player: RankedPlayer) => predictCostWithSettings(player, estimationSettings, draftHistory) };
-        setCostPredictor(nextCostEstimator);
-    }, [estimationSettings, draftHistory]);
-
-    useEffect(() => {
-        if (finishedLoading) {
-            const nextRosterSelections = { ...rosterSelections };
-            Object.keys(nextRosterSelections).forEach((slot) => {
-                const player = nextRosterSelections[slot];
-                if (player) {
-                    const estimatedCost = costPredictor.predict(player);
-                    nextRosterSelections[slot] = { ...player, estimatedCost };
-                }
-            });
-            console.log('[MockTable] Cost-adjusted roster selections:', nextRosterSelections);
-            setCostAdjustedRosterSelections(nextRosterSelections);
-        }
-    }, [finishedLoading, costPredictor, rosterSelections]);
-
-    useEffect(() => {
-        const pricedPlayers = rankedPlayers.map(p => ({ ...p, estimatedCost: costPredictor.predict(p) }));
-        const displayRankedPlayers: DisplayPlayer[] = pricedPlayers.map(p => ({
-             ...p,
-             displayOverallRank: p.overallRank === UNRANKED ? UNRANKED : p.overallRank + 1,
-             displayPositionRank: p.positionRank === UNRANKED ? UNRANKED : p.positionRank + 1
-        }));
-        const nextPositionallyAvailablePlayers = new Map<string, CostEstimatedPlayer[]>();
-        const includePlayer = (s: SearchSettingsState) => (p: CostEstimatedPlayer) => playerAvailable(p, s, selectedPlayers, auctionBudget, budgetSpent);
-        for (const position of playerPositions) {
-            const settingsWithPosition = { ...searchSettings, positions: [position] };
-            nextPositionallyAvailablePlayers.set(position, displayRankedPlayers.filter(includePlayer(settingsWithPosition)));
-        }
-        const nextPlayers = displayRankedPlayers.filter(includePlayer(searchSettings))
-            .sort((a, b) => b.estimatedCost - a.estimatedCost)
-            .slice(0, searchSettings.playerCount);
-        setPositionallyAvailablePlayers(nextPositionallyAvailablePlayers);
-        setAvailablePlayers(nextPlayers);
-    }, [costPredictor, searchSettings, rankedPlayers, selectedPlayers, budgetSpent, auctionBudget, playerPositions]);
-
-    useEffect(() => {
-        const nextSelected = Object.values(rosterSelections).filter(p => p !== undefined) as CostEstimatedPlayer[];
-        console.log('[MockTable] Selected players:', nextSelected);
-        setSelectedPlayers(nextSelected);
-    }, [rosterSelections]);
-
 
     const onPlayerSelected = (rosterSlot: RosterSlot, player?: CostEstimatedPlayer) => {
         const serializedSlot = serializeRosterSlot(rosterSlot);

@@ -3,7 +3,7 @@
  * Celebratory component shown after successful data migration
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import type { MigrationResult } from '../../types/migration';
 
 interface MigrationSuccessProps {
@@ -37,7 +37,9 @@ export const MigrationSuccess: React.FC<MigrationSuccessProps> = ({
     return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
   };
 
-  const getEncouragingMessage = () => {
+  // Pick a celebratory message and confetti layout once on mount (lazy state init) so
+  // they stay stable across renders and avoid calling impure functions during render.
+  const [encouragingMessage] = useState(() => {
     const messages = [
       "Your fantasy empire awaits! 🏰",
       "Ready to dominate this season! 💪",
@@ -45,9 +47,20 @@ export const MigrationSuccess: React.FC<MigrationSuccessProps> = ({
       "Time to crush some drafts! 🚀",
       "Your fantasy journey continues! ⭐"
     ];
-    
+
     return messages[Math.floor(Math.random() * messages.length)];
-  };
+  });
+
+  const [confettiPieces] = useState(() => {
+    const colors = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6'];
+    return Array.from({ length: 20 }, () => ({
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      backgroundColor: colors[Math.floor(Math.random() * colors.length)],
+      animationDelay: `${Math.random() * 2}s`,
+      animationDuration: `${1 + Math.random() * 2}s`,
+    }));
+  });
 
   const totalItems = (migrationResult.migratedLeagues || 0) + (migrationResult.migratedDrafts || 0);
 
@@ -63,7 +76,7 @@ export const MigrationSuccess: React.FC<MigrationSuccessProps> = ({
           {userName ? `Welcome to your account, ${userName}!` : 'Welcome to your new account!'}
         </p>
         <p className="text-sm text-gray-600 mt-2">
-          {getEncouragingMessage()}
+          {encouragingMessage}
         </p>
       </div>
 
@@ -166,17 +179,11 @@ export const MigrationSuccess: React.FC<MigrationSuccessProps> = ({
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="confetti-animation">
           {/* Animated confetti elements */}
-          {Array.from({ length: 20 }, (_, i) => (
+          {confettiPieces.map((piece, i) => (
             <div
               key={i}
               className={`absolute w-2 h-2 opacity-70 animate-ping`}
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                backgroundColor: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6'][Math.floor(Math.random() * 5)],
-                animationDelay: `${Math.random() * 2}s`,
-                animationDuration: `${1 + Math.random() * 2}s`
-              }}
+              style={piece}
             />
           ))}
         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { RankedPlayer, CostEstimatedPlayer } from '@/types/storage';
 import { DraftTeam } from '@/app/storage/savedLiveDraftTypes';
 import { Input } from '@/ui/Input';
@@ -53,15 +53,14 @@ const PickEntry: React.FC<PickEntryProps> = ({
     const [success, setSuccess] = useState(false);
     const [livePrediction, setLivePrediction] = useState<{livePrediction: number; confidence: number} | null>(null);
 
-    // Auto-focus team selection when component loads
-    useEffect(() => {
-        if (teams.length > 0 && !selectedTeam) {
-            const teamIndex = Math.max(0, (currentPickNumber - 1) % teams.length);
-            if (teams[teamIndex]) {
-                setSelectedTeam(teams[teamIndex]);
-            }
+    // Auto-select the team on the clock once teams are available. Done during render
+    // (guarded so it only runs while no team is selected) to avoid an extra render pass.
+    if (teams.length > 0 && !selectedTeam) {
+        const teamIndex = Math.max(0, (currentPickNumber - 1) % teams.length);
+        if (teams[teamIndex]) {
+            setSelectedTeam(teams[teamIndex]);
         }
-    }, [teams, selectedTeam, currentPickNumber]);
+    }
 
     // Handle player selection
     const handlePlayerSelected = useCallback(async (player: CostEstimatedPlayer) => {

@@ -19,9 +19,13 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
     const [suggestions, setSuggestions] = useState<CostEstimatedPlayer[]>([]);
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
-    useEffect(() => {
+    // Sync the input to the selected player whenever it changes (adjust state during
+    // render rather than in an effect to avoid an extra render pass).
+    const [prevSelectedPlayer, setPrevSelectedPlayer] = useState(selectedPlayer);
+    if (selectedPlayer !== prevSelectedPlayer) {
+        setPrevSelectedPlayer(selectedPlayer);
         setInputValue(selectedPlayer ? selectedPlayer.name : '');
-    }, [selectedPlayer]);
+    }
 
     const onBlur = () => {
         setTimeout(() => setSuggestions([]), 100);

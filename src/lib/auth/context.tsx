@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import type { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../supabase';
 import { StorageAdapter } from '../storage/interface';
@@ -69,6 +69,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       userId: 'anonymous',
     });
   }, [authState.user, authState.loading]);
+
+  // Ensure user record exists in our database
+  const ensureUserRecord = useCallback(async (user: User) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .upsert({
+          id: user.id,
+          email: user.email,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'id'
+        });
+
+      if (error) {
+        console.error('Error creating user record:', error);
+      }
+    } catch (error) {
+      console.error('Error ensuring user record:', error);
+    }
+  }, []);
 
   // Initialize auth state and listen for changes
   useEffect(() => {
@@ -159,28 +180,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
-
-  // Ensure user record exists in our database
-  const ensureUserRecord = async (user: User) => {
-    try {
-      const { error } = await supabase
-        .from('users')
-        .upsert({
-          id: user.id,
-          email: user.email,
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'id'
-        });
-
-      if (error) {
-        console.error('Error creating user record:', error);
-      }
-    } catch (error) {
-      console.error('Error ensuring user record:', error);
-    }
-  };
+  }, [ensureUserRecord]);
 
   // Sign in with email and password
   const signIn = async (email: string, password: string) => {

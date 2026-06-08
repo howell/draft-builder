@@ -1,12 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  webpack: (config) => {
-    // Suppress webpack warnings about dynamic imports in @supabase/realtime-js
-    config.ignoreWarnings = [
-      /Critical dependency: the request of a dependency is an expression/
-    ];
-    return config;
-  }
+  // Next.js 16 uses Turbopack by default. The previous `webpack()` config
+  // only suppressed a webpack-specific "Critical dependency" warning from
+  // @supabase/realtime-js, which Turbopack does not emit, so no equivalent
+  // config is needed here.
+  turbopack: {},
 };
 
 export default nextConfig;

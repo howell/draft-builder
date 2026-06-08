@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { LiveDraftState } from '@/app/storage/savedLiveDraftTypes';
 import { 
     LiveDraftPredictor, 
@@ -38,19 +38,19 @@ export function useLiveDraftPredictions({
   onError
 }: UseLiveDraftPredictionsOptions): UseLiveDraftPredictionsReturn {
   // Prediction engine state
-  const [predictor, setPredictor] = useState<LiveDraftPredictor | null>(null);
   const [trainingStatus, setTrainingStatus] = useState<TrainingStatus | null>(null);
 
-  // Initialize predictor when draft state is available
-  useEffect(() => {
+  // Build the prediction engine whenever the draft state or historical data changes.
+  // Computed during render (memoized); any initialization error is surfaced via onError
+  // from an effect below so that render itself stays free of side effects.
+  const { predictor, predictorError } = useMemo<{ predictor: LiveDraftPredictor | null; predictorError: string | null }>(() => {
     if (!draftState) {
-      setPredictor(null);
-      return;
+      return { predictor: null, predictorError: null };
     }
 
     try {
       // Create baseline models from historical data using shared utility
-      const allHistoricalPicks: BaselineDraftPick[] = historicalData.flatMap(draft => 
+      const allHistoricalPicks: BaselineDraftPick[] = historicalData.flatMap(draft =>
         draft.picks.map(pick => ({
           price: pick.price,
           position: pick.player.defaultPosition
@@ -58,9 +58,7 @@ export function useLiveDraftPredictions({
       );
 
       if (allHistoricalPicks.length === 0) {
-        console.warn('No historical data available for baseline models');
-        onError('No historical data available for price predictions');
-        return;
+        return { predictor: null, predictorError: 'No historical data available for price predictions' };
       }
 
       const baselineModels = createBaselineModels(allHistoricalPicks);
@@ -74,13 +72,18 @@ export function useLiveDraftPredictions({
         historicalData
       };
 
-      const newPredictor = new LiveDraftPredictor(config);
-      setPredictor(newPredictor);
+      return { predictor: new LiveDraftPredictor(config), predictorError: null };
     } catch (err) {
       console.error('Failed to initialize predictor:', err);
-      onError('Failed to initialize prediction engine');
+      return { predictor: null, predictorError: 'Failed to initialize prediction engine' };
     }
-  }, [draftState, historicalData, onError]);
+  }, [draftState, historicalData]);
+
+  useEffect(() => {
+    if (predictorError) {
+      onError(predictorError);
+    }
+  }, [predictorError, onError]);
 
   // Train the prediction model
   const trainModel = useCallback(async () => {
