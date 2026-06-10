@@ -2,14 +2,24 @@
  * Unit tests for the inflation-decomposition model.
  *
  * The headline invariant is money conservation: prices over the players that
- * will still be drafted must sum to the money still to be spent. We also check
- * that the model recovers ~baseline inflation on an empty board and reacts in
- * the right direction once money is over- or under-spent.
+ * will still be drafted must sum to the money still to be spent. The second
+ * key invariant is market neutrality: a draft where every pick goes at exactly
+ * its baseline price must produce no positional pressure, no matter which
+ * positions happened to be nominated first. We also check that the model
+ * reacts in the right direction once money is genuinely over- or under-spent,
+ * and that the league-history knobs (priors, expected unspent, positional
+ * capacity) move the field the way they claim to.
  */
 
 import { createBaselineModels, BaselineDraftPick } from '@/app/league/analytics';
 import { computeInflation, moneySurplus, draftablePlayers, InflationPredictor } from '../inflationModel';
-import { PredictionContext, PredictorPlayer, baselineValue, BaselineModels } from '../predictor';
+import {
+    PredictionContext,
+    PredictorPlayer,
+    PredictorTeam,
+    baselineValue,
+    BaselineModels,
+} from '../predictor';
 
 const TEAM_COUNT = 12;
 const BUDGET = 200;
@@ -42,12 +52,14 @@ function buildPool(size: number): { players: PredictorPlayer[]; picks: BaselineD
 function makeContext(
     players: PredictorPlayer[],
     drafted: PredictorPlayer[],
-    pickPrices: number[]
+    pickPrices: number[],
+    overrides: Partial<PredictionContext> = {}
 ): PredictionContext {
     const draftedIds = new Set(drafted.map(p => p.id));
     return {
         budgetConfig: { totalBudgetPerTeam: BUDGET, teamCount: TEAM_COUNT },
         rosterSize: ROSTER_SIZE,
+        rosterNeeds: ROSTER_NEEDS,
         picks: drafted.map((player, i) => ({
             player,
             price: pickPrices[i],
@@ -57,6 +69,7 @@ function makeContext(
         teams: [],
         availablePlayers: players.filter(p => !draftedIds.has(p.id)),
         currentPickNumber: drafted.length + 1,
+        ...overrides,
     };
 }
 
@@ -120,13 +133,106 @@ describe('InflationModel', () => {
         expect(field.global).toBeGreaterThan(1);
     });
 
-    it('lowers appetite for an over-invested position (soft team-need)', () => {
-        // Spend heavily on RB; RB inflation should fall below the global factor.
-        const rbPlayers = players.filter(p => p.defaultPosition === 'RB').slice(0, 8);
-        const prices = rbPlayers.map(p => baselineValue(p, baseline) * 2);
-        const ctx = makeContext(players, rbPlayers, prices);
+    it('produces no positional pressure in a neutral market, regardless of draft order', () => {
+        // Draft position-clustered (all the top RBs first, then WRs) at *exactly*
+        // baseline prices. The old spent-vs-remaining-board comparison would
+        // manufacture pressure from this ordering alone; actual-vs-expected over
+        // the same drafted players must not.
+        const rbs = players.filter(p => p.defaultPosition === 'RB').slice(0, 10);
+        const wrs = players.filter(p => p.defaultPosition === 'WR').slice(0, 6);
+        const drafted = [...rbs, ...wrs];
+        const prices = drafted.map(p => baselineValue(p, baseline));
+        const ctx = makeContext(players, drafted, prices);
+        const field = computeInflation(ctx, baseline, 1);
+        for (const factor of Object.values(field.byPosition)) {
+            expect(factor).toBeCloseTo(field.global, 10);
+        }
+    });
+
+    it('lowers appetite for a position the market over-pays relative to others', () => {
+        // Mixed market: RBs go at double value, WRs at fair value. The revealed
+        // cross-position preference should dampen RB inflation below global and
+        // raise WR above it.
+        const rbs = players.filter(p => p.defaultPosition === 'RB').slice(0, 8);
+        const wrs = players.filter(p => p.defaultPosition === 'WR').slice(0, 8);
+        const drafted = [...rbs, ...wrs];
+        const prices = drafted.map(p =>
+            p.defaultPosition === 'RB'
+                ? baselineValue(p, baseline) * 2
+                : baselineValue(p, baseline)
+        );
+        const ctx = makeContext(players, drafted, prices);
         const field = computeInflation(ctx, baseline, 1);
         expect(field.byPosition['RB']).toBeLessThan(field.global);
+        expect(field.byPosition['WR']).toBeGreaterThan(field.global);
+    });
+
+    it('caps the draftable pool at each position’s remaining league capacity', () => {
+        const ctx = makeContext(players, [], []);
+        const draftable = draftablePlayers(ctx, baseline);
+        expect(draftable.length).toBe(TOTAL_SLOTS);
+        const counts: Record<string, number> = {};
+        for (const { player } of draftable) {
+            counts[player.defaultPosition] = (counts[player.defaultPosition] ?? 0) + 1;
+        }
+        for (const pos of POSITIONS) {
+            // No flex slots in ROSTER_NEEDS, so each position is hard-capped.
+            expect(counts[pos]).toBe(ROSTER_NEEDS[pos as keyof typeof ROSTER_NEEDS] * TEAM_COUNT);
+        }
+    });
+
+    it('excludes dead money held by teams with full rosters', () => {
+        // team-1 fills its whole roster cheaply and sits on the rest of its
+        // budget; that money can never be spent and must not inflate prices.
+        const drafted = players.slice(0, ROSTER_SIZE);
+        const prices = drafted.map(() => 10);
+        const teams: PredictorTeam[] = Array.from({ length: TEAM_COUNT }, (_, i) => ({
+            id: `team-${i + 1}`,
+            remainingBudget: i === 0 ? BUDGET - 10 * ROSTER_SIZE : BUDGET,
+            rosterNeeds: ROSTER_NEEDS,
+            filledPositions: {},
+        }));
+        const allByTeamOne = {
+            picks: drafted.map((player, i) => ({
+                player,
+                price: prices[i],
+                teamId: 'team-1',
+                pickNumber: i + 1,
+            })),
+        };
+        const withTeams = makeContext(players, drafted, prices, { ...allByTeamOne, teams });
+        const withoutTeams = makeContext(players, drafted, prices, allByTeamOne);
+        const deadMoney = BUDGET - 10 * ROSTER_SIZE;
+        expect(moneySurplus(withTeams)).toBeCloseTo(moneySurplus(withoutTeams) - deadMoney, 6);
+        expect(computeInflation(withTeams, baseline, 0).global).toBeLessThan(
+            computeInflation(withoutTeams, baseline, 0).global
+        );
+    });
+
+    it('applies league positional priors on an empty board and conserves money', () => {
+        const ctx = makeContext(players, [], []);
+        const field = computeInflation(ctx, baseline, {
+            elasticity: 1,
+            priors: { RB: 1.5 },
+        });
+        expect(field.byPosition['RB']).toBeGreaterThan(field.global);
+        expect(field.byPosition['WR']).toBeLessThan(field.global);
+        // Renormalization keeps the identity intact even with priors applied.
+        const total = draftablePlayers(ctx, baseline).reduce((sum, { player, value }) => {
+            const inflation = field.byPosition[player.defaultPosition] ?? field.global;
+            return sum + (1 + surplus(value) * inflation);
+        }, 0);
+        expect(total).toBeCloseTo(BUDGET * TEAM_COUNT, 4);
+    });
+
+    it('discounts money the league historically leaves unspent', () => {
+        const ctx = makeContext(players, [], []);
+        const withUnspent = computeInflation(ctx, baseline, {
+            elasticity: 0,
+            expectedUnspent: 150,
+        });
+        const without = computeInflation(ctx, baseline, 0);
+        expect(withUnspent.global).toBeLessThan(without.global);
     });
 
     it('floors the final pick near $1 when only reserve money remains', () => {

@@ -2,14 +2,15 @@
 
 /**
  * Assembles everything the live-draft simulator needs from real league data:
- * the exponential baseline, a ranked player pool, roster/budget config, and a
- * normalized historical draft for the backtest. Mirrors the data assembly in
+ * the exponential baseline (pooled across every season with draft history), a
+ * ranked player pool, roster/budget config, and the full set of normalized
+ * historical drafts for the backtest/calibration. Mirrors the data assembly in
  * MockDraft.tsx but reshaped for the prediction/simulation engine.
  */
 
 import { useMemo } from 'react';
 import { CURRENT_SEASON } from '@/constants';
-import { LeagueId, Platform, SeasonId } from '@/platforms/common';
+import { LeagueId, Platform } from '@/platforms/common';
 import {
     mergeDraftAndPlayerInfo,
     Player,
@@ -17,7 +18,6 @@ import {
     ScoringType,
 } from '@/platforms/PlatformApi';
 import { MockPlayer, Rankings } from '@/types/storage';
-import { createBaselineModels, BaselineDraftPick } from '@/app/league/analytics';
 import {
     usePlayersQuery,
     useLeagueHistoryQuery,
@@ -29,16 +29,21 @@ import { useAuth } from '@/lib/auth/context';
 import { rankPlayers } from '../mocks/MockTable';
 import { BaselineModels, PredictorPlayer } from '@/lib/models/live-draft/predictor';
 import { HistoricalDraft } from '@/lib/models/live-draft/backtest';
+import {
+    createPooledBaselineModels,
+    normalizeHistoricalDraft,
+} from '@/lib/models/live-draft/history';
 
 export interface SimulatorData {
+    /** exponential baseline fit on every available season at once */
     baseline: BaselineModels;
     /** ranked, undrafted-at-start player pool */
     players: PredictorPlayer[];
     rosterNeeds: RosterSettings;
     defaultBudget: number;
     teamCount: number;
-    /** most recent historical draft, normalized for the backtest */
-    historical: HistoricalDraft | null;
+    /** all historical drafts, oldest first, normalized for backtest/calibration */
+    historical: HistoricalDraft[];
 }
 
 export interface UseSimulatorDataResult {
@@ -67,6 +72,14 @@ function buildPlayerDb(
             positions: player.eligiblePositions,
             suggestedCost: player.platformPrice,
         }));
+}
+
+function stripBenchSlots(rosterSettings: RosterSettings | undefined): RosterSettings {
+    const lineup: RosterSettings = { ...(rosterSettings ?? {}) };
+    delete lineup['IR'];
+    delete lineup['BN'];
+    delete lineup['Bench'];
+    return lineup;
 }
 
 export function useSimulatorData(
@@ -119,75 +132,53 @@ export function useSimulatorData(
             Object.values(history).find(info => typeof info !== 'number');
         if (!latestInfo || typeof latestInfo === 'number') return null;
 
-        const lineupSettings: RosterSettings = { ...latestInfo.rosterSettings };
-        delete lineupSettings['IR'];
-        delete lineupSettings['BN'];
-        delete lineupSettings['Bench'];
+        const lineupSettings = stripBenchSlots(latestInfo.rosterSettings);
 
         const platform = league.platform;
         const rankingsValues = rankingsQuery.data.map(r => r.value);
         const playerDb = buildPlayerDb(platform, playersQuery.data, rankingsValues, lineupSettings);
         const rankedPool = rankPlayers(playerDb, rankingsQuery.data[0].value) as PredictorPlayer[];
 
-        // Use the most recent historical draft for baseline + backtest.
-        const draftEntries = Array.from(draftQuery.data.entries());
-        if (draftEntries.length === 0) return null;
-        const [latestDraftInfo, latestDraftPlayers] = draftEntries[draftEntries.length - 1];
-        const drafted = mergeDraftAndPlayerInfo(
-            latestDraftInfo.picks,
-            latestDraftPlayers,
-            [],
-            platform
-        );
+        // Normalize every season with draft data for the backtest/calibration.
+        const historical: HistoricalDraft[] = [];
+        for (const [draftDetail, draftPlayers] of draftQuery.data.entries()) {
+            const seasonInfo = history[String(draftDetail.season)] as any;
+            const auctionBudget =
+                (typeof seasonInfo === 'object' && seasonInfo?.draft?.auctionBudget) ||
+                latestInfo.draft.auctionBudget ||
+                200;
+            const seasonLineup =
+                typeof seasonInfo === 'object' && seasonInfo?.rosterSettings
+                    ? stripBenchSlots(seasonInfo.rosterSettings)
+                    : lineupSettings;
 
-        const baselinePicks: BaselineDraftPick[] = drafted.map(p => ({
-            price: p.price,
-            position: p.position,
-        }));
-        const baseline = createBaselineModels(baselinePicks);
-
-        // Normalize the historical draft (picks with ranks, in order) for backtest.
-        const ranking = rankingsQuery.data[0].value;
-        const teams = new Set<string>();
-        const historicalPicks = drafted
-            .map(p => {
-                const overallRank = ranking.overall.get(p.ids[platform]);
-                const positionRank = ranking.positional.get(p.position)?.get(p.ids[platform]);
-                if (overallRank === undefined || positionRank === undefined) return null;
-                teams.add(String(p.team));
-                return {
-                    player: {
-                        id: p.ids[platform],
-                        defaultPosition: p.position,
-                        overallRank,
-                        positionRank,
-                    } as PredictorPlayer,
+            const drafted = mergeDraftAndPlayerInfo(draftDetail.picks, draftPlayers, [], platform);
+            const normalized = normalizeHistoricalDraft({
+                season: String(draftDetail.season),
+                auctionBudget,
+                rosterNeeds: seasonLineup,
+                picks: drafted.map(p => ({
+                    playerId: p.ids[platform],
+                    position: p.position,
                     price: p.price,
-                    teamId: String(p.team),
-                    pickNumber: p.overallPickNumber,
-                };
-            })
-            .filter((p): p is NonNullable<typeof p> => p !== null)
-            .sort((a, b) => a.pickNumber - b.pickNumber);
+                    team: p.team,
+                    overallPickNumber: p.overallPickNumber,
+                })),
+            });
+            if (normalized) historical.push(normalized);
+        }
+        if (historical.length === 0) return null;
+        historical.sort((a, b) => (a.season ?? '').localeCompare(b.season ?? ''));
 
-        const teamCount = teams.size > 0 ? teams.size : 12;
-
-        const historical: HistoricalDraft = {
-            picks: historicalPicks,
-            budgetConfig: {
-                totalBudgetPerTeam: latestInfo.draft.auctionBudget || 200,
-                teamCount,
-            },
-            rosterNeeds: lineupSettings,
-            players: rankedPool,
-        };
+        const baseline = createPooledBaselineModels(historical);
+        const latestDraft = historical[historical.length - 1];
 
         return {
             baseline,
             players: rankedPool,
             rosterNeeds: lineupSettings,
             defaultBudget: latestInfo.draft.auctionBudget || 200,
-            teamCount,
+            teamCount: latestDraft.budgetConfig.teamCount,
             historical,
         };
     }, [league, playersQuery.data, historyQuery.data, draftQuery.data, rankingsQuery.data]);

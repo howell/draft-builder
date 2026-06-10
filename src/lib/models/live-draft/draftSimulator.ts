@@ -107,6 +107,7 @@ export function simulateDraft(config: SimulationConfig): SimulatedDraft {
     const buildContext = (): PredictionContext => ({
         budgetConfig,
         rosterSize,
+        rosterNeeds,
         picks,
         teams: teams.map(({ picksCount: _picksCount, ...t }) => t),
         availablePlayers: Array.from(available.values()),

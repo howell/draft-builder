@@ -51,6 +51,12 @@ export interface PredictionContext {
     budgetConfig: { totalBudgetPerTeam: number; teamCount: number };
     /** roster slots per team (used to size remaining demand) */
     rosterSize: number;
+    /**
+     * The league's lineup requirements per team (e.g. { QB: 1, RB: 2, ... }).
+     * Keys that don't match any player's defaultPosition are treated as flex
+     * capacity shared across positions.
+     */
+    rosterNeeds: Record<string, number>;
     picks: CompletedPick[];
     teams: PredictorTeam[];
     /** undrafted players, with ranks */
@@ -75,8 +81,24 @@ export interface PricePredictor {
 /**
  * A player's intrinsic ("neutral draft") value from the exponential baseline.
  * Shared by every model so the comparison is apples-to-apples.
+ *
+ * With `positional` set, players are valued on their position's own price
+ * curve at their position rank — overall rank confounds position with price
+ * (high-ranked QBs go cheap in 1-QB leagues). Positions without enough data
+ * are aliased to the overall model by `createBaselineModels`; for those we
+ * must keep evaluating at overallRank, so we detect the alias by reference.
  */
-export function baselineValue(player: PredictorPlayer, baseline: BaselineModels): number {
+export function baselineValue(
+    player: PredictorPlayer,
+    baseline: BaselineModels,
+    positional = false
+): number {
+    if (positional) {
+        const positionModel = baseline.positions[player.defaultPosition];
+        if (positionModel && positionModel !== baseline.overall) {
+            return predictPrice(positionModel, player.positionRank);
+        }
+    }
     return predictPrice(baseline.overall, player.overallRank);
 }
 
@@ -100,13 +122,19 @@ export function totalSpent(ctx: PredictionContext): number {
  * This is the reference column the other models are judged against.
  */
 export class BaselinePredictor implements PricePredictor {
-    readonly id = 'baseline';
-    readonly label = 'Baseline';
+    readonly id: string;
+    readonly label: string;
 
-    constructor(private readonly baseline: BaselineModels) {}
+    constructor(
+        private readonly baseline: BaselineModels,
+        private readonly positional = false
+    ) {
+        this.id = positional ? 'baseline-positional' : 'baseline';
+        this.label = positional ? 'Baseline (pos)' : 'Baseline';
+    }
 
     predict(player: PredictorPlayer): PredictionResult {
-        const value = baselineValue(player, this.baseline);
+        const value = baselineValue(player, this.baseline, this.positional);
         return { price: value, breakdown: { baseValue: value } };
     }
 }

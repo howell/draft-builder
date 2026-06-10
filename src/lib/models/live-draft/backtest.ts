@@ -6,8 +6,17 @@
  * and scores the prediction against the real price. This is the empirical
  * "which model wins" output: MAE / MAPE / bias per model, overall and split by
  * draft phase (early/mid/late thirds) and by position.
+ *
+ * Two entry points:
+ *  - `backtest(drafts, predictors)` — score fixed predictors over the drafts.
+ *    In-sample if those predictors' baseline was fit on the same drafts.
+ *  - `backtestHeldOut(drafts, makePredictors)` — leave-one-out: each draft is
+ *    scored by predictors built from a baseline fit on the *other* drafts, so
+ *    calibration against the report doesn't just memorize the test data. With
+ *    a single draft there is nothing to hold out and the report says so.
  */
 
+import { BaselineModels } from '@/app/league/analytics';
 import {
     PricePredictor,
     PredictorPlayer,
@@ -15,9 +24,12 @@ import {
     CompletedPick,
     PredictionContext,
 } from './predictor';
+import { createPooledBaselineModels } from './history';
 
 /** One historical draft in the normalized shape the backtest consumes. */
 export interface HistoricalDraft {
+    /** season label for display (e.g. "2025") */
+    season?: string;
     /** picks in overall draft order, each carrying the player's ranks + price + team */
     picks: CompletedPick[];
     budgetConfig: { totalBudgetPerTeam: number; teamCount: number };
@@ -49,6 +61,9 @@ export interface ModelBacktestResult {
 export interface BacktestReport {
     models: ModelBacktestResult[];
     totalPicks: number;
+    draftCount: number;
+    /** true when every draft was scored with a baseline fit on the other drafts */
+    heldOut: boolean;
 }
 
 interface Accumulator {
@@ -85,72 +100,89 @@ function phaseOf(pickIndex: number, totalPicks: number): DraftPhase {
     return 'late';
 }
 
-export function backtest(drafts: HistoricalDraft[], predictors: PricePredictor[]): BacktestReport {
-    const accumulators = predictors.map(() => ({
-        overall: emptyAcc(),
-        byPhase: { early: emptyAcc(), mid: emptyAcc(), late: emptyAcc() } as Record<DraftPhase, Accumulator>,
-        byPosition: {} as Record<string, Accumulator>,
+interface ModelAccumulators {
+    overall: Accumulator;
+    byPhase: Record<DraftPhase, Accumulator>;
+    byPosition: Record<string, Accumulator>;
+}
+
+const emptyModelAcc = (): ModelAccumulators => ({
+    overall: emptyAcc(),
+    byPhase: { early: emptyAcc(), mid: emptyAcc(), late: emptyAcc() },
+    byPosition: {},
+});
+
+/** Replay one draft, scoring every predictor at every pick. */
+function replayDraft(
+    draft: HistoricalDraft,
+    predictors: PricePredictor[],
+    accumulators: ModelAccumulators[]
+): number {
+    const { picks, budgetConfig, rosterNeeds, players } = draft;
+    const rosterSize = Object.values(rosterNeeds).reduce((a, b) => a + b, 0);
+
+    // Reconstruct team + availability state as we walk the draft.
+    const teams: PredictorTeam[] = Array.from({ length: budgetConfig.teamCount }, (_, i) => ({
+        id: `team-${i + 1}`,
+        remainingBudget: budgetConfig.totalBudgetPerTeam,
+        rosterNeeds: { ...rosterNeeds },
+        filledPositions: {},
     }));
+    const teamById = new Map(teams.map(t => [t.id, t]));
+    const available = new Map(players.map(p => [p.id, p]));
 
-    let totalPicks = 0;
+    for (let i = 0; i < picks.length; i++) {
+        const actual = picks[i];
+        const ctx: PredictionContext = {
+            budgetConfig,
+            rosterSize,
+            rosterNeeds,
+            picks: picks.slice(0, i),
+            teams,
+            availablePlayers: Array.from(available.values()),
+            currentPickNumber: i + 1,
+        };
 
-    for (const draft of drafts) {
-        const { picks, budgetConfig, rosterNeeds, players } = draft;
-        const rosterSize = Object.values(rosterNeeds).reduce((a, b) => a + b, 0);
-
-        // Reconstruct team + availability state as we walk the draft.
-        const teams: PredictorTeam[] = Array.from({ length: budgetConfig.teamCount }, (_, i) => ({
-            id: `team-${i + 1}`,
-            remainingBudget: budgetConfig.totalBudgetPerTeam,
-            rosterNeeds: { ...rosterNeeds },
-            filledPositions: {},
-        }));
-        const teamById = new Map(teams.map(t => [t.id, t]));
-        const available = new Map(players.map(p => [p.id, p]));
-
-        for (let i = 0; i < picks.length; i++) {
-            const actual = picks[i];
-            const ctx: PredictionContext = {
-                budgetConfig,
-                rosterSize,
-                picks: picks.slice(0, i),
-                teams,
-                availablePlayers: Array.from(available.values()),
-                currentPickNumber: i + 1,
-            };
-
-            const phase = phaseOf(i, picks.length);
-            for (let m = 0; m < predictors.length; m++) {
-                const predicted = predictors[m].predict(actual.player, ctx).price;
-                const acc = accumulators[m];
-                record(acc.overall, predicted, actual.price);
-                record(acc.byPhase[phase], predicted, actual.price);
-                const pos = actual.player.defaultPosition;
-                (acc.byPosition[pos] ??= emptyAcc());
-                record(acc.byPosition[pos], predicted, actual.price);
-            }
-            totalPicks += 1;
-
-            // Advance state past this pick.
-            const team = teamById.get(actual.teamId);
-            if (team) {
-                team.remainingBudget -= actual.price;
-                team.filledPositions[actual.player.defaultPosition] =
-                    (team.filledPositions[actual.player.defaultPosition] ?? 0) + 1;
-            }
-            available.delete(actual.player.id);
+        const phase = phaseOf(i, picks.length);
+        for (let m = 0; m < predictors.length; m++) {
+            const predicted = predictors[m].predict(actual.player, ctx).price;
+            const acc = accumulators[m];
+            record(acc.overall, predicted, actual.price);
+            record(acc.byPhase[phase], predicted, actual.price);
+            const pos = actual.player.defaultPosition;
+            (acc.byPosition[pos] ??= emptyAcc());
+            record(acc.byPosition[pos], predicted, actual.price);
         }
+
+        // Advance state past this pick.
+        const team = teamById.get(actual.teamId);
+        if (team) {
+            team.remainingBudget -= actual.price;
+            team.filledPositions[actual.player.defaultPosition] =
+                (team.filledPositions[actual.player.defaultPosition] ?? 0) + 1;
+        }
+        available.delete(actual.player.id);
     }
 
-    const models: ModelBacktestResult[] = predictors.map((predictor, m) => {
+    return picks.length;
+}
+
+function buildReport(
+    modelIdentities: Array<{ id: string; label: string }>,
+    accumulators: ModelAccumulators[],
+    totalPicks: number,
+    draftCount: number,
+    heldOut: boolean
+): BacktestReport {
+    const models: ModelBacktestResult[] = modelIdentities.map((identity, m) => {
         const acc = accumulators[m];
         const byPosition: Record<string, MetricBucket> = {};
         for (const [pos, bucket] of Object.entries(acc.byPosition)) {
             byPosition[pos] = finalize(bucket);
         }
         return {
-            modelId: predictor.id,
-            label: predictor.label,
+            modelId: identity.id,
+            label: identity.label,
             overall: finalize(acc.overall),
             byPhase: {
                 early: finalize(acc.byPhase.early),
@@ -161,5 +193,61 @@ export function backtest(drafts: HistoricalDraft[], predictors: PricePredictor[]
         };
     });
 
-    return { models, totalPicks };
+    return { models, totalPicks, draftCount, heldOut };
+}
+
+export function backtest(drafts: HistoricalDraft[], predictors: PricePredictor[]): BacktestReport {
+    const accumulators = predictors.map(emptyModelAcc);
+    let totalPicks = 0;
+    for (const draft of drafts) {
+        totalPicks += replayDraft(draft, predictors, accumulators);
+    }
+    return buildReport(
+        predictors.map(p => ({ id: p.id, label: p.label })),
+        accumulators,
+        totalPicks,
+        drafts.length,
+        false
+    );
+}
+
+/**
+ * Builds the predictors to score a held-out draft. `baseline` is fit on the
+ * training drafts only; `trainingDrafts` is provided so factories can derive
+ * other league signals (positional priors, expected unspent money) without
+ * peeking at the held-out draft. Must return the same models (ids/labels, in
+ * the same order) for every fold.
+ */
+export type PredictorFactory = (
+    baseline: BaselineModels,
+    trainingDrafts: HistoricalDraft[]
+) => PricePredictor[];
+
+export function backtestHeldOut(
+    drafts: HistoricalDraft[],
+    makePredictors: PredictorFactory
+): BacktestReport {
+    if (drafts.length <= 1) {
+        // Nothing to hold out: fit and test on the same draft, labeled as such.
+        const baseline = createPooledBaselineModels(drafts);
+        const report = backtest(drafts, makePredictors(baseline, drafts));
+        return { ...report, heldOut: false };
+    }
+
+    let accumulators: ModelAccumulators[] | null = null;
+    let identities: Array<{ id: string; label: string }> | null = null;
+    let totalPicks = 0;
+
+    for (let i = 0; i < drafts.length; i++) {
+        const training = drafts.filter((_, j) => j !== i);
+        const baseline = createPooledBaselineModels(training);
+        const predictors = makePredictors(baseline, training);
+        if (!accumulators) {
+            accumulators = predictors.map(emptyModelAcc);
+            identities = predictors.map(p => ({ id: p.id, label: p.label }));
+        }
+        totalPicks += replayDraft(drafts[i], predictors, accumulators);
+    }
+
+    return buildReport(identities!, accumulators!, totalPicks, drafts.length, true);
 }

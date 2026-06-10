@@ -6,8 +6,8 @@
  *
  *     price(player) = 1 + (baseValue(player) - 1) * inflation(position, state)
  *
- *     globalInflation = (money left to spend - $1 reserve per open slot)
- *                       --------------------------------------------------
+ *     globalInflation = (money that will still be spent - $1 reserve per open slot)
+ *                       ------------------------------------------------------------
  *                       (Sigma surplus value of players still to be drafted)
  *
  * Properties this buys us:
@@ -20,11 +20,23 @@
  *
  * Positional inflation models the "soft team appetite" conjecture: the market
  * spends *less* (not zero) on a position it is already heavily invested in.
- * We measure league-aggregate over/under-investment per position versus the
- * baseline's expected share and dampen appetite accordingly, then renormalize
- * so money stays conserved. A single `elasticity` knob blends between pure
- * global inflation (0) and full positional inflation (1); it is meant to be
- * calibrated against historical actuals via the backtest, not guessed.
+ * Investment pressure compares the actual spend share per position against the
+ * baseline-expected spend share **over the same drafted players** — comparing
+ * against the remaining board instead would manufacture pressure from draft
+ * order alone (RBs drafted early at exactly fair prices would look
+ * over-invested). A single `elasticity` knob blends between pure global
+ * inflation (0) and full positional appetite; it is calibrated against
+ * historical actuals via `calibrate.ts`, not guessed.
+ *
+ * League-history knobs (all optional, all default off so the model stays a
+ * pure accounting identity until the backtest proves a knob earns its keep):
+ *  - `positionalValues`: value players on their position's own price curve.
+ *  - `priors`: this league's historical per-position premium/discount, blended
+ *    in at full strength on an empty board and decaying toward the live signal
+ *    as real money is spent.
+ *  - `expectedUnspent`: money this league historically leaves on the table at
+ *    the end of the draft; it was never going to be spent, so it should not
+ *    inflate prices mid-draft.
  */
 
 import {
@@ -40,44 +52,147 @@ import {
 } from './predictor';
 
 export interface InflationModelOptions {
-    /** 0 = positions share one global inflation; 1 = full positional appetite. */
+    /** 0 = positions share one global inflation; higher = stronger positional appetite. */
     elasticity: number;
+    /** value players on per-position baseline curves instead of the overall curve */
+    positionalValues: boolean;
+    /**
+     * Historical per-position spend premium for this league
+     * (1.0 = neutral, 1.2 = league historically pays 20% over baseline share).
+     * See `computePositionalPriors` in history.ts.
+     */
+    priors?: Record<string, number>;
+    /** dollars the league historically leaves unspent at the end of the draft */
+    expectedUnspent?: number;
 }
 
 const DEFAULT_ELASTICITY = 0.5;
+/** Appetite multipliers stay within e^±2 so a thin board can't blow them up. */
+const APPETITE_EXPONENT_CLAMP = 2;
+/** Priors outside this range are almost certainly small-sample noise. */
+const PRIOR_CLAMP: [number, number] = [0.25, 4];
 
 /** A player's surplus value above the $1 floor (the part inflation acts on). */
 function surplus(value: number): number {
     return Math.max(0, value - 1);
 }
 
+function clamp(x: number, lo: number, hi: number): number {
+    return Math.min(hi, Math.max(lo, x));
+}
+
+/** Count of picks each team has made so far. */
+function picksByTeam(ctx: PredictionContext): Record<string, number> {
+    const counts: Record<string, number> = {};
+    for (const pick of ctx.picks) {
+        counts[pick.teamId] = (counts[pick.teamId] ?? 0) + 1;
+    }
+    return counts;
+}
+
+/**
+ * Remaining league-wide capacity per position, derived from the lineup
+ * settings. Keys of `rosterNeeds` that match a player's defaultPosition are
+ * dedicated capacity; the rest (flex slots like RB/WR/TE) form a shared pool.
+ * Drafted players consume their dedicated capacity first, then flex.
+ */
+function remainingCapacity(
+    ctx: PredictionContext,
+    knownPositions: Set<string>
+): { dedicated: Record<string, number>; flex: number } {
+    const teamCount = ctx.budgetConfig.teamCount;
+    const dedicated: Record<string, number> = {};
+    let flexCapacity = 0;
+    for (const [slot, count] of Object.entries(ctx.rosterNeeds)) {
+        if (knownPositions.has(slot)) {
+            dedicated[slot] = (dedicated[slot] ?? 0) + count * teamCount;
+        } else {
+            flexCapacity += count * teamCount;
+        }
+    }
+
+    const draftedByPosition: Record<string, number> = {};
+    for (const pick of ctx.picks) {
+        draftedByPosition[pick.player.defaultPosition] =
+            (draftedByPosition[pick.player.defaultPosition] ?? 0) + 1;
+    }
+    for (const [pos, drafted] of Object.entries(draftedByPosition)) {
+        const fromDedicated = Math.min(drafted, dedicated[pos] ?? 0);
+        if (dedicated[pos] !== undefined) dedicated[pos] -= fromDedicated;
+        flexCapacity -= drafted - fromDedicated;
+    }
+    return { dedicated, flex: Math.max(0, flexCapacity) };
+}
+
 /**
  * The set of players that will still be drafted for real money: the highest-
- * value undrafted players, capped at the number of open roster slots league-
- * wide. The long $1 tail carries ~no surplus and absorbs ~no money.
+ * value undrafted players that fit the league's remaining positional capacity.
+ * Without the positional cap, a deep position (e.g. QBs in a 1-QB league)
+ * would contribute surplus value that no roster can absorb, distorting the
+ * whole inflation field. Flex capacity is granted greedily by value; we don't
+ * know per-position flex eligibility here, but value ordering keeps that
+ * approximation honest.
  */
 export function draftablePlayers(
     ctx: PredictionContext,
-    baseline: BaselineModels
+    baseline: BaselineModels,
+    positionalValues = false
 ): Array<{ player: PredictorPlayer; value: number }> {
     const openSlots = Math.max(0, totalLeagueSlots(ctx) - ctx.picks.length);
-    return ctx.availablePlayers
-        .map(player => ({ player, value: baselineValue(player, baseline) }))
-        .sort((a, b) => b.value - a.value)
-        .slice(0, openSlots);
+
+    const knownPositions = new Set<string>();
+    for (const p of ctx.availablePlayers) knownPositions.add(p.defaultPosition);
+    for (const pick of ctx.picks) knownPositions.add(pick.player.defaultPosition);
+    const capacity = remainingCapacity(ctx, knownPositions);
+
+    const sorted = ctx.availablePlayers
+        .map(player => ({ player, value: baselineValue(player, baseline, positionalValues) }))
+        .sort((a, b) => b.value - a.value);
+
+    const result: Array<{ player: PredictorPlayer; value: number }> = [];
+    let flexLeft = capacity.flex;
+    for (const entry of sorted) {
+        if (result.length >= openSlots) break;
+        const pos = entry.player.defaultPosition;
+        if ((capacity.dedicated[pos] ?? 0) > 0) {
+            capacity.dedicated[pos]! -= 1;
+            result.push(entry);
+        } else if (flexLeft > 0) {
+            flexLeft -= 1;
+            result.push(entry);
+        }
+    }
+    return result;
 }
 
-/** Money still available to spend, minus the $1 reserve every open slot needs. */
-export function moneySurplus(ctx: PredictionContext): number {
-    const remainingMoney = totalLeagueBudget(ctx) - totalSpent(ctx);
+/**
+ * Money that will still be spent on the board, minus the $1 reserve every open
+ * slot needs. Excludes money that can no longer be spent (teams with a full
+ * roster) and money the league historically never spends (`expectedUnspent`).
+ * Dead money is a realized lower bound on final unspent, so we take the max of
+ * the two rather than double-counting.
+ */
+export function moneySurplus(ctx: PredictionContext, expectedUnspent = 0): number {
     const openSlots = Math.max(0, totalLeagueSlots(ctx) - ctx.picks.length);
-    return remainingMoney - openSlots;
+    const remainingMoney = totalLeagueBudget(ctx) - totalSpent(ctx);
+
+    let deadMoney = 0;
+    if (ctx.teams.length > 0) {
+        const counts = picksByTeam(ctx);
+        for (const team of ctx.teams) {
+            if (ctx.rosterSize - (counts[team.id] ?? 0) <= 0) {
+                deadMoney += Math.max(0, team.remainingBudget);
+            }
+        }
+    }
+
+    return remainingMoney - openSlots - Math.max(deadMoney, expectedUnspent);
 }
 
 export interface InflationField {
     /** league-wide inflation factor */
     global: number;
-    /** inflation factor per position (already blended with elasticity) */
+    /** inflation factor per position (already blended with elasticity/priors) */
     byPosition: Record<string, number>;
     /** value surplus still on the board, per position */
     valueSurplusByPosition: Record<string, number>;
@@ -90,9 +205,15 @@ export interface InflationField {
 export function computeInflation(
     ctx: PredictionContext,
     baseline: BaselineModels,
-    elasticity: number
+    options: Partial<InflationModelOptions> | number = {}
 ): InflationField {
-    const draftable = draftablePlayers(ctx, baseline);
+    // Back-compat: a bare number is the elasticity.
+    const opts: Partial<InflationModelOptions> =
+        typeof options === 'number' ? { elasticity: options } : options;
+    const elasticity = opts.elasticity ?? DEFAULT_ELASTICITY;
+    const positionalValues = opts.positionalValues ?? false;
+
+    const draftable = draftablePlayers(ctx, baseline, positionalValues);
 
     // Value surplus per position and overall.
     const valueSurplusByPosition: Record<string, number> = {};
@@ -104,31 +225,47 @@ export function computeInflation(
         totalValueSurplus += s;
     }
 
-    const money = moneySurplus(ctx);
+    const money = Math.max(0, moneySurplus(ctx, opts.expectedUnspent ?? 0));
     const global = totalValueSurplus > 0 ? money / totalValueSurplus : 0;
 
-    // League-aggregate spend share so far, per position.
+    // Actual vs baseline-expected spend over the players drafted so far. Using
+    // the same drafted players for both sides isolates genuine over/under-
+    // payment from board composition.
     const spent = totalSpent(ctx);
     const spentByPosition: Record<string, number> = {};
+    const expectedByPosition: Record<string, number> = {};
+    let expectedTotal = 0;
     for (const pick of ctx.picks) {
-        spentByPosition[pick.player.defaultPosition] =
-            (spentByPosition[pick.player.defaultPosition] ?? 0) + pick.price;
+        const pos = pick.player.defaultPosition;
+        spentByPosition[pos] = (spentByPosition[pos] ?? 0) + pick.price;
+        const expected = baselineValue(pick.player, baseline, positionalValues);
+        expectedByPosition[pos] = (expectedByPosition[pos] ?? 0) + expected;
+        expectedTotal += expected;
     }
 
-    // Appetite factor per position: positions the market has over-invested in
-    // (actual spend share above the baseline's expected value share) get a
-    // reduced appetite; under-invested positions get a raised one. Early in the
-    // draft nothing is spent, so factors are ~1 and we recover global inflation.
+    // Fraction of league money already spent — the weight that shifts trust
+    // from historical priors to the live appetite signal.
+    const spentFraction = clamp(totalLeagueBudget(ctx) > 0 ? spent / totalLeagueBudget(ctx) : 0, 0, 1);
+
     const positions = Object.keys(valueSurplusByPosition);
     const rawAllocation: Record<string, number> = {};
     let allocationTotal = 0;
     for (const pos of positions) {
-        const valueShare = totalValueSurplus > 0
-            ? valueSurplusByPosition[pos] / totalValueSurplus
-            : 0;
-        const spentShare = spent > 0 ? (spentByPosition[pos] ?? 0) / spent : valueShare;
-        const investmentPressure = spentShare - valueShare; // >0 = over-invested
-        const appetite = Math.exp(-elasticity * (investmentPressure / Math.max(valueShare, 1e-6)));
+        const expectedShare = expectedTotal > 0 ? (expectedByPosition[pos] ?? 0) / expectedTotal : 0;
+        const spentShare = spent > 0 ? (spentByPosition[pos] ?? 0) / spent : 0;
+        const investmentPressure = spentShare - expectedShare; // >0 = over-invested
+        const exponent = clamp(
+            -elasticity * (investmentPressure / Math.max(expectedShare, 0.02)),
+            -APPETITE_EXPONENT_CLAMP,
+            APPETITE_EXPONENT_CLAMP
+        );
+        let appetite = Math.exp(exponent);
+
+        // Historical prior, at full strength before any money is spent and
+        // fading out as the live signal accumulates.
+        const prior = clamp(opts.priors?.[pos] ?? 1, PRIOR_CLAMP[0], PRIOR_CLAMP[1]);
+        appetite *= Math.pow(prior, elasticity * (1 - spentFraction));
+
         const alloc = valueSurplusByPosition[pos] * appetite;
         rawAllocation[pos] = alloc;
         allocationTotal += alloc;
@@ -150,21 +287,24 @@ export function computeInflation(
 }
 
 export class InflationPredictor implements PricePredictor {
-    readonly id = 'inflation';
-    readonly label = 'Inflation';
+    readonly id: string;
+    readonly label: string;
 
-    private readonly elasticity: number;
+    private readonly options: Partial<InflationModelOptions>;
 
     constructor(
         private readonly baseline: BaselineModels,
-        options: Partial<InflationModelOptions> = {}
+        options: Partial<InflationModelOptions> = {},
+        identity: { id?: string; label?: string } = {}
     ) {
-        this.elasticity = options.elasticity ?? DEFAULT_ELASTICITY;
+        this.options = options;
+        this.id = identity.id ?? 'inflation';
+        this.label = identity.label ?? 'Inflation';
     }
 
     predict(player: PredictorPlayer, ctx: PredictionContext): PredictionResult {
-        const field = computeInflation(ctx, this.baseline, this.elasticity);
-        const value = baselineValue(player, this.baseline);
+        const field = computeInflation(ctx, this.baseline, this.options);
+        const value = baselineValue(player, this.baseline, this.options.positionalValues ?? false);
         const inflation = field.byPosition[player.defaultPosition] ?? field.global;
         const price = Math.max(1, Math.round(1 + surplus(value) * inflation));
         return {

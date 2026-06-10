@@ -5,8 +5,8 @@
  *
  * Lets us generate a random-but-plausible mid-draft state, tune the inflation
  * model, and compare the baseline / inflation / regression predictions against
- * each other and against historical actuals (the backtest panel). This page is
- * gated behind a feature flag and has no production nav link.
+ * each other and against historical actuals (the held-out backtest panel).
+ * This page is gated behind a feature flag and has no production nav link.
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -26,7 +26,13 @@ import {
 } from '@/lib/models/live-draft/predictor';
 import { InflationPredictor, computeInflation } from '@/lib/models/live-draft/inflationModel';
 import { simulateDraft, SimulatedDraft } from '@/lib/models/live-draft/draftSimulator';
-import { backtest, BacktestReport } from '@/lib/models/live-draft/backtest';
+import { backtestHeldOut, BacktestReport } from '@/lib/models/live-draft/backtest';
+import {
+    calibrateElasticity,
+    leagueHistoryOptions,
+    CalibrationConfig,
+    CalibrationResult,
+} from '@/lib/models/live-draft/calibrate';
 import { LiveDraftPredictor } from '@/lib/models/live-draft/liveDraftPredictor';
 
 interface Props {
@@ -46,8 +52,12 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
     const [seed, setSeed] = useState(1);
     const [stopAtPick, setStopAtPick] = useState(40);
     const [noise, setNoise] = useState(0.15);
+    const [positionalValues, setPositionalValues] = useState(false);
+    const [usePriors, setUsePriors] = useState(false);
+    const [useExpectedUnspent, setUseExpectedUnspent] = useState(false);
     const [sim, setSim] = useState<SimulatedDraft | null>(null);
     const [report, setReport] = useState<BacktestReport | null>(null);
+    const [calibration, setCalibration] = useState<CalibrationResult | null>(null);
     const [trainedPredictor, setTrainedPredictor] = useState<LiveDraftPredictor | null>(null);
 
     const budget = budgetOverride ?? data?.defaultBudget ?? 200;
@@ -58,6 +68,18 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
         [data]
     );
 
+    const calibrationConfig = useMemo<CalibrationConfig>(
+        () => ({ positionalValues, usePriors, useExpectedUnspent }),
+        [positionalValues, usePriors, useExpectedUnspent]
+    );
+
+    // League-history knobs (priors, expected unspent) for the live predictors,
+    // measured over every historical draft.
+    const historyOptions = useMemo(() => {
+        if (!data) return null;
+        return leagueHistoryOptions(data.historical, data.baseline, calibrationConfig);
+    }, [data, calibrationConfig]);
+
     // Train the legacy regression model in the background; until ready the
     // regression column falls back to baseline.
     const regressionPredictorRef = useMemo(() => {
@@ -65,28 +87,24 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
         const livePredictor = new LiveDraftPredictor({
             budgetConfig: { totalBudgetPerTeam: budget, teamCount },
             baselineModels: data.baseline,
-            historicalData: data.historical
-                ? [
-                      {
-                          picks: data.historical.picks.map(p => ({
-                              player: {
-                                  defaultPosition: p.player.defaultPosition,
-                                  positionRank: p.player.positionRank,
-                                  overallRank: p.player.overallRank,
-                              },
-                              price: p.price,
-                              pickNumber: p.pickNumber,
-                          })),
-                          budgetConfig: { totalBudgetPerTeam: budget, teamCount },
-                      },
-                  ]
-                : [],
+            historicalData: data.historical.map(draft => ({
+                picks: draft.picks.map(p => ({
+                    player: {
+                        defaultPosition: p.player.defaultPosition,
+                        positionRank: p.player.positionRank,
+                        overallRank: p.player.overallRank,
+                    },
+                    price: p.price,
+                    pickNumber: p.pickNumber,
+                })),
+                budgetConfig: draft.budgetConfig,
+            })),
         });
         return livePredictor;
     }, [data, budget, teamCount]);
 
     useEffect(() => {
-        if (!regressionPredictorRef || !data?.historical) return;
+        if (!regressionPredictorRef || !data || data.historical.length === 0) return;
         let cancelled = false;
         regressionPredictorRef
             .trainModel({
@@ -109,10 +127,10 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
     const regressionReady = trainedPredictor === regressionPredictorRef;
 
     const predictors = useMemo<PricePredictor[]>(() => {
-        if (!data) return [];
+        if (!data || !historyOptions) return [];
         const list: PricePredictor[] = [
-            new BaselinePredictor(data.baseline),
-            new InflationPredictor(data.baseline, { elasticity }),
+            new BaselinePredictor(data.baseline, positionalValues),
+            new InflationPredictor(data.baseline, { ...historyOptions, elasticity }),
         ];
         if (regressionPredictorRef) {
             list.push(new RegressionPredictor(regressionPredictorRef, data.baseline));
@@ -120,7 +138,7 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
         return list;
         // regressionReady included so columns refresh after training
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [data, elasticity, regressionPredictorRef, regressionReady]);
+    }, [data, historyOptions, positionalValues, elasticity, regressionPredictorRef, regressionReady]);
 
     const currentContext = useMemo<PredictionContext | null>(() => {
         if (!data) return null;
@@ -128,6 +146,7 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
         return {
             budgetConfig: { totalBudgetPerTeam: budget, teamCount },
             rosterSize,
+            rosterNeeds: data.rosterNeeds,
             picks: sim?.picks ?? [],
             teams: sim?.teams ?? [],
             availablePlayers: data.players.filter(p => !draftedIds.has(p.id)),
@@ -136,9 +155,12 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
     }, [data, sim, budget, teamCount, rosterSize]);
 
     const inflationField = useMemo(() => {
-        if (!data || !currentContext) return null;
-        return computeInflation(currentContext, data.baseline, elasticity);
-    }, [data, currentContext, elasticity]);
+        if (!data || !currentContext || !historyOptions) return null;
+        return computeInflation(currentContext, data.baseline, {
+            ...historyOptions,
+            elasticity,
+        });
+    }, [data, currentContext, historyOptions, elasticity]);
 
     const explorerRows = useMemo(() => {
         if (!data || !currentContext) return [];
@@ -169,8 +191,31 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
     };
 
     const handleRunBacktest = () => {
-        if (!data?.historical || predictors.length === 0) return;
-        setReport(backtest([data.historical], predictors));
+        if (!data) return;
+        setReport(
+            backtestHeldOut(data.historical, (baseline, trainingDrafts) => {
+                const foldOptions = leagueHistoryOptions(
+                    trainingDrafts,
+                    baseline,
+                    calibrationConfig
+                );
+                const models: PricePredictor[] = [
+                    new BaselinePredictor(baseline, positionalValues),
+                    new InflationPredictor(baseline, { ...foldOptions, elasticity }),
+                ];
+                if (regressionPredictorRef) {
+                    models.push(new RegressionPredictor(regressionPredictorRef, baseline));
+                }
+                return models;
+            })
+        );
+    };
+
+    const handleCalibrate = () => {
+        if (!data) return;
+        const result = calibrateElasticity(data.historical, calibrationConfig);
+        setCalibration(result);
+        setElasticity(result.best.elasticity);
     };
 
     if (isLoading) {
@@ -191,12 +236,15 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
         );
     }
 
+    const seasons = data.historical.map(d => d.season ?? '?').join(', ');
+
     return (
         <div className="max-w-6xl mx-auto p-4 space-y-4">
             <div>
                 <h1 className="text-2xl font-bold">Live Draft Simulator</h1>
                 <p className="text-sm text-gray-500">
-                    Dev sandbox · compare pricing models against a simulated or historical draft.
+                    Dev sandbox · compare pricing models against a simulated or historical draft ·
+                    history: {seasons}
                 </p>
             </div>
 
@@ -239,7 +287,7 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                             <input
                                 type="range"
                                 min={0}
-                                max={1}
+                                max={2}
                                 step={0.05}
                                 value={elasticity}
                                 onChange={e => setElasticity(Number(e.target.value))}
@@ -266,6 +314,37 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                         <Button variant="ghost" onClick={() => setSim(null)}>
                             Clear
                         </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-4 mt-3 text-sm">
+                        <label className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                checked={positionalValues}
+                                onChange={e => setPositionalValues(e.target.checked)}
+                            />
+                            Positional value curves
+                        </label>
+                        <label className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                checked={usePriors}
+                                onChange={e => setUsePriors(e.target.checked)}
+                            />
+                            League positional priors
+                        </label>
+                        <label className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                checked={useExpectedUnspent}
+                                onChange={e => setUseExpectedUnspent(e.target.checked)}
+                            />
+                            Expected-unspent correction
+                            {historyOptions?.expectedUnspent !== undefined && (
+                                <span className="text-gray-500">
+                                    (${Math.round(historyOptions.expectedUnspent)})
+                                </span>
+                            )}
+                        </label>
                     </div>
                 </CardBody>
             </Card>
@@ -360,12 +439,50 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Backtest vs historical draft</CardTitle>
+                    <CardTitle>Backtest vs historical drafts</CardTitle>
                 </CardHeader>
                 <CardBody>
-                    <Button variant="outline" onClick={handleRunBacktest} className="mb-3">
-                        Run backtest
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <Button variant="outline" onClick={handleRunBacktest}>
+                            Run backtest
+                        </Button>
+                        <Button variant="outline" onClick={handleCalibrate}>
+                            Calibrate elasticity
+                        </Button>
+                        {report && (
+                            <Badge variant={report.heldOut ? 'success' : 'warning'}>
+                                {report.heldOut
+                                    ? `held-out · ${report.draftCount} drafts`
+                                    : 'in-sample · 1 draft'}
+                            </Badge>
+                        )}
+                    </div>
+                    {calibration && (
+                        <div className="mb-3 text-sm">
+                            <span className="font-medium">
+                                Best elasticity: {calibration.best.elasticity}
+                            </span>{' '}
+                            <span className="text-gray-500">
+                                (MAE ${calibration.best.mae.toFixed(2)},{' '}
+                                {calibration.heldOut ? 'held-out' : 'in-sample'} over{' '}
+                                {calibration.totalPicks} picks) · applied to the slider
+                            </span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                                {calibration.points.map(point => (
+                                    <Badge
+                                        key={point.elasticity}
+                                        variant={
+                                            point.elasticity === calibration.best.elasticity
+                                                ? 'success'
+                                                : 'neutral'
+                                        }
+                                    >
+                                        e={point.elasticity}: ${point.mae.toFixed(2)}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     {report && (
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
@@ -402,7 +519,10 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                                 </tbody>
                             </table>
                             <p className="text-xs text-gray-500 mt-2">
-                                {report.totalPicks} picks scored.
+                                {report.totalPicks} picks scored across {report.draftCount}{' '}
+                                draft{report.draftCount === 1 ? '' : 's'}. Baseline and inflation
+                                use per-fold baselines; the regression column trains on all
+                                seasons, so its row is in-sample.
                             </p>
                         </div>
                     )}
