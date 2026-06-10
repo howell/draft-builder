@@ -1,5 +1,64 @@
 # Live Draft Price Tracking Implementation Plan
 
+> **2026-06 Modeling Reboot — read this first.**
+>
+> The original plan below (an 8-feature multiple linear regression predicting
+> price-as-%-of-budget) is **retained for comparison only**. Auction prices are
+> heavily skewed, a linear fit handles that poorly and can imply negative prices
+> late, and the "baseline convergence" behaviour was a hack to fake the
+> exponential shape. The live feature now centers on a deterministic
+> **inflation-decomposition** model, with the regression kept as a comparison
+> baseline so the better model can be chosen empirically.
+>
+> ### Inflation-decomposition model (`src/lib/models/live-draft/inflationModel.ts`)
+>
+> ```
+> price(player) = 1 + (baseValue(player) - 1) × inflation(position, state)
+>
+> globalInflation = (money left to spend - $1 reserve per open slot)
+>                   --------------------------------------------------
+>                   (Σ surplus value of players still to be drafted)
+> ```
+>
+> - `baseValue` reuses the exponential baseline (`predictPrice` in
+>   `src/app/league/analytics.ts`); "players still to be drafted" = the top
+>   undrafted players capped at open roster slots league-wide.
+> - **No training.** Money is conserved by construction (predicted prices over
+>   remaining draftable players sum to remaining money, so the last pick lands at
+>   ~$1), and inflation is ~1.0 on an empty board so it degrades to the baseline.
+> - **Positional inflation = soft team appetite.** League-aggregate over/under
+>   investment per position (actual spend share vs the baseline's expected value
+>   share) dampens/raises that position's appetite, then allocations renormalize
+>   so money stays conserved. A single `elasticity` knob (0 = global, 1 = full
+>   positional) is calibrated via the backtest. Teams still bid above $1 on
+>   positions they already filled — the model only makes heavy further spend
+>   *less likely*, never impossible.
+>
+> ### Supporting modules
+> - `predictor.ts` — unified `PricePredictor` interface; `BaselinePredictor`,
+>   `InflationPredictor`, `RegressionPredictor` all implement it so the UI and
+>   backtest treat them interchangeably.
+> - `draftSimulator.ts` — seeded generative simulator: teams nominate and win
+>   players at a predictor's price + noise, respecting budgets/slots/$1 minimums.
+>   Produces plausible mid-draft states and validates a model (full draft should
+>   fill every roster and respect every budget).
+> - `backtest.ts` — replays historical drafts pick-by-pick and reports
+>   MAE/MAPE/bias per model, by phase and position — the empirical comparison.
+>
+> ### UI — dev-gated simulator
+> `src/app/league/[leagueID]/live-draft/page.tsx` is gated behind
+> `NEXT_PUBLIC_ENABLE_LIVE_DRAFT_SIM=1` (or `NODE_ENV=development`) and has **no
+> production nav link**, honoring the v1 deferral. `DraftSimulator.tsx` +
+> `useSimulatorData.ts` load real league data, generate plausible states, and
+> show a side-by-side prediction explorer plus the backtest summary.
+>
+> Tests: `__tests__/inflationModel.test.ts` (conservation, empty-board inflation,
+> over/under-spend direction, soft positional appetite) and
+> `__tests__/draftSimulator.test.ts` (roster/budget/minimum invariants,
+> determinism).
+>
+> ---
+
 ## Overview
 
 A real-time draft tracking interface that allows users to enter draft picks as they happen and receive updated price predictions based on current spending patterns and roster needs.
