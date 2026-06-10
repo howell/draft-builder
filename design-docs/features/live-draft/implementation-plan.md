@@ -22,40 +22,91 @@
 >
 > - `baseValue` reuses the exponential baseline (`predictPrice` in
 >   `src/app/league/analytics.ts`); "players still to be drafted" = the top
->   undrafted players capped at open roster slots league-wide.
+>   undrafted players capped at the league's **remaining capacity per position**
+>   (lineup-slot keys that match no real position act as shared flex capacity).
+>   Without the positional cap, a deep position (QBs in a 1-QB league) would
+>   contribute surplus value no roster can absorb and distort the field.
 > - **No training.** Money is conserved by construction (predicted prices over
 >   remaining draftable players sum to remaining money, so the last pick lands at
 >   ~$1), and inflation is ~1.0 on an empty board so it degrades to the baseline.
-> - **Positional inflation = soft team appetite.** League-aggregate over/under
->   investment per position (actual spend share vs the baseline's expected value
->   share) dampens/raises that position's appetite, then allocations renormalize
->   so money stays conserved. A single `elasticity` knob (0 = global, 1 = full
->   positional) is calibrated via the backtest. Teams still bid above $1 on
->   positions they already filled — the model only makes heavy further spend
->   *less likely*, never impossible.
+>   The money side excludes **dead money** (teams with full rosters can't spend
+>   what they have left) and, optionally, the league's historical
+>   **expected-unspent** (money this room habitually leaves on the table was
+>   never going to chase players).
+> - **Positional inflation = soft team appetite.** Investment pressure compares
+>   the actual spend share per position against the **baseline-expected spend
+>   share over the same drafted players** (✅ 2026-06 fix: comparing against the
+>   *remaining board's* value share manufactured pressure from draft order alone
+>   — RBs drafted early at exactly fair prices looked "over-invested"; the
+>   neutral-market unit test pins this). Over-invested positions get a dampened
+>   appetite, allocations renormalize so money stays conserved, and the appetite
+>   exponent is clamped so a thin board can't blow it up. A single `elasticity`
+>   knob (0 = global) is **calibrated, not guessed** (see `calibrate.ts`). Teams
+>   still bid above $1 on positions they already filled — the model only makes
+>   heavy further spend *less likely*, never impossible. (Known limit: the
+>   pressure signal is league-aggregate and cross-positional; per-*team* appetite
+>   is a possible future refinement.)
+>
+> ### League-history signals (`history.ts`, all optional knobs, all backtest-gated)
+> - **Pooled baselines**: `createPooledBaselineModels` fits the exponential
+>   curves on every season at once, on a shared within-draft rank axis. This also
+>   makes per-position curves viable; `baselineValue(…, positional)` evaluates a
+>   player on its position's own curve (overall rank confounds position with
+>   price — high-ranked QBs go cheap in 1-QB leagues).
+> - **Positional priors**: `computePositionalPriors` measures this league's
+>   historical per-position premium/discount vs the baseline; the model applies
+>   it at full strength on an empty board, decaying toward the live appetite
+>   signal as real money is spent. Positional factors no longer start pinned at
+>   1.0 on pick 1.
+> - **Expected unspent**: `averageUnspent` measures money the league leaves on
+>   the table at the end of a draft, subtracted from the spendable-money side of
+>   the identity (max'd with realized dead money, not double-counted).
+> - Historical drafts are normalized with **price-derived ranks**
+>   (`normalizeHistoricalDraft`) — consensus rankings don't exist for past
+>   seasons. Trade-off: the rank given to the model encodes the realized price
+>   *ordering*, so absolute baseline accuracy in the backtest is flattered; the
+>   backtest's real job is comparing mid-draft *dynamics* across models, which
+>   this preserves.
 >
 > ### Supporting modules
 > - `predictor.ts` — unified `PricePredictor` interface; `BaselinePredictor`,
 >   `InflationPredictor`, `RegressionPredictor` all implement it so the UI and
->   backtest treat them interchangeably.
+>   backtest treat them interchangeably. `PredictionContext` carries the league's
+>   `rosterNeeds`.
 > - `draftSimulator.ts` — seeded generative simulator: teams nominate and win
 >   players at a predictor's price + noise, respecting budgets/slots/$1 minimums.
 >   Produces plausible mid-draft states and validates a model (full draft should
 >   fill every roster and respect every budget).
 > - `backtest.ts` — replays historical drafts pick-by-pick and reports
->   MAE/MAPE/bias per model, by phase and position — the empirical comparison.
+>   MAE/MAPE/bias per model, by phase and position. `backtestHeldOut` runs
+>   **leave-one-out**: each draft is scored with a baseline (and priors/unspent)
+>   fit on the *other* drafts, so calibration can't memorize the test data; a
+>   single-draft league falls back to in-sample and the report says so.
+> - `calibrate.ts` — `calibrateElasticity` grid-searches elasticity by held-out
+>   MAE in one pass (one predictor per grid point), honoring the knob toggles.
 >
 > ### UI — dev-gated simulator
 > `src/app/league/[leagueID]/live-draft/page.tsx` is gated behind
 > `NEXT_PUBLIC_ENABLE_LIVE_DRAFT_SIM=1` (or `NODE_ENV=development`) and has **no
 > production nav link**, honoring the v1 deferral. `DraftSimulator.tsx` +
-> `useSimulatorData.ts` load real league data, generate plausible states, and
-> show a side-by-side prediction explorer plus the backtest summary.
+> `useSimulatorData.ts` load real league data (**all seasons** with draft
+> history, not just the latest), generate plausible states, and show a
+> side-by-side prediction explorer plus the held-out backtest panel with knob
+> toggles and a "Calibrate elasticity" button that applies the best grid point.
 >
-> Tests: `__tests__/inflationModel.test.ts` (conservation, empty-board inflation,
-> over/under-spend direction, soft positional appetite) and
-> `__tests__/draftSimulator.test.ts` (roster/budget/minimum invariants,
-> determinism).
+> Tests: `__tests__/inflationModel.test.ts` (conservation, neutral-market
+> no-pressure invariant, over/under-spend direction, positional capacity caps,
+> dead money, priors, expected-unspent), `__tests__/history.test.ts`
+> (normalization, pooled baselines, priors/unspent measurement, leave-one-out
+> backtest, calibration) and `__tests__/draftSimulator.test.ts` (roster/budget/
+> minimum invariants, determinism).
+>
+> ### Deferred modeling ideas
+> - **γ value-concentration knob** (allocate money ∝ surplus^γ to capture
+>   stars-and-scrubs vs balanced rooms) — only worth trying if priors/unspent
+>   leave bias on the table in the held-out backtest.
+> - **Per-team appetite** (which *teams* are invested in a position, not just
+>   the league aggregate) — needs more signal than league-level shares.
 >
 > ---
 
