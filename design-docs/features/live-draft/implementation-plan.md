@@ -61,12 +61,39 @@
 > - **Expected unspent**: `averageUnspent` measures money the league leaves on
 >   the table at the end of a draft, subtracted from the spendable-money side of
 >   the identity (max'd with realized dead money, not double-counted).
-> - Historical drafts are normalized with **price-derived ranks**
->   (`normalizeHistoricalDraft`) — consensus rankings don't exist for past
->   seasons. Trade-off: the rank given to the model encodes the realized price
->   *ordering*, so absolute baseline accuracy in the backtest is flattered; the
->   backtest's real job is comparing mid-draft *dynamics* across models, which
->   this preserves.
+> - Historical drafts are normalized with **stored platform values** when
+>   available (see "Platform value persistence" below), falling back to
+>   price-derived ranks for unmatched players or seasons without data. With
+>   real preseason ranks/values, the backtest tests models against the same
+>   platform inputs a live draft room shows; the price-derived fallback
+>   flatters absolute baseline accuracy but preserves mid-draft dynamics.
+>
+> ### Platform value persistence (2026-06)
+> ESPN's preseason editorial values are scraped into our own
+> `platform_player_values` table (migration 003; global reference data,
+> world-readable RLS, service-role writes) so backtests never depend on ESPN
+> availability:
+> - **Sources**: draft-kit cheat-sheet PDFs (frozen preseason artifacts; live
+>   CDN 2023+, Wayback 2019-2022; raw PDFs archived under
+>   `data/espn-draft-kits/`) parsed by `src/platforms/espn/draftKit.ts`, plus
+>   dated API snapshots for the current season only — the API's archived ranks
+>   drift in-season (verified: 2023 stored Kelce at rank 37/$22 vs his ~$44+
+>   preseason kit value), so only pre-draft snapshots are trustworthy.
+> - **Ingest**: `npm run ingest:espn-values -- --backfill 2019:2025 --current`
+>   (`scripts/ingest-espn-values.ts`); name→ESPN-id resolution against the
+>   season's player list. Periodic intake via the
+>   `.github/workflows/ingest-espn-values.yml` cron (weekly; daily Jul-Sep;
+>   needs `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` repo secrets).
+> - **Read path**: `/api/player-values` route + `usePlayerValuesQuery`;
+>   `useSimulatorData` feeds the lookup into `normalizeHistoricalDraft`.
+> - **Draft-room formula** (verified empirically on Sam's league): suggested
+>   price = `floor(editorial auctionValue × c)` with one league-wide constant
+>   (4/3 for a 12-team/$240 league). Superflex, scoring nuances, and roster
+>   quirks are NOT reflected; K/DST are always $0 — the gap between platform
+>   values and actual prices is exactly the league behavior the model learns.
+> - **`PlatformValuePredictor`** (`createPlatformValuePredictor`): the same
+>   money-conserving identity with `valueSource: 'platform'` — "just trust the
+>   platform's prices" as a backtest column the inflation model must beat.
 >
 > ### Supporting modules
 > - `predictor.ts` — unified `PricePredictor` interface; `BaselinePredictor`,
@@ -94,12 +121,15 @@
 > side-by-side prediction explorer plus the held-out backtest panel with knob
 > toggles and a "Calibrate elasticity" button that applies the best grid point.
 >
-> Tests: `__tests__/inflationModel.test.ts` (conservation, neutral-market
-> no-pressure invariant, over/under-spend direction, positional capacity caps,
-> dead money, priors, expected-unspent), `__tests__/history.test.ts`
-> (normalization, pooled baselines, priors/unspent measurement, leave-one-out
-> backtest, calibration) and `__tests__/draftSimulator.test.ts` (roster/budget/
-> minimum invariants, determinism).
+> Tests: `__tests__/inflationModel.test.ts` (conservation — including from
+> platform values, neutral-market no-pressure invariant, over/under-spend
+> direction, positional capacity caps, dead money, priors, expected-unspent),
+> `__tests__/history.test.ts` (normalization incl. stored platform values,
+> pooled baselines, priors/unspent measurement, leave-one-out backtest,
+> calibration), `__tests__/draftSimulator.test.ts` (roster/budget/minimum
+> invariants, determinism) and `src/platforms/espn/__tests__/draftKit.test.ts`
+> (cheat-sheet parsing against real 2023 sheet fixtures: column interleaving,
+> value/bye digit-run repair, D/ST matchup rows).
 >
 > ### Deferred modeling ideas
 > - **γ value-concentration knob** (allocate money ∝ surplus^γ to capture
