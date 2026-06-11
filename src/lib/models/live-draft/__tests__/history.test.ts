@@ -65,6 +65,26 @@ describe('normalizeHistoricalDraft', () => {
             normalizeHistoricalDraft({ picks: [], auctionBudget: BUDGET, rosterNeeds: ROSTER_NEEDS })
         ).toBeNull();
     });
+
+    it('uses stored platform ranks/values when a lookup is provided', () => {
+        const raw = buildRawDraft('2024', 60);
+        const firstPick = raw.picks[0];
+        const lookup = new Map([
+            // Published ranks are 1-indexed; the model's are 0-indexed.
+            [firstPick.playerId, { overallRank: 7, positionRank: 3, auctionValue: 42 }],
+        ]);
+        const draft = normalizeHistoricalDraft(raw, lookup)!;
+
+        const stored = draft.players.find(p => p.id === firstPick.playerId)!;
+        expect(stored.overallRank).toBe(6);
+        expect(stored.positionRank).toBe(2);
+        expect(stored.platformValue).toBe(42);
+
+        // Players missing from the lookup keep price-derived ranks and no value.
+        const fallback = draft.players.find(p => p.id !== firstPick.playerId)!;
+        expect(fallback.platformValue).toBeUndefined();
+        expect(fallback.overallRank).not.toBeNull();
+    });
 });
 
 describe('league history signals', () => {

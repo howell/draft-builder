@@ -20,6 +20,8 @@ export interface PredictorPlayer {
     defaultPosition: string;
     positionRank: number;
     overallRank: number;
+    /** the platform's own suggested auction price, when known */
+    platformValue?: number;
 }
 
 /** Exponential baseline models produced by `createBaselineModels` in analytics.ts. */

@@ -57,6 +57,13 @@ export interface InflationModelOptions {
     /** value players on per-position baseline curves instead of the overall curve */
     positionalValues: boolean;
     /**
+     * Where intrinsic value comes from: the exponential baseline curves
+     * (default) or the platform's own suggested prices (`player.platformValue`).
+     * The identity is scale-free — inflation renormalizes whatever scale the
+     * values are on — so platform values work without any league-budget fit.
+     */
+    valueSource: 'baseline' | 'platform';
+    /**
      * Historical per-position spend premium for this league
      * (1.0 = neutral, 1.2 = league historically pays 20% over baseline share).
      * See `computePositionalPriors` in history.ts.
@@ -133,10 +140,23 @@ function remainingCapacity(
  * know per-position flex eligibility here, but value ordering keeps that
  * approximation honest.
  */
+/** The value function selected by the options (baseline curves or platform prices). */
+function valueOf(
+    player: PredictorPlayer,
+    baseline: BaselineModels,
+    opts: Partial<InflationModelOptions>
+): number {
+    if (opts.valueSource === 'platform') {
+        // Unknown platform value → no surplus; such players price at the floor.
+        return Math.max(1, player.platformValue ?? 1);
+    }
+    return baselineValue(player, baseline, opts.positionalValues ?? false);
+}
+
 export function draftablePlayers(
     ctx: PredictionContext,
     baseline: BaselineModels,
-    positionalValues = false
+    options: Partial<InflationModelOptions> = {}
 ): Array<{ player: PredictorPlayer; value: number }> {
     const openSlots = Math.max(0, totalLeagueSlots(ctx) - ctx.picks.length);
 
@@ -146,7 +166,7 @@ export function draftablePlayers(
     const capacity = remainingCapacity(ctx, knownPositions);
 
     const sorted = ctx.availablePlayers
-        .map(player => ({ player, value: baselineValue(player, baseline, positionalValues) }))
+        .map(player => ({ player, value: valueOf(player, baseline, options) }))
         .sort((a, b) => b.value - a.value);
 
     const result: Array<{ player: PredictorPlayer; value: number }> = [];
@@ -211,9 +231,8 @@ export function computeInflation(
     const opts: Partial<InflationModelOptions> =
         typeof options === 'number' ? { elasticity: options } : options;
     const elasticity = opts.elasticity ?? DEFAULT_ELASTICITY;
-    const positionalValues = opts.positionalValues ?? false;
 
-    const draftable = draftablePlayers(ctx, baseline, positionalValues);
+    const draftable = draftablePlayers(ctx, baseline, opts);
 
     // Value surplus per position and overall.
     const valueSurplusByPosition: Record<string, number> = {};
@@ -238,7 +257,7 @@ export function computeInflation(
     for (const pick of ctx.picks) {
         const pos = pick.player.defaultPosition;
         spentByPosition[pos] = (spentByPosition[pos] ?? 0) + pick.price;
-        const expected = baselineValue(pick.player, baseline, positionalValues);
+        const expected = valueOf(pick.player, baseline, opts);
         expectedByPosition[pos] = (expectedByPosition[pos] ?? 0) + expected;
         expectedTotal += expected;
     }
@@ -304,7 +323,7 @@ export class InflationPredictor implements PricePredictor {
 
     predict(player: PredictorPlayer, ctx: PredictionContext): PredictionResult {
         const field = computeInflation(ctx, this.baseline, this.options);
-        const value = baselineValue(player, this.baseline, this.options.positionalValues ?? false);
+        const value = valueOf(player, this.baseline, this.options);
         const inflation = field.byPosition[player.defaultPosition] ?? field.global;
         const price = Math.max(1, Math.round(1 + surplus(value) * inflation));
         return {
@@ -316,4 +335,19 @@ export class InflationPredictor implements PricePredictor {
             },
         };
     }
+}
+
+/**
+ * "Just trust the platform's suggested prices" as a measurable baseline: the
+ * same money-conserving identity, but with the platform's own values as the
+ * intrinsic-value source and no positional appetite. Scale-free, so it works
+ * equally on draft-room-scaled live values and $200-baseline historical kit
+ * values.
+ */
+export function createPlatformValuePredictor(baseline: BaselineModels): InflationPredictor {
+    return new InflationPredictor(
+        baseline,
+        { elasticity: 0, valueSource: 'platform' },
+        { id: 'platform', label: 'Platform' }
+    );
 }

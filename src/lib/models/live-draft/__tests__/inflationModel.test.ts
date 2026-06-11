@@ -12,7 +12,13 @@
  */
 
 import { createBaselineModels, BaselineDraftPick } from '@/app/league/analytics';
-import { computeInflation, moneySurplus, draftablePlayers, InflationPredictor } from '../inflationModel';
+import {
+    computeInflation,
+    moneySurplus,
+    draftablePlayers,
+    InflationPredictor,
+    createPlatformValuePredictor,
+} from '../inflationModel';
 import {
     PredictionContext,
     PredictorPlayer,
@@ -233,6 +239,26 @@ describe('InflationModel', () => {
         });
         const without = computeInflation(ctx, baseline, 0);
         expect(withUnspent.global).toBeLessThan(without.global);
+    });
+
+    it('conserves money when pricing from platform values (scale-free)', () => {
+        // Give every player a platform value on a DIFFERENT scale than the
+        // league budget — the identity must renormalize it away.
+        const platformPool = players.map(p => ({
+            ...p,
+            platformValue: Math.max(1, Math.round(35 * Math.exp(-0.025 * p.overallRank))),
+        }));
+        const ctx = makeContext(platformPool, [], []);
+        const predictor = createPlatformValuePredictor(baseline);
+        const options = { elasticity: 0, valueSource: 'platform' as const };
+        const field = computeInflation(ctx, baseline, options);
+        const total = draftablePlayers(ctx, baseline, options).reduce((sum, { player, value }) => {
+            const inflation = field.byPosition[player.defaultPosition] ?? field.global;
+            return sum + (1 + Math.max(0, value - 1) * inflation);
+        }, 0);
+        expect(total).toBeCloseTo(BUDGET * TEAM_COUNT, 4);
+        // And the predictor prices the best player well above the floor.
+        expect(predictor.predict(platformPool[0], ctx).price).toBeGreaterThan(20);
     });
 
     it('floors the final pick near $1 when only reserve money remains', () => {

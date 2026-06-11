@@ -48,25 +48,43 @@ export interface RawHistoricalDraft {
     rosterNeeds: Record<string, number>;
 }
 
+/** A player's stored platform valuation for a season (1-indexed ranks as published). */
+export interface PlatformValueLookupEntry {
+    overallRank: number | null;
+    positionRank: number | null;
+    auctionValue: number | null;
+}
+
 /**
- * Normalize a platform draft for the backtest. Ranks come from the draft's
- * own price ordering (see module docs); the player pool is exactly the drafted
- * players — the undrafted tail carries ~no surplus value and absorbs ~no money.
+ * Normalize a platform draft for the backtest. With a `platformValues` lookup
+ * (player id → stored preseason values from platform_player_values), players
+ * get their REAL preseason ranks and platform prices — the same inputs a live
+ * draft room shows. Players missing from the lookup (and all players when no
+ * lookup is given) fall back to ranks derived from the draft's own price
+ * ordering; the fallback flatters absolute baseline accuracy in the backtest
+ * but preserves the mid-draft dynamics the model comparison cares about.
  */
-export function normalizeHistoricalDraft(raw: RawHistoricalDraft): HistoricalDraft | null {
+export function normalizeHistoricalDraft(
+    raw: RawHistoricalDraft,
+    platformValues?: Map<string, PlatformValueLookupEntry>
+): HistoricalDraft | null {
     if (raw.picks.length === 0) return null;
 
     const byPrice = [...raw.picks].sort((a, b) => b.price - a.price);
     const positionCounters: Record<string, number> = {};
     const playerById = new Map<string, PredictorPlayer>();
     byPrice.forEach((pick, index) => {
-        const positionRank = positionCounters[pick.position] ?? 0;
-        positionCounters[pick.position] = positionRank + 1;
+        const priceDerivedPositionRank = positionCounters[pick.position] ?? 0;
+        positionCounters[pick.position] = priceDerivedPositionRank + 1;
+        const stored = platformValues?.get(pick.playerId);
         playerById.set(pick.playerId, {
             id: pick.playerId,
             defaultPosition: pick.position,
-            overallRank: index,
-            positionRank,
+            // Published ranks are 1-indexed; the app's ranks are 0-indexed.
+            overallRank: stored?.overallRank != null ? stored.overallRank - 1 : index,
+            positionRank:
+                stored?.positionRank != null ? stored.positionRank - 1 : priceDerivedPositionRank,
+            platformValue: stored?.auctionValue ?? undefined,
         });
     });
 

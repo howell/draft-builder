@@ -24,7 +24,11 @@ import {
     PricePredictor,
     RegressionPredictor,
 } from '@/lib/models/live-draft/predictor';
-import { InflationPredictor, computeInflation } from '@/lib/models/live-draft/inflationModel';
+import {
+    InflationPredictor,
+    computeInflation,
+    createPlatformValuePredictor,
+} from '@/lib/models/live-draft/inflationModel';
 import { simulateDraft, SimulatedDraft } from '@/lib/models/live-draft/draftSimulator';
 import { backtestHeldOut, BacktestReport } from '@/lib/models/live-draft/backtest';
 import {
@@ -130,6 +134,7 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
         if (!data || !historyOptions) return [];
         const list: PricePredictor[] = [
             new BaselinePredictor(data.baseline, positionalValues),
+            createPlatformValuePredictor(data.baseline),
             new InflationPredictor(data.baseline, { ...historyOptions, elasticity }),
         ];
         if (regressionPredictorRef) {
@@ -201,6 +206,7 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                 );
                 const models: PricePredictor[] = [
                     new BaselinePredictor(baseline, positionalValues),
+                    createPlatformValuePredictor(baseline),
                     new InflationPredictor(baseline, { ...foldOptions, elasticity }),
                 ];
                 if (regressionPredictorRef) {
@@ -236,7 +242,12 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
         );
     }
 
-    const seasons = data.historical.map(d => d.season ?? '?').join(', ');
+    const seasons = data.historical
+        .map(d => {
+            const season = d.season ?? '?';
+            return data.platformValueSeasons.includes(season) ? `${season}*` : season;
+        })
+        .join(', ');
 
     return (
         <div className="max-w-6xl mx-auto p-4 space-y-4">
@@ -244,7 +255,7 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                 <h1 className="text-2xl font-bold">Live Draft Simulator</h1>
                 <p className="text-sm text-gray-500">
                     Dev sandbox · compare pricing models against a simulated or historical draft ·
-                    history: {seasons}
+                    history: {seasons} (* = stored platform values)
                 </p>
             </div>
 

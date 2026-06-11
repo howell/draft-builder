@@ -8,6 +8,7 @@ export { useMockDraftsQuery } from './useMockDraftsQuery';
 export { useLeagueInfoQuery } from './useLeagueInfoQuery';
 export { useLeagueTeamsQuery } from './useLeagueTeamsQuery';
 export { useDraftDataQuery } from './useDraftDataQuery';
+export { usePlayerValuesQuery } from './usePlayerValuesQuery';
 
 // Generic utilities
 export { useApiClientQuery } from './useApiClientQuery';

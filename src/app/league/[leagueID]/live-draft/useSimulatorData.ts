@@ -23,6 +23,7 @@ import {
     useLeagueHistoryQuery,
     useDraftHistoryQuery,
     useRankingsQuery,
+    usePlayerValuesQuery,
 } from '@/hooks/queries';
 import { useLeagueQuery } from '@/hooks/queries/useLeagueQuery';
 import { useAuth } from '@/lib/auth/context';
@@ -32,6 +33,7 @@ import { HistoricalDraft } from '@/lib/models/live-draft/backtest';
 import {
     createPooledBaselineModels,
     normalizeHistoricalDraft,
+    PlatformValueLookupEntry,
 } from '@/lib/models/live-draft/history';
 
 export interface SimulatorData {
@@ -44,6 +46,8 @@ export interface SimulatorData {
     teamCount: number;
     /** all historical drafts, oldest first, normalized for backtest/calibration */
     historical: HistoricalDraft[];
+    /** seasons whose drafts use stored platform ranks/values (vs price-derived fallback) */
+    platformValueSeasons: string[];
 }
 
 export interface UseSimulatorDataResult {
@@ -113,6 +117,16 @@ export function useSimulatorData(
         Array.isArray(playersQuery.data) ? playersQuery.data : []
     );
 
+    // Stored platform values (preseason ranks + auction dollars) for every
+    // season with draft history — real platform inputs for the backtest.
+    const draftSeasons = useMemo(() => {
+        if (!(draftQuery.data instanceof Map)) return [];
+        return Array.from(draftQuery.data.keys())
+            .map(detail => String(detail.season))
+            .sort();
+    }, [draftQuery.data]);
+    const playerValuesQuery = usePlayerValuesQuery(draftSeasons);
+
     const data = useMemo<SimulatorData | null>(() => {
         if (
             !league ||
@@ -137,10 +151,15 @@ export function useSimulatorData(
         const platform = league.platform;
         const rankingsValues = rankingsQuery.data.map(r => r.value);
         const playerDb = buildPlayerDb(platform, playersQuery.data, rankingsValues, lineupSettings);
-        const rankedPool = rankPlayers(playerDb, rankingsQuery.data[0].value) as PredictorPlayer[];
+        // rankPlayers spreads MockPlayer, so suggestedCost (the platform's own
+        // suggested price for this league) rides along; expose it to predictors.
+        const rankedPool = (rankPlayers(playerDb, rankingsQuery.data[0].value) as Array<
+            PredictorPlayer & { suggestedCost?: number }
+        >).map(p => ({ ...p, platformValue: p.suggestedCost }));
 
         // Normalize every season with draft data for the backtest/calibration.
         const historical: HistoricalDraft[] = [];
+        const platformValueSeasons: string[] = [];
         for (const [draftDetail, draftPlayers] of draftQuery.data.entries()) {
             const seasonInfo = history[String(draftDetail.season)] as any;
             const auctionBudget =
@@ -153,19 +172,42 @@ export function useSimulatorData(
                     : lineupSettings;
 
             const drafted = mergeDraftAndPlayerInfo(draftDetail.picks, draftPlayers, [], platform);
-            const normalized = normalizeHistoricalDraft({
-                season: String(draftDetail.season),
-                auctionBudget,
-                rosterNeeds: seasonLineup,
-                picks: drafted.map(p => ({
-                    playerId: p.ids[platform],
-                    position: p.position,
-                    price: p.price,
-                    team: p.team,
-                    overallPickNumber: p.overallPickNumber,
-                })),
-            });
-            if (normalized) historical.push(normalized);
+            const seasonValues = playerValuesQuery.data?.[String(draftDetail.season)];
+            const valueLookup = seasonValues
+                ? new Map<string, PlatformValueLookupEntry>(
+                      seasonValues
+                          .filter(v => v.playerId !== null)
+                          .map(v => [
+                              v.playerId!,
+                              {
+                                  overallRank: v.overallRank,
+                                  positionRank: v.positionRank,
+                                  auctionValue: v.auctionValue,
+                              },
+                          ])
+                  )
+                : undefined;
+            const normalized = normalizeHistoricalDraft(
+                {
+                    season: String(draftDetail.season),
+                    auctionBudget,
+                    rosterNeeds: seasonLineup,
+                    picks: drafted.map(p => ({
+                        playerId: p.ids[platform],
+                        position: p.position,
+                        price: p.price,
+                        team: p.team,
+                        overallPickNumber: p.overallPickNumber,
+                    })),
+                },
+                valueLookup
+            );
+            if (normalized) {
+                historical.push(normalized);
+                if (valueLookup && valueLookup.size > 0) {
+                    platformValueSeasons.push(String(draftDetail.season));
+                }
+            }
         }
         if (historical.length === 0) return null;
         historical.sort((a, b) => (a.season ?? '').localeCompare(b.season ?? ''));
@@ -180,8 +222,9 @@ export function useSimulatorData(
             defaultBudget: latestInfo.draft.auctionBudget || 200,
             teamCount: latestDraft.budgetConfig.teamCount,
             historical,
+            platformValueSeasons: platformValueSeasons.sort(),
         };
-    }, [league, playersQuery.data, historyQuery.data, draftQuery.data, rankingsQuery.data]);
+    }, [league, playersQuery.data, historyQuery.data, draftQuery.data, rankingsQuery.data, playerValuesQuery.data]);
 
     const isLoading =
         authLoading ||
@@ -189,7 +232,9 @@ export function useSimulatorData(
         playersQuery.isLoading ||
         historyQuery.isLoading ||
         draftQuery.isLoading ||
-        rankingsQuery.isLoading;
+        rankingsQuery.isLoading ||
+        // Wait for stored values, but a failure falls back to price-derived ranks.
+        playerValuesQuery.isLoading;
 
     const error =
         leagueQuery.error ||
