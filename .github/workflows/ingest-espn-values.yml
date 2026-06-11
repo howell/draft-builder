@@ -1,0 +1,57 @@
+name: Ingest ESPN player values
+
+# Snapshots the current season's ESPN editorial values (ranks + auction
+# values) into the platform_player_values table. The API's archived values
+# drift in-season, so dated preseason snapshots are the only trustworthy
+# record for backtesting — the snapshot nearest the league's draft date wins.
+
+on:
+  schedule:
+    # Weekly year-round (Mondays 12:00 UTC) …
+    - cron: '0 12 * * 1'
+    # … and daily during draft season (July–September).
+    - cron: '0 12 * 7-9 *'
+  workflow_dispatch:
+    inputs:
+      season:
+        description: 'Season to snapshot (defaults to the upcoming season)'
+        required: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Ingest current-season values
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY repo secrets are not set"
+            exit 1
+          fi
+          if [ -n "${{ github.event.inputs.season }}" ]; then
+            npm run ingest:espn-values -- --current --season "${{ github.event.inputs.season }}" | tee ingest.log
+          else
+            npm run ingest:espn-values -- --current | tee ingest.log
+          fi
+
+      - name: Job summary
+        if: always()
+        run: |
+          echo '## ESPN value ingest' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -20 ingest.log >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo 'no log produced' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

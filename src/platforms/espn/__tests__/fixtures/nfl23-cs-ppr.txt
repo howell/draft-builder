@@ -1,0 +1,121 @@
+
+
+1. (26)Patrick Mahomes, KC$30101. (3)Austin Ekeler, LAC$58578. (241)Emari Demercado, ARI$01468. (179)Romeo Doubs, GB$06
+2. (27)Josh Allen, BUF$30132. (4)Christian McCaffrey, SF$57979. (242)Myles Gaskin, MIN$01369. (180)Van Jefferson, LAR$010
+3. (28)Jalen Hurts, PHI$29103. (8)Bijan Robinson, ATL$511180. (250)Jaleel McLaughlin, DEN$0970. (181)Rashod Bateman, BAL$013
+4. (39)Lamar Jackson, BAL$21134. (9)Saquon Barkley, NYG$491381. (264)Zamir White, LV$01371. (193)Marquez Valdes-Scantling, KC$010
+5. (40)Joe Burrow, CIN$2075. (10)Derrick Henry, TEN$48782. (265)Kendre Miller, NO$01172. (194)Jameson Williams, DET$09
+6. (55)Justin Herbert, LAC$1056. (12)Tony Pollard, DAL$44783. (276)Chris Evans, CIN$0773. (195)Isaiah Hodgins, NYG$013
+7. (56)Justin Fields, CHI$10137. (14)Nick Chubb, CLE$42584. (277)Justice Hill, BAL$01374. (196)Alec Pierce, IND$011
+8. (73)Deshaun Watson, CLE$658. (19)Josh Jacobs, LV$361385. (278)Chris Rodriguez Jr., WAS$01475. (197)DeVante Parker, NE$011
+9. (74)Trevor Lawrence, JAC$599. (20)Joe Mixon, CIN$35776. (198)Marvin Mims Jr., DEN$09
+10. (102)Dak Prescott, DAL$2710. (29)Travis Etienne Jr., JAC$28977. (205)Rashee Rice, KC$010
+11. (103)Kirk Cousins, MIN$21311. (30)Najee Harris, PIT$2661. (1)Justin Jefferson, MIN$591378. (216)Marvin Jones Jr., DET$09
+12. (104)Daniel Jones, NYG$21312. (31)Jahmyr Gibbs, DET$2692. (2)Ja'Marr Chase, CIN$58779. (217)Mecole Hardman, NYJ$07
+13. (105)Tua Tagovailoa, MIA$21013. (32)Aaron Jones, GB$2563. (6)Tyreek Hill, MIA$551080. (218)Donovan Peoples-Jones, CLE$05
+14. (123)Anthony Richardson, IND$11114. (33)Rhamondre Stevenson, NE$24114. (7)Davante Adams, LV$531381. (225)Michael Wilson, ARI$014
+15. (124)Aaron Rodgers, NYJ$1715. (34)Dameon Pierce, HOU$2375. (11)Stefon Diggs, BUF$461382. (226)Wan'Dale Robinson, NYG$013
+16. (125)Geno Smith, SEA$1516. (46)Breece Hall, NYJ$1576. (13)Cooper Kupp, LAR$431083. (227)Robert Woods, HOU$07
+17. (126)Russell Wilson, DEN$1917. (47)Rachaad White, TB$1557. (15)CeeDee Lamb, DAL$41784. (228)Rashid Shaheed, NO$011
+18. (182)Kenny Pickett, PIT$0618. (48)Alvin Kamara, NO$14118. (16)Garrett Wilson, NYJ$40785. (229)Mack Hollins, ATL$011
+19. (183)Matthew Stafford, LAR$01019. (50)Miles Sanders, CAR$1379. (17)Amon-Ra St. Brown, DET$38986. (230)Tutu Atwell, LAR$010
+20. (184)Jared Goff, DET$0920. (51)James Conner, ARI$121410. (18)A.J. Brown, PHI$371087. (231)Kendrick Bourne, NE$011
+21. (215)Kyler Murray, ARI$01421. (52)Ken Walker III, SEA$11511. (21)Jaylen Waddle, MIA$341088. (232)Allen Robinson II, PIT$06
+22. (219)Derek Carr, NO$01122. (53)Alexander Mattison, MIN$111312. (22)DK Metcalf, SEA$33589. (233)Braxton Berrios, MIA$010
+23. (220)Jimmy Garoppolo, LV$01323. (54)James Cook, BUF$101313. (23)Tee Higgins, CIN$32790. (234)Nathaniel Dell, HOU$07
+24. (243)Ryan Tannehill, TEN$0724. (61)Javonte Williams, DEN$8914. (24)Chris Olave, NO$3211
+25. (244)Bryce Young, CAR$0725. (62)Jonathan Taylor, IND$81115. (25)DeVonta Smith, PHI$3110
+26. (245)C.J. Stroud, HOU$0726. (63)Cam Akers, LAR$81016. (35)Deebo Samuel, SF$2291. (141)49ers D/ST (Wk 1: @PIT)$19
+27. (266)Brock Purdy, SF$0927. (75)David Montgomery, DET$5917. (36)Calvin Ridley, JAC$2292. (142)Steelers D/ST (Wk 1: SF)$16
+28. (267)Jordan Love, GB$0628. (76)Isiah Pacheco, KC$51018. (37)Keenan Allen, LAC$2253. (143)Bills D/ST (Wk 1: @NYJ)$113
+29. (268)Sam Howell, WAS$01429. (77)J.K. Dobbins, BAL$51319. (41)Amari Cooper, CLE$1954. (144)Saints D/ST (Wk 1: TEN)$111
+30. (269)Mac Jones, NE$01130. (78)Dalvin Cook, NYJ$4720. (42)Christian Watson, GB$1965. (145)Dolphins D/ST (Wk 1: @LAC)$110
+31. (270)Desmond Ridder, ATL$01131. (87)Khalil Herbert, CHI$31321. (43)DeAndre Hopkins, TEN$1876. (146)Cowboys D/ST (Wk 1: @NYG)$17
+32. (296)Baker Mayfield, TB$0532. (88)AJ Dillon, GB$3622. (44)Chris Godwin, TB$1757. (147)Browns D/ST (Wk 1: CIN)$15
+33. (301)Kyle Trask, TB$0533. (89)D'Andre Swift, PHI$31023. (45)Diontae Johnson, PIT$1768. (148)Jets D/ST (Wk 1: BUF)$17
+34. (302)Joshua Dobbs, ARI$01434. (90)Brian Robinson Jr., WAS$31424. (57)DJ Moore, CHI$10139. (149)Patriots D/ST (Wk 1: PHI)$111
+35. (310)Clayton Tune, ARI$01435. (91)Antonio Gibson, WAS$31425. (58)Mike Evans, TB$9510. (150)Packers D/ST (Wk 1: @CHI)$16
+36. (315)Jacoby Brissett, WAS$01436. (110)Jamaal Williams, NO$21126. (59)Mike Williams, LAC$9511. (189)Panthers D/ST (Wk 1: @ATL)$07
+37. (316)Sam Darnold, SF$0937. (111)Raheem Mostert, MIA$21027. (60)Terry McLaurin, WAS$91412. (190)Bengals D/ST (Wk 1: @CLE)$07
+38. (317)Taylor Heinicke, ATL$01138. (112)Samaje Perine, DEN$2928. (65)Jerry Jeudy, DEN$7913. (221)Commanders D/ST (Wk 1: ARI)$014
+39. (318)Will Levis, TEN$0739. (113)Rashaad Penny, PHI$21029. (66)Marquise Brown, ARI$71414. (222)Buccaneers D/ST (Wk 1: @MIN)$05
+40. (319)Matt Corral, NE$01140. (114)Jerick McKinnon, KC$21030. (67)Tyler Lockett, SEA$7515. (253)Ravens D/ST (Wk 1: HOU)$013
+41. (127)Zach Charbonnet, SEA$1531. (68)Drake London, ATL$611
+42. (128)Devin Singletary, HOU$1732. (69)Brandon Aiyuk, SF$69
+1. (5)Travis Kelce, KC$571043. (129)Elijah Mitchell, SF$1933. (79)Christian Kirk, JAC$491. (151)Justin Tucker, BAL$113
+2. (38)Mark Andrews, BAL$211344. (130)Ezekiel Elliott, NE$11134. (80)Michael Pittman Jr., IND$4112. (152)Daniel Carlson, LV$113
+3. (49)T.J. Hockenson, MIN$131345. (131)Jaylen Warren, PIT$1635. (81)George Pickens, PIT$463. (153)Evan McPherson, CIN$17
+4. (64)Darren Waller, NYG$71346. (132)Tyler Allgeier, ATL$11136. (82)Brandin Cooks, DAL$474. (154)Harrison Butker, KC$110
+5. (70)George Kittle, SF$6947. (161)Roschon Johnson, CHI$01337. (83)Courtland Sutton, DEN$495. (155)Graham Gano, NYG$113
+6. (71)Kyle Pitts, ATL$61148. (162)De'Von Achane, MIA$01038. (84)Jahan Dotson, WAS$4146. (156)Jason Myers, SEA$15
+7. (72)Dallas Goedert, PHI$61049. (163)Gus Edwards, BAL$01339. (85)Jaxon Smith-Njigba, SEA$457. (157)Tyler Bass, BUF$113
+8. (92)Pat Freiermuth, PIT$3650. (164)Damien Harris, BUF$01340. (86)Skyy Moore, KC$4108. (158)Jake Elliott, PHI$110
+9. (93)Evan Engram, JAC$3951. (165)Kenneth Gainwell, PHI$01041. (96)Jordan Addison, MIN$2139. (159)Matt Gay, IND$111
+10. (94)David Njoku, CLE$3552. (166)Deon Jackson, IND$01142. (97)Treylon Burks, TEN$2710. (160)Younghoe Koo, ATL$111
+11. (95)Cole Kmet, CHI$31353. (167)Evan Hull, IND$01143. (98)Michael Thomas, NO$21111. (191)Eddy Pineiro, CAR$07
+12. (115)Dalton Schultz, HOU$2754. (168)D'Onta Foreman, CHI$01344. (99)Jakobi Meyers, LV$21312. (192)Dustin Hopkins, CLE$05
+13. (116)Tyler Higbee, LAR$21055. (169)Kyren Williams, LAR$01045. (100)JuJu Smith-Schuster, NE$21113. (223)Greg Zuerlein, NYJ$07
+14. (133)Dalton Kincaid, BUF$11356. (170)Tank Bigsby, JAC$0946. (101)Odell Beckham Jr., BAL$21314. (224)Cairo Santos, CHI$013
+15. (134)Chigoziem Okonkwo, TEN$1757. (171)Tyjae Spears, TEN$0747. (106)Zay Flowers, BAL$21315. (255)Brandon McManus, JAC$09
+16. (139)Juwan Johnson, NO$11158. (199)Jerome Ford, CLE$0548. (107)Quentin Johnston, LAC$25
+17. (140)Gerald Everett, LAC$1559. (200)Clyde Edwards-Helaire, KC$01049. (108)Gabe Davis, BUF$213
+18. (185)Zach Ertz, ARI$01460. (201)Joshua Kelley, LAC$0550. (109)Rondale Moore, ARI$214
+19. (186)Tyler Conklin, NYJ$0761. (202)Jeff Wilson Jr., MIA$01051. (117)DJ Chark Jr., CAR$27
+20. (187)Sam LaPorta, DET$0962. (203)Chuba Hubbard, CAR$0752. (118)Darnell Mooney, CHI$213
+21. (188)Greg Dulcich, DEN$0963. (204)Cordarrelle Patterson, ATL$01153. (119)Nico Collins, HOU$27
+22. (214)Mike Gesicki, NE$01164. (206)Zack Moss, IND$01154. (120)Elijah Moore, CLE$25
+6
+23. (246)Irv Smith Jr., CIN$0765. (207)Ty Chandler, MIN$01355. (121)Michael Gallup, DAL$17
+24. (247)Hunter Henry, NE$01166. (208)Keaontay Ingram, ARI$01456. (122)Adam Thielen, CAR$17
+25. (248)Logan Thomas, WAS$01467. (209)Chase Edmonds, TB$0557. (135)Kadarius Toney, KC$110
+26. (249)Hayden Hurst, CAR$0768. (210)Raheem Blackshear, CAR$0758. (136)Tyler Boyd, CIN$17
+27. (257)Dawson Knox, BUF$01369. (211)Trayveon Williams, CIN$0759. (137)K.J. Osborn, MIN$113
+28. (258)Cade Otton, TB$0570. (212)Salvon Ahmed, MIA$01060. (138)Parris Campbell, NYG$113
+29. (259)Noah Fant, SEA$0571. (213)Craig Reynolds, DET$0961. (172)Allen Lazard, NYJ$07
+30. (289)Luke Musgrave, GB$0672. (235)Ronald Jones II, DAL$0762. (173)Hunter Renfrow, LV$013
+31. (290)Michael Mayer, LV$01373. (236)Rico Dowdle, DAL$0763. (174)Zay Jones, JAC$09
+32. (291)Trey McBride, ARI$01474. (237)Ameer Abdullah, LV$01364. (175)Jonathan Mingo, CAR$07
+33. (292)Jake Ferguson, DAL$0775. (238)Matt Breida, NYG$01365. (176)Chase Claypool, CHI$013
+34. (293)Austin Hooper, LV$01376. (239)Deuce Vaughn, DAL$0766. (177)Curtis Samuel, WAS$014
+35. (311)Taysom Hill, NO$01177. (240)Dare Ogunbowale, HOU$0767. (178)Jayden Reed, GB$06
+14
+1. (5)Travis Kelce, KC$5710
+          Positional Rank (Overall Rank)Auction ValueBye week
+10 teams/$200
+Chiefs, Rams
+10
+7
+Seahawks, Buccaneers
+Packers, Steelers
+Jaguars, 49ers
+Broncos, Lions
+5
+Browns, Chargers
+9
+Panthers, Bengals
+Jets, Titans
+Cowboys, Texans
+Position
+Rankings are based on a 10-team league with 1 QB, 2 RB, 2 WR, 1 TE, 1 Flex, 1 K, 1 D/ST, 
+7 bench
+Decimal Scoring: 1 pt per 10 yds, 6 pts per TD rushing/receiving;
+1 pt per 25 yds and 4 pts per TD passing, 1 PPR
+Last Update:Friday, September 1, 2023
+Bears, Raiders
+Dolphins, Eagles
+Falcons, Colts
+Vikings, Giants
+Patriots, Saints
+Cardinals, Commanders
+Ravens, Bills
+11
+13
+PPR League Cheat Sheet
+      2023 ESPN Fantasy Football Draft Kit
+Week
+QuarterbacksRunning BacksRunning Backs (ctn'd)Wide Receivers (ctn'd)
+Tight EndsKickers
+Schedule
+Wide Receivers
+Team Defenses
+Teams on Bye

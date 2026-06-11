@@ -401,6 +401,60 @@ export type Database = {
           },
         ]
       }
+      platform_player_values: {
+        Row: {
+          auction_value: number | null
+          bye_week: number | null
+          created_at: string | null
+          id: string
+          overall_rank: number | null
+          platform: string
+          player_id: string | null
+          player_name: string
+          position: string
+          position_rank: number | null
+          rank_type: string
+          season: string
+          snapshot_date: string
+          source: string
+          team: string | null
+        }
+        Insert: {
+          auction_value?: number | null
+          bye_week?: number | null
+          created_at?: string | null
+          id?: string
+          overall_rank?: number | null
+          platform?: string
+          player_id?: string | null
+          player_name: string
+          position: string
+          position_rank?: number | null
+          rank_type?: string
+          season: string
+          snapshot_date: string
+          source: string
+          team?: string | null
+        }
+        Update: {
+          auction_value?: number | null
+          bye_week?: number | null
+          created_at?: string | null
+          id?: string
+          overall_rank?: number | null
+          platform?: string
+          player_id?: string | null
+          player_name?: string
+          position?: string
+          position_rank?: number | null
+          rank_type?: string
+          season?: string
+          snapshot_date?: string
+          source?: string
+          team?: string | null
+        }
+        Relationships: []
+      }
       player_selections: {
         Row: {
           default_position: string

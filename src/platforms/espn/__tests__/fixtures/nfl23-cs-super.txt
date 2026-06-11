@@ -1,0 +1,121 @@
+
+
+1. (QB1)Patrick Mahomes, KC$591081. (QB20)Jared Goff, DET$49161. (WR67)Jayden Reed, GB$06241. (WR82)Wan'Dale Robinson, NYG$013
+2. (QB2)Josh Allen, BUF$581382. (RB26)Cam Akers, LAR$410162. (RB50)Damien Harris, BUF$013242. (WR83)Robert Woods, HOU$07
+3. (QB3)Jalen Hurts, PHI$581083. (RB27)David Montgomery, DET$49163. (TE18)Zach Ertz, ARI$014243. (WR84)Rashid Shaheed, NO$011
+4. (WR1)Justin Jefferson, MIN$571384. (TE5)George Kittle, SF$49164. (TE19)Tyler Conklin, NYJ$07244. (WR85)Mack Hollins, ATL$011
+5. (RB1)Austin Ekeler, LAC$57585. (TE6)Kyle Pitts, ATL$411165. (QB29)Sam Howell, WAS$014245. (WR86)Tutu Atwell, LAR$010
+6. (QB4)Lamar Jackson, BAL$551386. (TE7)Dallas Goedert, PHI$410166. (QB30)Mac Jones, NE$011246. (WR87)Kendrick Bourne, NE$011
+7. (QB5)Joe Burrow, CIN$53787. (WR33)Christian Kirk, JAC$39167. (QB31)Desmond Ridder, ATL$011247. (WR88)Allen Robinson II, PIT$06
+8. (WR2)Ja'Marr Chase, CIN$51788. (RB28)Isiah Pacheco, KC$310168. (QB32)Baker Mayfield, TB$05248. (WR89)Braxton Berrios, MIA$010
+9. (RB2)Christian McCaffrey, SF$49989. (RB29)J.K. Dobbins, BAL$313169. (DST1)49ers D/ST, SF$09249. (WR90)Nathaniel Dell, HOU$07
+10. (WR3)Tyreek Hill, MIA$481090. (WR34)Michael Pittman Jr., IND$311170. (DST2)Steelers D/ST, PIT$06250. (RB72)Ronald Jones II, DAL$07
+11. (RB3)Bijan Robinson, ATL$461191. (WR35)George Pickens, PIT$36171. (DST3)Bills D/ST, BUF$013251. (RB73)Rico Dowdle, DAL$07
+12. (TE1)Travis Kelce, KC$441092. (WR36)Brandin Cooks, DAL$37172. (DST4)Saints D/ST, NO$011252. (RB74)Ameer Abdullah, LV$013
+13. (WR4)Davante Adams, LV$431393. (WR37)Courtland Sutton, DEN$39173. (DST5)Dolphins D/ST, MIA$010253. (RB75)Matt Breida, NYG$013
+14. (RB4)Saquon Barkley, NYG$421394. (RB30)Dalvin Cook, NYJ$37174. (DST6)Cowboys D/ST, DAL$07254. (RB76)Deuce Vaughn, DAL$07
+15. (RB5)Derrick Henry, TEN$41795. (WR38)Jahan Dotson, WAS$314175. (DST7)Browns D/ST, CLE$05255. (RB77)Dare Ogunbowale, HOU$07
+16. (QB6)Justin Herbert, LAC$40596. (WR39)Jaxon Smith-Njigba, SEA$25176. (DST8)Jets D/ST, NYJ$07256. (RB78)Emari Demercado, ARI$014
+17. (QB7)Justin Fields, CHI$381397. (WR40)Skyy Moore, KC$210177. (DST9)Patriots D/ST, NE$011257. (RB79)Myles Gaskin, MIN$013
+18. (RB6)Tony Pollard, DAL$37798. (WR41)Jordan Addison, MIN$213178. (DST10)Packers D/ST, GB$06258. (TE23)Irv Smith Jr., CIN$07
+19. (WR5)Stefon Diggs, BUF$361399. (TE8)Pat Freiermuth, PIT$26179. (DST11)Panthers D/ST, CAR$07259. (TE24)Hunter Henry, NE$011
+20. (RB7)Nick Chubb, CLE$355100. (TE9)Evan Engram, JAC$29180. (DST12)Bengals D/ST, CIN$07260. (TE25)Logan Thomas, WAS$014
+21. (QB8)Deshaun Watson, CLE$345101. (TE10)David Njoku, CLE$25181. (K1)Justin Tucker, BAL$013261. (QB39)Will Levis, TEN$07
+22. (QB9)Trevor Lawrence, JAC$339102. (RB31)Khalil Herbert, CHI$213182. (K2)Daniel Carlson, LV$013262. (QB40)Matt Corral, NE$011
+23. (QB10)Dak Prescott, DAL$327103. (RB32)AJ Dillon, GB$26183. (K3)Evan McPherson, CIN$07263. (TE26)Hayden Hurst, CAR$07
+24. (QB11)Kirk Cousins, MIN$3213104. (QB21)Kyler Murray, ARI$214184. (K4)Harrison Butker, KC$010264. (RB80)Jaleel McLaughlin, DEN$09
+25. (QB12)Daniel Jones, NYG$3113105. (QB22)Derek Carr, NO$211185. (K5)Graham Gano, NYG$013265. (WR91)Terrace Marshall Jr., CAR$07
+26. (WR6)Cooper Kupp, LAR$3010106. (QB23)Jimmy Garoppolo, LV$213186. (K6)Jason Myers, SEA$05266. (WR92)Deonte Harty, BUF$013
+27. (WR7)CeeDee Lamb, DAL$307107. (QB24)Ryan Tannehill, TEN$27187. (K7)Tyler Bass, BUF$013267. (DST15)Ravens D/ST, BAL$013
+28. (WR8)Garrett Wilson, NYJ$297108. (RB33)D'Andre Swift, PHI$210188. (K8)Jake Elliott, PHI$010268. (DST16)Eagles D/ST, PHI$010
+29. (WR9)Amon-Ra St. Brown, DET$289109. (WR42)Treylon Burks, TEN$27189. (K9)Matt Gay, IND$011269. (K15)Brandon McManus, JAC$09
+30. (RB8)Josh Jacobs, LV$2613110. (WR43)Michael Thomas, NO$211190. (K10)Younghoe Koo, ATL$011270. (K16)Jake Moody, SF$09
+31. (WR10)A.J. Brown, PHI$2610111. (WR44)Jakobi Meyers, LV$213191. (K11)Eddy Pineiro, CAR$07271. (TE27)Dawson Knox, BUF$013
+32. (WR11)Jaylen Waddle, MIA$2510112. (WR45)JuJu Smith-Schuster, NE$211192. (K12)Dustin Hopkins, CLE$05272. (TE28)Cade Otton, TB$05
+33. (RB9)Joe Mixon, CIN$247113. (TE11)Cole Kmet, CHI$213193. (RB51)Kenneth Gainwell, PHI$010273. (TE29)Noah Fant, SEA$05
+34. (RB10)Travis Etienne Jr., JAC$239114. (TE12)Dalton Schultz, HOU$27194. (RB52)Deon Jackson, IND$011274. (WR93)Randall Cobb, NYJ$07
+35. (RB11)Najee Harris, PIT$226115. (RB34)Brian Robinson Jr., WAS$214195. (RB53)Evan Hull, IND$011275. (WR94)Josh Downs, IND$011
+36. (WR12)DK Metcalf, SEA$225116. (RB35)Antonio Gibson, WAS$214196. (RB54)D'Onta Foreman, CHI$013276. (WR95)Darius Slayton, NYG$013
+37. (QB13)Tua Tagovailoa, MIA$2210117. (QB25)Bryce Young, CAR$27197. (RB55)Kyren Williams, LAR$010277. (WR96)Nick Westbrook-Ikhine, TEN$07
+38. (WR13)Tee Higgins, CIN$217118. (QB26)C.J. Stroud, HOU$27198. (WR68)Romeo Doubs, GB$06278. (RB81)Zamir White, LV$013
+39. (WR14)Chris Olave, NO$2111119. (QB27)Brock Purdy, SF$29199. (RB56)Tank Bigsby, JAC$09279. (RB82)Kendre Miller, NO$011
+40. (RB12)Jahmyr Gibbs, DET$209120. (RB36)Jamaal Williams, NO$211200. (RB57)Tyjae Spears, TEN$07280. (WR97)Quez Watkins, PHI$010
+41. (RB13)Aaron Jones, GB$196121. (WR46)Odell Beckham Jr., BAL$113201. (RB58)Jerome Ford, CLE$05281. (WR98)Josh Palmer, LAC$05
+42. (RB14)Rhamondre Stevenson, NE$1911122. (WR47)Zay Flowers, BAL$113202. (RB59)Clyde Edwards-Helaire, KC$010282. (WR99)Demario Douglas, NE$011
+43. (RB15)Dameon Pierce, HOU$187123. (WR48)Quentin Johnston, LAC$15203. (WR69)Van Jefferson, LAR$010283. (WR100)Deven Thompkins, TB$05
+44. (RB16)Breece Hall, NYJ$177124. (WR49)Gabe Davis, BUF$113204. (WR70)Rashod Bateman, BAL$013284. (WR101)Jauan Jennings, SF$09
+45. (RB17)Rachaad White, TB$175125. (WR50)Rondale Moore, ARI$114205. (WR71)Marquez Valdes-Scantling, KC$010285. (RB83)Chris Evans, CIN$07
+46. (QB14)Anthony Richardson, IND$1511126. (RB37)Raheem Mostert, MIA$110206. (QB33)Kyle Trask, TB$05286. (RB84)Justice Hill, BAL$013
+47. (QB15)Aaron Rodgers, NYJ$157127. (RB38)Samaje Perine, DEN$19207. (QB34)Joshua Dobbs, ARI$014287. (RB85)Chris Rodriguez Jr., WAS$014
+48. (RB18)Alvin Kamara, NO$1411128. (RB39)Rashaad Penny, PHI$110208. (QB35)Clayton Tune, ARI$014288. (RB86)Isaiah Spiller, LAC$05
+49. (WR15)DeVonta Smith, PHI$1310129. (RB40)Jerick McKinnon, KC$110209. (QB36)Jacoby Brissett, WAS$014289. (RB87)Kevin Harris, NE$011
+50. (WR16)Deebo Samuel, SF$139130. (RB41)Zach Charbonnet, SEA$15210. (WR72)Jameson Williams, DET$09290. (RB88)Julius Chestnut, TEN$07
+51. (WR17)Calvin Ridley, JAC$129131. (RB42)Devin Singletary, HOU$17211. (WR73)Isaiah Hodgins, NYG$013291. (RB89)Ke'Shawn Vaughn, TB$05
+52. (WR18)Keenan Allen, LAC$115132. (WR51)DJ Chark Jr., CAR$17212. (WR74)Alec Pierce, IND$011292. (RB90)Pierre Strong Jr., CLE$05
+53. (TE2)Mark Andrews, BAL$1113133. (WR52)Darnell Mooney, CHI$113213. (RB60)Joshua Kelley, LAC$05293. (WR102)Puka Nacua, LAR$010
+54. (WR19)Amari Cooper, CLE$105134. (WR53)Nico Collins, HOU$17214. (RB61)Jeff Wilson Jr., MIA$010294. (DST17)Titans D/ST, TEN$07
+55. (WR20)Christian Watson, GB$106135. (TE13)Tyler Higbee, LAR$110215. (RB62)Chuba Hubbard, CAR$07295. (DST18)Seahawks D/ST, SEA$05
+56. (WR21)DeAndre Hopkins, TEN$107136. (TE14)Dalton Kincaid, BUF$113216. (RB63)Cordarrelle Patterson, ATL$011296. (K17)Cameron Dicker, LAC$05
+57. (RB19)Miles Sanders, CAR$107137. (WR54)Elijah Moore, CLE$15217. (RB64)Zack Moss, IND$011297. (K18)Riley Patterson, DET$09
+58. (RB20)James Conner, ARI$914138. (WR55)Michael Gallup, DAL$17218. (RB65)Ty Chandler, MIN$013298. (TE30)Luke Musgrave, GB$06
+59. (TE3)T.J. Hockenson, MIN$913139. (WR56)Adam Thielen, CAR$17219. (RB66)Keaontay Ingram, ARI$014299. (TE31)Michael Mayer, LV$013
+60. (QB16)Geno Smith, SEA$95140. (WR57)Kadarius Toney, KC$110220. (RB67)Chase Edmonds, TB$05300. (TE32)Trey McBride, ARI$014
+61. (QB17)Russell Wilson, DEN$89141. (WR58)Tyler Boyd, CIN$17221. (RB68)Raheem Blackshear, CAR$07
+62. (WR22)Chris Godwin, TB$85142. (WR59)K.J. Osborn, MIN$113222. (RB69)Trayveon Williams, CIN$07
+63. (WR23)Diontae Johnson, PIT$86143. (WR60)Parris Campbell, NYG$113223. (RB70)Salvon Ahmed, MIA$010
+64. (WR24)DJ Moore, CHI$713144. (WR61)Allen Lazard, NYJ$17224. (RB71)Craig Reynolds, DET$09
+65. (WR25)Mike Evans, TB$75145. (RB43)Elijah Mitchell, SF$19225. (TE20)Sam LaPorta, DET$09
+66. (WR26)Mike Williams, LAC$75146. (RB44)Ezekiel Elliott, NE$111226. (TE21)Greg Dulcich, DEN$09
+67. (WR27)Terry McLaurin, WAS$714147. (TE15)Chigoziem Okonkwo, TEN$17227. (WR75)DeVante Parker, NE$011
+6
+68. (WR28)Jerry Jeudy, DEN$69148. (TE16)Juwan Johnson, NO$111228. (WR76)Marvin Mims Jr., DEN$09
+69. (WR29)Marquise Brown, ARI$614149. (QB28)Jordan Love, GB$16229. (QB37)Sam Darnold, SF$09
+70. (TE4)Darren Waller, NYG$613150. (TE17)Gerald Everett, LAC$15230. (QB38)Taylor Heinicke, ATL$011
+71. (RB21)Ken Walker III, SEA$65151. (RB45)Jaylen Warren, PIT$16231. (WR77)Rashee Rice, KC$010
+72. (RB22)Alexander Mattison, MIN$613152. (RB46)Tyler Allgeier, ATL$111232. (WR78)Marvin Jones Jr., DET$09
+73. (RB23)James Cook, BUF$613153. (RB47)Roschon Johnson, CHI$113233. (WR79)Mecole Hardman, NYJ$07
+74. (WR30)Tyler Lockett, SEA$55154. (RB48)De'Von Achane, MIA$110234. (WR80)Donovan Peoples-Jones, CLE$05
+75. (RB24)Javonte Williams, DEN$59155. (RB49)Gus Edwards, BAL$113235. (TE22)Mike Gesicki, NE$011
+76. (RB25)Jonathan Taylor, IND$511156. (WR62)Hunter Renfrow, LV$113236. (DST13)Commanders D/ST, WAS$014
+77. (WR31)Drake London, ATL$511157. (WR63)Zay Jones, JAC$19237. (DST14)Buccaneers D/ST, TB$05
+78. (WR32)Brandon Aiyuk, SF$49158. (WR64)Jonathan Mingo, CAR$17238. (K13)Greg Zuerlein, NYJ$07
+79. (QB18)Kenny Pickett, PIT$46159. (WR65)Chase Claypool, CHI$113239. (K14)Cairo Santos, CHI$013
+80. (QB19)Matthew Stafford, LAR$410160. (WR66)Curtis Samuel, WAS$114240. (WR81)Michael Wilson, ARI$014
+14
+1. (QB1)Patrick Mahomes, KC$5910
+Auction ValueBye week
+10 teams/$200
+Chiefs, Rams
+Dolphins, Eagles
+Falcons, Colts
+Patriots, Saints
+Overall Rank (Positional Rank)
+Position
+11
+10
+Last Update:Friday, September 1, 2023
+Vikings, Giants
+Cardinals, Commanders
+Rankings are based on a 10-team league with 1 QB, 2 RB, 2 WR, 1 TE, 1 Flex, 1 
+Superflex, 1 K, 1 D/ST, 6 bench
+Decimal Scoring: 1 pt per 10 yds, 6 pts per TD rushing/receiving;
+1 pt per 25 yds and 4 pts per TD passing, 1 PPR
+13
+Ravens, Bills
+Bears, Raiders
+Schedule
+WeekTeams on Bye
+5
+Browns, Chargers
+Seahawks, Buccaneers
+7
+9
+Packers, Steelers
+Panthers, Bengals
+Cowboys, Texans
+Jets, Titans
+Broncos, Lions
+Jaguars, 49ers
+      2023 ESPN Fantasy Football Draft Kit
+PPR Superflex Cheat Sheet
+RANKINGS 1-80RANKINGS 81-160RANKINGS 161-240RANKINGS 241-300
