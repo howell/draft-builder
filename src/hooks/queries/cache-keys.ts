@@ -17,4 +17,6 @@ export const cacheKeys = {
   mockDrafts: (leagueIds?: LeagueId[]) => ['mockDrafts', leagueIds],
   
   leagueHistory: (leagueId: LeagueId) => ['leagueHistory', leagueId],
+
+  leaguePriceMultipliers: (userId?: string) => ['leaguePriceMultipliers', userId ?? 'anonymous'],
 } as const;

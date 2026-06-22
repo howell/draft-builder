@@ -1,7 +1,8 @@
 import { LeagueId, PlatformLeague } from '@/platforms/common';
-import { 
-  StorageAdapter, 
-  createStorageError 
+import {
+  StorageAdapter,
+  UserSettingType,
+  createStorageError
 } from './interface';
 import { deepClone } from './utils/deepClone';
 import {
@@ -28,6 +29,7 @@ export class MemoryStorageAdapter implements StorageAdapter {
   };
   private mocks: Map<LeagueId, StoredMocksDataCurrent> = new Map();
   private liveDrafts: Map<LeagueId, LiveDraftState[]> = new Map();
+  private userSettings: Map<string, unknown> = new Map();
 
   /**
    * Reset all stored data (useful for test cleanup)
@@ -39,6 +41,23 @@ export class MemoryStorageAdapter implements StorageAdapter {
     };
     this.mocks.clear();
     this.liveDrafts.clear();
+    this.userSettings.clear();
+  }
+
+  /**
+   * Load a user-level setting blob by type + key
+   */
+  async getUserSetting<T = unknown>(type: UserSettingType, key: string): Promise<T | undefined> {
+    const stored = this.userSettings.get(`${type}:${key}`);
+    return Promise.resolve(stored === undefined ? undefined : (deepClone(stored) as T));
+  }
+
+  /**
+   * Persist a user-level setting blob by type + key
+   */
+  async setUserSetting<T = unknown>(type: UserSettingType, key: string, data: T): Promise<void> {
+    this.userSettings.set(`${type}:${key}`, deepClone(data));
+    return Promise.resolve();
   }
 
   /**

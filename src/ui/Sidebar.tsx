@@ -56,13 +56,21 @@ export default Sidebar;
 const OpenSidebar: React.FC<SidebarProps & { handleLeagueChange: (league: PlatformLeague) => any}> = ({ leagueID, availableLeagues = [], children, handleLeagueChange }) => {
     return (
         <aside className="pt-12 px-3" data-testid="sidebar-content">
-            <Link 
-                href='/' 
+            <Link
+                href='/'
                 className="flex items-center justify-start w-full py-2 px-3 rounded-md hover:bg-gray-700 transition-colors mb-4"
                 data-testid="sidebar-home-link"
             >
                 <i className="fas fa-home text-lg" />
                 <span className="ml-2">Home</span>
+            </Link>
+            <Link
+                href='/settings'
+                className="flex items-center justify-start w-full py-2 px-3 rounded-md hover:bg-gray-700 transition-colors mb-4"
+                data-testid="sidebar-settings-link"
+            >
+                <i className="fas fa-cog text-lg" />
+                <span className="ml-2">Settings</span>
             </Link>
             {availableLeagues.length > 0 && (
                 <div>

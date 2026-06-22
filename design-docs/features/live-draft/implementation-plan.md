@@ -91,6 +91,16 @@
 >   (4/3 for a 12-team/$240 league). Superflex, scoring nuances, and roster
 >   quirks are NOT reflected; K/DST are always $0 — the gap between platform
 >   values and actual prices is exactly the league behavior the model learns.
+> - **Per-league multiplier setting** (`c`): persisted per league as a user-level
+>   account setting (`user_settings` table, migration 005; key
+>   `app/leaguePriceMultipliers` → `{ [leagueId]: number }`), exposed through
+>   `StorageAdapter.get/setUserSetting`, the `useLeaguePriceMultipliers` hooks,
+>   and the `/settings` account page (`src/app/settings/`). The best-effort
+>   default lives in `src/lib/leaguePriceMultiplier.ts`: `1.0` for a standard
+>   (ESPN-baseline `$200`) league, `4/3` otherwise. **Stored/viewable/overridable
+>   only — not yet applied to any displayed price or model.** Follow-up: feed the
+>   effective multiplier into `useSimulatorData` / the platform value path on the
+>   dev-gated live-draft page when that integration is planned.
 > - **`PlatformValuePredictor`** (`createPlatformValuePredictor`): the same
 >   money-conserving identity with `valueSource: 'platform'` — "just trust the
 >   platform's prices" as a backtest column the inflation model must beat.

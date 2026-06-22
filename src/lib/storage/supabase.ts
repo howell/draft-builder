@@ -8,6 +8,7 @@ import { EspnLeague, LeagueId, PlatformLeague } from '@/platforms/common';
 import type { EspnAuth as PlatformEspnAuth } from '@/platforms/espn/league';
 import {
   StorageAdapter,
+  UserSettingType,
   createStorageError,
 } from './interface';
 import { LiveDraftState, LiveDraftPick } from '@/app/storage/savedLiveDraftTypes';
@@ -203,6 +204,61 @@ export class SupabaseStorageAdapter implements StorageAdapter {
       console.error(`[SupabaseStorage] No fallback available for ${operation}, throwing error`);
       throw error;
     }
+  }
+
+  /**
+   * Load a user-level setting blob by type + key
+   */
+  async getUserSetting<T = unknown>(type: UserSettingType, key: string): Promise<T | undefined> {
+    return this.withFallback(
+      'getUserSetting',
+      async () => {
+        const { data, error } = await this.supabase
+          .from('user_settings')
+          .select('data')
+          .eq('user_id', this.userId)
+          .eq('type', type)
+          .eq('key', key)
+          .maybeSingle();
+
+        if (error) {
+          console.error(`[SupabaseAdapter] Supabase error in getUserSetting:`, error);
+          throw error;
+        }
+
+        return (data?.data as T | undefined) ?? undefined;
+      },
+      () => this.fallbackAdapter!.getUserSetting<T>(type, key)
+    );
+  }
+
+  /**
+   * Persist a user-level setting blob by type + key (upsert)
+   */
+  async setUserSetting<T = unknown>(type: UserSettingType, key: string, data: T): Promise<void> {
+    return this.withFallback(
+      'setUserSetting',
+      async () => {
+        const { error } = await this.supabase
+          .from('user_settings')
+          .upsert({
+            user_id: this.userId,
+            type,
+            key,
+            data: data as any,
+            updated_at: new Date().toISOString(),
+          }, {
+            onConflict: 'user_id,type,key',
+            ignoreDuplicates: false,
+          });
+
+        if (error) {
+          console.error(`[SupabaseAdapter] Supabase error in setUserSetting:`, error);
+          throw error;
+        }
+      },
+      () => this.fallbackAdapter!.setUserSetting(type, key, data)
+    );
   }
 
   /**

@@ -37,6 +37,8 @@ const mockLeague = {
 };
 
 const mockStorageAdapter: jest.Mocked<StorageAdapter> = {
+  getUserSetting: jest.fn(),
+  setUserSetting: jest.fn(),
   loadLeague: jest.fn(),
   saveLeague: jest.fn(),
   loadLeagues: jest.fn(),

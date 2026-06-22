@@ -12,13 +12,32 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/database.types';
 
 /**
+ * Categories of user-level (account) settings. Mirrors the Dexie `userSettings`
+ * table's `type` column (src/lib/storage/database-schema.ts) and the Supabase
+ * `user_settings.type` CHECK constraint.
+ */
+export type UserSettingType = 'estimation' | 'search' | 'display' | 'app';
+
+/**
  * Storage abstraction interface that matches the current localStorage API
  * but with async methods for future Supabase integration.
- * 
+ *
  * This interface ensures we can swap storage backends (localStorage -> Supabase)
  * without changing the calling code.
  */
 export interface StorageAdapter {
+  /**
+   * Load a user-level setting blob by type + key, or undefined if unset.
+   * Account-level preferences not tied to a single draft (e.g. per-league price
+   * multipliers). For anonymous users this is local-only.
+   */
+  getUserSetting<T = unknown>(type: UserSettingType, key: string): Promise<T | undefined>;
+
+  /**
+   * Persist a user-level setting blob by type + key (upsert).
+   */
+  setUserSetting<T = unknown>(type: UserSettingType, key: string, data: T): Promise<void>;
+
   /**
    * Load all saved leagues for the current user
    * @returns Promise resolving to leagues data structure

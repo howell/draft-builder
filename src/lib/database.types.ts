@@ -505,6 +505,41 @@ export type Database = {
           },
         ]
       }
+      user_settings: {
+        Row: {
+          data: Json
+          id: string
+          key: string
+          type: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          data: Json
+          id?: string
+          key: string
+          type: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          data?: Json
+          id?: string
+          key?: string
+          type?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string | null
@@ -531,10 +566,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      cleanup_expired_selections: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      cleanup_expired_selections: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

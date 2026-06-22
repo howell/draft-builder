@@ -68,6 +68,8 @@ describe('Clean User Signup Flow E2E Test', () => {
     
     // Mock storage adapter
     mockStorageAdapter = {
+      getUserSetting: jest.fn().mockResolvedValue(undefined),
+      setUserSetting: jest.fn(),
       loadLeague: jest.fn(),
       saveLeague: jest.fn(),
       loadLeagues: jest.fn().mockResolvedValue({ leagues: {} }),

@@ -253,6 +253,23 @@ describe('Storage Adapter Contract', () => {
 
         expect(loaded).toEqual(mockLeague);
       });
+
+      it(`should round-trip a user setting blob with ${name}`, async () => {
+        const adapter: StorageAdapter = create();
+
+        // Unset key returns undefined
+        expect(await adapter.getUserSetting('app', 'leaguePriceMultipliers')).toBeUndefined();
+
+        const value = { 'league-a': 1.333, 'league-b': 1 };
+        await adapter.setUserSetting('app', 'leaguePriceMultipliers', value);
+
+        expect(await adapter.getUserSetting('app', 'leaguePriceMultipliers')).toEqual(value);
+
+        // Overwrite replaces the stored blob
+        const updated = { 'league-a': 1.2 };
+        await adapter.setUserSetting('app', 'leaguePriceMultipliers', updated);
+        expect(await adapter.getUserSetting('app', 'leaguePriceMultipliers')).toEqual(updated);
+      });
     });
   });
 }); 

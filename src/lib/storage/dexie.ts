@@ -10,7 +10,7 @@
  */
 
 import { LeagueId, PlatformLeague } from '@/platforms/common';
-import { StorageAdapter, createStorageError } from './interface';
+import { StorageAdapter, UserSettingType, createStorageError } from './interface';
 import { LiveDraftState, LiveDraftPick } from '@/app/storage/savedLiveDraftTypes';
 import {
   StoredLeaguesDataCurrent,
@@ -69,6 +69,51 @@ export class DexieStorageAdapter implements StorageAdapter {
     }
     
     return parsed;
+  }
+
+  // =============================================================================
+  // USER SETTINGS OPERATIONS
+  // =============================================================================
+
+  async getUserSetting<T = unknown>(type: UserSettingType, key: string): Promise<T | undefined> {
+    try {
+      if (!this.isClient) return undefined;
+
+      if (!db.isOpen()) {
+        await db.open();
+      }
+
+      const setting = await db.getUserSetting(this.userId, type, key);
+      return setting?.data as T | undefined;
+    } catch (error) {
+      this.logError('getUserSetting', error, { type, key, userId: this.userId });
+      throw createStorageError(
+        'DATA_ERROR',
+        'Failed to load user setting from IndexedDB',
+        error,
+        { operation: 'getUserSetting', userId: this.userId }
+      );
+    }
+  }
+
+  async setUserSetting<T = unknown>(type: UserSettingType, key: string, data: T): Promise<void> {
+    try {
+      if (!this.isClient) return;
+
+      if (!db.isOpen()) {
+        await db.open();
+      }
+
+      await db.setUserSetting(this.userId, type, key, data);
+    } catch (error) {
+      this.logError('setUserSetting', error, { type, key, userId: this.userId });
+      throw createStorageError(
+        'DATA_ERROR',
+        'Failed to save user setting to IndexedDB',
+        error,
+        { operation: 'setUserSetting', userId: this.userId }
+      );
+    }
   }
 
   // =============================================================================

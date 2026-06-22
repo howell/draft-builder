@@ -1,8 +1,9 @@
 import { LeagueId, PlatformLeague } from '@/platforms/common';
-import { 
-  StorageAdapter, 
-  createStorageError, 
-  type StorageErrorCode 
+import {
+  StorageAdapter,
+  type UserSettingType,
+  createStorageError,
+  type StorageErrorCode
 } from './interface';
 import {
   StoredLeaguesDataCurrent,
@@ -53,6 +54,23 @@ export class LocalStorageAdapter implements StorageAdapter {
     }
     
     return true;
+  }
+
+  /**
+   * Load a user-level setting blob by type + key
+   */
+  async getUserSetting<T = unknown>(type: UserSettingType, key: string): Promise<T | undefined> {
+    if (!this.isClient) return undefined;
+    const stored = localStorage.getItem(`userSettings:${type}:${key}`);
+    return stored ? (JSON.parse(stored) as T) : undefined;
+  }
+
+  /**
+   * Persist a user-level setting blob by type + key
+   */
+  async setUserSetting<T = unknown>(type: UserSettingType, key: string, data: T): Promise<void> {
+    if (!this.isClient) return;
+    localStorage.setItem(`userSettings:${type}:${key}`, JSON.stringify(data));
   }
 
   /**
