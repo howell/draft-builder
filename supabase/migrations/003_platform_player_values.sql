@@ -38,6 +38,14 @@ CREATE POLICY "Platform player values are readable by everyone"
     ON platform_player_values FOR SELECT
     USING (true);
 
+-- Table-level grants for the PostgREST API roles. Newer Supabase CLI no longer
+-- auto-grants DML to anon/authenticated/service_role on tables created by the
+-- `postgres` migration role, so these must be explicit. Reads are public (the
+-- RLS policy above is world-readable); writes go through the service-role key,
+-- which the ingest script and /api/player-values use.
+GRANT SELECT ON platform_player_values TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON platform_player_values TO service_role;
+
 COMMENT ON TABLE platform_player_values IS 'Preseason platform player valuations (ranks + auction values) per season, from draft-kit PDFs and dated API snapshots';
 COMMENT ON COLUMN platform_player_values.snapshot_date IS 'When these values were current; API values drift in-season, so backtests should use the snapshot nearest the league''s draft date';
 COMMENT ON COLUMN platform_player_values.auction_value IS 'Platform editorial auction value in its baseline configuration (ESPN: 10 teams, $200); draft rooms scale this by a per-league constant';
