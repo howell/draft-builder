@@ -129,6 +129,18 @@ export function importEspnPlayerInfo(info: EspnT.PlayerInfo): Player {
         fullName: info.player.fullName,
         position: positionName(info.player.defaultPositionId),
         eligiblePositions: info.player.eligibleSlots.map(slotName),
-        platformPrice: info.draftAuctionValue
+        platformPrice: espnPlatformPrice(info)
     };
+}
+
+// `draftAuctionValue` mirrors ESPN's live/average auction market, which ESPN
+// resets to 0 once a season completes (and briefly between seasons). The
+// published preseason auction value in `draftRanksByRankType` is durable, so we
+// fall back to it to avoid showing $0 for every player during those windows.
+function espnPlatformPrice(info: EspnT.PlayerInfo): number {
+    const ranks = info.player.draftRanksByRankType;
+    return info.draftAuctionValue
+        || ranks?.PPR?.auctionValue
+        || ranks?.STANDARD?.auctionValue
+        || 0;
 }
