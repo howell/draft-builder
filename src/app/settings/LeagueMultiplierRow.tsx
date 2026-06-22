@@ -5,7 +5,12 @@ import Image from 'next/image';
 import { PlatformLeague, platformLogo } from '@/platforms/common';
 import type { LeagueInfo } from '@/platforms/PlatformApi';
 import { useLeagueInfoQuery } from '@/hooks/queries/useLeagueInfoQuery';
-import { defaultPriceMultiplier, effectiveMultiplier } from '@/lib/leaguePriceMultiplier';
+import {
+  defaultPriceMultiplier,
+  effectiveMultiplier,
+  formatMultiplier,
+  parseMultiplierInput,
+} from '@/lib/leaguePriceMultiplier';
 import { Input } from '@/ui/Input';
 import { Button } from '@/ui/Button';
 
@@ -16,11 +21,6 @@ interface LeagueMultiplierRowProps {
   saving: boolean;
   onSave: (multiplier: number) => void;
   onReset: () => void;
-}
-
-function formatMultiplier(value: number): string {
-  // Trim trailing zeros while keeping a readable precision (e.g. 1.333, 1, 1.2).
-  return parseFloat(value.toFixed(4)).toString();
 }
 
 export default function LeagueMultiplierRow({
@@ -53,13 +53,13 @@ export default function LeagueMultiplierRow({
   const isOverridden = stored !== undefined;
 
   const handleSave = () => {
-    const parsed = Number(draft);
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-      setError('Enter a positive number');
+    const result = parseMultiplierInput(draft);
+    if ('error' in result) {
+      setError(result.error);
       return;
     }
     setError(null);
-    onSave(parsed);
+    onSave(result.value);
   };
 
   return (

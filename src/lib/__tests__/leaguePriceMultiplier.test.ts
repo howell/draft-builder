@@ -3,7 +3,9 @@ import {
   STANDARD_MULTIPLIER,
   defaultPriceMultiplier,
   effectiveMultiplier,
+  formatMultiplier,
   isStandardLeague,
+  parseMultiplierInput,
 } from '../leaguePriceMultiplier';
 import type { LeagueInfo } from '@/platforms/PlatformApi';
 
@@ -55,6 +57,27 @@ describe('leaguePriceMultiplier', () => {
     it('falls back to the computed default when unset', () => {
       expect(effectiveMultiplier(undefined, leagueInfo(200))).toBe(STANDARD_MULTIPLIER);
       expect(effectiveMultiplier(undefined, leagueInfo(240))).toBe(CUSTOM_MULTIPLIER);
+    });
+  });
+
+  describe('formatMultiplier', () => {
+    it('trims trailing zeros and caps precision at 4 places', () => {
+      expect(formatMultiplier(1)).toBe('1');
+      expect(formatMultiplier(1.2)).toBe('1.2');
+      expect(formatMultiplier(4 / 3)).toBe('1.3333');
+    });
+  });
+
+  describe('parseMultiplierInput', () => {
+    it('accepts a positive number', () => {
+      expect(parseMultiplierInput('1.5')).toEqual({ value: 1.5 });
+    });
+
+    it('rejects zero, negatives, and non-numeric input', () => {
+      expect(parseMultiplierInput('0')).toEqual({ error: 'Enter a positive number' });
+      expect(parseMultiplierInput('-1')).toEqual({ error: 'Enter a positive number' });
+      expect(parseMultiplierInput('abc')).toEqual({ error: 'Enter a positive number' });
+      expect(parseMultiplierInput('')).toEqual({ error: 'Enter a positive number' });
     });
   });
 });

@@ -55,3 +55,20 @@ export function defaultPriceMultiplier(info: LeagueInfo | undefined): number {
 export function effectiveMultiplier(stored: number | undefined, info: LeagueInfo | undefined): number {
   return stored ?? defaultPriceMultiplier(info);
 }
+
+/** Format a multiplier for display, trimming trailing zeros (e.g. 1.3333, 1, 1.2). */
+export function formatMultiplier(value: number): string {
+  return parseFloat(value.toFixed(4)).toString();
+}
+
+/**
+ * Validate a raw multiplier input string. Returns the parsed positive number, or a
+ * user-facing error message for blank/non-numeric/non-positive input.
+ */
+export function parseMultiplierInput(raw: string): { value: number } | { error: string } {
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return { error: 'Enter a positive number' };
+  }
+  return { value: parsed };
+}
