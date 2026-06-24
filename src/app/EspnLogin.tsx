@@ -24,10 +24,10 @@ const EspnLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
 
       const providedLeagueId = leagueID.trim();
 
-      if (providedLeagueId === '781060' && Cookies.get('magic word') !== process.env.NEXT_PUBLIC_MAGIC_WORD) {
-        router.push('/newman.gif');
-        return;
-      }
+    //   if (providedLeagueId === '781060' && Cookies.get('magic word') !== process.env.NEXT_PUBLIC_MAGIC_WORD) {
+    //     router.push('/newman.gif');
+    //     return;
+    //   }
 
       if (isNaN(parseInt(providedLeagueId))) {
         setValidationError("League ID must be a number");
