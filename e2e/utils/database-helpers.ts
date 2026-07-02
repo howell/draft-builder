@@ -85,6 +85,36 @@ export class DatabaseHelpers {
   }
 
   /**
+   * Generate a real email-confirmation link for a brand-new user via the admin
+   * API. This lets the /auth/callback landing page be tested end-to-end without
+   * depending on the project's global `enable_confirmations` setting. The user
+   * is created in an unconfirmed state; visiting the returned link confirms it.
+   *
+   * `redirectTo` must be present in supabase/config.toml additional_redirect_urls.
+   */
+  async generateSignupConfirmationLink(redirectTo: string, userData: {
+    email?: string;
+    password?: string;
+  } = {}) {
+    const credentials = {
+      email: generateTestEmail(),
+      password: TEST_USER.PASSWORD,
+      ...userData,
+    };
+
+    const { data, error } = await this.supabase.auth.admin.generateLink({
+      type: 'signup',
+      email: credentials.email,
+      password: credentials.password,
+      options: { redirectTo },
+    });
+
+    if (error) throw error;
+
+    return { actionLink: data.properties!.action_link, userId: data.user!.id, credentials };
+  }
+
+  /**
    * Create a test league using existing factory
    */
   async createTestLeague(userId: string, overrides: any = {}) {

@@ -116,11 +116,11 @@ describe('SignUpForm E2E Test', () => {
 
     render(<SignUpForm onSwitchToLogin={jest.fn()} />);
 
-    // Should display error message
-    expect(screen.getByText('Email already exists')).toBeInTheDocument();
+    // Raw Supabase messages are mapped to friendly copy before display.
+    expect(screen.getByText(/already exists/i)).toBeInTheDocument();
 
     // Error should be in red background Alert container
-    const errorText = screen.getByText('Email already exists');
+    const errorText = screen.getByText(/already exists/i);
     const alertContainer = errorText.closest('[role="alert"]');
     expect(alertContainer).toHaveClass('bg-red-50');
   });

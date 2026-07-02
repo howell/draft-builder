@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../../lib/auth/context';
+import { friendlyAuthError } from '../../lib/auth/authErrors';
 import { Button } from '../../ui/Button';
 import { Input } from '../../ui/Input';
 import { Alert } from '../../ui/Alert';
@@ -54,7 +55,7 @@ export default function LoginForm({ onSwitchToSignUp, onSuccess }: LoginFormProp
       
       {error && (
         <Alert variant="error" className="mb-4" data-testid="login-error-alert">
-          {error}
+          {friendlyAuthError({ message: error })}
         </Alert>
       )}
 

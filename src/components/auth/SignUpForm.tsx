@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../../lib/auth/context';
+import { supabase } from '../../lib/supabase';
+import { friendlyAuthError } from '../../lib/auth/authErrors';
 import { AccountBenefits } from './AccountBenefits';
 import { Button } from '../../ui/Button';
 import { Input } from '../../ui/Input';
 import { Alert } from '../../ui/Alert';
-import { Card } from '../../ui/Card';
 
 interface SignUpFormProps {
   onSwitchToLogin: () => void;
@@ -15,7 +16,7 @@ interface SignUpFormProps {
 
 export default function SignUpForm({ onSwitchToLogin, onSuccess }: SignUpFormProps) {
   const { signUp, loading, error, clearError } = useAuth();
-  
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -23,6 +24,11 @@ export default function SignUpForm({ onSwitchToLogin, onSuccess }: SignUpFormPro
   });
   const [showPassword, setShowPassword] = useState(false);
   const [passwordsMatch, setPasswordsMatch] = useState(true);
+  // When set, signup succeeded but the account needs email confirmation — show
+  // the "check your email" panel instead of the form so the user knows to act.
+  const [confirmationEmail, setConfirmationEmail] = useState<string | null>(null);
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -52,13 +58,22 @@ export default function SignUpForm({ onSwitchToLogin, onSuccess }: SignUpFormPro
 
     try {
       const result = await signUp(formData.email, formData.password);
-      
+
       if (result.error) {
-        console.error('Signup error:', result.error);
+        // Error is rendered from auth context state below; nothing else to do.
         return;
       }
 
-      // Success - user will be redirected by MigrationGate if needed
+      if (result.needsConfirmation) {
+        // Account created but not yet active — tell the user to confirm.
+        setConfirmationEmail(formData.email);
+        return;
+      }
+
+      // Confirmation disabled: a session exists, so the user is already logged
+      // in. Navigation is handled by the /auth page (redirects authed users to
+      // home) and MigrationGate (redirects to /migrate when local data exists),
+      // so we only fire the optional success callback and let those run.
       if (onSuccess) {
         onSuccess();
       }
@@ -67,10 +82,75 @@ export default function SignUpForm({ onSwitchToLogin, onSuccess }: SignUpFormPro
     }
   };
 
-  const isFormValid = formData.email && 
-                     formData.password && 
-                     formData.confirmPassword && 
+  const handleResend = async () => {
+    if (!confirmationEmail) return;
+    setResendStatus('sending');
+    setResendMessage(null);
+
+    const { error: resendError } = await supabase.auth.resend({
+      type: 'signup',
+      email: confirmationEmail,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    });
+
+    if (resendError) {
+      setResendStatus('error');
+      setResendMessage(friendlyAuthError(resendError));
+    } else {
+      setResendStatus('sent');
+      setResendMessage('Confirmation email resent — check your inbox.');
+    }
+  };
+
+  const isFormValid = formData.email &&
+                     formData.password &&
+                     formData.confirmPassword &&
                      passwordsMatch;
+
+  // "Check your email" panel — shown after a successful signup that requires
+  // email confirmation. This is the feedback that was previously missing.
+  if (confirmationEmail) {
+    return (
+      <div className="space-y-6 text-center" data-testid="signup-confirmation-panel">
+        <div className="text-5xl">📬</div>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Check your email</h2>
+          <p className="mt-2 text-gray-600">
+            We sent a confirmation link to{' '}
+            <span className="font-medium text-gray-900">{confirmationEmail}</span>.
+            Click it to finish creating your account, then come back and sign in.
+          </p>
+        </div>
+
+        {resendMessage && (
+          <Alert variant={resendStatus === 'error' ? 'error' : 'success'}>
+            {resendMessage}
+          </Alert>
+        )}
+
+        <div className="space-y-3">
+          <Button
+            type="button"
+            onClick={handleResend}
+            loading={resendStatus === 'sending'}
+            disabled={resendStatus === 'sending'}
+            fullWidth
+            variant="outline"
+          >
+            {resendStatus === 'sending' ? 'Resending…' : "Didn't get it? Resend email"}
+          </Button>
+          <Button
+            type="button"
+            onClick={onSwitchToLogin}
+            fullWidth
+            variant="primary"
+          >
+            Go to sign in
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -85,7 +165,7 @@ export default function SignUpForm({ onSwitchToLogin, onSuccess }: SignUpFormPro
       {/* Error Display */}
       {error && (
         <Alert variant="error" data-testid="signup-error-alert">
-          {error}
+          {friendlyAuthError({ message: error })}
         </Alert>
       )}
 

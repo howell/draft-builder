@@ -12,6 +12,7 @@ export class AuthPage extends BasePage {
   readonly switchToLoginButton: Locator;
   readonly errorMessage: Locator;
   readonly successMessage: Locator;
+  readonly confirmationPanel: Locator;
   readonly migrationPreview: Locator;
   readonly migrationProgress: Locator;
 
@@ -26,7 +27,8 @@ export class AuthPage extends BasePage {
     this.switchToSignupButton = page.getByRole('button', { name: /sign up here/i });
     this.switchToLoginButton = page.getByRole('button', { name: /sign in here/i });
     this.errorMessage = page.locator('[data-testid="login-error-alert"], [data-testid="signup-error-alert"]').first();
-    this.successMessage = page.getByText(/account created/i);
+    this.successMessage = page.getByText(/check your email/i);
+    this.confirmationPanel = page.getByTestId('signup-confirmation-panel');
     this.migrationPreview = page.getByTestId('migration-preview');
     this.migrationProgress = page.getByTestId('migration-progress');
   }
@@ -97,6 +99,15 @@ export class AuthPage extends BasePage {
   }
 
   async expectSignupSuccess() {
+    await expect(this.successMessage).toBeVisible();
+  }
+
+  /**
+   * When email confirmation is required, signup shows the "check your email"
+   * panel instead of logging the user straight in.
+   */
+  async expectConfirmationRequired() {
+    await expect(this.confirmationPanel).toBeVisible();
     await expect(this.successMessage).toBeVisible();
   }
 

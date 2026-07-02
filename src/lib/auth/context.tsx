@@ -19,7 +19,7 @@ interface AuthState {
 interface AuthContextType extends AuthState {
   storageAdapter: StorageAdapter;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: AuthError | null; needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
   clearError: () => void;
@@ -205,12 +205,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Sign up with email and password
   const signUp = async (email: string, password: string) => {
     setAuthState(prev => ({ ...prev, loading: true, error: null, storageAdapter }));
-    
-    const { error } = await supabase.auth.signUp({
+
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
@@ -228,7 +228,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }));
     }
 
-    return { error };
+    // When email confirmation is required, Supabase returns no session — the
+    // user must click the link in their inbox before they're logged in. Surface
+    // that to the caller so the UI can show a "check your email" panel instead
+    // of silently doing nothing.
+    const needsConfirmation = !error && !data.session;
+
+    return { error, needsConfirmation };
   };
 
   // Sign out
