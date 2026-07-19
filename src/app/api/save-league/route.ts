@@ -18,7 +18,12 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as SaveLeagueRequest;
     const { league, userId } = body;
-    console.log('[SaveLeague] Saving league:', { league, userId });
+    // Never log the full league object — league.auth carries ESPN session cookies
+    console.log('[SaveLeague] Saving league:', {
+      leagueId: league?.id,
+      platform: league?.platform,
+      userId
+    });
 
     if (!league || !userId) {
       return makeResponse<SaveLeagueResponse>({ 
