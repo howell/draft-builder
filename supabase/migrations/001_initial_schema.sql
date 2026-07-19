@@ -1,8 +1,9 @@
 -- Draft Builder Database Schema for Supabase Migration
 -- This schema represents the migration from localStorage to Supabase persistence
 
--- Enable UUID extension for ID generation
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- ID generation uses gen_random_uuid() (Postgres 13+ core) — no extension
+-- needed, and unlike uuid-ossp it resolves identically on local and hosted
+-- Supabase, where preinstalled extensions live in the `extensions` schema.
 
 -- Users table for authentication (Supabase Auth integration)
 CREATE TABLE users (
@@ -14,7 +15,7 @@ CREATE TABLE users (
 
 -- Leagues table - stores user's league configurations
 CREATE TABLE leagues (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     league_id TEXT NOT NULL, -- Platform league ID (ESPN/Sleeper/Yahoo)
     platform TEXT NOT NULL CHECK (platform IN ('espn', 'sleeper')), -- Yahoo planned for future
@@ -26,7 +27,7 @@ CREATE TABLE leagues (
 
 -- Draft sessions table - represents individual mock drafts
 CREATE TABLE draft_sessions (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     league_id UUID REFERENCES leagues(id) ON DELETE CASCADE,
     name TEXT NOT NULL, -- User-provided draft name
@@ -39,7 +40,7 @@ CREATE TABLE draft_sessions (
 
 -- Draft settings table - estimation and search settings per draft
 CREATE TABLE draft_settings (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     draft_session_id UUID REFERENCES draft_sessions(id) ON DELETE CASCADE UNIQUE,
     estimation_years TEXT[], -- Array of season years for estimation
     estimation_weight NUMERIC DEFAULT 0.5,
@@ -54,7 +55,7 @@ CREATE TABLE draft_settings (
 
 -- Player selections table - tracks roster selections in drafts
 CREATE TABLE player_selections (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     draft_session_id UUID REFERENCES draft_sessions(id) ON DELETE CASCADE,
     roster_position TEXT NOT NULL, -- e.g., "QB-1", "RB-2", "FLEX-1"
     player_id TEXT NOT NULL, -- Platform player ID
@@ -70,7 +71,7 @@ CREATE TABLE player_selections (
 
 -- Cost adjustments table - user-defined cost overrides
 CREATE TABLE cost_adjustments (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     draft_session_id UUID REFERENCES draft_sessions(id) ON DELETE CASCADE,
     roster_position TEXT NOT NULL, -- e.g., "QB-1", "RB-2", "FLEX-1" (same as player_selections)
     player_id TEXT NOT NULL, -- Platform player ID (kept for reference)
@@ -82,7 +83,7 @@ CREATE TABLE cost_adjustments (
 
 -- In-progress selections table - temporary state during active drafting
 CREATE TABLE in_progress_selections (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     league_id UUID REFERENCES leagues(id) ON DELETE CASCADE,
     session_data JSONB NOT NULL, -- Temporary draft state

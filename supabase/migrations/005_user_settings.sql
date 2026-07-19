@@ -5,7 +5,7 @@
 -- (`type='app', key='leaguePriceMultipliers'`, data = { [leagueId]: number }).
 
 CREATE TABLE user_settings (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     type TEXT NOT NULL CHECK (type IN ('estimation', 'search', 'display', 'app')),
     key TEXT NOT NULL,

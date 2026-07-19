@@ -6,7 +6,7 @@
 -- platform inputs a real draft room shows.
 
 CREATE TABLE platform_player_values (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     platform TEXT NOT NULL DEFAULT 'espn' CHECK (platform IN ('espn', 'sleeper')),
     season TEXT NOT NULL, -- e.g. '2023'
     snapshot_date DATE NOT NULL, -- kit publication (~Sep 1) for PDFs; run date for API snapshots

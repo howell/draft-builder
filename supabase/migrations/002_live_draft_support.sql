@@ -10,7 +10,7 @@ CREATE INDEX idx_draft_sessions_draft_type ON draft_sessions(draft_type);
 
 -- Live drafts table - main live draft sessions
 CREATE TABLE live_drafts (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     league_id UUID REFERENCES leagues(id) ON DELETE CASCADE,
     draft_id TEXT NOT NULL, -- Unique draft identifier (user-friendly)
@@ -24,7 +24,7 @@ CREATE TABLE live_drafts (
 
 -- Live draft picks table - individual picks made during the draft
 CREATE TABLE live_draft_picks (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     live_draft_id UUID REFERENCES live_drafts(id) ON DELETE CASCADE,
     pick_number INTEGER NOT NULL,
     team_id TEXT NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE live_draft_picks (
 
 -- Live draft teams table - team information and budget tracking
 CREATE TABLE live_draft_teams (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     live_draft_id UUID REFERENCES live_drafts(id) ON DELETE CASCADE,
     team_id TEXT NOT NULL,
     team_name TEXT NOT NULL,
