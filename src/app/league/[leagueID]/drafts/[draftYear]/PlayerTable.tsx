@@ -55,20 +55,20 @@ const PlayerTable = <T extends object,>({
 
 
     return (
-        <div className="mx-auto my-5 border-collapse w-full max-h-[90dvh] overflow-y-auto overflow-x-auto md:overflow-x-hidden rounded-lg shadow-sm">
+        <div className="mx-auto my-5 border-collapse w-full max-h-[90dvh] overflow-y-auto overflow-x-auto rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
             <table data-testid="available-players-table" className="table-auto w-full">
                 <thead>
                     <tr>
                         {columns.map(([column, name], i) => (
                             <th
                                 key={column.toString()}
-                                className={`max-w-fit md:w-max md:max-w-max px-3 py-3 
-                                            ${i === columns.length - 1 ? 'pl-3 pr-4' : 'mx-2'}
+                                className={`max-w-fit md:w-max md:max-w-max px-2 sm:px-3 py-3
+                                            ${i === columns.length - 1 ? 'pl-2 sm:pl-3 pr-3 sm:pr-4' : ''}
                                             sticky top-0
-                                            border-b-2 border-gray-200 dark:border-gray-700
+                                            border-b-2 border-gray-200 dark:border-gray-600
                                             text-left font-semibold
-                                            bg-gradient-to-r from-gray-50 to-gray-100 text-gray-900
-                                            dark:from-gray-800 dark:to-gray-750 dark:text-gray-100`}
+                                            bg-gray-50 text-gray-900
+                                            dark:bg-gray-900 dark:text-gray-100`}
                                 >
                                 <div className="inline justify-start items-center w-max cursor-pointer hover:text-primary-600">
                                     <ColumnHeader 
@@ -85,7 +85,7 @@ const PlayerTable = <T extends object,>({
                         <tr key={item.id}
                             data-testid={`player-row-${item.id}`}
                             className={`transition-colors
-                                        ${i % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-850'}
+                                        ${i % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900/40'}
                                         ${onPlayerClick ? 'cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-900/20' : ''}
                                         border-b border-gray-100 dark:border-gray-700`}
                             onClick={() => onPlayerClick && onPlayerClick(item)}>
@@ -99,7 +99,7 @@ const PlayerTable = <T extends object,>({
                                     <td key={`${columnStr} ${item.id}`}
                                         data-testid={`player-cell-${item.id}-${columnStr}`}
                                         className={`py-3 text-left whitespace-nowrap text-ellipsis text-gray-700 dark:text-gray-300
-                                                    ${j === columns.length - 1 ? 'pl-3 pr-4' : 'px-3'}`} >
+                                                    ${j === columns.length - 1 ? 'pl-2 sm:pl-3 pr-3 sm:pr-4' : 'px-2 sm:px-3'}`} >
                                         <div>
                                             {isPosition && positionValue ? (
                                                 <PositionBadge position={positionValue} />

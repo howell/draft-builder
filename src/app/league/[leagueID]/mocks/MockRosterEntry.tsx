@@ -1,6 +1,5 @@
 import React, { ReactNode, useCallback, useEffect, useState, } from 'react';
 import { RosterSlot, CostEstimatedPlayer  } from '@/app/storage/savedMockTypes';
-import { DarkLightText } from '@/ui/basicComponents';
 import { PositionBadge } from '@/ui/Badge';
 
 export interface MockRosterEntryProps {
@@ -85,15 +84,15 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
 
     return (
         <tr data-testid={`roster-position-${position}-${rosterSlot.index}`}
-            className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750">
-            <td className="py-1 px-2">
+            className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40">
+            <td className="py-1.5 pr-1 sm:px-2 whitespace-nowrap">
                 <PositionBadge position={position} />
             </td>
-            <td className="py-1 px-2">
-                <DarkLightText>
+            <td className="py-1.5 px-1 sm:px-2 w-full">
+                <div className="relative">
                     <input
                         data-testid={`roster-player-input-${position}-${rosterSlot.index}`}
-                        className="flex justify-start items-start h-7 bg-inherit text-inherit ml-2 pl-2 py-1"
+                        className="w-full min-w-[7rem] h-8 px-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                         type="text"
                         value={inputValue}
                         onFocus={() => onFocus(rosterSlot, true)}
@@ -101,22 +100,22 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
                         onBlur={onBlur}
                         placeholder="Search for a player..."
                     />
-                {suggestions.length > 0 && (
-                    <ul className="bg-inherit text-inherit absolute z-50">
-                        {suggestions.map((suggestion) => (
-                            <li
-                                className={`text-inherit cursor-pointer ${suggestion === suggestions[highlightedIndex] ? 'bg-slate-300' : 'bg-inherit '}`}
-                                key={suggestion.id}
-                                onClick={() => handleSuggestionClick(suggestion)}
-                            >
-                                {suggestion.name}, {suggestion.defaultPosition} ({suggestion.estimatedCost})
-                            </li>
-                        ))}
-                    </ul>
-                )}
-                </DarkLightText>
+                    {suggestions.length > 0 && (
+                        <ul className="absolute z-50 left-0 top-full mt-1 min-w-full w-max max-w-[16rem] rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg py-1 text-sm">
+                            {suggestions.map((suggestion) => (
+                                <li
+                                    className={`px-3 py-1.5 cursor-pointer text-gray-900 dark:text-gray-100 ${suggestion === suggestions[highlightedIndex] ? 'bg-primary-100 dark:bg-primary-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
+                                    key={suggestion.id}
+                                    onClick={() => handleSuggestionClick(suggestion)}
+                                >
+                                    {suggestion.name}, {suggestion.defaultPosition} ({suggestion.estimatedCost})
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
             </td>
-            <td className="py-1 px-1">
+            <td className="py-1.5 px-1 whitespace-nowrap">
                 <div className="flex justify-start items-center">
                     <div className="flex flex-col items-center mr-2">
                         <CostButton onClick={() => onCostAdjusted(rosterSlot, 1)}>+</CostButton>
@@ -144,7 +143,7 @@ const CostButton: React.FC<{ onClick: () => void, children: ReactNode }> = ({ on
                        dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300
                        border border-gray-300 dark:border-gray-600
                        text-xs
-                       w-3 h-3
+                       w-5 h-5
                        my-0.5
                        rounded
                        flex justify-center items-center

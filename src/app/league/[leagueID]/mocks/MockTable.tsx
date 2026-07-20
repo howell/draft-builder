@@ -442,9 +442,9 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     }
 
     return (
-        <div className="flex flex-col md:flex-row justify-evenly gap-8 p-2 mx-auto">
-            <div className="md:ml-8">
-                <Card className="p-6">
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-8 sm:p-2 mx-auto w-full">
+            <div className="lg:shrink-0">
+                <Card className="p-4 sm:p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100" data-testid="your-roster-heading">Your Roster</h1>
                         <AutosaveIndicator 
@@ -456,10 +456,10 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                     </div>
                     <table data-testid="roster-table" className="w-full">
                     <thead>
-                        <tr>
-                            <th>Position</th>
-                            <th>Player</th>
-                            <th>
+                        <tr className="border-b-2 border-gray-200 dark:border-gray-600">
+                            <th className="py-2 pr-1 sm:px-2 text-left text-sm font-semibold text-gray-600 dark:text-gray-400">Position</th>
+                            <th className="py-2 px-1 sm:px-2 text-left text-sm font-semibold text-gray-600 dark:text-gray-400">Player</th>
+                            <th className="py-2 px-1 text-left text-sm font-semibold text-gray-600 dark:text-gray-400">
                                 <Tooltip text='Use the + and - buttons to adjust the budget spent on a particular roster slot up or down'>
                                     Cost
                                 </Tooltip>
@@ -483,15 +483,15 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                         })}
                     </tbody>
                     </table>
-                    <div data-testid="budget-display" className="mt-6 p-4 bg-gradient-to-r from-accent-50 to-accent-100 rounded-lg border border-accent-200 dark:from-accent-900/20 dark:to-accent-800/20 dark:border-accent-700">
+                    <div data-testid="budget-display" className="mt-6 p-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div className="flex justify-between items-center">
                             <div>
-                                <p className="text-sm font-semibold text-accent-900 dark:text-accent-200">Total Budget</p>
-                                <p className="text-2xl font-bold text-accent-700 dark:text-accent-300" data-testid="budget-total">${auctionBudget}</p>
+                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Budget</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100" data-testid="budget-total">${auctionBudget}</p>
                             </div>
                             <div className="text-right">
-                                <p className="text-sm font-semibold text-accent-900 dark:text-accent-200">Remaining</p>
-                                <p className="text-2xl font-bold text-accent-700 dark:text-accent-300" data-testid="budget-remaining">${auctionBudget - budgetSpent}</p>
+                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Remaining</p>
+                                <p className={`text-2xl font-bold ${auctionBudget - budgetSpent < 0 ? 'text-red-600 dark:text-red-400' : 'text-primary-600 dark:text-primary-400'}`} data-testid="budget-remaining">${auctionBudget - budgetSpent}</p>
                             </div>
                         </div>
                     </div>
@@ -538,8 +538,8 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                     </div>
                 </Card>
             </div>
-            <div className='flex flex-col items-start'>
-                <Card className="p-6 w-full">
+            <div className='flex flex-col items-start flex-1 min-w-0'>
+                <Card className="p-4 sm:p-6 w-full">
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4" data-testid="available-players-heading">
                         Available Players
                     </h1>
@@ -558,8 +558,8 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                         </div>
                     )}
                     
-                    <div className="flex gap-6 w-full">
-                        <div className="flex-1 max-w-[50%] space-y-4">
+                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 w-full">
+                        <div className="flex-1 space-y-4">
                             <CollapsibleComponent 
                                 label={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Search Settings</h2>}
                                 testId="search-settings-toggle">
@@ -581,7 +581,7 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                             </CollapsibleComponent>
                         </div>
                         
-                        <div className="flex-1 max-w-[50%] space-y-4">
+                        <div className="flex-1 space-y-4">
                             <CollapsibleComponent label={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Estimation Settings</h2>}>
                                 <EstimationSettings
                                     onEstimationSettingsChanged={onEstimationSettingsChanged}

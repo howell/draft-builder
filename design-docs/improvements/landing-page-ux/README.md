@@ -52,8 +52,15 @@ Fixes for the mobile league-page experience:
 - **Dark mode**: league dashboard heading/copy, league layout background (`bg-gray-50 dark:bg-gray-900`), demo page, `ErrorScreen`, `LoadingScreen` all got `dark:` variants. The `globals.css` body gradient (pure black in dark mode, off-palette gray gradient in light) was replaced with the design-system page treatment — body now matches `PageShell`/settings.
 - Verified: mobile 390×844 and desktop 1440×900, light + dark, drawer open/close/backdrop/nav-close, desktop collapse toggle; jest 67/67; full chromium e2e run — mock-drafts failures were A/B-tested against the pre-change code (11 fail before, 12 after, same clusters, rotating membership) and are **pre-existing flakiness**, not regressions.
 
+## Mock draft table: mobile layout + colors (follow-up pass, same branch)
+
+- **Mobile layout** (`MockTable.tsx`, `MockRosterEntry.tsx`): the roster table's Cost column overflowed 390px viewports (unconstrained bare player input + fixed paddings), and the Search/Estimation settings were forced into `max-w-[50%]` halves that wrapped badly. Now: the player input is a real bordered input that fills a `w-full` cell, paddings compress at mobile (`p-4 sm:p-6`, `px-1 sm:px-2`), settings stack (`flex-col sm:flex-row`), the two-card layout splits at `lg:` instead of `md:` (the static sidebar eats 12rem at md), the `md:ml-8` fixed-sidebar offset hack is gone, and the ± cost buttons grew from 12px to 20px tap targets. Zero horizontal page overflow at 390px (the players table scrolls within its own container).
+- **Colors**: the green `accent` gradient budget box is now a neutral gray panel with `primary` (or red when negative) for the Remaining value; the roster player-search suggestions dropdown is a proper bordered menu (was unstyled with a `bg-slate-300` highlight); roster table headers styled to match `PlayerTable`.
+- **Phantom Tailwind classes**: `PlayerTable`/`MockRosterEntry` used `gray-750`/`gray-850`, which are **not defined** in the Tailwind config — the classes silently no-op, which is why dark mode showed white alternating rows (the light `bg-gray-50` half of the pair still applied). Replaced with real tokens (`dark:bg-gray-900/40` striping, flat `dark:bg-gray-900` header). Lesson: only gray-50…900 exist; don't invent intermediate shades.
+- Verified at 390×844 and 1440×900, light + dark; jest 67/67; mock-drafts e2e failures unchanged vs baseline (10 vs 11, same pre-existing clusters, none new).
+
 ## Deferred / follow-ups
-- Dark-mode sweep of `MockTable` + drafts pages (mixed light-only styling: washed-out alternating rows, light-gray-on-white text in dark mode).
+- Polish `SearchSettings`/`EstimationSettings` internals (bare unstyled h3s/checkboxes).
 - Stabilize the `e2e/tests/mock-drafts` suite (same 3s-expect-timeout and ambiguous-locator problems fixed in the ESPN spec, plus a dev-overlay `Console Error` from `AuthContext getSession` tripping `/error/i` assertions).
 - Adopt `PageShell`/`AppHeader` on settings + demo pages.
 - Confirm prod Postgres major version and reconcile with `supabase/config.toml` (`major_version` now 17 to match the local volume).
