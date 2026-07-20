@@ -35,12 +35,14 @@ const config: Config = {
   // The test environment that will be used for testing
   testEnvironment: "jsdom",
 
-  // Ignore test utility files, integration tests, and Playwright e2e tests
+  // Ignore test utility files, integration tests, Playwright e2e tests, and
+  // git worktrees under .claude/ (their tests run from within the worktree)
   testPathIgnorePatterns: [
     '<rootDir>/node_modules/',
     '<rootDir>/src/.*/__tests__/test-utils/',
     '<rootDir>/src/.*\\.integration\\.test\\.(ts|tsx)$',
-    '<rootDir>/e2e/'
+    '<rootDir>/e2e/',
+    '<rootDir>/.claude/'
   ],
 
   // Module name mapping for path aliases
