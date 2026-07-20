@@ -32,12 +32,17 @@ export type TableData = {
 };
 
 const tableColumns: [keyof(TableData), ColumnName][] = [
-    ['numberDrafted', { name: 'Nominated', shortName: '#' }],
+    // Below `sm` these collapse into a secondary line under the player name.
+    ['numberDrafted', { name: 'Nominated', shortName: '#', hideBelow: 'sm' }],
     ['auctionPrice', { name: 'Price', shortName: '$' }],
     ['name', {name: 'Name', shortName: 'Name'}],
     ['position', { name: 'Position', shortName: 'Pos' }],
-    ['teamDrafted', { name: 'Drafted By', shortName: 'To' }],
+    ['teamDrafted', { name: 'Drafted By', shortName: 'To', hideBelow: 'sm' }],
 ];
+
+function draftedSummary(p: TableData): string {
+    return `#${p.numberDrafted} · ${p.teamDrafted}`;
+}
 
 const Page = (props: Readonly<{ params: Promise<{ leagueID: string, draftYear: string}> }>) => {
     const params = use(props.params);
@@ -179,15 +184,15 @@ const Page = (props: Readonly<{ params: Promise<{ leagueID: string, draftYear: s
 
     return (
         <LoadingScreen waitFor={loadingDependencies}>
-            <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
-                <Card className="mb-8">
+            <div className='max-w-7xl w-full min-w-0 mx-auto px-0 sm:px-6 lg:px-8 py-4 sm:py-8'>
+                <Card className="mb-8 p-4 sm:p-6" padding="none">
                     <CardBody>
                         <div className="text-center mb-6">
                             <Badge variant="accent" className="mb-2">Draft Recap</Badge>
-                            <h1 className='text-3xl font-bold text-gray-900'>Your {draftYear} Draft Results</h1>
+                            <h1 className='text-3xl font-bold text-gray-900 dark:text-gray-100'>Your {draftYear} Draft Results</h1>
                         </div>
                         <div className='mb-6'>
-                            <CollapsibleComponent label={<h2 className='text-lg font-semibold text-gray-800'>Filter Settings</h2>}>
+                            <CollapsibleComponent label={<h2 className='text-lg font-semibold text-gray-800 dark:text-gray-200'>Filter Settings</h2>}>
                                 <SearchSettings positions={allPositions} currentSettings={searchSettings} onSettingsChanged={setSearchSettings}>
                                     <Button
                                         variant="outline"
@@ -198,13 +203,13 @@ const Page = (props: Readonly<{ params: Promise<{ leagueID: string, draftYear: s
                                 </SearchSettings>
                             </CollapsibleComponent>
                         </div>
-                        <PlayerTable players={showing} columns={tableColumns} defaultSortColumn='auctionPrice' />
+                        <PlayerTable players={showing} columns={tableColumns} defaultSortColumn='auctionPrice' mobileSecondary={draftedSummary} />
                     </CardBody>
                 </Card>
-                
-                <Card>
+
+                <Card className="p-4 sm:p-6" padding="none">
                     <CardBody>
-                        <h2 className='text-2xl font-bold text-gray-900 text-center mb-6'>Price Analysis</h2>
+                        <h2 className='text-2xl font-bold text-gray-900 dark:text-gray-100 text-center mb-6'>Price Analysis</h2>
                         <TabContainer pages={positionGraphs} />
                     </CardBody>
                 </Card>
@@ -259,7 +264,7 @@ function chartTitleFor(position: string) : TabTitle {
 
 const ChartContainer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return (
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden min-w-0">
             {children}
         </div>
     );

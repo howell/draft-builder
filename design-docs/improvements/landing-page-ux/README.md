@@ -67,6 +67,14 @@ Fixes for the mobile league-page experience:
 - Numeric columns auto right-align with `tabular-nums` (detected from the first row's value type).
 - Scroll-edge fade affordances (scroll + ResizeObserver listeners, guarded for jsdom) appear only on the side with clipped content — overflow is never invisible (e.g. at 320px).
 
+## Draft recap page: mobile layout + dark mode (follow-up pass, same branch)
+
+`/league/[id]/drafts/[year]` had 297px of horizontal overflow at 390px and light-only styling:
+- **Overflow root cause**: the league layout's `main` is a column flex container, so the page's `max-w-7xl` wrapper is a flex item whose `min-width: auto` let the ~600px chart svg force the whole ancestor chain wide. Fixed with `w-full min-w-0` on the wrapper (+ `min-w-0` on ChartContainer). Remaining 69px was the six chart tabs — `TabContainer`'s tab strip now wraps (`flex-wrap`, `px-2 sm:px-4`).
+- **Chart (`PlayerScatterChart`)**: hardcoded black line/dots and white tooltip were invisible on dark. Now: Actual = primary blue, Predicted keeps purple, axes/grid use mid-gray (`#9ca3af`) readable on both schemes, tooltip/Start–End inputs are dark-aware, height is `420px` mobile / `600px` desktop via a sized wrapper + `ResponsiveContainer height="100%"`, and the controls stack above the title on phones.
+- **Table**: Nominated + Drafted By hide below `sm`, shown instead as a "#3 · Ram Jam" secondary line. `PlayerTable`'s `mobileSecondary` now attaches to the first *visible non-numeric* column (it previously attached to column 0, which broke when column 0 is hidden on mobile).
+- Headings/`ChartContainer` got `dark:` variants; cards use `p-4 sm:p-6`.
+
 ## Deferred / follow-ups
 - Polish `SearchSettings`/`EstimationSettings` internals (bare unstyled h3s/checkboxes).
 - Stabilize the `e2e/tests/mock-drafts` suite (same 3s-expect-timeout and ambiguous-locator problems fixed in the ESPN spec, plus a dev-overlay `Console Error` from `AuthContext getSession` tripping `/error/i` assertions).

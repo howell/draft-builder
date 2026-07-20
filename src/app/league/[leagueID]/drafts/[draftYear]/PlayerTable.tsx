@@ -101,6 +101,12 @@ const PlayerTable = <T extends object,>({
     const isNumericColumn = (column: keyof T): boolean =>
         sortedData.length > 0 && typeof sortedData[0][column] === 'number';
 
+    // The mobile secondary line renders under the first column that is still
+    // visible on phones and holds text (i.e. the player-name column), not under
+    // a hidden or numeric one.
+    const secondaryHostIndex = columns.findIndex(([column, name]) =>
+        !columnHiddenClass(name) && !isNumericColumn(column));
+
     return (
         <div className="relative w-full my-5">
             <div
@@ -164,7 +170,7 @@ const PlayerTable = <T extends object,>({
                                                 ) : (
                                                     value?.toString()
                                                 )}
-                                                {j === 0 && mobileSecondary && (
+                                                {j === secondaryHostIndex && mobileSecondary && (
                                                     <div className="sm:hidden text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                                         {mobileSecondary(item)}
                                                     </div>
