@@ -345,6 +345,78 @@ vercel secrets add api-key your-api-key
 vercel env add REDIS_PASSWORD @redis-password production
 ```
 
+## Supabase Schema Deployment
+
+*Added 2026-07-20 after the production schema-drift incident (see log below).*
+
+### Pipeline
+
+Production schema deployment is **automated**: `.github/workflows/deploy-db.yml`
+runs `supabase link` + `supabase db push` on every push to `prod`. It runs on
+every prod push (not just migration-file changes) so a failed or skipped run
+self-corrects on the next deploy; `db push` is idempotent. A concurrency group
+prevents overlapping pushes.
+
+Required GitHub Actions secrets:
+
+| Secret | Value |
+|---|---|
+| `SUPABASE_PROJECT_ID` | Project ref (`jjujkkgsmzzvriderlam`, project `supabase-know-your-league`) |
+| `SUPABASE_ACCESS_TOKEN` | Personal access token (supabase.com/dashboard/account/tokens) |
+| `SUPABASE_DB_PASSWORD` | DB password — same value as `POSTGRES_PASSWORD` in Vercel (set by the Vercel↔Supabase integration; they drift only if the password is later reset) |
+
+The app itself deploys via Vercel on the same push. Migrations and app deploy
+race for a minute or so — acceptable while migrations stay additive/backward
+compatible; if strict ordering is ever needed, disable Vercel auto-deploy and
+trigger a deploy hook after `db push` succeeds.
+
+### Writing hosted-compatible migrations
+
+- **Use `gen_random_uuid()`, never `uuid_generate_v4()`.** On hosted Supabase,
+  extensions live in the `extensions` schema and the migration runner's search
+  path doesn't include it, so unqualified uuid-ossp calls fail during
+  `db push` even though they work locally. `gen_random_uuid()` is Postgres
+  core and behaves identically everywhere. (Schema-qualifying as
+  `extensions.uuid_generate_v4()` would break local dev, where the extension
+  installs into `public`.)
+- Keep explicit `GRANT`s for `anon`/`authenticated`/`service_role` on new
+  tables — newer CLI versions stopped auto-granting (see migration 004).
+- `public.users` rows are created by a `SECURITY DEFINER` trigger on
+  `auth.users` (migration 006), **not** by the client. The client-side
+  `ensureUserRecord` upsert and the save-league route's service-role upsert
+  remain as belt-and-braces. Never reintroduce a design where a server-side
+  FK depends on a best-effort client write.
+
+### Verification
+
+```bash
+supabase migration list        # local vs remote applied migrations
+```
+
+PostgREST reloads its schema cache on DDL, so new tables are queryable
+immediately after a push. If the API returns PGRST205 ("table not in schema
+cache") for a table that exists, the schema was never applied — check the
+deploy-db workflow run.
+
+### Incident log — 2026-07-19/20 (resolved)
+
+1. **League saves 500'd with PGRST205**: production Supabase had *zero*
+   migrations applied — CI only ever ran migrations against its own ephemeral
+   instance for tests; no deploy step existed. Manual `db push` then failed on
+   `uuid_generate_v4() does not exist` (hosted extension-schema issue above).
+   Fixes: migrations moved to `gen_random_uuid()`; deploy-db workflow added.
+2. **League saves then 500'd with FK 23503** (`user_id not present in
+   "users"`): accounts created while the schema was missing/stale never got
+   their `public.users` row because `ensureUserRecord` is a silent
+   best-effort client write. Fixes: migration 006 (auth.users trigger +
+   backfill + `ON DELETE CASCADE` on `users.id`), plus a service-role upsert
+   in `/api/save-league`.
+3. Related hardening: save-league request logging redacts ESPN cookies
+   (`swid`/`espn_s2` were previously logged in plaintext); the auth context
+   has a 5s watchdog on `getSession()` and clears `loading` unconditionally
+   in `signIn`/`signOut` (a wedged supabase-js call previously left the auth
+   page stuck on "Loading...").
+
 ## Database Operations
 
 ### Redis Maintenance

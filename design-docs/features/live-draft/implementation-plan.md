@@ -150,6 +150,10 @@
 >
 > ### 2026-07 Live data acquisition — test-draft findings ✅
 >
+> **Full reference: [espn-draft-room-protocol.md](espn-draft-room-protocol.md)**
+> (wire protocol grammar, INIT blob layout, tooling, draft-day workflow, and
+> the remaining integration work). Summary:
+>
 > A 4-team test-league auction (2026-07-19) settled how live draft data can be
 > acquired from ESPN:
 >

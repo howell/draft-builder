@@ -103,6 +103,15 @@ This checklist ensures proper deployment of the Draft Builder user accounts syst
 
 ## Database Deployment
 
+> **✅ 2026-07-20 status**: All six migrations are applied to production and
+> schema deployment is now automated — `.github/workflows/deploy-db.yml` runs
+> `supabase db push` on every push to `prod` (secrets: `SUPABASE_PROJECT_ID`,
+> `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`). `public.users` rows are
+> created by an `auth.users` trigger (migration 006) rather than trusted to
+> the client. See "Supabase Schema Deployment" in
+> `design-docs/assistants/deployment-guide.md` for the pipeline, migration
+> portability rules, and the incident log that motivated this.
+
 ### Schema Migration
 
 - [ ] **Apply Database Migrations**
