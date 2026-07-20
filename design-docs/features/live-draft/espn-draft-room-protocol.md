@@ -134,21 +134,28 @@ bid-by-bid JSONL; feed it to `parse-draft-har.ts --frames`. Replaces the
 fragile DevTools/HAR export (which loses frames unless DevTools was open
 before the socket connected).
 
-**Live pipeline (to build)**:
-1. Userscript forwards frames in ~2s batches to a Draft Builder ingest URL
-   (already implemented on the script side: set
-   `localStorage.draftBuilderIngestUrl` in the draft-room tab).
-2. App ingest endpoint (e.g. `POST /api/live-draft/ingest`) authenticates,
-   validates, and stores/relays frames.
-3. The live-draft page (second screen) consumes the stream, runs it through
-   `parseDraftSocketFrame`/`reconstructLots` + `parseInitBlob`, and feeds
-   completed sales into the inflation model for post-hammer price updates.
+**Live pipeline (ingest half built ✅, model wiring remaining)**:
+1. Userscript v0.2 forwards frames in ~2s batches of ≤500 to
+   `POST /api/live-draft-ingest` with a per-user bearer token. Configure in
+   the draft-room tab's console (snippet shown on the live-draft page):
+   `localStorage.draftBuilderIngestUrl` + `localStorage.draftBuilderIngestToken`.
+2. The route (src/app/api/live-draft-ingest/) verifies the token (secret in
+   `user_settings` 'app'/'liveDraftIngest', constant-time compare; `user_id`
+   derives only from the token), serves CORS for the two ESPN origins, and
+   upserts raw frames into `live_draft_frames` (migration 007) with
+   `(user_id, capture_id, seq)` dedupe — userscript retries are idempotent.
+3. The live-draft page polls via `useLiveDraftFramesQuery` (2s incremental
+   id-watermark fetch under RLS). NOTE: sort by `(captureId, seq)` before
+   `reconstructLots` — id order ≠ protocol order after retries. Token mint UI
+   + live frame readout: `IngestSetup.tsx` on the dev-gated page.
 
 ## 7. Remaining work
 
-- [ ] **App ingest endpoint** — auth (ties into user accounts), frame
-      validation, storage/relay choice (DB rows vs in-memory + SSE vs poll).
-- [ ] **Live-draft page consumption** — subscribe to the stream, maintain
+- [x] **App ingest endpoint** — `/api/live-draft-ingest` (2026-07-20): token
+      auth, CORS, validation, `live_draft_frames` storage, polling read hook,
+      mint UI. Verified end-to-end locally (curl matrix + browser loop).
+- [ ] **Live-draft page consumption** — parse the polled frames
+      (`parseDraftSocketFrame`/`reconstructLots` + `parseInitBlob`), maintain
       draft state, drive the inflation model; reconcile against
       `mDraftDetail` after the draft ends.
 - [ ] **Dress-rehearsal test draft** with the userscript installed end-to-end

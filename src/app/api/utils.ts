@@ -42,11 +42,12 @@ export async function makeApiRequest<T, U>(endpoint: string, method: string, bod
     }
 }
 
-export function makeResponse<T>(resp: T, status: number, cache: boolean = true, ttl: number = DEFAULT_CACHE_LENGTH): NextResponse {
+export function makeResponse<T>(resp: T, status: number, cache: boolean = true, ttl: number = DEFAULT_CACHE_LENGTH, extraHeaders: Record<string, string> = {}): NextResponse {
     const headers = {
         'Content-Type': 'application/json',
         'Cache-Control': cache ? `public, max-age=${ttl}, stale-while-revalidate=${ttl}, stale-if-error=${ttl}` : 'no-cache',
-        'Expires': new Date(Date.now() + ttl * 1000).toUTCString()
+        'Expires': new Date(Date.now() + ttl * 1000).toUTCString(),
+        ...extraHeaders
     };
 
     return new NextResponse(JSON.stringify(resp), { status: status, headers: headers });

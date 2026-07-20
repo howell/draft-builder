@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Draft Builder — ESPN draft room tap
 // @namespace    https://know-your-league.com
-// @version      0.1
-// @description  Capture the ESPN draft-room WebSocket (every nomination, bid, and sale) for Draft Builder. Adds a floating capture badge with JSONL download; optionally live-forwards frames to a Draft Builder ingest URL.
+// @version      0.2
+// @description  Capture the ESPN draft-room WebSocket (every nomination, bid, and sale) for Draft Builder. Adds a floating capture badge with JSONL download; optionally live-forwards frames to the Draft Builder ingest endpoint.
 // @match        https://fantasy.espn.com/football/draft*
 // @match        https://lm.fantasy.espn.com/football/draft*
 // @run-at       document-start
@@ -12,24 +12,37 @@
 /**
  * Wraps window.WebSocket before the draft room connects, and records every
  * frame on sockets to fantasydraft.espn.com. Frames are kept in memory as
- * { ts, dir: 'send'|'receive', data } and can be downloaded as JSONL — the
+ * { captureId, seq, ts, dir, data } and can be downloaded as JSONL — the
  * same shape scripts/parse-draft-har.ts accepts via --frames.
  *
- * Optional live forwarding: set
- *   localStorage.setItem('draftBuilderIngestUrl', 'http://localhost:3000/api/live-draft/ingest')
- * in the draft-room tab's console. Frames are then POSTed in ~2s batches as
- * { leagueId, frames: [...] }. Clear the key to disable.
+ * Live forwarding to Draft Builder (see /api/live-draft-ingest): in the
+ * draft-room tab's console, set
+ *   localStorage.setItem('draftBuilderIngestUrl', 'https://know-your-league.com/api/live-draft-ingest');
+ *   localStorage.setItem('draftBuilderIngestToken', '<token from the live-draft page>');
+ * Frames are then POSTed in ~2s batches of up to 500 as
+ * { leagueId, frames: [...] } with the token as a Bearer header. The
+ * (captureId, seq) pair makes retried batches idempotent server-side.
+ * Clear either key to disable.
  */
 (function () {
     'use strict';
 
+    const MAX_BATCH = 500; // also keeps keepalive flushes under the 64KB body cap
+
     const frames = [];
     let socketUrl = null;
     let pending = [];
+    // Per-socket capture identity: a reconnect starts a fresh capture with its
+    // own seq sequence, so ordering within a capture is unambiguous.
+    let captureId = null;
+    let seq = 0;
 
-    const ingestUrl = () => {
-        try { return localStorage.getItem('draftBuilderIngestUrl'); } catch { return null; }
+    const config = (key) => {
+        try { return localStorage.getItem(key); } catch { return null; }
     };
+    const ingestUrl = () => config('draftBuilderIngestUrl');
+    const ingestToken = () => config('draftBuilderIngestToken');
+    const forwardingConfigured = () => !!(ingestUrl() && ingestToken());
 
     const leagueIdFromUrl = (url) => {
         const m = /league-(\d+)/.exec(url || '');
@@ -38,7 +51,7 @@
 
     function record(dir, data) {
         if (typeof data !== 'string') return; // draft protocol is text-only
-        const frame = { ts: new Date().toISOString(), dir, data };
+        const frame = { captureId, seq: seq++, ts: new Date().toISOString(), dir, data };
         frames.push(frame);
         pending.push(frame);
         updateBadge();
@@ -46,21 +59,39 @@
 
     // ---- forwarding -------------------------------------------------------
 
-    setInterval(() => {
+    let flushing = false;
+
+    function flush() {
         const url = ingestUrl();
-        if (!url || pending.length === 0) return;
-        const batch = pending;
-        pending = [];
+        const token = ingestToken();
+        if (!url || !token || pending.length === 0 || flushing) return;
+        const batch = pending.slice(0, MAX_BATCH);
+        pending = pending.slice(batch.length);
+        flushing = true;
         fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ leagueId: leagueIdFromUrl(socketUrl), frames: batch }),
             keepalive: true,
+        }).then((res) => {
+            // Retry-able failures (5xx, 429) re-queue at the FRONT to preserve
+            // per-capture seq order; other 4xx are permanent (bad token/shape)
+            // and retrying would loop forever — drop and show the error state.
+            if (res.ok) return;
+            if (res.status >= 500 || res.status === 429) {
+                pending = batch.concat(pending);
+            } else {
+                console.error('[DraftBuilderTap] Ingest rejected batch:', res.status);
+                updateBadge('error');
+            }
         }).catch(() => {
-            // Ingest endpoint unreachable: put the batch back so nothing is lost.
-            pending = batch.concat(pending);
+            pending = batch.concat(pending); // network error: nothing was lost
+        }).finally(() => {
+            flushing = false;
         });
-    }, 2000);
+    }
+
+    setInterval(flush, 2000);
 
     // ---- WebSocket patch --------------------------------------------------
 
@@ -69,10 +100,12 @@
         const ws = protocols === undefined ? new NativeWebSocket(url) : new NativeWebSocket(url, protocols);
         if (typeof url === 'string' && url.includes('fantasydraft.espn.com')) {
             socketUrl = url;
+            captureId = (crypto.randomUUID ? crypto.randomUUID() : `cap-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+            seq = 0;
             ws.addEventListener('message', (ev) => record('receive', ev.data));
             const nativeSend = ws.send.bind(ws);
             ws.send = (data) => { record('send', data); return nativeSend(data); };
-            ws.addEventListener('close', () => updateBadge('closed'));
+            ws.addEventListener('close', () => { flush(); updateBadge('closed'); });
         }
         return ws;
     };
@@ -106,9 +139,10 @@
             badge.addEventListener('click', download);
             document.body.appendChild(badge);
         }
-        const fwd = ingestUrl() ? ' ⇉' : '';
-        badge.textContent = `⏺ ${frames.length}${fwd}${state === 'closed' ? ' (closed)' : ''}`;
+        const fwd = forwardingConfigured() ? ' ⇉' : '';
+        badge.textContent = `⏺ ${frames.length}${fwd}${state === 'closed' ? ' (closed)' : ''}${state === 'error' ? ' ⚠' : ''}`;
         if (state === 'closed') badge.style.background = '#b45309';
+        if (state === 'error') badge.style.background = '#b91c1c';
     }
 
     // The badge needs <body>; the script runs at document-start, so wait.

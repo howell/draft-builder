@@ -19,4 +19,12 @@ export const cacheKeys = {
   leagueHistory: (leagueId: LeagueId) => ['leagueHistory', leagueId],
 
   leaguePriceMultipliers: (userId?: string) => ['leaguePriceMultipliers', userId ?? 'anonymous'],
+
+  liveDraftIngestToken: (userId?: string) => ['liveDraftIngestToken', userId ?? 'anonymous'],
+
+  liveDraftFrames: (userId?: string, leagueId?: LeagueId) => [
+    'liveDraftFrames',
+    userId ?? 'anonymous',
+    leagueId,
+  ],
 } as const;

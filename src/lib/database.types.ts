@@ -256,6 +256,50 @@ export type Database = {
           },
         ]
       }
+      live_draft_frames: {
+        Row: {
+          capture_id: string
+          created_at: string | null
+          data: string
+          dir: string
+          id: number
+          league_id: string
+          seq: number
+          ts: string
+          user_id: string
+        }
+        Insert: {
+          capture_id: string
+          created_at?: string | null
+          data: string
+          dir: string
+          id?: never
+          league_id: string
+          seq: number
+          ts: string
+          user_id: string
+        }
+        Update: {
+          capture_id?: string
+          created_at?: string | null
+          data?: string
+          dir?: string
+          id?: never
+          league_id?: string
+          seq?: number
+          ts?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_draft_frames_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_draft_picks: {
         Row: {
           id: string
