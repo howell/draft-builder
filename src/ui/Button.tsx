@@ -26,6 +26,24 @@ const sizeClasses: Record<ButtonSize, string> = {
   lg: 'px-6 py-3 text-lg',
 };
 
+// Builds the Button class string so non-<button> elements (e.g. Next <Link>)
+// can share the exact same styling.
+export function buttonClasses(
+  variant: ButtonVariant = 'primary',
+  size: ButtonSize = 'md',
+  fullWidth = false,
+  className = '',
+): string {
+  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:focus:ring-offset-gray-900';
+  return [
+    baseClasses,
+    variantClasses[variant],
+    sizeClasses[size],
+    fullWidth ? 'w-full' : '',
+    className,
+  ].filter(Boolean).join(' ');
+}
+
 export const Button: React.FC<ButtonProps> = ({
   variant = 'primary',
   size = 'md',
@@ -37,17 +55,7 @@ export const Button: React.FC<ButtonProps> = ({
   className = '',
   ...props
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:focus:ring-offset-gray-900';
-  
-  const widthClass = fullWidth ? 'w-full' : '';
-  
-  const classes = [
-    baseClasses,
-    variantClasses[variant],
-    sizeClasses[size],
-    widthClass,
-    className,
-  ].filter(Boolean).join(' ');
+  const classes = buttonClasses(variant, size, fullWidth, className);
 
   return (
     <button

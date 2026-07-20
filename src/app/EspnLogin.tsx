@@ -56,12 +56,12 @@ const EspnLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
 
     return (
         <div>
-            <h1 className="text-xl">Enter your ESPN Fantasy Football league ID and click Submit.</h1>
+            <p className="text-lg font-medium text-gray-900 dark:text-gray-100">Enter your ESPN Fantasy Football league ID and click Submit.</p>
 
             <LeagueDataInput label="League ID" value={leagueID} onChange={setLeagueID} />
-            
+
             {validationError && (
-                <div className="mt-2 text-sm text-red-600" role="alert">
+                <div className="mt-2 text-sm text-red-600 dark:text-red-400" role="alert">
                     {validationError}
                 </div>
             )}
@@ -69,13 +69,13 @@ const EspnLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
             <SubmitButton onClick={handleSubmit} />
 
             <div className="mt-5">
-                <CollapsibleComponent 
-                    label={<h2 className="">Private League?</h2>}
+                <CollapsibleComponent
+                    label={<h2 className="text-gray-900 dark:text-gray-100">Private League?</h2>}
                     testId="private-league-toggle"
                 >
                     <div className="flex flex-col items-start">
                         <div>
-                            <label>For private leagues, enter your espn_S2 and SWID:</label>
+                            <label className="text-gray-700 dark:text-gray-300">For private leagues, enter your espn_S2 and SWID:</label>
                         </div>
                         <div className="w-full grid grid-cols-2 gap-1 items-center justify-start mt-2">
                             <PrivateLeagueLabel label="espn_S2" />
@@ -83,7 +83,7 @@ const EspnLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
                             <PrivateLeagueLabel label="SWID" />
                             <PrivateLeagueInput label="SWID" value={swid} onChange={setSwid} testId="swid-input" />
                         </div>
-                        <div className='max-w-prose mt-2'>
+                        <div className='max-w-prose mt-2 text-sm text-gray-600 dark:text-gray-400'>
                             To find your espn_S2 and SWID, log into ESPN Fantasy Football in your browser, open the developer tools, and look for the cookies associated with the ESPN website.
                             The espn_S2 cookie is the value you need for espn_S2, and the SWID cookie is the value you need for SWID. The gif below shows how to find these values in Chrome.
                             <div className="mt-4">

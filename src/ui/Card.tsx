@@ -6,6 +6,7 @@ interface CardProps {
   padding?: 'sm' | 'md' | 'lg' | 'none';
   hover?: boolean;
   onClick?: () => void;
+  'data-testid'?: string;
 }
 
 const paddingClasses = {
@@ -21,6 +22,7 @@ export const Card: React.FC<CardProps> = ({
   padding = 'md',
   hover = false,
   onClick,
+  'data-testid': testId,
 }) => {
   const baseClasses = 'bg-white rounded-xl shadow-md dark:bg-gray-800 dark:shadow-xl';
   const hoverClass = hover ? 'hover:shadow-lg transition-shadow duration-200 cursor-pointer dark:hover:shadow-2xl' : '';
@@ -31,7 +33,7 @@ export const Card: React.FC<CardProps> = ({
     .join(' ');
 
   return (
-    <div className={classes} onClick={onClick}>
+    <div className={classes} onClick={onClick} data-testid={testId}>
       {children}
     </div>
   );

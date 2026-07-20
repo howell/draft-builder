@@ -1,4 +1,6 @@
 import { PlatformLeague } from "@/platforms/common";
+import { Input } from "@/ui/Input";
+import { Button } from "@/ui/Button";
 
 export type LeagueSubmitCallback = (league: PlatformLeague) => Promise<any>;
 export type LeagueLoginProps = {
@@ -8,7 +10,7 @@ export type LeagueLoginProps = {
 
 export const PrivateLeagueLabel: React.FC<{ label: string }> = ({ label }) => {
   return (
-    <label className='w-1/10 text-left'>{label}:</label>
+    <label className='text-left text-sm font-medium text-gray-700 dark:text-gray-300'>{label}:</label>
   );
 }
 
@@ -21,8 +23,7 @@ export type PrivateLeagueInputProps = {
 
 export const PrivateLeagueInput: React.FC<PrivateLeagueInputProps> = ({ label, value, onChange, testId }) => {
   return (
-    <input
-      className="col-span-3 h-12 p-2 mt-2 text-black bg-white border border-gray-300 rounded-lg"
+    <Input
       type="text"
       name={label}
       value={value}
@@ -34,13 +35,14 @@ export const PrivateLeagueInput: React.FC<PrivateLeagueInputProps> = ({ label, v
 
 export const LeagueDataInput: React.FC<{ label: string, value: string, onChange: (value: string) => void }> = ({ label, value, onChange }) => {
   return (
-    <input
-    className="w-full h-12 p-2 mt-4 text-black bg-white border border-gray-300 rounded-lg"
-    type="text"
-    name={label}
-    value={value}
-    onChange={(event) => onChange(event.target.value)}
-/>
+    <div className="mt-4">
+      <Input
+        type="text"
+        name={label}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </div>
   );
 }
 
@@ -49,14 +51,10 @@ export const SubmitButton: React.FC<{ onClick: () => void }> = ({ onClick }) => 
     e.preventDefault(); // Prevent form submission
     onClick();
   };
-  
+
   return (
-    <button 
-      type="button" 
-      onClick={handleClick} 
-      className="w-full p-2 mt-4 text-white bg-black border border-gray-300 rounded-lg"
-    >
+    <Button type="button" variant="primary" fullWidth className="mt-4" onClick={handleClick}>
       Submit
-    </button>
+    </Button>
   );
 }

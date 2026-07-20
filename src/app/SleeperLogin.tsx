@@ -26,12 +26,12 @@ const SleeperLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
 
     return (
         <div>
-            <h1 className="text-xl">Enter your Sleeper Fantasy Football league ID and click Submit.</h1>
+            <p className="text-lg font-medium text-gray-900 dark:text-gray-100">Enter your Sleeper Fantasy Football league ID and click Submit.</p>
 
             <LeagueDataInput label="League ID" value={leagueID} onChange={setLeagueID} />
-            
+
             {validationError && (
-                <div className="mt-2 text-sm text-red-600" role="alert">
+                <div className="mt-2 text-sm text-red-600 dark:text-red-400" role="alert">
                     {validationError}
                 </div>
             )}
