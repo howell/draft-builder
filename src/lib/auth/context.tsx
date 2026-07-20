@@ -93,10 +93,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Initialize auth state and listen for changes
   useEffect(() => {
+    // Watchdog: supabase-js auth calls can hang indefinitely (stale/corrupt
+    // stored token, or the Navigator LockManager lock held by a wedged tab).
+    // Degrade to the anonymous state instead of an infinite loading spinner;
+    // if getSession() eventually resolves, the normal state update below (or
+    // onAuthStateChange) still applies the session.
+    const watchdog = setTimeout(() => {
+      console.error('[AuthContext] getSession timed out; continuing without a session');
+      setAuthState(prev => (prev.loading
+        ? {
+            ...prev,
+            loading: false,
+            error: 'Could not restore your session. Close other tabs of this site or clear site data, then reload.',
+          }
+        : prev));
+    }, 5000);
+
     // Get initial session
     const initializeAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
+        clearTimeout(watchdog);
 
         if (error) {
           console.error('[AuthContext] Error getting session:', error);
@@ -133,6 +150,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           await ensureUserRecord(session.user);
         }
       } catch (error) {
+        clearTimeout(watchdog);
         console.error('[AuthContext] Error initializing auth:', error);
         setAuthState(prev => ({
           ...prev,
@@ -178,6 +196,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
 
     return () => {
+      clearTimeout(watchdog);
       subscription.unsubscribe();
     };
   }, [ensureUserRecord]);
@@ -191,13 +210,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       password,
     });
 
-    if (error) {
-      setAuthState(prev => ({
-        ...prev,
-        loading: false,
-        error: error.message,
-      }));
-    }
+    // Clear loading unconditionally: on success the SIGNED_IN event populates
+    // the user, but the UI must not stay stuck on a spinner if it doesn't fire.
+    setAuthState(prev => ({
+      ...prev,
+      loading: false,
+      error: error ? error.message : null,
+    }));
 
     return { error };
   };
@@ -242,15 +261,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setAuthState(prev => ({ ...prev, loading: true, error: null, storageAdapter }));
     
     const { error } = await supabase.auth.signOut();
-    
+
     if (error) {
       console.error('Error signing out:', error);
-      setAuthState(prev => ({
-        ...prev,
-        loading: false,
-        error: error.message,
-      }));
     }
+    // Clear loading unconditionally: on success the SIGNED_OUT event clears
+    // the user, but the UI must not stay stuck on a spinner if it doesn't fire.
+    setAuthState(prev => ({
+      ...prev,
+      loading: false,
+      error: error ? error.message : null,
+    }));
   };
 
   // Reset password
