@@ -59,6 +59,14 @@ Fixes for the mobile league-page experience:
 - **Phantom Tailwind classes**: `PlayerTable`/`MockRosterEntry` used `gray-750`/`gray-850`, which are **not defined** in the Tailwind config — the classes silently no-op, which is why dark mode showed white alternating rows (the light `bg-gray-50` half of the pair still applied). Replaced with real tokens (`dark:bg-gray-900/40` striping, flat `dark:bg-gray-900` header). Lesson: only gray-50…900 exist; don't invent intermediate shades.
 - Verified at 390×844 and 1440×900, light + dark; jest 67/67; mock-drafts e2e failures unchanged vs baseline (10 vs 11, same pre-existing clusters, none new).
 
+## Players table responsive columns (follow-up pass, same branch)
+
+`PlayerTable` no longer relies on undiscoverable horizontal scrolling on phones:
+- Column defs (`ColumnName` object form) accept `hideBelow: 'sm' | 'md'` (CSS-only hiding — cells stay in the DOM so `player-cell-*` testids keep working) and `format` (used to render `UNRANKED` as "—").
+- New `mobileSecondary` prop renders compact metadata under the player name below `sm`; MockTable uses it for "#3 overall · RB2", letting both rank columns and Platform Cost hide on phones. Mobile shows Player / Pos / $Est with zero overflow at 390px.
+- Numeric columns auto right-align with `tabular-nums` (detected from the first row's value type).
+- Scroll-edge fade affordances (scroll + ResizeObserver listeners, guarded for jsdom) appear only on the side with clipped content — overflow is never invisible (e.g. at 320px).
+
 ## Deferred / follow-ups
 - Polish `SearchSettings`/`EstimationSettings` internals (bare unstyled h3s/checkboxes).
 - Stabilize the `e2e/tests/mock-drafts` suite (same 3s-expect-timeout and ambiguous-locator problems fixed in the ESPN spec, plus a dev-overlay `Console Error` from `AuthContext getSession` tripping `/error/i` assertions).

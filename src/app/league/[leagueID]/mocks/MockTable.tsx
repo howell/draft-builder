@@ -35,15 +35,24 @@ export interface MockTableProps {
 
 export type DisplayPlayer = & CostEstimatedPlayer & { displayOverallRank: number, displayPositionRank: number };
 
+const formatRank = (value: unknown) => (value === UNRANKED ? '—' : String(value));
+
 const availablePlayerColumns: [(keyof DisplayPlayer), ColumnName][] = [
     ['name', 'Player'],
     ['defaultPosition', {name: 'Position', shortName: 'Pos'}],
-    ['displayOverallRank', {name: 'Overall Rank', shortName: 'OvrR'}],
-    ['displayPositionRank', {name: 'Position Rank', shortName: 'PosR'}],
+    // Below `sm` the ranks collapse into a secondary line under the player name.
+    ['displayOverallRank', {name: 'Overall Rank', shortName: 'OvrR', hideBelow: 'sm', format: formatRank}],
+    ['displayPositionRank', {name: 'Position Rank', shortName: 'PosR', hideBelow: 'sm', format: formatRank}],
     ['estimatedCost', {name: 'Estimated Cost', shortName: '$Est', tooltip: "The price the player will go for based on your league history"}],
 ];
 
-const platformCostColumn: [(keyof CostEstimatedPlayer), ColumnName] = ['suggestedCost', {name: 'Platform Cost', shortName: '$Sug', tooltip: 'The price the platform puts next to the player in the draft room'}];
+const platformCostColumn: [(keyof CostEstimatedPlayer), ColumnName] = ['suggestedCost', {name: 'Platform Cost', shortName: '$Sug', tooltip: 'The price the platform puts next to the player in the draft room', hideBelow: 'sm'}];
+
+function playerRankSummary(p: DisplayPlayer): string | null {
+    if (p.displayOverallRank === UNRANKED) return null;
+    const positionPart = p.displayPositionRank === UNRANKED ? '' : ` · ${p.defaultPosition}${p.displayPositionRank}`;
+    return `#${p.displayOverallRank} overall${positionPart}`;
+}
 
 function columnsFor(players: MockPlayer[]): [(keyof DisplayPlayer), ColumnName][] {
     if (players.some(p => p.suggestedCost !== undefined)) {
@@ -598,7 +607,8 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                         columns={playerTableColumns}
                         onPlayerClick={onPlayerClick}
                         defaultSortColumn='estimatedCost'
-                        defaultSortDirection='desc' />
+                        defaultSortDirection='desc'
+                        mobileSecondary={playerRankSummary} />
                 </Card>
             </div>
         </div>
