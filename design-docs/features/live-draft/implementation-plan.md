@@ -148,6 +148,29 @@
 > - **Per-team appetite** (which *teams* are invested in a position, not just
 >   the league aggregate) — needs more signal than league-level shares.
 >
+> ### 2026-07 Live data acquisition — test-draft findings ✅
+>
+> A 4-team test-league auction (2026-07-19) settled how live draft data can be
+> acquired from ESPN:
+>
+> - **REST is completion-only.** `mDraftDetail` pre-creates the pick skeleton
+>   (playerId -1), freezes for the whole draft, and flushes all picks atomically
+>   at completion. Polling (`scripts/poll-draft.ts`) is therefore post-draft
+>   reconciliation/corpus capture only — the live integration must tap the
+>   **draft-room WebSocket** (`wss://fantasydraft.espn.com/game-1/league-<id>/JOIN`),
+>   whose plain-text protocol streams every NOMINATION, individual BID (with
+>   bidder identity — the per-team appetite signal above), CLOCK tick, and SOLD.
+> - **Decoder implemented**: `src/platforms/espn/liveDraftProtocol.ts`
+>   (`parseDraftSocketFrame`, `reconstructLots`), jest-tested with real frames;
+>   `scripts/parse-draft-har.ts` converts a DevTools HAR export into
+>   events.jsonl + lots.json and cross-validates against the REST flush
+>   (price + winner: 51/51; REST `nominatingTeamId` is the pre-assigned
+>   schedule, not actual nominators — WS is ground truth late-draft).
+> - **Open items**: decode the INIT state blob (mid-draft connect catch-up),
+>   identify SOLD field 3, build the draft-room userscript that forwards frames
+>   to Draft Builder, wire the stream into the inflation model. Raw captures
+>   live in `draft-captures/` (gitignored).
+>
 > ---
 
 ## Overview
