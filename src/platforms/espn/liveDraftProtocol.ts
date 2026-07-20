@@ -82,6 +82,74 @@ export function parseDraftSocketFrame(data: string): DraftSocketEvent {
     }
 }
 
+/**
+ * Decoded INIT state blob. The blob is a big-endian binary structure; the part
+ * we decode is the pick ledger: one 45-byte record per draft slot,
+ *
+ *   u32 leagueId, u32 teamId, u32 pickNumber, i32 playerId,
+ *   u32 slotIdHint, u32 price, u32 unknown, 12 bytes unknown, 1 byte unknown
+ *
+ * Completed picks have a real playerId; pending slots have playerId -1 and
+ * their teamId is the *scheduled* nominating team. This is exactly the
+ * catch-up state needed when connecting to an in-progress draft (the current
+ * lot, if any, announces itself via CLOCK within a second).
+ *
+ * playerId/teamId/price validate 13/13 against the post-draft mDraftDetail
+ * flush; slotIdHint is the draft room's provisional slot assignment and
+ * differs from the final lineupSlotId on ~half of picks — don't rely on it.
+ */
+export interface InitDraftState {
+    leagueId: number;
+    completedPicks: { pickNumber: number; teamId: number; playerId: number; slotIdHint: number; price: number }[];
+    pendingPicks: { pickNumber: number; scheduledNominatingTeamId: number }[];
+}
+
+const INIT_RECORD_SIZE = 45;
+const MIN_LEDGER_RECORDS = 4;
+
+export function parseInitBlob(blobBase64: string, leagueId: number): InitDraftState | null {
+    const buf = Buffer.from(blobBase64, 'base64');
+
+    // The ledger is the longest run of consecutive 45-byte records that each
+    // begin with the league id; locating it by content avoids hardcoding
+    // offsets into the undecoded parts of the blob.
+    let bestStart = -1;
+    let bestLen = 0;
+    for (let start = 0; start + INIT_RECORD_SIZE <= buf.length; start++) {
+        if (buf.readUInt32BE(start) !== leagueId) continue;
+        let len = 0;
+        while (start + (len + 1) * INIT_RECORD_SIZE <= buf.length
+            && buf.readUInt32BE(start + len * INIT_RECORD_SIZE) === leagueId) {
+            len++;
+        }
+        if (len > bestLen) {
+            bestStart = start;
+            bestLen = len;
+        }
+    }
+    if (bestLen < MIN_LEDGER_RECORDS) return null;
+
+    const state: InitDraftState = { leagueId, completedPicks: [], pendingPicks: [] };
+    for (let i = 0; i < bestLen; i++) {
+        const o = bestStart + i * INIT_RECORD_SIZE;
+        const teamId = buf.readUInt32BE(o + 4);
+        const pickNumber = buf.readUInt32BE(o + 8);
+        const playerId = buf.readInt32BE(o + 12);
+        if (playerId === -1) {
+            state.pendingPicks.push({ pickNumber, scheduledNominatingTeamId: teamId });
+        } else {
+            state.completedPicks.push({
+                pickNumber,
+                teamId,
+                playerId,
+                slotIdHint: buf.readUInt32BE(o + 16),
+                price: buf.readUInt32BE(o + 20),
+            });
+        }
+    }
+    return state;
+}
+
 /** A reconstructed auction lot: one nomination through its hammer. */
 export interface DraftLot {
     playerId: number;

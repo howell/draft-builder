@@ -8,13 +8,15 @@
  * Usage:
  *   npx ts-node --project scripts/tsconfig.json scripts/parse-draft-har.ts \
  *     --har draft-captures/<file>.har [--rest draft-captures/<file>.jsonl]
+ *   npx ts-node --project scripts/tsconfig.json scripts/parse-draft-har.ts \
+ *     --frames <file>.frames.jsonl [--rest ...]     # userscript tap capture
  *
- * Outputs next to the HAR: <har>.events.jsonl (one parsed frame per line)
- * and <har>.lots.json (reconstructed lots).
+ * Outputs next to the input: <name>.events.jsonl (one parsed frame per line)
+ * and <name>.lots.json (reconstructed lots).
  */
 
 import fs from 'fs';
-import { parseDraftSocketFrame, reconstructLots, DraftSocketEvent } from '../src/platforms/espn/liveDraftProtocol';
+import { parseDraftSocketFrame, parseInitBlob, reconstructLots, DraftSocketEvent } from '../src/platforms/espn/liveDraftProtocol';
 
 function arg(flag: string): string | undefined {
     const i = process.argv.indexOf(flag);
@@ -22,35 +24,44 @@ function arg(flag: string): string | undefined {
 }
 
 const harPath = arg('--har');
-if (!harPath) {
-    console.error('Usage: parse-draft-har.ts --har <file.har> [--rest <poll-capture.jsonl>]');
+const framesPath = arg('--frames');
+const inputPath = harPath ?? framesPath;
+if (!inputPath) {
+    console.error('Usage: parse-draft-har.ts (--har <file.har> | --frames <tap.frames.jsonl>) [--rest <poll-capture.jsonl>]');
     process.exit(1);
 }
 
 interface HarWsMessage { type: 'send' | 'receive'; time: number; data: string }
 
-const har = JSON.parse(fs.readFileSync(harPath, 'utf8'));
-const sockets = (har.log.entries as any[]).filter(e =>
-    e._webSocketMessages && e.request.url.includes('fantasydraft.espn.com'));
-if (sockets.length === 0) {
-    console.error('No fantasydraft.espn.com WebSocket found in HAR.');
-    process.exit(1);
-}
-
 const events: { ts: string; atMs: number; dir: string; event: DraftSocketEvent }[] = [];
-for (const socket of sockets) {
-    for (const m of socket._webSocketMessages as HarWsMessage[]) {
-        const atMs = Math.round(m.time * 1000);
-        events.push({ ts: new Date(atMs).toISOString(), atMs, dir: m.type, event: parseDraftSocketFrame(m.data) });
+if (harPath) {
+    const har = JSON.parse(fs.readFileSync(harPath, 'utf8'));
+    const sockets = (har.log.entries as any[]).filter(e =>
+        e._webSocketMessages && e.request.url.includes('fantasydraft.espn.com'));
+    if (sockets.length === 0) {
+        console.error('No fantasydraft.espn.com WebSocket found in HAR.');
+        process.exit(1);
+    }
+    for (const socket of sockets) {
+        for (const m of socket._webSocketMessages as HarWsMessage[]) {
+            const atMs = Math.round(m.time * 1000);
+            events.push({ ts: new Date(atMs).toISOString(), atMs, dir: m.type, event: parseDraftSocketFrame(m.data) });
+        }
+    }
+} else {
+    // Userscript tap capture: JSONL of { ts, dir, data }
+    for (const line of fs.readFileSync(framesPath!, 'utf8').trim().split('\n')) {
+        const f = JSON.parse(line);
+        events.push({ ts: f.ts, atMs: Date.parse(f.ts), dir: f.dir, event: parseDraftSocketFrame(f.data) });
     }
 }
 events.sort((a, b) => a.atMs - b.atMs);
 
-const eventsPath = harPath.replace(/\.har$/, '') + '.events.jsonl';
+const eventsPath = inputPath.replace(/\.(har|frames\.jsonl)$/, '') + '.events.jsonl';
 fs.writeFileSync(eventsPath, events.map(e => JSON.stringify(e)).join('\n') + '\n');
 
 const lots = reconstructLots(events.filter(e => e.dir === 'receive'));
-const lotsPath = harPath.replace(/\.har$/, '') + '.lots.json';
+const lotsPath = inputPath.replace(/\.(har|frames\.jsonl)$/, '') + '.lots.json';
 fs.writeFileSync(lotsPath, JSON.stringify(lots, null, 2));
 
 // ---- Summary ----------------------------------------------------------------
@@ -99,5 +110,28 @@ if (restPath) {
         console.log(`  winning team:   ${teamOk} match, ${teamBad} mismatch`);
         console.log(`  nominating team:${nomOk} match, ${nomBad} mismatch`);
         console.log(`  SOLD.unknown3 == lineupSlotId for ${slotMatch}/${picks.length - missing} matched picks`);
+
+        // INIT blob: its completed picks are the ones that predate the WS
+        // capture, so validate them field-by-field against REST.
+        const initEvent = events.find(e => e.event.type === 'init');
+        const tokenEvent = events.find(e => e.event.type === 'token');
+        if (initEvent && initEvent.event.type === 'init' && tokenEvent && tokenEvent.event.type === 'token') {
+            const init = parseInitBlob(initEvent.event.blob, Number(tokenEvent.event.leagueId));
+            if (!init) {
+                console.log('\nINIT blob: ledger not found');
+            } else {
+                let ok = 0, bad = 0, slotAgree = 0;
+                for (const ip of init.completedPicks) {
+                    const pick = picks.find(p => p.overallPickNumber === ip.pickNumber);
+                    const match = pick && pick.playerId === ip.playerId && pick.teamId === ip.teamId
+                        && pick.bidAmount === ip.price;
+                    match ? ok++ : bad++;
+                    if (pick && pick.lineupSlotId === ip.slotIdHint) slotAgree++;
+                }
+                console.log(`\nINIT blob ledger: ${init.completedPicks.length} completed + ${init.pendingPicks.length} pending slots`);
+                console.log(`  completed picks vs REST (player+team+price): ${ok} match, ${bad} mismatch`);
+                console.log(`  slotIdHint == final lineupSlotId for ${slotAgree}/${init.completedPicks.length} (provisional; expected to differ)`);
+            }
+        }
     }
 }

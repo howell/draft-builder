@@ -1,4 +1,4 @@
-import { parseDraftSocketFrame, reconstructLots, DraftSocketEvent } from '../liveDraftProtocol';
+import { parseDraftSocketFrame, parseInitBlob, reconstructLots, DraftSocketEvent } from '../liveDraftProtocol';
 
 // All raw frames below are verbatim from the 2026-07-19 test-draft capture
 // (draft-captures/390366456-2026-07-19.har), cross-validated against the
@@ -50,6 +50,70 @@ describe('parseDraftSocketFrame', () => {
 
     it('preserves unrecognized verbs instead of throwing', () => {
         expect(parseDraftSocketFrame('WAT 1 2 3')).toEqual({ type: 'unknown', verb: 'WAT', raw: 'WAT 1 2 3' });
+    });
+});
+
+describe('parseInitBlob', () => {
+    const LEAGUE = 390366456;
+
+    /** Build a 45-byte ledger record as observed in real INIT blobs. */
+    function record(teamId: number, pickNumber: number, playerId: number, slot: number, price: number): Buffer {
+        const b = Buffer.alloc(45);
+        b.writeUInt32BE(LEAGUE, 0);
+        b.writeUInt32BE(teamId, 4);
+        b.writeUInt32BE(pickNumber, 8);
+        b.writeInt32BE(playerId, 12);
+        b.writeUInt32BE(slot, 16);
+        b.writeUInt32BE(price, 20);
+        return b;
+    }
+
+    function blob(...parts: Buffer[]): string {
+        return Buffer.concat(parts).toString('base64');
+    }
+
+    const noise = Buffer.from([0, 0, 0, 1, 0, 0, 0, 1]);
+
+    it('decodes completed and pending picks from the ledger', () => {
+        const b = blob(noise,
+            record(1, 1, 4429795, 2, 28),
+            record(3, 2, 4430807, 2, 25),
+            record(4, 3, -16034, 16, 1),   // D/ST: negative id is a real player
+            record(4, 4, -1, 0, 0),        // pending slot
+            record(1, 5, -1, 0, 0),
+            noise);
+        const state = parseInitBlob(b, LEAGUE);
+        expect(state).not.toBeNull();
+        expect(state!.completedPicks).toEqual([
+            { pickNumber: 1, teamId: 1, playerId: 4429795, slotIdHint: 2, price: 28 },
+            { pickNumber: 2, teamId: 3, playerId: 4430807, slotIdHint: 2, price: 25 },
+            { pickNumber: 3, teamId: 4, playerId: -16034, slotIdHint: 16, price: 1 },
+        ]);
+        expect(state!.pendingPicks).toEqual([
+            { pickNumber: 4, scheduledNominatingTeamId: 4 },
+            { pickNumber: 5, scheduledNominatingTeamId: 1 },
+        ]);
+    });
+
+    it('is not thrown off by a stray league id shortly before the ledger', () => {
+        // Regression: a stray id at an offset that is not a multiple of the
+        // record size once caused the locator to skip past the ledger start.
+        const stray = Buffer.alloc(6);
+        stray.writeUInt32BE(LEAGUE, 1);
+        const b = blob(stray,
+            record(1, 1, 4429795, 2, 28),
+            record(2, 2, 4430807, 2, 25),
+            record(3, 3, 4374302, 4, 20),
+            record(4, 4, -1, 0, 0),
+            record(1, 5, -1, 0, 0));
+        const state = parseInitBlob(b, LEAGUE);
+        expect(state!.completedPicks).toHaveLength(3);
+        expect(state!.completedPicks[0].pickNumber).toBe(1);
+    });
+
+    it('returns null when no ledger is present', () => {
+        expect(parseInitBlob(noise.toString('base64'), LEAGUE)).toBeNull();
+        expect(parseInitBlob('', LEAGUE)).toBeNull();
     });
 });
 

@@ -166,10 +166,21 @@
 >   events.jsonl + lots.json and cross-validates against the REST flush
 >   (price + winner: 51/51; REST `nominatingTeamId` is the pre-assigned
 >   schedule, not actual nominators — WS is ground truth late-draft).
-> - **Open items**: decode the INIT state blob (mid-draft connect catch-up),
->   identify SOLD field 3, build the draft-room userscript that forwards frames
->   to Draft Builder, wire the stream into the inflation model. Raw captures
->   live in `draft-captures/` (gitignored).
+> - **INIT blob decoded ✅** (`parseInitBlob`): a 45-byte-record pick ledger —
+>   completed picks (player+team+price validated 13/13 vs REST) plus pending
+>   slots with the scheduled nominating team. This is the mid-draft connect
+>   catch-up state. The slot field is provisional (`slotIdHint`); the rest of
+>   the blob (timestamps, budgets?) remains undecoded but isn't needed.
+> - **Draft-room tap userscript ✅** (`scripts/espn-draft-room-tap.user.js`,
+>   Tampermonkey): patches WebSocket at document-start, records frames on
+>   fantasydraft.espn.com sockets, floating badge → JSONL download, optional
+>   2s-batch POST forwarding to a Draft Builder ingest URL (set
+>   `localStorage.draftBuilderIngestUrl` in the draft-room tab). Tap captures
+>   parse via `parse-draft-har.ts --frames` (verified identical lots vs HAR).
+> - **Open items**: identify SOLD field 3; build the app-side ingest endpoint +
+>   live-draft page consumption of the stream (wire into the inflation model);
+>   dry-run the userscript in a future test draft. Raw captures live in
+>   `draft-captures/` (gitignored).
 >
 > ---
 
