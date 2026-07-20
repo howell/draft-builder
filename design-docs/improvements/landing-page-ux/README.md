@@ -43,7 +43,18 @@
    - Even with the redirect fixed, admin `generateLink` action links redirect with **implicit-grant fragment tokens**, which the app's `flowType: 'pkce'` client explicitly refuses (`Not a valid PKCE flow url.` in auth-js). Fixed properly: `/auth/callback` now also handles the `token_hash` + `type` form via `supabase.auth.verifyOtp` (Supabase's recommended email-template style; also future-proofs prod), and the e2e helper builds that URL from `properties.hashed_token` instead of visiting the action link.
 3. **Flaky ESPN private-league tests** — post-navigation assertions used the global 3s expect timeout (the Playwright web server runs `next dev`, so cold route compiles exceed it) and two bare/ambiguous locators (`getByRole('heading')`, `text=/draft|auction/i`) that strict-mode-violate once the page fully renders. Fixed with `TEST_TIMEOUTS.LOADING_DIALOG` and specific locators.
 
+## League pages: sidebar + dark mode (follow-up pass, same branch)
+
+Fixes for the mobile league-page experience:
+
+- **`Sidebar` responsive rework** (`src/ui/Sidebar.tsx`): previously `useState(true)` + always `position: fixed` — open by default on phones, overlaying content with no backdrop, while desktop consumers papered over the overlap with mismatched offsets (`md:ml-44` vs the sidebar's 12rem width) or no-op flex wrappers. Now: desktop (md+) renders as a static flex child inside the existing `flex md:flex-row` wrappers (collapsible to a rail; nav must stay `md:relative`, not `md:static`, or its absolutely-positioned toggle escapes the nav); mobile renders closed by default with a fixed hamburger (`sidebar-open` testid), full-height drawer, tap-to-close backdrop, and close-on-link-click (event capture, not a pathname effect — the `react-hooks/set-state-in-effect` lint rule forbids the effect form).
+- **`PageShell` gained a `sidebar` slot** (replacing the `sidebarOffset` hack); landing page passes `Sidebar` through it. Header column pads left on mobile (`pl-12 md:pl-0`) to clear the hamburger; league/demo layouts use `pt-16 md:pt-4` on `main` for the same reason.
+- **Dark mode**: league dashboard heading/copy, league layout background (`bg-gray-50 dark:bg-gray-900`), demo page, `ErrorScreen`, `LoadingScreen` all got `dark:` variants. The `globals.css` body gradient (pure black in dark mode, off-palette gray gradient in light) was replaced with the design-system page treatment — body now matches `PageShell`/settings.
+- Verified: mobile 390×844 and desktop 1440×900, light + dark, drawer open/close/backdrop/nav-close, desktop collapse toggle; jest 67/67; full chromium e2e run — mock-drafts failures were A/B-tested against the pre-change code (11 fail before, 12 after, same clusters, rotating membership) and are **pre-existing flakiness**, not regressions.
+
 ## Deferred / follow-ups
+- Dark-mode sweep of `MockTable` + drafts pages (mixed light-only styling: washed-out alternating rows, light-gray-on-white text in dark mode).
+- Stabilize the `e2e/tests/mock-drafts` suite (same 3s-expect-timeout and ambiguous-locator problems fixed in the ESPN spec, plus a dev-overlay `Console Error` from `AuthContext getSession` tripping `/error/i` assertions).
 - Adopt `PageShell`/`AppHeader` on settings + demo pages.
 - Confirm prod Postgres major version and reconcile with `supabase/config.toml` (`major_version` now 17 to match the local volume).
 - The main checkout's `config.toml` still says `major_version = 15` until this branch merges — `supabase start` from there will fail against the PG 17 volume.

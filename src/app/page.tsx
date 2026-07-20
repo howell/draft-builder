@@ -159,9 +159,11 @@ export default function Home() {
 
   return (
   <LoadingScreen waitFor={[{ loading: isSubmitting, message: currentProcessingMessage }]}>
-      <PageShell maxWidth="6xl" sidebarOffset={hasSidebar} header={<AppHeader />}>
-        {hasSidebar && <Sidebar availableLeagues={availableLeagues} />}
-
+      <PageShell
+        maxWidth="6xl"
+        header={<AppHeader />}
+        sidebar={hasSidebar ? <Sidebar availableLeagues={availableLeagues} /> : undefined}
+      >
         {/* Account Promotion Section for Anonymous Users */}
         {showAccountPromotion && !user && (
           <section className="mt-8 mb-8" aria-labelledby="welcome-heading">

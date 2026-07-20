@@ -32,17 +32,17 @@ export default function Demo() {
   }, [storageAdapter]);
 
   return (
-        <div className='flex flex-col md:flex-row'>
+        <div className='flex flex-col md:flex-row min-h-screen bg-gray-50 dark:bg-gray-900'>
             {!isLoadingLeagues && !error && availableLeagues.length > 0 && <Sidebar availableLeagues={availableLeagues} />}
-            <main className="flex-1 p-4">
+            <main className="flex-1 min-w-0 p-4 pt-16 md:pt-4">
                 {isLoadingLeagues ? (
                     <div className="text-center p-8">
-                        <div className="text-lg text-gray-600">Loading demo...</div>
+                        <div className="text-lg text-gray-600 dark:text-gray-400">Loading demo...</div>
                     </div>
                 ) : error ? (
                     <div className="text-center p-8">
-                        <div className="text-lg text-red-600">Error: {error}</div>
-                        <div className="text-sm text-gray-500 mt-2">Demo will continue with limited functionality</div>
+                        <div className="text-lg text-red-600 dark:text-red-400">Error: {error}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">Demo will continue with limited functionality</div>
                     </div>
                 ) : null}
                 <MockTable {...demoTableProps} />

@@ -38,16 +38,16 @@ export default function LeaguePage(props: Readonly<{ params: Promise<{ leagueID:
             {leagueInfoQuery.data && 
              typeof leagueInfoQuery.data === 'object' && 
              'name' in leagueInfoQuery.data ? (
-                <div className="flex min-h-screen flex-col items-center justify-center p-12">
+                <div className="flex flex-1 flex-col items-center justify-center p-4 sm:p-12">
                     <Card className="max-w-2xl w-full">
                         <CardBody className="text-center space-y-4">
                             <div className="mb-2">
                                 <Badge variant="accent" className="mb-4">Fantasy League</Badge>
                             </div>
-                            <h1 className="text-3xl font-bold text-gray-900">
+                            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
                                 Welcome to {(leagueInfoQuery.data as any).name}!
                             </h1>
-                            <p className="text-lg text-gray-600">
+                            <p className="text-lg text-gray-600 dark:text-gray-400">
                                 Use the links on the side to explore the previous auctions and plan for the next.
                             </p>
                             <div className="pt-4 flex justify-center gap-2">
