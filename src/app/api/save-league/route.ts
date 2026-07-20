@@ -33,6 +33,18 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = createSupabaseServerClient();
+
+    // Guarantee the public.users row the leagues FK depends on. Signup
+    // normally creates it (auth.users trigger, migration 006), but don't
+    // trust that for accounts predating the trigger. ignoreDuplicates avoids
+    // clobbering the email on existing rows, since we only have the id here.
+    const { error: userRecordError } = await supabase
+      .from('users')
+      .upsert({ id: userId }, { onConflict: 'id', ignoreDuplicates: true });
+    if (userRecordError) {
+      console.error('[SaveLeague] Failed to ensure user record:', userRecordError);
+    }
+
     const storageAdapter = createServerStorageAdapter({
       type: 'supabase',
       supabase,
