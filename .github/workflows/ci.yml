@@ -59,6 +59,11 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Run integration tests
+        # Against the local Supabase started above — covers the schema-level
+        # behaviors (RLS, grants, constraints) that mocked unit tests cannot.
+        run: npm run test:integration
+
       - name: Stop Supabase services
         if: always()
         run: supabase stop
