@@ -34,10 +34,17 @@
 ## Verification
 - `type-check`, `lint`, `npm test` (67/67 suites), `npm run build` all pass. Note: build needed `NODE_OPTIONS=--max-old-space-size=8192` in the worktree (TS step OOMs at default heap; Next infers the parent repo as workspace root due to dual lockfiles).
 - Visual QA via Playwright at 1440×900 and 390×844, light + dark, including validation/error states and both `/auth` modes.
-- e2e `auth` + `platform-integration` (chromium): 9 passed; 21 failures are **pre-existing infra issues**, not UI: 20 × `users_pkey` duplicate-key (test helpers insert `public.users` rows that now collide with the auto-create trigger from commit `17c0a21`), 1 × signup-confirmation (Supabase verify link 303s straight to `/`, never reaching `/auth/callback` — local auth config/email template issue). UI flows those tests cover were verified manually in the browser instead.
+- e2e `auth` + `platform-integration` (chromium): **30/30 passing** after the e2e infra fixes below (initially 21 failed for pre-existing reasons unrelated to the redesign).
+
+## E2E infra fixes (follow-up pass, same branch)
+1. **`users_pkey` duplicate-key (20 tests)** — `e2e/utils/database-helpers.ts#createTestUser` plain-inserted the `public.users` row, colliding with the `on_auth_user_created` trigger from commit `17c0a21`. Fixed with an `upsert(..., { onConflict: 'id' })`.
+2. **Signup-confirmation flow (1 test)** — two stacked causes:
+   - The running GoTrue container had a stale allow-list (`GOTRUE_URI_ALLOW_LIST=https://127.0.0.1:3000`, no `/auth/callback`), so the verify link fell back to the site URL. Fixed by restarting Supabase so `config.toml` reloads. **Note:** restarting surfaced that the local Postgres data volume is PG 17 while `config.toml` said `major_version = 15`; the config was updated to 17 to match the volume (verify prod's version with `SHOW server_version;` — the local volume had been running 17 for weeks regardless).
+   - Even with the redirect fixed, admin `generateLink` action links redirect with **implicit-grant fragment tokens**, which the app's `flowType: 'pkce'` client explicitly refuses (`Not a valid PKCE flow url.` in auth-js). Fixed properly: `/auth/callback` now also handles the `token_hash` + `type` form via `supabase.auth.verifyOtp` (Supabase's recommended email-template style; also future-proofs prod), and the e2e helper builds that URL from `properties.hashed_token` instead of visiting the action link.
+3. **Flaky ESPN private-league tests** — post-navigation assertions used the global 3s expect timeout (the Playwright web server runs `next dev`, so cold route compiles exceed it) and two bare/ambiguous locators (`getByRole('heading')`, `text=/draft|auction/i`) that strict-mode-violate once the page fully renders. Fixed with `TEST_TIMEOUTS.LOADING_DIALOG` and specific locators.
 
 ## Deferred / follow-ups
 - Adopt `PageShell`/`AppHeader` on settings + demo pages.
-- Fix e2e test-user seeding to work with the `public.users` auto-create trigger.
-- Fix local Supabase confirmation-link redirect to `/auth/callback`.
+- Confirm prod Postgres major version and reconcile with `supabase/config.toml` (`major_version` now 17 to match the local volume).
+- The main checkout's `config.toml` still says `major_version = 15` until this branch merges — `supabase start` from there will fail against the PG 17 volume.
 - Branding: public name is "Know Your League" but UI intentionally keeps "Draft Builder" for now (decision 2026-07-20).

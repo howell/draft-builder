@@ -31,11 +31,11 @@ test.describe('Email confirmation flow', () => {
 
   test('confirming via the email link lands on the success page and logs the user in', async ({ page, baseURL }) => {
     const callbackUrl = `${baseURL ?? 'http://localhost:3000'}/auth/callback`;
-    const { actionLink, userId } = await dbHelpers.generateSignupConfirmationLink(callbackUrl);
+    const { confirmationUrl, userId } = await dbHelpers.generateSignupConfirmationLink(callbackUrl);
     createdUserId = userId;
 
-    // Visiting the confirmation link verifies the email and redirects to /auth/callback.
-    await page.goto(actionLink);
+    // Visiting the confirmation link verifies the email on /auth/callback.
+    await page.goto(confirmationUrl);
 
     await expect(page.getByRole('heading', { name: /you're in/i })).toBeVisible({ timeout: 10000 });
 

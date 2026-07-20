@@ -157,14 +157,14 @@ test.describe('ESPN Private League Integration', () => {
     // 2. On reload, auth is loaded from storage
     // 3. API calls include the auth data
     // 4. FixtureBasedPlatformApi accepts the auth and returns data
-    
-    await expect(page.getByRole('heading')).toBeVisible();
-    
+
+    await expect(page.getByRole('heading', { name: /Test Private League/i })).toBeVisible({ timeout: TEST_TIMEOUTS.LOADING_DIALOG });
+
     // Navigate back to league home
     await page.goto(`/league/${ESPN_AUTH_TEST_LEAGUES.PRIVATE}`);
-    
+
     // Should still have access without re-entering credentials
-    await expect(page.getByRole('heading', { name: /Welcome to Test Private League 2025/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Welcome to Test Private League 2025/i })).toBeVisible({ timeout: TEST_TIMEOUTS.LOADING_DIALOG });
   });
 
   test('should validate auth credential format', async ({ page }) => {
@@ -267,10 +267,12 @@ test.describe('ESPN Private League Integration', () => {
     await page.goto(`/league/${ESPN_AUTH_TEST_LEAGUES.PRIVATE}/mocks`);
     
     // If auth wasn't preserved through the chain, this would fail
-    await expect(page.getByRole('heading')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Test Private League/i })).toBeVisible({ timeout: TEST_TIMEOUTS.LOADING_DIALOG });
     
-    // Check that draft data loads (requires auth for private league)
-    await expect(page.locator('text=/draft|auction/i')).toBeVisible({ timeout: TEST_TIMEOUTS.LOADING_DIALOG });
+    // Check that draft data loads (requires auth for private league):
+    // the loading indicator resolves and draft-related content is shown.
+    await expect(page.getByText('Loading draft data...')).toBeHidden({ timeout: TEST_TIMEOUTS.LOADING_DIALOG });
+    await expect(page.locator('text=/draft|auction/i').first()).toBeVisible({ timeout: TEST_TIMEOUTS.LOADING_DIALOG });
   });
 
   test('should toggle private league section visibility', async ({ page }) => {

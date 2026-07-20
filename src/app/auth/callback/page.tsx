@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import type { EmailOtpType } from '@supabase/supabase-js';
 import { useAuth } from '@/lib/auth/context';
 import { supabase } from '@/lib/supabase';
 import { friendlyAuthError } from '@/lib/auth/authErrors';
@@ -68,10 +69,24 @@ export default function AuthCallbackPage() {
       const { data } = await supabase.auth.getSession();
       if (data.session) return; // useAuth will flip status to success
 
-      const code = new URLSearchParams(window.location.search).get('code');
+      const search = new URLSearchParams(window.location.search);
+
+      const code = search.get('code');
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
         if (!error) return;
+        setFallbackError(friendlyAuthError(error));
+        return;
+      }
+
+      // token_hash form (Supabase's recommended email-template style). The
+      // PKCE client can't consume implicit-grant fragments, but verifyOtp
+      // works for any client, so this also covers admin-generated links.
+      const tokenHash = search.get('token_hash');
+      if (tokenHash) {
+        const otpType = (search.get('type') as EmailOtpType) || 'email';
+        const { error } = await supabase.auth.verifyOtp({ type: otpType, token_hash: tokenHash });
+        if (!error) return; // session established; useAuth flips to success
         setFallbackError(friendlyAuthError(error));
         return;
       }
