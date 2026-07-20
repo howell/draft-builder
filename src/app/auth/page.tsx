@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import AuthPage from '@/components/auth/AuthPage';
 import { useAuth } from '@/lib/auth/context';
 
-export default function AuthenticationPage() {
+function AuthenticationPageContent() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const mode = searchParams.get('mode') === 'signup' ? 'signup' : 'login';
 
   // Redirect authenticated users to home page
   useEffect(() => {
@@ -21,5 +23,13 @@ export default function AuthenticationPage() {
     return null; // Will redirect shortly
   }
 
-  return <AuthPage />;
+  return <AuthPage defaultMode={mode} />;
+}
+
+export default function AuthenticationPage() {
+  return (
+    <Suspense>
+      <AuthenticationPageContent />
+    </Suspense>
+  );
 }

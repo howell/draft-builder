@@ -181,11 +181,11 @@ const LeagueLayout = (
             ]}
         >
             {hasError ? (
-                <div className="flex justify-center items-center min-h-screen">
-                    <div className="text-xl text-red-500">Error: {errorMessage}</div>
+                <div className="flex justify-center items-center min-h-screen bg-gray-50 dark:bg-gray-900">
+                    <div className="text-xl text-red-500 dark:text-red-400">Error: {errorMessage}</div>
                 </div>
             ) : (
-                <div className='flex flex-col md:flex-row'>
+                <div className='flex flex-col md:flex-row min-h-screen bg-gray-50 dark:bg-gray-900'>
                     <Sidebar leagueID={leagueID}
                         availableLeagues={availableLeagues}>
 
@@ -227,7 +227,7 @@ const LeagueLayout = (
                             </ul>
                         </CollapsibleComponent>
                     </Sidebar>
-                    <main className='flex-1 p-4'>{children}</main>
+                    <main className='flex-1 min-w-0 p-4 pt-16 md:pt-4 flex flex-col'>{children}</main>
                 </div>
             )}
         </LoadingScreen>

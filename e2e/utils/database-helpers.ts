@@ -71,13 +71,15 @@ export class DatabaseHelpers {
 
     if (error) throw error;
 
-    // Also create corresponding record in users table to satisfy foreign key constraints
+    // The on_auth_user_created trigger auto-creates the public.users row;
+    // upsert (not insert) so this doesn't collide with it, while still
+    // covering environments where the trigger is absent.
     const { error: userTableError } = await this.supabase
       .from('users')
-      .insert({
+      .upsert({
         id: data.user!.id,
         email: data.user!.email
-      });
+      }, { onConflict: 'id' });
 
     if (userTableError) throw userTableError;
 
@@ -90,9 +92,13 @@ export class DatabaseHelpers {
    * depending on the project's global `enable_confirmations` setting. The user
    * is created in an unconfirmed state; visiting the returned link confirms it.
    *
-   * `redirectTo` must be present in supabase/config.toml additional_redirect_urls.
+   * `callbackUrl` should be the app's /auth/callback URL. The returned
+   * `confirmationUrl` uses the token_hash form (verifyOtp) rather than the
+   * GoTrue /verify action link: admin-generated action links redirect with
+   * implicit-grant fragments, which the app's PKCE-configured client refuses
+   * to consume, whereas token_hash verification works for any client.
    */
-  async generateSignupConfirmationLink(redirectTo: string, userData: {
+  async generateSignupConfirmationLink(callbackUrl: string, userData: {
     email?: string;
     password?: string;
   } = {}) {
@@ -106,12 +112,15 @@ export class DatabaseHelpers {
       type: 'signup',
       email: credentials.email,
       password: credentials.password,
-      options: { redirectTo },
+      options: { redirectTo: callbackUrl },
     });
 
     if (error) throw error;
 
-    return { actionLink: data.properties!.action_link, userId: data.user!.id, credentials };
+    const tokenHash = data.properties!.hashed_token;
+    const confirmationUrl = `${callbackUrl}?token_hash=${encodeURIComponent(tokenHash)}&type=signup`;
+
+    return { confirmationUrl, userId: data.user!.id, credentials };
   }
 
   /**

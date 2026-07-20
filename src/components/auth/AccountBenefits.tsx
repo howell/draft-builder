@@ -34,37 +34,37 @@ export const AccountBenefits: React.FC<AccountBenefitsProps> = ({
 
   const benefits = [
     {
-      icon: '☁️',
+      icon: 'fa-cloud',
       title: 'Cloud Sync',
       description: 'Access your data from any device, anywhere',
       personalizedDesc: hasData ? 'Never lose your draft work again' : 'Access your data from any device, anywhere'
     },
     {
-      icon: '🔒',
+      icon: 'fa-lock',
       title: 'Secure Backup',
       description: 'Automatic encrypted backups protect your data',
       personalizedDesc: hasData ? `Protect your ${dataSummary?.draftCount || 0} draft${(dataSummary?.draftCount || 0) !== 1 ? 's' : ''} forever` : 'Automatic encrypted backups protect your data'
     },
     {
-      icon: '📱',
+      icon: 'fa-mobile-alt',
       title: 'Multi-Device',
       description: 'Seamlessly switch between phone, tablet, and computer',
       personalizedDesc: hasData ? 'Continue your drafts on any device' : 'Seamlessly switch between phone, tablet, and computer'
     },
     {
-      icon: '⚡',
+      icon: 'fa-bolt',
       title: 'Enhanced Features',
       description: 'Unlock advanced tools and analytics',
       personalizedDesc: hasData ? 'Get deeper insights into your draft strategy' : 'Unlock advanced tools and analytics'
     },
     {
-      icon: '🔄',
+      icon: 'fa-sync-alt',
       title: 'Auto-Save',
       description: 'Never lose progress with real-time saving',
       personalizedDesc: hasData ? 'All your selections automatically saved' : 'Never lose progress with real-time saving'
     },
     {
-      icon: '📊',
+      icon: 'fa-chart-bar',
       title: 'History Tracking',
       description: 'Track your draft performance over time',
       personalizedDesc: hasData ? 'Build on your existing draft history' : 'Track your draft performance over time'
@@ -76,18 +76,18 @@ export const AccountBenefits: React.FC<AccountBenefitsProps> = ({
   if (compact) {
     return (
       <div className={`account-benefits-compact ${className}`}>
-        <Card className="bg-gradient-to-r from-primary-50 to-secondary-50 border border-primary-200">
+        <Card className="border border-gray-200 dark:border-gray-700">
           <div className="flex items-start space-x-3">
-            <div className="text-2xl">✨</div>
+            <i className="fas fa-wand-magic-sparkles text-xl text-primary-600 dark:text-primary-400 mt-1" aria-hidden="true" />
             <div className="flex-1">
-              <h3 className="font-semibold text-gray-900 mb-2">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">
                 {hasData ? 'Secure Your Progress' : 'Unlock Premium Features'}
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {displayedBenefits.map((benefit, index) => (
-                  <div key={index} className="flex items-center space-x-2 text-sm">
-                    <span>{benefit.icon}</span>
-                    <span className="text-gray-700">
+                  <div key={index} className="flex items-center space-x-3 text-sm">
+                    <i className={`fas ${benefit.icon} w-4 text-center text-primary-600 dark:text-primary-400`} aria-hidden="true" />
+                    <span className="text-gray-700 dark:text-gray-300">
                       {hasData ? benefit.personalizedDesc : benefit.description}
                     </span>
                   </div>
@@ -104,11 +104,11 @@ export const AccountBenefits: React.FC<AccountBenefitsProps> = ({
     <div className={`account-benefits ${className}`}>
       {/* Header */}
       <div className="text-center mb-8">
-        <div className="text-4xl mb-4">🚀</div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        <i className="fas fa-rocket text-3xl text-primary-600 dark:text-primary-400 mb-4" aria-hidden="true" />
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
           {hasData ? 'Upgrade Your Fantasy Experience' : 'Why Create an Account?'}
         </h2>
-        <p className="text-gray-600 max-w-lg mx-auto">
+        <p className="text-gray-600 dark:text-gray-400 max-w-lg mx-auto">
           {hasData 
             ? `You've built something great with ${dataSummary?.leagueCount || 0} league${(dataSummary?.leagueCount || 0) !== 1 ? 's' : ''} and ${dataSummary?.draftCount || 0} draft${(dataSummary?.draftCount || 0) !== 1 ? 's' : ''}. Don't lose it!`
             : 'Join thousands of fantasy managers who trust us with their draft strategies.'
@@ -119,12 +119,12 @@ export const AccountBenefits: React.FC<AccountBenefitsProps> = ({
       {/* Benefits Grid */}
       <div className="grid md:grid-cols-2 gap-6 mb-8">
         {displayedBenefits.map((benefit, index) => (
-          <Card key={index} className="border border-gray-200" hover>
+          <Card key={index} className="border border-gray-200 dark:border-gray-700" hover>
             <div className="flex items-start space-x-4">
-              <div className="text-3xl">{benefit.icon}</div>
+              <i className={`fas ${benefit.icon} text-2xl text-primary-600 dark:text-primary-400 mt-1`} aria-hidden="true" />
               <div className="flex-1">
-                <h3 className="font-semibold text-gray-900 mb-2">{benefit.title}</h3>
-                <p className="text-gray-600 text-sm">
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">{benefit.title}</h3>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
                   {hasData ? benefit.personalizedDesc : benefit.description}
                 </p>
               </div>
@@ -149,12 +149,12 @@ export const AccountBenefits: React.FC<AccountBenefitsProps> = ({
 
       {/* Social Proof */}
       <div className="text-center">
-        <div className="flex justify-center items-center space-x-2 text-sm text-gray-600 mb-4">
+        <div className="flex justify-center items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
           <div className="flex -space-x-1">
             {Array.from({ length: 5 }, (_, i) => (
               <div
                 key={i}
-                className="w-8 h-8 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold"
+                className="w-8 h-8 bg-primary-500 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center text-white text-xs font-bold"
               >
                 {String.fromCharCode(65 + i)}
               </div>
@@ -162,8 +162,8 @@ export const AccountBenefits: React.FC<AccountBenefitsProps> = ({
           </div>
           <span>Join 10,000+ fantasy managers</span>
         </div>
-        
-        <div className="text-xs text-gray-500">
+
+        <div className="text-xs text-gray-500 dark:text-gray-400">
           ⭐⭐⭐⭐⭐ &quot;Best draft tool I&apos;ve ever used&quot; - Fantasy Champion 2024
         </div>
       </div>

@@ -15,12 +15,12 @@ const ErrorScreen: React.FC<ErrorScreenProps> = ({
 }) => {
   return (
     <div className="flex justify-center items-center min-h-[24rem] w-full p-4">
-      <Card className="bg-red-50 border border-red-200 max-w-md w-full">
+      <Card className="bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800 max-w-md w-full">
         <div className="text-center">
           <div className="mb-4 flex justify-center">
-            <div className="rounded-full bg-red-100 p-3">
-              <svg 
-                className="h-8 w-8 text-red-600" 
+            <div className="rounded-full bg-red-100 dark:bg-red-900/40 p-3">
+              <svg
+                className="h-8 w-8 text-red-600 dark:text-red-400"
                 fill="none" 
                 stroke="currentColor" 
                 viewBox="0 0 24 24"
@@ -36,11 +36,11 @@ const ErrorScreen: React.FC<ErrorScreenProps> = ({
             </div>
           </div>
           
-          <h1 id="error-title" className="text-xl font-semibold text-gray-900 mb-2">
+          <h1 id="error-title" className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
             {title}
           </h1>
-          
-          <p id="error-message" className="text-gray-600 mb-6">
+
+          <p id="error-message" className="text-gray-600 dark:text-gray-400 mb-6">
             {message}
           </p>
           
