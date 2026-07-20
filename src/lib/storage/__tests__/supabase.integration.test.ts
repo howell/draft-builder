@@ -9,9 +9,16 @@
  * Run with: npm run test:integration
  */
 
+import { config as loadEnv } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { SupabaseStorageAdapter } from '../supabase';
 import type { Database } from '@/lib/database.types';
+
+// Integration jest config does not auto-load env files; without this the
+// availability gate below is always false locally and the suite silently
+// skips (which is how the live-draft round-trip tests first ran only in CI).
+loadEnv({ path: '.env.test.local' });
+loadEnv({ path: '.env.local' });
 import {
   testLiveDraftStorageCRUD,
   testLiveDraftDataIntegrity,
@@ -21,7 +28,12 @@ import {
 // Check if local Supabase is available for integration tests
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const SUPABASE_AVAILABLE = !!(SUPABASE_URL?.includes('localhost:54321') && SUPABASE_SERVICE_ROLE_KEY);
+// Accept both hostname forms — .env.test.local uses 127.0.0.1 while CI uses
+// localhost; matching only one silently skipped these tests in the other env.
+const SUPABASE_AVAILABLE = !!(
+    (SUPABASE_URL?.includes('localhost:54321') || SUPABASE_URL?.includes('127.0.0.1:54321')) &&
+    SUPABASE_SERVICE_ROLE_KEY
+);
 
 describe('SupabaseStorageAdapter Integration Tests', () => {
   let realSupabase: any;

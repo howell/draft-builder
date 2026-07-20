@@ -31,7 +31,11 @@ const TEST_LEAGUE_ID = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' as LeagueId;
  * Use flexible matchers to accommodate both approaches.
  */
 function normalizePlayerForStorage(player: any): any {
-  const normalized: any = {
+  // suggestedCost is intentionally omitted: it is derived platform data that
+  // Dexie happens to persist but Supabase does not. Loaded data is stripped
+  // of it symmetrically (see stripUnpersistedPlayerFields) so these patterns
+  // assert only the round-trip contract every adapter guarantees.
+  return {
     id: player.id,
     name: player.name,
     defaultPosition: player.defaultPosition,
@@ -39,13 +43,22 @@ function normalizePlayerForStorage(player: any): any {
     overallRank: expect.any(Number), // May be 0 (Supabase) or computed value (Dexie)
     positionRank: expect.any(Number), // May be 0 (Supabase) or computed value (Dexie)
   };
+}
 
-  // suggestedCost may be present (Dexie) or absent (Supabase)
-  if (player.suggestedCost !== undefined) {
-    normalized.suggestedCost = expect.any(Number);
-  }
+/**
+ * Strip player fields that storage adapters are not required to persist from
+ * loaded data before comparing, mirroring normalizePlayerForStorage above.
+ */
+function stripUnpersistedPickFields(pick: LiveDraftPick): LiveDraftPick {
+  const { suggestedCost: _unpersisted, ...player } = pick.player as any;
+  return { ...pick, player };
+}
 
-  return normalized;
+function stripUnpersistedPlayerFields(draft: LiveDraftState): LiveDraftState {
+  return {
+    ...draft,
+    picks: draft.picks.map(stripUnpersistedPickFields),
+  };
 }
 
 /**
@@ -473,12 +486,13 @@ export async function testLiveDraftStorageCRUD(adapter: StorageAdapter) {
   
   // Normalize only the expected data to match what storage should persist
   const expectedNormalized = normalizeLiveDraftForStorage(liveDraftState);
-  expect(loadedDraft).toEqual(expectedNormalized);
-  
+  expect(loadedDraft).not.toBeNull();
+  expect(stripUnpersistedPlayerFields(loadedDraft!)).toEqual(expectedNormalized);
+
   // Test loading all live drafts for a league
   const allDrafts = await adapter.loadLiveDrafts(testLeagueId);
   expect(allDrafts).toHaveLength(1);
-  expect(allDrafts[0]).toEqual(expectedNormalized);
+  expect(stripUnpersistedPlayerFields(allDrafts[0])).toEqual(expectedNormalized);
   
   // Test adding a pick
   const newPick = createTestLiveDraftPick({ 
@@ -495,7 +509,7 @@ export async function testLiveDraftStorageCRUD(adapter: StorageAdapter) {
   // Normalize only the expected pick to match what storage should persist
   const expectedPick = normalizeLiveDraftPickForStorage(newPick);
   const actualPick = draftWithNewPick!.picks[draftWithNewPick!.picks.length - 1];
-  expect(actualPick).toEqual(expectedPick);
+  expect(stripUnpersistedPickFields(actualPick)).toEqual(expectedPick);
   
   // Test updating a pick
   const updatedPick = { ...newPick, price: newPick.price + 10 };
@@ -506,7 +520,8 @@ export async function testLiveDraftStorageCRUD(adapter: StorageAdapter) {
   
   // Normalize only the expected pick to match what storage should persist
   const expectedUpdatedPick = normalizeLiveDraftPickForStorage(updatedPick);
-  expect(foundUpdatedPick).toEqual(expectedUpdatedPick);
+  expect(foundUpdatedPick).toBeDefined();
+  expect(stripUnpersistedPickFields(foundUpdatedPick!)).toEqual(expectedUpdatedPick);
   
   // Test deleting a pick
   await adapter.deleteLiveDraftPick(testLeagueId, liveDraftState.draftId, newPick.pickNumber);
@@ -599,8 +614,10 @@ export async function testLiveDraftDataIntegrity(adapter: StorageAdapter) {
   const loadedDraft2 = allDrafts.find(d => d.draftId === draft2.draftId);
   
   // Normalize only the expected data to match what storage should persist
-  expect(loadedDraft1).toEqual(normalizeLiveDraftForStorage(draft1));
-  expect(loadedDraft2).toEqual(normalizeLiveDraftForStorage(draft2));
+  expect(loadedDraft1).toBeDefined();
+  expect(loadedDraft2).toBeDefined();
+  expect(stripUnpersistedPlayerFields(loadedDraft1!)).toEqual(normalizeLiveDraftForStorage(draft1));
+  expect(stripUnpersistedPlayerFields(loadedDraft2!)).toEqual(normalizeLiveDraftForStorage(draft2));
   
   // Test pick ordering is maintained
   const testDraft = createTestLiveDraftState({ leagueId: testLeagueId, picks: [] });
@@ -655,6 +672,7 @@ export async function testLiveDraftConcurrency(adapter: StorageAdapter) {
   picks.forEach(expectedPick => {
     const foundPick = finalDraft!.picks.find(p => p.pickNumber === expectedPick.pickNumber);
     const normalizedExpectedPick = normalizeLiveDraftPickForStorage(expectedPick);
-    expect(foundPick).toEqual(normalizedExpectedPick);
+    expect(foundPick).toBeDefined();
+    expect(stripUnpersistedPickFields(foundPick!)).toEqual(normalizedExpectedPick);
   });
 }
