@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import MockRosterEntry from './MockRosterEntry';
 import PlayerTable, { ColumnName } from '../drafts/[draftYear]/PlayerTable';
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer, CostEstimatedPlayer, RosterSlot, RosterSelections, SearchSettingsState, EstimationSettingsState, StoredDraftDataCurrent, Rankings, RankedPlayer, Ranking } from '@/app/storage/savedMockTypes';
@@ -71,7 +72,25 @@ const defaultCostPredictor: CostPredictor = {
 
 const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, auctionBudget, players, draftHistory, playerPositions, availableRankings }) => {
     const storageAdapter = useStorageAdapter();
-    
+    const router = useRouter();
+    const pathname = usePathname();
+
+    // The demo page renders MockTable outside any real league route; key cleanup
+    // and post-save navigation only make sense under /league/<id>/mocks.
+    const isLeagueMocksRoute = pathname?.startsWith(`/league/${leagueId}/mocks`) ?? false;
+
+    // After an explicit save, autosaves must target the saved name — including a
+    // debounced autosave already scheduled before the save completed, which is
+    // why this is a ref (read at fire time) rather than state.
+    const savedNameRef = useRef<string | undefined>(undefined);
+    const navTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    useEffect(() => {
+        return () => {
+            if (navTimerRef.current) clearTimeout(navTimerRef.current);
+        };
+    }, []);
+
+
     // Mutation for saving rosters with automatic cache invalidation
     const saveRosterMutation = useSaveRosterMutation();
     const defaultSearchSettings: SearchSettingsState = { positions: playerPositions, playerCount: 200, minPrice: 1, maxPrice: auctionBudget, showOnlyAvailable: true };
@@ -190,8 +209,8 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
         const backoffMs = Math.min(1000 * Math.pow(2, attempt), 8000); // Exponential backoff, max 8s
         
         try {
-            const saveKey = draftName || getInProgressSelectionsKey(leagueId);
-            
+            const saveKey = resolveSaveKey(savedNameRef.current, draftName, leagueId);
+
             await storageAdapter.saveSelectedRoster(
                 leagueId, 
                 saveKey, 
@@ -325,7 +344,8 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
     }
 
     const saveRosterSelections = async () => {
-        if (!rosterName.trim()) {
+        const savedName = rosterName.trim();
+        if (!savedName) {
             setSaveError('Please enter a roster name before saving.');
             setSavingStatus('error');
             setTimeout(() => {
@@ -334,25 +354,50 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
             }, 3000);
             return;
         }
-        
+
         // Set saving state before starting mutation
         setSavingStatus('saving');
         setSaveError(null);
-        
+
         // Use the mutation hook which handles loading states, errors, and cache invalidation
         saveRosterMutation.mutate({
             leagueId,
-            rosterName,
+            rosterName: savedName,
             rosterSelections,
             costAdjustments: Object.fromEntries(costAdjustments.entries()),
             estimationSettings,
             searchSettings
         }, {
             onSuccess: () => {
+                // From here on the session belongs to the saved name: any
+                // pending debounced autosave must land on it, not recreate
+                // the in-progress key (ref is read at autosave fire time).
+                savedNameRef.current = savedName;
+
                 setSavingStatus('saved');
                 setSaveError(null);
-                
-                // Show success feedback briefly
+
+                if (isLeagueMocksRoute && !draftName) {
+                    // Explicit save from the New page: the in-progress
+                    // selections have been promoted to the named draft, so the
+                    // next "New" draft should start blank. Non-fatal if it
+                    // fails — the save itself succeeded.
+                    storageAdapter.deleteRoster(leagueId, getInProgressSelectionsKey(leagueId))
+                        .catch((e) => console.warn('[MockTable] Failed to clear in-progress selections:', e));
+                }
+
+                if (isLeagueMocksRoute && savedName !== draftName) {
+                    // Hand the session over to the named draft page (its
+                    // prop-driven autosave owns persistence from then on).
+                    // Delay keeps the "Saved ✓" feedback visible; replace (not
+                    // push) so Back doesn't land on a now-empty New page.
+                    if (navTimerRef.current) clearTimeout(navTimerRef.current);
+                    navTimerRef.current = setTimeout(() => {
+                        router.replace(`/league/${leagueId}/mocks/${encodeURIComponent(savedName)}`);
+                    }, 1200);
+                }
+
+                // Show success feedback briefly (covers the no-navigation case)
                 setTimeout(() => {
                     setSavingStatus('idle');
                 }, 2000);
@@ -388,10 +433,17 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
         
         try {
             await storageAdapter.deleteRoster(leagueId, rosterName);
+            // The deleted name must no longer be an autosave target.
+            savedNameRef.current = undefined;
             resetRoster();
             setRosterName('');
             setSavingStatus('idle');
             alert(`Deleted "${rosterName}" successfully.`);
+            if (isLeagueMocksRoute && draftName) {
+                // The URL points at a draft that no longer exists; move to the
+                // New page so the prop-driven autosave doesn't recreate it.
+                router.replace(`/league/${leagueId}/mocks`);
+            }
         } catch (error) {
             const errorMessage = error instanceof StorageError 
                 ? error.message 
@@ -616,6 +668,15 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
 };
 
 export default MockTable;
+
+/**
+ * Where autosaves land: an explicitly saved name (this session) wins, then the
+ * route's draft name, then the per-league in-progress scratch key. An empty
+ * draftName falls through to the in-progress key, mirroring the load path.
+ */
+export function resolveSaveKey(savedName: string | undefined, draftName: string | undefined, leagueId: LeagueId): string {
+    return savedName || draftName || getInProgressSelectionsKey(leagueId);
+}
 
 export function computeRosterSlots(positions: RosterSettings): RosterSlot[] {
     return Array.from(Object.entries(positions))

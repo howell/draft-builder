@@ -1,5 +1,29 @@
 import { CostEstimatedPlayer, MockPlayer, RankedPlayer, SearchSettingsState } from '@/app/storage/savedMockTypes';
-import { playerAvailable, calculateAmountSpent, computeRosterSlots, CostPredictor   } from './MockTable';
+import { playerAvailable, calculateAmountSpent, computeRosterSlots, resolveSaveKey, CostPredictor   } from './MockTable';
+import { getInProgressSelectionsKey } from '@/lib/storage/constants';
+import { LeagueId } from '@/platforms/common';
+
+describe('resolveSaveKey', () => {
+    const leagueId = '12345' as LeagueId;
+
+    it('prefers the explicitly saved name over everything else', () => {
+        expect(resolveSaveKey('My Draft', 'Route Draft', leagueId)).toBe('My Draft');
+        expect(resolveSaveKey('My Draft', undefined, leagueId)).toBe('My Draft');
+    });
+
+    it('falls back to the route draft name when nothing was explicitly saved', () => {
+        expect(resolveSaveKey(undefined, 'Route Draft', leagueId)).toBe('Route Draft');
+    });
+
+    it('targets the in-progress key when neither name is set', () => {
+        expect(resolveSaveKey(undefined, undefined, leagueId)).toBe(getInProgressSelectionsKey(leagueId));
+    });
+
+    it('treats an empty draft name like an absent one (mirrors the load path)', () => {
+        expect(resolveSaveKey(undefined, '', leagueId)).toBe(getInProgressSelectionsKey(leagueId));
+        expect(resolveSaveKey('', '', leagueId)).toBe(getInProgressSelectionsKey(leagueId));
+    });
+});
 
 describe('playerAvailable', () => {
     const mockPlayer: CostEstimatedPlayer = {

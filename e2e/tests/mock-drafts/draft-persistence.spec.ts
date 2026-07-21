@@ -101,13 +101,18 @@ const sharedDraftTests = {
     await mockDraftHelpers.expectPlayerSelected('Josh Allen', 'QB');
     const state1 = await mockDraftHelpers.getCurrentRosterState();
     await mockDraftHelpers.saveRoster(draft1Name);
-    
+
+    // Saving navigates to draft 1's page; further edits there would autosave
+    // into draft 1, so return to the New page (now blank) for the second draft.
+    await mockDraftHelpers.expectSavedDraftUrl(leagueId, draft1Name);
+    await mockDraftHelpers.pageInstance.goto(`/league/${leagueId}/mocks`);
+    await waitForNetworkIdle(mockDraftHelpers.pageInstance);
+    await mockDraftHelpers.expectMockDraftReady();
+    await mockDraftHelpers.expectRosterEmpty();
+
     // Create second draft with different players
     const draft2Name = `${userType} Draft 2 - ${Date.now()}`;
-    
-    // Clear first selection and select different player
-    await mockDraftHelpers.clearPlayer('QB', 0);
-    
+
     try {
       await mockDraftHelpers.selectPlayer('Christian McCaffrey', 'RB');
       await mockDraftHelpers.expectPlayerSelected('Christian McCaffrey', 'RB');
@@ -244,17 +249,25 @@ const sharedDraftTests = {
     const explicitDraftName = `${userType} Explicit Draft ${Date.now()}`;
     await mockDraftHelpers.saveRoster(explicitDraftName);
     console.log(`${userType} user explicitly saved new draft: "${explicitDraftName}"`);
-    
+
+    // Saving hands the session over to the named draft page, which carries
+    // the state and owns further autosaves.
+    await mockDraftHelpers.expectSavedDraftUrl(leagueId, explicitDraftName);
+    await mockDraftHelpers.expectMockDraftReady();
+    await mockDraftHelpers.expectRosterStateMatches(newStateBeforeSave);
+    console.log(`${userType} user verified auto-navigation to the named draft`);
+
     // Navigate away and back to new mock page
     await mockDraftHelpers.navigateAwayFromDraft();
     await mockDraftHelpers.pageInstance.goto(`/league/${leagueId}/mocks`);
     await waitForNetworkIdle(mockDraftHelpers.pageInstance);
     await mockDraftHelpers.expectMockDraftReady();
-    
-    // Should now load the saved draft state, not the old in-progress state
-    await mockDraftHelpers.expectRosterStateMatches(newStateBeforeSave);
-    console.log(`${userType} user verified explicit save overrode in-progress selections`);
-    
+
+    // The explicit save promoted the in-progress selections to the named
+    // draft and cleared the in-progress key, so a New draft starts blank.
+    await mockDraftHelpers.expectRosterEmpty();
+    console.log(`${userType} user verified explicit save reset the in-progress selections`);
+
     return explicitDraftName;
   }
 };

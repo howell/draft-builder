@@ -698,4 +698,24 @@ export class MockDraftHelpers {
     // Check budget (allow small differences due to rounding)
     expect(Math.abs(currentState.budgetRemaining - expectedState.budgetRemaining)).toBeLessThanOrEqual(1);
   }
+
+  /**
+   * Verify the roster has no selected players (e.g. the New page after an
+   * explicit save promoted the in-progress selections to a named draft).
+   */
+  async expectRosterEmpty(): Promise<void> {
+    const currentState = await this.getCurrentRosterState();
+    expect(currentState.players.length).toBe(0);
+  }
+
+  /**
+   * Verify the app auto-navigated to the named mock draft page after an
+   * explicit save (the URL segment is the encoded draft name).
+   */
+  async expectSavedDraftUrl(leagueId: string, draftName: string): Promise<void> {
+    const escaped = encodeURIComponent(draftName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    await this.page.waitForURL(new RegExp(`/league/${leagueId}/mocks/${escaped}`), {
+      timeout: TEST_TIMEOUTS.NAVIGATION,
+    });
+  }
 }

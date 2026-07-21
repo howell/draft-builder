@@ -75,6 +75,29 @@ Fixes for the mobile league-page experience:
 - **Table**: Nominated + Drafted By hide below `sm`, shown instead as a "#3 · Ram Jam" secondary line. `PlayerTable`'s `mobileSecondary` now attaches to the first *visible non-numeric* column (it previously attached to column 0, which broke when column 0 is hidden on mobile).
 - Headings/`ChartContainer` got `dark:` variants; cards use `p-4 sm:p-6`.
 
+## Mock draft: named save resets in-progress selections (follow-up pass)
+
+Previously, saving a New mock draft under a name left the in-progress autosave
+key (`getInProgressSelectionsKey(leagueId)`) populated and still targeted, so
+"New" later reloaded the already-saved selections. Now (MockTable.tsx):
+- On successful named save: a `savedNameRef` retargets autosaves to the saved
+  name **synchronously** (a ref, not state — a debounce timer scheduled before
+  the save can fire after it and must not recreate the key); the in-progress
+  key is deleted (fire-and-forget, idempotent `deleteRoster`); after ~1.2s of
+  "Saved ✓" the page `router.replace`s to `/mocks/<name>`, whose prop-driven
+  autosave owns persistence from then on. Save-as from a named page navigates
+  to the new name; deleting the current named draft navigates back to New.
+- Route-gated on `/league/<id>/mocks` — `/demo` renders MockTable with a fake
+  league id and must not delete keys or navigate.
+- Exported pure `resolveSaveKey(savedName, draftName, leagueId)` with unit
+  tests. e2e: `shouldOverrideInProgressWithExplicitSave` now asserts
+  auto-navigation + an EMPTY New page; `shouldManageMultipleDrafts` returns to
+  New between drafts (it previously relied on editing in place after save).
+  `shouldPersistInProgressSelections` (no explicit save) unchanged and green.
+- Known pre-existing gap (not fixed here): the delete-roster path doesn't
+  invalidate the sidebar draft queries, so a deleted name lingers until the
+  next invalidation.
+
 ## Deferred / follow-ups
 - Polish `SearchSettings`/`EstimationSettings` internals (bare unstyled h3s/checkboxes).
 - Stabilize the `e2e/tests/mock-drafts` suite (same 3s-expect-timeout and ambiguous-locator problems fixed in the ESPN spec, plus a dev-overlay `Console Error` from `AuthContext getSession` tripping `/error/i` assertions).
