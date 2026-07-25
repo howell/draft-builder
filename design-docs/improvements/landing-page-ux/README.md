@@ -94,11 +94,105 @@ key (`getInProgressSelectionsKey(leagueId)`) populated and still targeted, so
   auto-navigation + an EMPTY New page; `shouldManageMultipleDrafts` returns to
   New between drafts (it previously relied on editing in place after save).
   `shouldPersistInProgressSelections` (no explicit save) unchanged and green.
-- Known pre-existing gap (not fixed here): the delete-roster path doesn't
+- ~~Known pre-existing gap (not fixed here): the delete-roster path doesn't
   invalidate the sidebar draft queries, so a deleted name lingers until the
-  next invalidation.
+  next invalidation.~~ ✅ Fixed in the stale-state pass below.
+
+## Mock draft: stale selections on cold load / sign-in ✅ COMPLETED
+
+Reported symptom: after a day of inactivity (or on sign-in) the mock draft page
+showed selections from weeks earlier, and several recently saved mock drafts
+were missing from the sidebar; more of them appeared after using the app for a
+while. Two independent causes, both surfaced by the named-save reset above,
+which made "in-progress key absent" the normal state rather than a rare one.
+
+**1. Load effect ran against the anonymous adapter and never cleared state**
+(`MockTable.tsx`). While `authState.loading` is true, `AuthProvider` hands out
+`DexieStorageAdapter('anonymous')` (`src/lib/auth/context.tsx:67`) — a
+placeholder, not the signed-in user's store. The load effect had no auth gate,
+so on every cold load it:
+1. read the *anonymous* IndexedDB partition and populated state with a
+   long-abandoned local draft, setting `finishedLoading`;
+2. re-ran when the adapter swapped to Supabase, got nothing back (the named
+   save deletes the in-progress key), and — because the success branch had no
+   `else` — **left the stale selections on screen**;
+3. let the 500ms debounced autosave write those weeks-old selections *back into
+   Supabase* under the in-progress key, recreating what step 2 should have
+   cleared.
+
+Fixed by gating the effect on `!authLoading`, resetting all four pieces of
+loaded state when the authoritative read finds nothing, and adding a
+`cancelled` flag so an earlier in-flight read can't clobber a newer one. The
+reset callback is held in a ref so the effect deps stay
+`[leagueId, draftName, storageAdapter, authLoading]` — depending on the
+default-settings identities would let an unstable prop trigger a reload that
+discards in-flight edits. Note `src/lib/storage/hooks.ts` still documents the
+loading state as returning `MemoryStorageAdapter`; the doc describes the
+intended safe behavior and the implementation had drifted from it.
+
+**2. Transient Supabase failures silently served a stale local subset**
+(`src/lib/storage/supabase.ts`). `withFallback` answers *any* failed read from
+the fallback Dexie adapter with no marker, and React Query caches that as
+authoritative for 2 minutes. `isRetryableError` classified both request
+timeouts and JWT/token errors as **non**-retryable, so an 8s stall or an access
+token that expired overnight fell through to the local subset after zero
+retries — exactly the "missing drafts that show up later" symptom.
+
+Fixed minimally, and **only for expired tokens** (`EXPIRED_TOKEN_RETRIES = 2`).
+These fail fast, so the extra attempts are nearly free, and they directly cover
+the reported "first load after a day idle" case. Permission denials
+(RLS/authorization) remain terminal.
+
+Retrying **request timeouts** was tried and deliberately reverted. It is
+tempting for the same reason — a timeout means reachable-but-slow, so the local
+fallback is likely a stale subset — but each attempt burns a full timeout
+window, turning an 8s stall into ~17s before anything renders. A/B'd against
+the e2e mock-draft suite it was clearly worse: **34 failed / 7 passed** with the
+timeout retry vs **12 failed / 32 passed** baseline, cascading through every
+spec file. The faster degraded answer wins. See the comment in
+`isRetryableError` so this isn't re-introduced.
+
+The broader issue — that a fallback result is indistinguishable from
+authoritative data — is **not** addressed here.
+
+**3. Delete path now invalidates the draft lists.** New
+`useDeleteRosterMutation` (`src/hooks/queries/useDeleteRosterMutation.ts`)
+mirrors `useSaveRosterMutation`'s `userDrafts` invalidation. Used for both the
+explicit delete and the post-save in-progress cleanup; routing the latter
+through the mutation also fixes the ordering race where a refetch could land
+before the delete resolved and re-cache the row.
+
+Verified: `type-check` and `lint` clean; Jest **67/67 suites, 770 passed, 0
+failed** (running the suite in a worktree needs `.env.test.local` copied in —
+`.env.local` alone is skipped by `next/jest` under `NODE_ENV=test`). The
+`npm run build` OOM is pre-existing and reproduces on the parent commit.
+
+e2e (`mock-drafts`, chromium): 11 failed / 40 passed vs a 12 failed / 32 passed
+baseline on the parent commit — same clusters, rotating membership in
+`budget-management`/`search-filtering`, consistent with the flakiness already
+documented above. **Caveat:** the six `draft-persistence` failures are the
+*Authenticated Users* block, and they fail identically before and after this
+change (pre-existing setup flakes, as noted in `b5de849`). That block is
+exactly where this bug lives — it needs the anonymous→Supabase adapter swap —
+so the e2e run confirms *no regression* but does **not** positively validate
+the fix. Fixing that setup and re-running is the outstanding verification.
 
 ## Deferred / follow-ups
+- `withFallback` gives callers no way to tell a fallback result from an
+  authoritative one, and `useUserDraftsQuery` caches it for 2 minutes either
+  way. Consider threading a `source` flag through `StorageAdapter` so the UI
+  can warn that the list may be incomplete.
+- `cacheKeys.mockDrafts` is dead — no query registers a `['mockDrafts', ...]`
+  key (`useMockDraftsQuery` reuses `userDrafts`), so the second invalidation
+  block in `useSaveRosterMutation` matches nothing. Harmless today.
+- `useUserDraftsQuery` imports `isInProgressSelectionsKey` but never uses it;
+  only the sidebar filters the in-progress pseudo-draft, so it still counts
+  toward `useDraftsQuery` totals.
+- The `AuthProvider` watchdog degrades to the *anonymous* adapter after 5s with
+  `loading: false`, which re-enables every `!authLoading`-gated query against
+  the wrong store. Nothing clears the React Query cache on auth transitions,
+  and `QueryProvider` sits outside `AuthProvider` with a module-level singleton
+  client.
 - Polish `SearchSettings`/`EstimationSettings` internals (bare unstyled h3s/checkboxes).
 - Stabilize the `e2e/tests/mock-drafts` suite (same 3s-expect-timeout and ambiguous-locator problems fixed in the ESPN spec, plus a dev-overlay `Console Error` from `AuthContext getSession` tripping `/error/i` assertions).
 - Adopt `PageShell`/`AppHeader` on settings + demo pages.
