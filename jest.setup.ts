@@ -9,10 +9,19 @@ import 'fake-indexeddb/auto';
 
 // Mock window object for client-side checks in tests
 // Note: jsdom provides localStorage, but we need to ensure it's available in our window mock
+//
+// `document` MUST stay the real jsdom document. Under testEnvironment: "jsdom",
+// `global` IS the window, so this replaces the window property wholesale. With
+// `document: {}`, `typeof window.document.createElement` is 'undefined', which makes
+// React's canUseDOM false (react-dom-client.development.js:25141-25145). That
+// silently disables the ChangeEventPlugin's modern path, so onChange never fires for
+// text inputs, and it breaks @testing-library's getDocument(), so a bare waitFor()
+// throws. Both symptoms were long mistaken for "setState doesn't re-render under
+// jest" — it does; see src/ui/tests/LoadingScreen.test.tsx.
 Object.defineProperty(global, 'window', {
   value: {
     location: { href: 'http://localhost' },
-    document: {},
+    document: global.document,
     navigator: { userAgent: 'test' },
     localStorage: global.localStorage // Use jsdom's localStorage
   },

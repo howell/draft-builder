@@ -16,10 +16,14 @@ import 'fake-indexeddb/auto';
 
 // Mock window object for client-side checks in tests
 // Note: jsdom provides localStorage, but we need to ensure it's available in our window mock
+//
+// `document` MUST stay the real jsdom document — see the matching note in
+// jest.setup.ts. A `{}` stub makes React's canUseDOM false, which disables
+// onChange for text inputs and breaks @testing-library's bare waitFor().
 Object.defineProperty(global, 'window', {
   value: {
     location: { href: 'http://localhost' },
-    document: {},
+    document: global.document,
     navigator: { userAgent: 'test' },
     localStorage: global.localStorage // Use jsdom's localStorage
   },
