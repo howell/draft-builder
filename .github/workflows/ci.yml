@@ -67,3 +67,74 @@ jobs:
       - name: Stop Supabase services
         if: always()
         run: supabase stop
+
+  # E2E runs as its own job on a single Node version: it is the slowest step and
+  # gains nothing from the build matrix.
+  #
+  # This gate did not exist before, which is how a deadlock in AuthProvider kept the
+  # entire authenticated mock-draft block failing while looking like "pre-existing
+  # flakiness" for months — nothing in CI ever ran it.
+  e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Install dependencies
+        run: npm install
+
+      # chromium only: the config also defines firefox and mobile projects, but the
+      # gate runs chromium-desktop, and installing the rest costs minutes.
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase services
+        env:
+          POSTGRES_PASSWORD: postgres
+        run: |
+          supabase start
+          supabase db reset
+
+      - name: Set up test environment variables
+        env:
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+        run: |
+          echo "NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" >> $GITHUB_ENV
+          echo "SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU" >> $GITHUB_ENV
+          echo "ENCRYPTION_KEY=$ENCRYPTION_KEY" >> $GITHUB_ENV
+          # Consumed by the app's API routes to serve fixture platform data instead of
+          # calling ESPN/Sleeper. playwright.config also sets this for its webServer.
+          echo "E2E_FIXTURE_MODE=true" >> $GITHUB_ENV
+
+      # Playwright's webServer builds and starts the app itself (production build
+      # when CI is set) — no separate build/start step here.
+      - name: Run E2E tests
+        run: npx playwright test --project=chromium-desktop
+        env:
+          PLAYWRIGHT_HTML_OPEN: never
+
+      - name: Upload E2E report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e/reports/
+            test-results/
+          retention-days: 7
+
+      - name: Stop Supabase services
+        if: always()
+        run: supabase stop
