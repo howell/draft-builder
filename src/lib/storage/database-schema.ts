@@ -17,7 +17,7 @@ import type { EstimationSettingsStateV4, SearchSettingsState } from '@/types/sto
  * Current Dexie schema version (used in this.version() calls)
  * Dexie multiplies this by 10 internally for the actual IndexedDB version
  */
-export const DEXIE_SCHEMA_VERSION = 2;
+export const DEXIE_SCHEMA_VERSION = 4;
 
 /**
  * Actual IndexedDB database version (Dexie schema version * 10)
@@ -66,12 +66,18 @@ export const SCHEMA_DEFINITION = {
         { name: 'draftId+selected', keyPath: ['draftId', 'selected'], options: { unique: false } }
       ]
     },
-    userSettings: {
-      dexieSchema: '++id, userId, type, key, updatedAt, [userId+type+key]',
-      keyPath: 'id',
-      autoIncrement: true,
+    // Keyed by the natural compound key rather than an auto-increment id, so
+    // `put()` is a genuine upsert. Under the old `++id` key every `put()` was an
+    // insert, so repeated saves piled up duplicate rows and `.first()` returned
+    // the *oldest* one — writes appeared to succeed and silently reverted on
+    // reload. See the v3 upgrade below, which dedupes existing rows.
+    settings: {
+      dexieSchema: '[userId+type+key], userId, type, key, updatedAt',
+      keyPath: ['userId', 'type', 'key'],
+      autoIncrement: false,
       indexes: [
-        { name: 'userId+type+key', keyPath: ['userId', 'type', 'key'], options: { unique: true } }
+        { name: 'userId', keyPath: 'userId', options: { unique: false } },
+        { name: 'updatedAt', keyPath: 'updatedAt', options: { unique: false } }
       ]
     },
     appMetadata: {
@@ -262,7 +268,7 @@ export class DraftBuilderDB extends Dexie {
   leagues!: Table<League>;
   drafts!: Table<Draft>;
   players!: Table<Player>;
-  userSettings!: Table<UserSettings>;
+  settings!: Table<UserSettings>;
   appMetadata!: Table<AppMetadata>;
   liveDrafts!: Table<LiveDraft>;
   liveDraftPicks!: Table<LiveDraftPick>;
@@ -280,13 +286,21 @@ export class DraftBuilderDB extends Dexie {
       appMetadata: '++id, key, updatedAt'
     });
 
-    // Version 2 schema (adds live draft support)
-    const storesConfig: { [tableName: string]: string } = {};
-    Object.entries(SCHEMA_DEFINITION.stores).forEach(([storeName, storeConfig]) => {
-      storesConfig[storeName] = storeConfig.dexieSchema;
-    });
-
-    this.version(SCHEMA_DEFINITION.version).stores(storesConfig).upgrade(trans => {
+    // Version 2 schema (adds live draft support).
+    // NOTE: this is a frozen historical literal. It must NOT be rebuilt from
+    // SCHEMA_DEFINITION — that constant now describes the *current* (v4) schema,
+    // and Dexie needs each historical version declared as it was at the time so
+    // existing databases can be upgraded through it.
+    this.version(2).stores({
+      leagues: '++id, userId, platform, leagueId, favorite, createdAt, updatedAt, [userId+leagueId]',
+      drafts: '++id, leagueId, userId, name, year, isTemplate, draftType, created, modified, createdAt, updatedAt, [leagueId+userId], [userId+name]',
+      players: '++id, draftId, playerId, name, position, selected, overallRank, positionRank, rosterSlotKey, [draftId+selected]',
+      userSettings: '++id, userId, type, key, updatedAt, [userId+type+key]',
+      appMetadata: '++id, key, updatedAt',
+      liveDrafts: '++id, leagueId, userId, draftId, draftName, currentPickNumber, created, modified, [leagueId+userId], [userId+draftId]',
+      liveDraftPicks: '++id, liveDraftId, pickNumber, teamId, teamName, playerName, playerId, playerPosition, price, timestamp, [liveDraftId+pickNumber]',
+      liveDraftTeams: '++id, liveDraftId, teamId, teamName, budget, remainingBudget, [liveDraftId+teamId]'
+    }).upgrade(trans => {
       // Migration from v1 to v2: add draftType field to existing drafts
       return trans.table('drafts').toCollection().modify((draft: any) => {
         if (!draft.draftType) {
@@ -294,6 +308,33 @@ export class DraftBuilderDB extends Dexie {
         }
       });
     });
+
+    // Version 3: introduce `settings`, keyed by [userId+type+key] so writes
+    // upsert instead of appending. IndexedDB cannot change a store's primary key
+    // in place (Dexie throws "Not yet support for changing primary key"), so the
+    // rows are copied into a new store and the old one is dropped in v4.
+    this.version(3).stores({
+      settings: SCHEMA_DEFINITION.stores.settings.dexieSchema
+    }).upgrade(async trans => {
+      const legacy = await trans.table('userSettings').toArray();
+
+      // Collapse the duplicates the old `++id` key allowed. Ascending id is
+      // insertion order, so the last write for a given key wins — which is the
+      // value the user actually intended, and the opposite of what the buggy
+      // `.first()` read was returning.
+      const latestByKey = new Map<string, any>();
+      for (const row of legacy.sort((a, b) => (a.id ?? 0) - (b.id ?? 0))) {
+        latestByKey.set(`${row.userId} ${row.type} ${row.key}`, row);
+      }
+
+      const deduped = Array.from(latestByKey.values()).map(({ id, ...rest }) => rest);
+      if (deduped.length > 0) {
+        await trans.table('settings').bulkPut(deduped);
+      }
+    });
+
+    // Version 4: drop the superseded store now that its rows live in `settings`.
+    this.version(4).stores({ userSettings: null });
 
     // Define hooks for automatic timestamp updates
     this.leagues.hook('creating', (primKey, obj, trans) => {
@@ -314,11 +355,11 @@ export class DraftBuilderDB extends Dexie {
       (modifications as any).updatedAt = new Date();
     });
 
-    this.userSettings.hook('creating', (primKey, obj, trans) => {
+    this.settings.hook('creating', (primKey, obj, trans) => {
       (obj as any).updatedAt = new Date();
     });
 
-    this.userSettings.hook('updating', (modifications, primKey, obj, trans) => {
+    this.settings.hook('updating', (modifications, primKey, obj, trans) => {
       (modifications as any).updatedAt = new Date();
     });
 
@@ -422,17 +463,15 @@ export class DraftBuilderDB extends Dexie {
    * Get user setting by type and key
    */
   async getUserSetting(userId: string, type: string, key: string): Promise<UserSettings | undefined> {
-    return this.userSettings
-      .where(['userId', 'type', 'key'])
-      .equals([userId, type, key])
-      .first();
+    return this.settings.get([userId, type, key]);
   }
 
   /**
-   * Set user setting
+   * Set user setting. `settings` is keyed by [userId+type+key], so this replaces
+   * any existing row for that key rather than appending a new one.
    */
   async setUserSetting(userId: string, type: 'estimation' | 'search' | 'display' | 'app', key: string, data: any): Promise<void> {
-    await this.userSettings.put({
+    await this.settings.put({
       userId,
       type,
       key,
@@ -510,7 +549,7 @@ export class DraftBuilderDB extends Dexie {
       this.leagues.count(),
       this.drafts.count(),
       this.players.count(),
-      this.userSettings.count()
+      this.settings.count()
     ]);
 
     // Estimate size (rough calculation)
@@ -548,7 +587,7 @@ export class DraftBuilderDB extends Dexie {
     
     const [players, userSettings] = await Promise.all([
       this.players.where('draftId').anyOf(draftIds).toArray(),
-      this.userSettings.where('userId').equals(userId).toArray()
+      this.settings.where('userId').equals(userId).toArray()
     ]);
 
     return { leagues, drafts, players, userSettings };
@@ -563,18 +602,21 @@ export class DraftBuilderDB extends Dexie {
     players: Player[];
     userSettings: UserSettings[];
   }): Promise<void> {
-    await this.transaction('rw', this.leagues, this.drafts, this.players, this.userSettings, async () => {
+    await this.transaction('rw', this.leagues, this.drafts, this.players, this.settings, async () => {
       // Clear IDs to allow auto-increment
       const cleanedLeagues = data.leagues.map(l => ({ ...l, id: undefined }));
       const cleanedDrafts = data.drafts.map(d => ({ ...d, id: undefined }));
       const cleanedPlayers = data.players.map(p => ({ ...p, id: undefined }));
-      const cleanedSettings = data.userSettings.map(s => ({ ...s, id: undefined }));
+      // `settings` is keyed by [userId+type+key], so the legacy auto-increment
+      // `id` is meaningless here. bulkPut (not bulkAdd) so re-importing over an
+      // existing key overwrites rather than throwing a constraint error.
+      const cleanedSettings = data.userSettings.map(({ id, ...rest }) => rest);
 
       // Insert data
       await this.leagues.bulkAdd(cleanedLeagues);
       await this.drafts.bulkAdd(cleanedDrafts);
       await this.players.bulkAdd(cleanedPlayers);
-      await this.userSettings.bulkAdd(cleanedSettings);
+      await this.settings.bulkPut(cleanedSettings);
     });
   }
 }

@@ -34,11 +34,11 @@ export async function setupTestDatabase(): Promise<void> {
 export async function cleanupTestDatabase(): Promise<void> {
   try {
     if (db.isOpen()) {
-      await db.transaction('rw', [db.leagues, db.drafts, db.players, db.userSettings, db.appMetadata], async () => {
+      await db.transaction('rw', [db.leagues, db.drafts, db.players, db.settings, db.appMetadata], async () => {
         await db.leagues.clear();
         await db.drafts.clear();
         await db.players.clear();
-        await db.userSettings.clear();
+        await db.settings.clear();
         await db.appMetadata.clear();
       });
     }
@@ -80,7 +80,7 @@ export async function createTestUser(userId: string = 'test_user'): Promise<{
   const drafts: Draft[] = [];
   const players: Player[] = [];
 
-  await db.transaction('rw', [db.leagues, db.drafts, db.players, db.userSettings], async () => {
+  await db.transaction('rw', [db.leagues, db.drafts, db.players, db.settings], async () => {
     // Create leagues
     const espnLeagueData = generateTestLeague(userId, 'espn', 0);
     const sleeperLeagueData = generateTestLeague(userId, 'sleeper', 1);
@@ -120,10 +120,10 @@ export async function createTestUser(userId: string = 'test_user'): Promise<{
 
     // Create user settings
     const settingsData = generateTestUserSettings(userId);
-    await db.userSettings.bulkAdd(settingsData.map(s => ({ ...s, updatedAt: new Date() })));
+    await db.settings.bulkPut(settingsData.map(s => ({ ...s, updatedAt: new Date() })));
   });
 
-  const userSettings = await db.userSettings.where('userId').equals(userId).toArray();
+  const userSettings = await db.settings.where('userId').equals(userId).toArray();
 
   return {
     userId,
@@ -179,7 +179,7 @@ export async function expectEmptyDatabase(): Promise<void> {
     db.leagues.count(),
     db.drafts.count(),
     db.players.count(),
-    db.userSettings.count()
+    db.settings.count()
   ]);
 
   expect(leagueCount).toBe(0);
@@ -194,7 +194,7 @@ export async function expectEmptyDatabase(): Promise<void> {
 export async function expectUserDataExists(userId: string): Promise<void> {
   const [leagues, settings] = await Promise.all([
     db.leagues.where('userId').equals(userId).count(),
-    db.userSettings.where('userId').equals(userId).count()
+    db.settings.where('userId').equals(userId).count()
   ]);
 
   expect(leagues).toBeGreaterThan(0);

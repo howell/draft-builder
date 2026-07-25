@@ -2,6 +2,8 @@ import { StorageAdapter } from '../interface';
 import { LocalStorageAdapter } from '../localStorage';
 import { MemoryStorageAdapter } from '../memory';
 import { SupabaseStorageAdapter } from '../supabase';
+import { DexieStorageAdapter } from '../dexie';
+import { db } from '../database-schema';
 import { createTestStorageAdapter, createStorageAdapter } from '../factory';
 
 // Import the original localStorage functions to check against
@@ -218,10 +220,20 @@ describe('Storage Adapter Contract', () => {
 
   describe('Behavior Round-Trip', () => {
     // Clear jsdom localStorage before every behavioural test to avoid cross-test leakage
-    beforeEach(() => {
+    beforeEach(async () => {
       if (typeof localStorage !== 'undefined') {
         localStorage.clear();
       }
+      // DexieStorageAdapter shares the module-level `db` singleton, so its state
+      // has to be reset explicitly (fake-indexeddb is installed in jest.setup.ts).
+      if (!db.isOpen()) {
+        await db.open();
+      }
+      await Promise.all([db.leagues.clear(), db.settings.clear()]);
+    });
+
+    afterAll(() => {
+      db.close();
     });
 
     const adapterFactories = [
@@ -232,6 +244,10 @@ describe('Storage Adapter Contract', () => {
       {
         name: 'MemoryStorageAdapter',
         create: () => new MemoryStorageAdapter()
+      },
+      {
+        name: 'DexieStorageAdapter',
+        create: () => new DexieStorageAdapter('contract-test-user')
       }
     ];
 
@@ -239,11 +255,15 @@ describe('Storage Adapter Contract', () => {
       it(`should save and load a league round-trip with ${name}`, async () => {
         const adapter: StorageAdapter = create();
 
-        const leagueId = 'rt-league';
+        // `isLeagueId` requires a numeric string, and DexieStorageAdapter
+        // normalizes into typed columns rather than storing the object verbatim,
+        // so assert the fields `PlatformLeague` actually defines. (The blob-based
+        // adapters happen to round-trip arbitrary extra keys; that is incidental,
+        // not part of the contract.)
+        const leagueId = '123456';
         const mockLeague = {
           platform: 'sleeper' as const,
-          id: leagueId,
-          name: 'Round Trip League'
+          id: leagueId
         };
 
         // Save
@@ -251,7 +271,7 @@ describe('Storage Adapter Contract', () => {
         // Load
         const loaded = await adapter.loadLeague(leagueId);
 
-        expect(loaded).toEqual(mockLeague);
+        expect(loaded).toMatchObject(mockLeague);
       });
 
       it(`should round-trip a user setting blob with ${name}`, async () => {
@@ -270,6 +290,30 @@ describe('Storage Adapter Contract', () => {
         await adapter.setUserSetting('app', 'leaguePriceMultipliers', updated);
         expect(await adapter.getUserSetting('app', 'leaguePriceMultipliers')).toEqual(updated);
       });
+
+      it(`should keep the newest value after many writes with ${name}`, async () => {
+        const adapter: StorageAdapter = create();
+
+        // Regression guard: the Dexie `settings` store used to be keyed by an
+        // auto-increment `id`, so every write appended a row and the read
+        // returned the *oldest* one. Saves appeared to succeed and silently
+        // reverted on reload — fatal for anything that writes repeatedly.
+        for (let i = 1; i <= 5; i++) {
+          await adapter.setUserSetting('app', 'writeCounter', { i });
+        }
+
+        expect(await adapter.getUserSetting('app', 'writeCounter')).toEqual({ i: 5 });
+      });
+    });
+
+    it('does not accumulate duplicate rows in the Dexie settings store', async () => {
+      const adapter = new DexieStorageAdapter('contract-test-user');
+
+      for (let i = 1; i <= 5; i++) {
+        await adapter.setUserSetting('app', 'writeCounter', { i });
+      }
+
+      expect(await db.settings.count()).toBe(1);
     });
   });
 }); 

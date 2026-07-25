@@ -223,7 +223,7 @@ export async function seedDatabase(userId: string = 'test_user_123'): Promise<vo
   try {
     console.log('🌱 Seeding database with test data...');
 
-    await db.transaction('rw', [db.leagues, db.drafts, db.players, db.userSettings], async () => {
+    await db.transaction('rw', [db.leagues, db.drafts, db.players, db.settings], async () => {
       // Create test leagues
       const espnLeagueData = generateTestLeague(userId, 'espn', 0);
       const sleeperLeagueData = generateTestLeague(userId, 'sleeper', 1);
@@ -247,7 +247,7 @@ export async function seedDatabase(userId: string = 'test_user_123'): Promise<vo
 
       // Create test user settings
       const settingsData = generateTestUserSettings(userId);
-      await db.userSettings.bulkAdd(settingsData.map(s => ({ ...s, updatedAt: new Date() })));
+      await db.settings.bulkPut(settingsData.map(s => ({ ...s, updatedAt: new Date() })));
     });
 
     // Set seeding metadata
@@ -277,7 +277,7 @@ export async function clearUserData(userId?: string): Promise<void> {
   try {
     if (userId) {
       // Clear specific user data
-      await db.transaction('rw', [db.leagues, db.drafts, db.players, db.userSettings], async () => {
+      await db.transaction('rw', [db.leagues, db.drafts, db.players, db.settings], async () => {
         const leagues = await db.leagues.where('userId').equals(userId).toArray();
         const leagueIds = leagues.map(l => l.id!);
         
@@ -287,17 +287,17 @@ export async function clearUserData(userId?: string): Promise<void> {
         await db.players.where('draftId').anyOf(draftIds).delete();
         await db.drafts.where('leagueId').anyOf(leagueIds).delete();
         await db.leagues.where('userId').equals(userId).delete();
-        await db.userSettings.where('userId').equals(userId).delete();
+        await db.settings.where('userId').equals(userId).delete();
       });
       
       console.log(`✅ Cleared data for user: ${userId}`);
     } else {
       // Clear all user data
-      await db.transaction('rw', [db.leagues, db.drafts, db.players, db.userSettings], async () => {
+      await db.transaction('rw', [db.leagues, db.drafts, db.players, db.settings], async () => {
         await db.players.clear();
         await db.drafts.clear();
         await db.leagues.clear();
-        await db.userSettings.clear();
+        await db.settings.clear();
       });
       
       console.log('✅ Cleared all user data');
@@ -347,7 +347,7 @@ export async function inspectDatabase(): Promise<{
       return acc;
     }, {} as Record<string, any>);
 
-    const tables = ['leagues', 'drafts', 'players', 'userSettings', 'appMetadata'];
+    const tables = ['leagues', 'drafts', 'players', 'settings', 'appMetadata'];
 
     return {
       isOpen,
@@ -390,7 +390,7 @@ export async function exportDatabaseToJSON(): Promise<string> {
       db.leagues.toArray(),
       db.drafts.toArray(),
       db.players.toArray(),
-      db.userSettings.toArray(),
+      db.settings.toArray(),
       db.appMetadata.toArray()
     ]);
 
