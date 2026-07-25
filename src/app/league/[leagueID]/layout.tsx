@@ -108,6 +108,7 @@ const LeagueLayout = (
     
     const currentYear = parseDraftYear(usePathname());
     const currentMock = parseMockName(usePathname());
+    const isRankingsPage = usePathname().endsWith('/rankings');
     
     const router = useRouter();
     const { loading: authLoading } = useAuth();
@@ -191,6 +192,11 @@ const LeagueLayout = (
 
                         {/* League Name Section */}
                         <h2 className="text-xl"><Link href={`/league/${leagueID}`}>{leagueName}</Link></h2>
+
+                        {/* Rankings Section */}
+                        <h2 className={`mt-2 text-xl ${isRankingsPage ? 'font-bold' : ''}`}>
+                            <Link href={`/league/${leagueID}/rankings`}>Rankings</Link>
+                        </h2>
 
                         {/* Drafts Section */}
                         <CollapsibleComponent label={<h2 className='mt-2 text-xl'>Drafts</h2>}>

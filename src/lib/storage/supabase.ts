@@ -213,13 +213,19 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     return this.withFallback(
       'getUserSetting',
       async () => {
-        const { data, error } = await this.supabase
-          .from('user_settings')
-          .select('data')
-          .eq('user_id', this.userId)
-          .eq('type', type)
-          .eq('key', key)
-          .maybeSingle();
+        // Without an explicit timeout a stalled request never settles, so
+        // withFallback never gets to reach for Dexie and any caller gated on
+        // this promise hangs indefinitely rather than degrading.
+        const { data, error } = await this.withTimeout(
+          this.supabase
+            .from('user_settings')
+            .select('data')
+            .eq('user_id', this.userId)
+            .eq('type', type)
+            .eq('key', key)
+            .maybeSingle(),
+          'getUserSetting query'
+        );
 
         if (error) {
           console.error(`[SupabaseAdapter] Supabase error in getUserSetting:`, error);
@@ -239,18 +245,21 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     return this.withFallback(
       'setUserSetting',
       async () => {
-        const { error } = await this.supabase
-          .from('user_settings')
-          .upsert({
-            user_id: this.userId,
-            type,
-            key,
-            data: data as any,
-            updated_at: new Date().toISOString(),
-          }, {
-            onConflict: 'user_id,type,key',
-            ignoreDuplicates: false,
-          });
+        const { error } = await this.withTimeout(
+          this.supabase
+            .from('user_settings')
+            .upsert({
+              user_id: this.userId,
+              type,
+              key,
+              data: data as any,
+              updated_at: new Date().toISOString(),
+            }, {
+              onConflict: 'user_id,type,key',
+              ignoreDuplicates: false,
+            }),
+          'setUserSetting upsert'
+        );
 
         if (error) {
           console.error(`[SupabaseAdapter] Supabase error in setUserSetting:`, error);

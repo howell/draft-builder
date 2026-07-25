@@ -1,0 +1,146 @@
+'use client';
+
+import React, { useCallback, useMemo } from 'react';
+import { EmptyState } from '../live-draft/components/common';
+import type { CustomRankingItem, RankablePosition } from '@/types/customRankings';
+import {
+  itemKey,
+  moveBy,
+  insertTierBefore,
+  removeTier,
+  renameTier,
+  type PoolPlayer,
+} from '@/lib/rankings/customRankings';
+import PlayerRow from './PlayerRow';
+import TierDividerRow from './TierDividerRow';
+
+export interface PositionBoardProps {
+  position: RankablePosition;
+  items: CustomRankingItem[];
+  pool: PoolPlayer[];
+  hidePlatformRank: boolean;
+  referenceLabel: string;
+  addedIds: string[];
+  onChange: (items: CustomRankingItem[]) => void;
+}
+
+const PositionBoard: React.FC<PositionBoardProps> = ({
+  position,
+  items,
+  pool,
+  hidePlatformRank,
+  referenceLabel,
+  addedIds,
+  onChange,
+}) => {
+  const playersById = useMemo(() => new Map(pool.map(p => [p.id, p])), [pool]);
+  const addedSet = useMemo(() => new Set(addedIds), [addedIds]);
+
+  // Players carry a board ordinal; tier markers do not consume a number, so the
+  // numbering a user sees runs 1..n across the whole position. Only count
+  // players that will actually render — an item with no pooled player is
+  // skipped below, and counting it would leave visible gaps in the numbering.
+  const ordinals = useMemo(() => {
+    const result = new Map<string, number>();
+    let n = 0;
+    for (const item of items) {
+      if (item.kind === 'player' && playersById.has(item.playerId)) {
+        result.set(item.playerId, ++n);
+      }
+    }
+    return result;
+  }, [items, playersById]);
+
+  const tierCounts = useMemo(() => {
+    const result = new Map<string, number>();
+    let currentTier: string | null = null;
+    for (const item of items) {
+      if (item.kind === 'tier') {
+        currentTier = item.tierId;
+        result.set(currentTier, 0);
+      } else if (currentTier) {
+        result.set(currentTier, (result.get(currentTier) ?? 0) + 1);
+      }
+    }
+    return result;
+  }, [items]);
+
+  const handleMove = useCallback(
+    (key: string, delta: 1 | -1) => onChange(moveBy(items, key, delta)),
+    [items, onChange]
+  );
+
+  if (!pool.length) {
+    return (
+      <EmptyState
+        title={`No ${position} players available`}
+        message='This league has no ranked players at this position yet.'
+      />
+    );
+  }
+
+  return (
+    <div
+      role='list'
+      aria-label={`${position} rankings`}
+      data-testid={`ranking-board-${position}`}
+      className='rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden'
+    >
+      {items.map((item, index) => {
+        const key = itemKey(item);
+        const canMoveUp = index > 0;
+        const canMoveDown = index < items.length - 1;
+
+        if (item.kind === 'tier') {
+          return (
+            <TierDividerRow
+              key={key}
+              tierId={item.tierId}
+              label={item.label?.trim() || defaultTierLabel(items, item.tierId)}
+              playerCount={tierCounts.get(item.tierId) ?? 0}
+              canMoveUp={canMoveUp}
+              canMoveDown={canMoveDown}
+              onMoveUp={() => handleMove(key, -1)}
+              onMoveDown={() => handleMove(key, 1)}
+              onRename={label => onChange(renameTier(items, item.tierId, label))}
+              onRemove={() => onChange(removeTier(items, item.tierId))}
+            />
+          );
+        }
+
+        const player = playersById.get(item.playerId);
+        if (!player) {
+          return null;
+        }
+
+        return (
+          <PlayerRow
+            key={key}
+            player={player}
+            ordinal={ordinals.get(item.playerId) ?? 0}
+            hidePlatformRank={hidePlatformRank}
+            referenceLabel={referenceLabel}
+            isNew={addedSet.has(item.playerId)}
+            canMoveUp={canMoveUp}
+            canMoveDown={canMoveDown}
+            onMoveUp={() => handleMove(key, -1)}
+            onMoveDown={() => handleMove(key, 1)}
+            onInsertTierAbove={() => onChange(insertTierBefore(items, key))}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
+function defaultTierLabel(items: CustomRankingItem[], tierId: string): string {
+  let n = 0;
+  for (const item of items) {
+    if (item.kind !== 'tier') continue;
+    n += 1;
+    if (item.tierId === tierId) break;
+  }
+  return `Tier ${n}`;
+}
+
+export default PositionBoard;
