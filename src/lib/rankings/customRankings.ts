@@ -7,7 +7,7 @@
  * drag surface itself is covered by Playwright rather than Jest.
  */
 
-import type { Platform } from '@/platforms/common';
+import type { Platform, SeasonId } from '@/platforms/common';
 import type { Player, PlayerId } from '@/platforms/PlatformApi';
 import type { Rankings } from '@/types/storage';
 import {
@@ -118,6 +118,40 @@ function comparePoolPlayers(a: PoolPlayer, b: PoolPlayer): number {
 /** A fresh board: every pooled player, in reference order, no tiers. */
 export function prefillItems(pool: PoolPlayer[]): CustomRankingItem[] {
   return pool.map(p => ({ kind: 'player', playerId: p.id }));
+}
+
+/**
+ * How far back the import picker looks for earlier boards.
+ *
+ * Storage exposes no key enumeration, so candidate seasons have to be probed by
+ * name. Four covers any realistic "I ranked this last year" case without turning
+ * the picker into a wide fan-out.
+ */
+export const IMPORTABLE_SEASON_COUNT = 4;
+
+/** `count` seasons ending at `current`, newest first. */
+export function recentSeasons(current: SeasonId, count = IMPORTABLE_SEASON_COUNT): SeasonId[] {
+  const latest = Number(current);
+  if (!Number.isFinite(latest)) {
+    return [current];
+  }
+  return Array.from({ length: count }, (_, i) => String(latest - i));
+}
+
+/**
+ * Reset the given positions back to platform order, discarding their manual
+ * ordering and tiers. Positions not listed are left untouched.
+ */
+export function resetPositions(
+  board: Partial<Record<RankablePosition, CustomRankingItem[]>>,
+  pools: PositionPools,
+  positions: readonly RankablePosition[]
+): Partial<Record<RankablePosition, CustomRankingItem[]>> {
+  const next = { ...board };
+  for (const position of positions) {
+    next[position] = prefillItems(pools[position]);
+  }
+  return next;
 }
 
 /** Stable dnd-kit id for an item. Players and tiers share one list. */

@@ -22,8 +22,8 @@ task below.
 | 6. Drag-and-drop reordering | ✅ COMPLETED |
 | 7. Tier dividers | ✅ COMPLETED |
 | 8. Hide-platform-rank toggle | ✅ COMPLETED |
-| 9. Copy from another league | 🔄 IN PROGRESS — hooks done, picker UI not built |
-| 10. Reset to platform order | ⏳ PENDING |
+| 9. Import from another league or season | ✅ COMPLETED |
+| 10. Reset to platform order | ✅ COMPLETED |
 | 11. Migrate anonymous settings on signup | ⏳ PENDING |
 | 12. Regenerate ESPN fixtures with `platformRank` | ✅ COMPLETED |
 
@@ -325,31 +325,64 @@ The toggle is only rendered when a reference ranking exists.
 
 ---
 
-## Task 9: Copy From Another League 🔄 IN PROGRESS
+## Task 9: Import From Another League or Season ✅ COMPLETED
 
-**Objective**: Seed a league's board from another league's.
+**Objective**: Seed a board from one already built — another league, an earlier season,
+or both.
 
-**Completed**:
-- ✅ `useCopyCustomRankingsMutation` — clones the source blob onto the target key
-- ✅ `useCustomRankingsIndexQuery` — lists leagues that have a saved board, with counts
-- ✅ `CrossPlatformCopyError` guard and its test
+**Files**:
+- `src/hooks/queries/useCustomRankings.ts` ✅ season-scoped keys, import mutation, source index
+- `src/app/league/[leagueID]/rankings/ImportRankingsDialog.tsx` ✅ new
+- `src/app/league/[leagueID]/rankings/RankingsToolbar.tsx` ✅ Import entry point
+- `src/app/league/[leagueID]/rankings/CustomRankings.tsx` ✅ wiring
+- `src/lib/rankings/customRankings.ts` ✅ `recentSeasons`
 
-**Remaining**:
-- ⏳ `CopyRankingsDialog.tsx` — picker listing same-platform leagues with a board
-- ⏳ Toolbar entry point and an overwrite confirmation when the target already has data
-- ⏳ E2E covering a copy between two same-platform leagues
+**Data-model change**: keys moved from `customRankings:<league>` to
+`customRankings:<league>:<season>`. Importing *from another season* is meaningless
+without it — there was previously one long-lived board per league that carried forward
+invisibly. This also resolves the season-rollover limitation the README recorded.
 
-**Notes**: no merge logic is needed. Reconciliation already runs on load, so players the
-target league does not carry get dropped and its extras get appended in rank order.
+**Deliberate decision — no migration.** Boards saved under the old unscoped key are
+orphaned rather than adopted. Chosen knowingly: the feature had only been in production
+for a few hours, so the realistic blast radius was the author's own test boards, and a
+fallback read would have been permanent complexity for a one-off.
+
+**Implementation notes**:
+- Import is a plain clone. Reconciliation already runs on load, so players the target
+  pool lacks are dropped and its extras appended — which is exactly what makes a
+  cross-season import work, since rosters turn over.
+- Sources are discovered by probing league × season, because the storage abstraction
+  exposes no key enumeration. Bounded to four seasons (`IMPORTABLE_SEASON_COUNT`) and
+  gated on the picker being open.
+- Cross-platform sources are listed but disabled with the reason shown, rather than
+  hidden — a silently missing entry reads as a bug, an explained one does not.
+- After a successful import the component clears `hydratedRef` so the board re-hydrates
+  from the imported data instead of merging into the in-memory order being replaced.
+
+**Testing**: hook tests cover cross-league copy, cross-season import (source left
+intact, target restamped), cross-platform refusal, per-season key isolation, and index
+ordering. E2E covers the empty state. The populated picker is not E2E-covered — seeding
+a second season's board requires writing storage directly from the browser context.
 
 ---
 
-## Task 10: Reset to Platform Order ⏳ PENDING
+## Task 10: Reset to Platform Order ✅ COMPLETED
 
-**Objective**: Discard a position's board and start over from the platform ranking.
+**Objective**: Discard manual ordering and tiers, back to platform order.
 
-**Plan**: `prefillItems(pool)` for the active position behind a confirmation, surfaced
-from `RankingsToolbar`. The pure function already exists and is tested; this is UI only.
+**Files**:
+- `src/app/league/[leagueID]/rankings/ResetRankingsDialog.tsx` ✅ new
+- `src/lib/rankings/customRankings.ts` ✅ `resetPositions`
+- `src/app/league/[leagueID]/rankings/RankingsToolbar.tsx` ✅ Reset entry point
+
+**Implementation**: both scopes are offered explicitly in the confirm — "Reset <POS>
+only" and "Reset all positions" — rather than inferring one. They differ by a lot of
+lost work, so the choice belongs in front of the user rather than behind a mode.
+`resetPositions` is pure and does not mutate the board it is given.
+
+**Testing**: 4 unit tests (restores order, drops tiers, leaves other positions untouched,
+no mutation) plus 2 E2E — resetting a position and reloading, and confirming a reset of
+one position leaves another's manual order intact.
 
 ---
 

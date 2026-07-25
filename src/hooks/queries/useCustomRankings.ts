@@ -15,27 +15,32 @@ import { cacheKeys } from './cache-keys';
  * table, which keeps this feature clear of the StorageAdapter interface, all
  * four adapters, the Dexie schema, and a SQL migration.
  *
- * One key per league rather than a single map of every league: a board is
- * ~250 ids per position and autosaves on every edit, so a shared blob would
- * rewrite every league's data on each keystroke-scale change and invite
- * read-modify-write clobbering across tabs.
+ * One key per league *and season*: player pools turn over every year, so a board
+ * built for one season is a starting point for the next rather than the same
+ * artifact carried forward invisibly. Season-scoping is what makes "import last
+ * season's board" a real choice instead of an implicit mutation.
+ *
+ * A single shared blob across leagues was rejected: a board is ~250 ids per
+ * position and the page autosaves on every edit, so one blob would rewrite every
+ * league's data on each change and invite read-modify-write clobbering between
+ * tabs.
  */
 const SETTING_TYPE = 'app' as const;
 
-export function customRankingsKey(leagueId: LeagueId): string {
-  return `customRankings:${leagueId}`;
+export function customRankingsKey(leagueId: LeagueId, season: SeasonId): string {
+  return `customRankings:${leagueId}:${season}`;
 }
 
-export function useCustomRankingsQuery(leagueId: LeagueId | undefined) {
+export function useCustomRankingsQuery(leagueId: LeagueId | undefined, season: SeasonId) {
   const { user, loading: authLoading } = useAuth();
   const storageAdapter = useStorageAdapter();
 
   return useQuery<StoredCustomRankings | null>({
-    queryKey: cacheKeys.customRankings(user?.id, leagueId),
+    queryKey: cacheKeys.customRankings(user?.id, leagueId, season),
     queryFn: async () => {
       const stored = await storageAdapter.getUserSetting<StoredCustomRankings>(
         SETTING_TYPE,
-        customRankingsKey(leagueId!)
+        customRankingsKey(leagueId!, season)
       );
       return stored ?? null;
     },
@@ -49,19 +54,18 @@ export function useCustomRankingsQuery(leagueId: LeagueId | undefined) {
 
 export interface SaveCustomRankingsParams {
   platform: Platform;
-  season: SeasonId;
   positions: Partial<Record<RankablePosition, CustomRankingItem[]>>;
   hidePlatformRank?: boolean;
 }
 
-export function useSaveCustomRankingsMutation(leagueId: LeagueId) {
+export function useSaveCustomRankingsMutation(leagueId: LeagueId, season: SeasonId) {
   const { user } = useAuth();
   const storageAdapter = useStorageAdapter();
   const queryClient = useQueryClient();
-  const queryKey = cacheKeys.customRankings(user?.id, leagueId);
+  const queryKey = cacheKeys.customRankings(user?.id, leagueId, season);
 
   return useMutation({
-    mutationFn: async ({ platform, season, positions, hidePlatformRank }: SaveCustomRankingsParams) => {
+    mutationFn: async ({ platform, positions, hidePlatformRank }: SaveCustomRankingsParams) => {
       const next: StoredCustomRankings = {
         schemaVersion: CUSTOM_RANKINGS_SCHEMA_VERSION,
         leagueId,
@@ -72,10 +76,10 @@ export function useSaveCustomRankingsMutation(leagueId: LeagueId) {
         positions,
       };
 
-      await storageAdapter.setUserSetting(SETTING_TYPE, customRankingsKey(leagueId), next);
+      await storageAdapter.setUserSetting(SETTING_TYPE, customRankingsKey(leagueId, season), next);
       return next;
     },
-    onMutate: async (params) => {
+    onMutate: async () => {
       // Keep the cache in step so a remount mid-edit reads the latest board
       // rather than the last persisted one.
       await queryClient.cancelQueries({ queryKey });
@@ -96,52 +100,73 @@ export function useSaveCustomRankingsMutation(leagueId: LeagueId) {
   });
 }
 
-export type CustomRankingsIndexEntry = {
+/** One saved board the user could import from. */
+export type CustomRankingsSource = {
   leagueId: LeagueId;
-  platform: Platform;
   season: SeasonId;
+  platform: Platform;
   updated: number;
   counts: Partial<Record<RankablePosition, number>>;
+  totalPlayers: number;
 };
 
 /**
- * Which of the user's leagues already have a saved board, for the "copy from
- * another league" picker. Keys are per-league so this fans out, but it only runs
- * while the picker is open and leagues number in the handful.
+ * Every saved board across the given leagues and seasons, for the import picker.
+ *
+ * The storage abstraction exposes no key enumeration, so this probes each
+ * league × season pair. That is bounded and cheap — a handful of leagues over a
+ * short season window — and only runs while the picker is open.
  */
-export function useCustomRankingsIndexQuery(leagueIds: LeagueId[], enabled: boolean) {
+export function useCustomRankingsIndexQuery(
+  leagueIds: LeagueId[],
+  seasons: SeasonId[],
+  enabled: boolean
+) {
   const { user, loading: authLoading } = useAuth();
   const storageAdapter = useStorageAdapter();
 
-  return useQuery<CustomRankingsIndexEntry[]>({
-    queryKey: [...cacheKeys.customRankingsIndex(user?.id), leagueIds],
+  return useQuery<CustomRankingsSource[]>({
+    queryKey: [...cacheKeys.customRankingsIndex(user?.id), leagueIds, seasons],
     queryFn: async () => {
+      const pairs = leagueIds.flatMap(leagueId =>
+        seasons.map(season => ({ leagueId, season }))
+      );
+
       const entries = await Promise.all(
-        leagueIds.map(async (leagueId) => {
+        pairs.map(async ({ leagueId, season }) => {
           const stored = await storageAdapter.getUserSetting<StoredCustomRankings>(
             SETTING_TYPE,
-            customRankingsKey(leagueId)
+            customRankingsKey(leagueId, season)
           );
           if (!stored) {
             return null;
           }
+
           const counts: Partial<Record<RankablePosition, number>> = {};
+          let totalPlayers = 0;
           for (const [position, items] of Object.entries(stored.positions ?? {})) {
-            counts[position as RankablePosition] = (items ?? []).filter(i => i.kind === 'player').length;
+            const playerCount = (items ?? []).filter(i => i.kind === 'player').length;
+            counts[position as RankablePosition] = playerCount;
+            totalPlayers += playerCount;
           }
+
           return {
             leagueId,
+            season,
             platform: stored.platform,
-            season: stored.season,
             updated: stored.updated,
             counts,
-          } satisfies CustomRankingsIndexEntry;
+            totalPlayers,
+          } satisfies CustomRankingsSource;
         })
       );
 
-      return entries.filter((e): e is CustomRankingsIndexEntry => e !== null);
+      return entries
+        .filter((e): e is CustomRankingsSource => e !== null)
+        // Most recently edited first — the likeliest thing to want to import.
+        .sort((a, b) => b.updated - a.updated);
     },
-    enabled: enabled && !authLoading && leagueIds.length > 0,
+    enabled: enabled && !authLoading && leagueIds.length > 0 && seasons.length > 0,
     staleTime: 60 * 1000,
   });
 }
@@ -149,35 +174,48 @@ export function useCustomRankingsIndexQuery(leagueIds: LeagueId[], enabled: bool
 export class CrossPlatformCopyError extends Error {
   constructor(sourcePlatform: Platform, targetPlatform: Platform) {
     super(
-      `Cannot copy rankings from a ${sourcePlatform} league into a ${targetPlatform} league — ` +
+      `Cannot import rankings from a ${sourcePlatform} league into a ${targetPlatform} league — ` +
       `player IDs are not shared between platforms.`
     );
     this.name = 'CrossPlatformCopyError';
   }
 }
 
+export interface ImportRankingsParams {
+  sourceLeagueId: LeagueId;
+  sourceSeason: SeasonId;
+}
+
 /**
- * Clone another league's board onto this one.
+ * Clone another saved board — a different league, an earlier season, or both —
+ * onto this one.
  *
- * No merging is needed: reconciliation runs on load, so players the target
- * league does not carry get dropped and its extras get appended in rank order.
+ * No merging is needed: reconciliation runs on load, so players the target pool
+ * does not carry get dropped and its extras get appended in rank order. That is
+ * exactly what makes importing across seasons work, since rosters turn over.
  */
-export function useCopyCustomRankingsMutation(targetLeagueId: LeagueId, targetPlatform: Platform) {
+export function useImportCustomRankingsMutation(
+  targetLeagueId: LeagueId,
+  targetSeason: SeasonId,
+  targetPlatform: Platform
+) {
   const { user } = useAuth();
   const storageAdapter = useStorageAdapter();
   const queryClient = useQueryClient();
-  const queryKey = cacheKeys.customRankings(user?.id, targetLeagueId);
+  const queryKey = cacheKeys.customRankings(user?.id, targetLeagueId, targetSeason);
 
   return useMutation({
-    mutationFn: async ({ sourceLeagueId }: { sourceLeagueId: LeagueId }) => {
+    mutationFn: async ({ sourceLeagueId, sourceSeason }: ImportRankingsParams) => {
       const source = await storageAdapter.getUserSetting<StoredCustomRankings>(
         SETTING_TYPE,
-        customRankingsKey(sourceLeagueId)
+        customRankingsKey(sourceLeagueId, sourceSeason)
       );
       if (!source) {
-        throw new Error(`No saved rankings found for league ${sourceLeagueId}`);
+        throw new Error(
+          `No saved rankings found for league ${sourceLeagueId}, season ${sourceSeason}`
+        );
       }
-      // ESPN and Sleeper ids share no namespace, so copying across platforms
+      // ESPN and Sleeper ids share no namespace, so importing across platforms
       // would drop every player and silently reset the board to a prefill.
       if (source.platform !== targetPlatform) {
         throw new CrossPlatformCopyError(source.platform, targetPlatform);
@@ -186,17 +224,22 @@ export function useCopyCustomRankingsMutation(targetLeagueId: LeagueId, targetPl
       const next: StoredCustomRankings = {
         ...source,
         leagueId: targetLeagueId,
+        season: targetSeason,
         updated: Date.now(),
       };
 
-      await storageAdapter.setUserSetting(SETTING_TYPE, customRankingsKey(targetLeagueId), next);
+      await storageAdapter.setUserSetting(
+        SETTING_TYPE,
+        customRankingsKey(targetLeagueId, targetSeason),
+        next
+      );
       return next;
     },
     onSuccess: (next) => {
       queryClient.setQueryData(queryKey, next);
     },
     onError: (error) => {
-      console.error('[useCopyCustomRankingsMutation] Copy failed:', error);
+      console.error('[useImportCustomRankingsMutation] Import failed:', error);
     },
   });
 }

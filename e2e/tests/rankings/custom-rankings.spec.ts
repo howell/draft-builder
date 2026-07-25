@@ -127,6 +127,48 @@ test.describe('Custom positional rankings', () => {
     await expect(rankings.tiers()).toHaveCount(1);
   });
 
+  test('resets one position back to platform order', async () => {
+    const originalFirst = await rankings.playerIdAt(0);
+
+    // Diverge from platform order, then reset it away.
+    await rankings.moveDown(originalFirst);
+    await rankings.insertTierAbove(await rankings.playerIdAt(2));
+    await expect(rankings.ordinal(originalFirst)).toHaveText('2');
+    await expect(rankings.tiers()).toHaveCount(1);
+
+    await rankings.openReset();
+    await rankings.resetPosition();
+
+    await expect(rankings.ordinal(originalFirst)).toHaveText('1');
+    await expect(rankings.tiers()).toHaveCount(0);
+
+    await rankings.waitForSaved();
+    await rankings.reload();
+    expect(await rankings.playerIdAt(0)).toBe(originalFirst);
+  });
+
+  test('resetting one position leaves the others alone', async () => {
+    await rankings.selectPosition('RB');
+    const rbFirst = await rankings.playerIdAt(0);
+    await rankings.moveDown(rbFirst);
+    await expect(rankings.ordinal(rbFirst)).toHaveText('2');
+    await rankings.waitForSaved();
+
+    // Reset QB only.
+    await rankings.selectPosition('QB');
+    await rankings.openReset();
+    await rankings.resetPosition();
+    await rankings.waitForSaved();
+
+    await rankings.selectPosition('RB');
+    await expect(rankings.ordinal(rbFirst)).toHaveText('2');
+  });
+
+  test('offers nothing to import when no other board exists', async () => {
+    await rankings.openImport();
+    await expect(rankings.importDialog().getByTestId('rankings-import-empty')).toBeVisible();
+  });
+
   test('is reachable from the league sidebar', async ({ page }) => {
     await page.goto(`/league/${session.leagueId}`);
 

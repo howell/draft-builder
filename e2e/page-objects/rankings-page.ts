@@ -137,6 +137,28 @@ export class RankingsPage extends BasePage {
     return this.page.locator('[data-testid^="ranking-tier-"]:not([data-testid*="-label-"]):not([data-testid*="-up-"]):not([data-testid*="-down-"]):not([data-testid*="-remove-"])');
   }
 
+  async openImport(): Promise<void> {
+    await this.page.getByTestId('rankings-open-import').click();
+    await expect(this.page.getByTestId('rankings-import-dialog')).toBeVisible();
+  }
+
+  importDialog(): Locator {
+    return this.page.getByTestId('rankings-import-dialog');
+  }
+
+  async openReset(): Promise<void> {
+    await this.page.getByTestId('rankings-open-reset').click();
+    await expect(this.page.getByTestId('rankings-reset-dialog')).toBeVisible();
+  }
+
+  async resetPosition(): Promise<void> {
+    await this.page.getByTestId('rankings-reset-position').click();
+  }
+
+  async resetAll(): Promise<void> {
+    await this.page.getByTestId('rankings-reset-all').click();
+  }
+
   async toggleHidePlatformRank(): Promise<void> {
     await this.page.getByTestId('rankings-hide-platform-rank').click();
   }

@@ -1,5 +1,7 @@
 import {
   buildRankingPool,
+  recentSeasons,
+  resetPositions,
   prefillItems,
   reconcileItems,
   itemKey,
@@ -411,5 +413,67 @@ describe('itemKey', () => {
 describe('prefillItems', () => {
   it('produces one player item per pooled player, in order', () => {
     expect(prefillItems(pool('a', 'b'))).toEqual(players('a', 'b'));
+  });
+});
+
+
+describe('recentSeasons', () => {
+  it('counts back from the current season, newest first', () => {
+    expect(recentSeasons('2026', 4)).toEqual(['2026', '2025', '2024', '2023']);
+  });
+
+  it('falls back to just the current season when it is not numeric', () => {
+    expect(recentSeasons('not-a-year')).toEqual(['not-a-year']);
+  });
+});
+
+describe('resetPositions', () => {
+  const pools = {
+    QB: pool('q1', 'q2'),
+    RB: pool('r1'),
+    WR: [] as PoolPlayer[],
+    TE: [] as PoolPlayer[],
+  };
+
+  it('restores platform order and drops tiers for the named positions', () => {
+    const board = {
+      QB: [
+        { kind: 'player', playerId: 'q2' },
+        { kind: 'tier', tierId: 'tier-1' },
+        { kind: 'player', playerId: 'q1' },
+      ] as CustomRankingItem[],
+    };
+
+    expect(resetPositions(board, pools, ['QB']).QB).toEqual(players('q1', 'q2'));
+  });
+
+  it('leaves positions it was not asked to reset alone', () => {
+    const board = {
+      QB: players('q2', 'q1'),
+      RB: players('r1'),
+    };
+
+    const next = resetPositions(board, pools, ['QB']);
+
+    expect(next.QB).toEqual(players('q1', 'q2'));
+    expect(next.RB).toBe(board.RB);
+  });
+
+  it('resets every position when given all of them', () => {
+    const board = { QB: players('q2', 'q1'), RB: [] as CustomRankingItem[] };
+
+    const next = resetPositions(board, pools, ['QB', 'RB', 'WR', 'TE']);
+
+    expect(next.QB).toEqual(players('q1', 'q2'));
+    expect(next.RB).toEqual(players('r1'));
+  });
+
+  it('does not mutate the board it is given', () => {
+    const board = { QB: players('q2', 'q1') };
+    const before = board.QB;
+
+    resetPositions(board, pools, ['QB']);
+
+    expect(board.QB).toBe(before);
   });
 });

@@ -21,7 +21,7 @@ remains.
 
 | Decision | Choice |
 | --- | --- |
-| Scope | Per league, with a "copy from another league" action |
+| Scope | Per league and season, with import from another league or season |
 | Interaction | Drag to reorder, plus tier dividers |
 | Unranked players | Prefill the whole pool from platform order |
 | Positions | QB / RB / WR / TE only (no overall board, no K/DST/FLEX) |
@@ -33,7 +33,7 @@ remains.
 ```
 src/types/customRankings.ts            persisted types + RANKABLE_POSITIONS
 src/lib/rankings/customRankings.ts     pure pool/reorder/tier operations (no React)
-src/hooks/queries/useCustomRankings.ts React Query read/write/copy hooks
+src/hooks/queries/useCustomRankings.ts React Query read/write/import hooks
 src/rankings/loadRankings.ts           shared ranking assembly (extracted, see below)
 src/app/league/[leagueID]/rankings/
   page.tsx                             server page; isLeagueId + GOOGLE_API_KEY guards
@@ -43,6 +43,8 @@ src/app/league/[leagueID]/rankings/
   SortableRow.tsx                      dnd-kit wrapper; supplies a drag handle
   PlayerRow.tsx                        one player row
   TierDividerRow.tsx                   one tier marker row
+  ImportRankingsDialog.tsx             picker for cloning another saved board
+  ResetRankingsDialog.tsx              confirm for discarding back to platform order
 ```
 
 ### Data model: tier dividers are items, not containers
@@ -76,20 +78,23 @@ This was chosen over tiers-as-containers and over index-based tier breaks becaus
 Deleting a tier removes only its marker, so its players merge into the preceding tier —
 the behaviour users expect.
 
-### Storage: `user_settings` blob, one key per league
+### Storage: `user_settings` blob, one key per league and season
 
 Boards persist through the existing `StorageAdapter.getUserSetting`/`setUserSetting`
-with `type: 'app'` and key `customRankings:<leagueId>`. This deliberately avoids a
+with `type: 'app'` and key `customRankings:<leagueId>:<season>`. This deliberately avoids a
 `StorageAdapter` interface change, all four adapter implementations, a new
 `UserSettingType`, a Dexie schema bump, a SQL migration, the migration service, and the
 adapter contract suite.
 
-One key **per league** rather than a single map of all leagues: a board is ~250 ids per
-position and the page autosaves on every edit, so a shared blob would rewrite every
-league's data on each change and invite read-modify-write clobbering between tabs. The
-cost is that the copy picker cannot see which leagues have data from a single read,
-which is what `useCustomRankingsIndexQuery` is for — it fans out over the user's leagues
-and only runs while the picker is open.
+One key **per league and season** rather than a single map: a board is ~250 ids per
+position and the page autosaves on every edit, so a shared blob would rewrite everything
+on each change and invite read-modify-write clobbering between tabs. Season-scoping is
+also what makes "import last season's board" a real choice rather than one long-lived
+board mutating in place as rosters turn over.
+
+The cost is that the import picker cannot discover sources from a single read, which is
+what `useCustomRankingsIndexQuery` is for — it probes league × season over a bounded
+window and only runs while the picker is open.
 
 ### Pool construction and sizing
 
@@ -134,8 +139,9 @@ user's ordering survives and can be retried.
   `TouchSensor` (200ms hold — without it, touch-dragging swallows page scroll and the
   board becomes unscrollable on a phone), `KeyboardSensor` with
   `sortableKeyboardCoordinates`, plus position-aware drag announcements.
-- Every row also carries **Move up / Move down** buttons. These are the mobile path, the
-  screen-reader path, and the only reorder path testable under this repo's jsdom setup.
+- Every row also carries **Move up / Move down** buttons — the mobile path, the
+  screen-reader path, and the reorder path that jsdom can exercise (dnd-kit's sensors
+  cannot).
 - The platform rank column is **removed from the DOM** when hidden rather than visually
   hidden, so the accessibility tree and the visual layout agree.
 - A dragged row gets `z-index: 60` so it renders above the fixed sidebar at `z-50`.
@@ -214,14 +220,18 @@ degrading. This is what made the rankings page hang whenever Supabase was slow.
   survive account creation. This is the same pre-existing gap `useLeaguePriceMultipliers`
   has, and was accepted for v1 rather than expanding the blast radius into the migration
   service. See [implementation-tasks.md](./implementation-tasks.md) Task 10.
-- **Cross-platform copy is refused.** ESPN and Sleeper player ids share no namespace, so
-  a cross-platform copy would drop every player and present as an empty board rather than
-  an error. `useCopyCustomRankingsMutation` throws `CrossPlatformCopyError` instead.
-  Name-based matching would be needed to support it.
-- **Season rollover.** `CURRENT_SEASON` flips in March with no deploy, so a board written
-  one season persists into the next. The stored blob carries `season`; reconciliation
-  drops retirees and appends rookies, but no "carried over from last season" notice is
-  shown yet.
+- **Cross-platform import is refused.** ESPN and Sleeper player ids share no namespace,
+  so importing across platforms would drop every player and present as an empty board
+  rather than an error. `useImportCustomRankingsMutation` throws `CrossPlatformCopyError`,
+  and the picker lists such sources disabled with the reason shown. Name-based matching
+  would be needed to support it.
+- **Boards saved before season-scoping are orphaned.** Keys moved from
+  `customRankings:<league>` to `customRankings:<league>:<season>` with no migration, a
+  decision taken while the feature had been in production only a few hours. Anything
+  saved under the old key is unreachable.
+- **Import sources are probed, not enumerated.** Storage exposes no key listing, so the
+  picker checks a fixed four-season window (`IMPORTABLE_SEASON_COUNT`). A board older
+  than that will not appear.
 - **Position drift.** Using `player.position` means an ESPN reclassification moves a
   player between boards and loses their manual placement. Reconciliation handles it
   correctly, but the placement is not recoverable.

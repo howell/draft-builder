@@ -12,7 +12,7 @@ export { usePlayerValuesQuery } from './usePlayerValuesQuery';
 export {
   useCustomRankingsQuery,
   useSaveCustomRankingsMutation,
-  useCopyCustomRankingsMutation,
+  useImportCustomRankingsMutation,
   useCustomRankingsIndexQuery,
   customRankingsKey,
   CrossPlatformCopyError,
@@ -28,5 +28,6 @@ export type { UserDraftsData } from './useDraftsQuery';
 export type { MockDraft } from './useMockDraftsQuery';
 export type {
   SaveCustomRankingsParams,
-  CustomRankingsIndexEntry,
+  ImportRankingsParams,
+  CustomRankingsSource,
 } from './useCustomRankings';

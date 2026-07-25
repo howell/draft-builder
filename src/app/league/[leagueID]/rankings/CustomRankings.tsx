@@ -14,8 +14,12 @@ import {
   useRankingsQuery,
   useCustomRankingsQuery,
   useSaveCustomRankingsMutation,
+  useCustomRankingsIndexQuery,
+  useImportCustomRankingsMutation,
 } from '@/hooks/queries';
 import { useLeagueQuery } from '@/hooks/queries/useLeagueQuery';
+import { useLeaguesQuery } from '@/hooks/queries/useLeaguesQuery';
+import type { CustomRankingsSource } from '@/hooks/queries/useCustomRankings';
 import {
   RANKABLE_POSITIONS,
   type CustomRankingItem,
@@ -24,10 +28,14 @@ import {
 import {
   buildRankingPool,
   reconcileItems,
+  recentSeasons,
+  resetPositions,
   type PositionPools,
 } from '@/lib/rankings/customRankings';
 import RankingsToolbar, { type SaveState } from './RankingsToolbar';
 import PositionBoard from './PositionBoard';
+import ImportRankingsDialog from './ImportRankingsDialog';
+import ResetRankingsDialog from './ResetRankingsDialog';
 
 export type CustomRankingsProps = {
   leagueId: LeagueId;
@@ -54,13 +62,15 @@ const CustomRankings: React.FC<CustomRankingsProps> = ({ leagueId, googleApiKey 
   );
 
   const rankingsQuery = useRankingsQuery(leagueId, league, googleApiKey, scoringType, players);
-  const storedQuery = useCustomRankingsQuery(leagueId);
-  const saveMutation = useSaveCustomRankingsMutation(leagueId);
+  const storedQuery = useCustomRankingsQuery(leagueId, CURRENT_SEASON);
+  const saveMutation = useSaveCustomRankingsMutation(leagueId, CURRENT_SEASON);
 
   const [selectedPosition, setSelectedPosition] = useState<RankablePosition>('QB');
   const [hidePlatformRank, setHidePlatformRank] = useState(false);
   const [board, setBoard] = useState<BoardState | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [importOpen, setImportOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
   const hydratedRef = useRef(false);
 
   // The first available ranking is the reference: for ESPN that is the
@@ -116,7 +126,6 @@ const CustomRankings: React.FC<CustomRankingsProps> = ({ leagueId, googleApiKey 
       saveMutation.mutate(
         {
           platform: league.platform,
-          season: CURRENT_SEASON,
           positions: nextBoard,
           hidePlatformRank: nextHideRank,
         },
@@ -181,6 +190,60 @@ const CustomRankings: React.FC<CustomRankingsProps> = ({ leagueId, googleApiKey 
     });
   }, [board]);
 
+  // Import sources are probed across the user's leagues and a short season
+  // window; the query stays disabled until the picker is actually open.
+  const leaguesQuery = useLeaguesQuery();
+  const importableLeagueIds = useMemo(
+    // Stored leagues are a map keyed by league id (see getAvailableLeagues in
+    // the league layout), so the keys are the ids.
+    () => Object.keys(leaguesQuery.data?.leagues?.leagues ?? {}),
+    [leaguesQuery.data]
+  );
+  const importSeasons = useMemo(() => recentSeasons(CURRENT_SEASON), []);
+  const sourcesQuery = useCustomRankingsIndexQuery(
+    importableLeagueIds,
+    importSeasons,
+    importOpen
+  );
+  const importMutation = useImportCustomRankingsMutation(
+    leagueId,
+    CURRENT_SEASON,
+    league?.platform ?? 'espn'
+  );
+
+  const handleImport = useCallback(
+    (source: CustomRankingsSource) => {
+      importMutation.mutate(
+        { sourceLeagueId: source.leagueId, sourceSeason: source.season },
+        {
+          onSuccess: () => {
+            // Re-hydrate from the imported board rather than merging it into the
+            // in-memory one, which still holds the order being replaced.
+            hydratedRef.current = false;
+            pendingRef.current = null;
+            setImportOpen(false);
+          },
+        }
+      );
+    },
+    [importMutation]
+  );
+
+  const handleReset = useCallback(
+    (positions: readonly RankablePosition[]) => {
+      if (!pools) {
+        return;
+      }
+      setBoard(prev => {
+        const next = resetPositions(prev ?? {}, pools, positions);
+        pendingRef.current = { board: next, hideRank: hidePlatformRank };
+        return next;
+      });
+      setResetOpen(false);
+    },
+    [pools, hidePlatformRank]
+  );
+
   const error = leagueQuery.error || playersQuery.error || historyQuery.error || storedQuery.error;
   if (error) {
     return <ErrorScreen message={error.message} />;
@@ -228,6 +291,8 @@ const CustomRankings: React.FC<CustomRankingsProps> = ({ leagueId, googleApiKey 
               hasReferenceRanking={!!reference}
               referenceLabel={typeof reference?.shortName === 'string' ? reference.shortName : 'Rank'}
               saveState={saveState}
+              onOpenImport={() => setImportOpen(true)}
+              onOpenReset={() => setResetOpen(true)}
             />
 
             <PositionBoard
@@ -240,6 +305,29 @@ const CustomRankings: React.FC<CustomRankingsProps> = ({ leagueId, googleApiKey 
               onChange={items => updateItems(selectedPosition, items)}
             />
           </>
+        )}
+
+        {importOpen && league && (
+          <ImportRankingsDialog
+            sources={sourcesQuery.data}
+            loading={sourcesQuery.isLoading}
+            targetLeagueId={leagueId}
+            targetSeason={CURRENT_SEASON}
+            targetPlatform={league.platform}
+            targetHasBoard={!!storedQuery.data}
+            importing={importMutation.isPending}
+            error={importMutation.error?.message}
+            onImport={handleImport}
+            onClose={() => setImportOpen(false)}
+          />
+        )}
+
+        {resetOpen && (
+          <ResetRankingsDialog
+            position={selectedPosition}
+            onReset={handleReset}
+            onClose={() => setResetOpen(false)}
+          />
         )}
       </div>
     </LoadingScreen>

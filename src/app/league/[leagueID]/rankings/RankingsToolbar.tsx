@@ -15,6 +15,8 @@ export interface RankingsToolbarProps {
   hasReferenceRanking: boolean;
   referenceLabel: string;
   saveState: SaveState;
+  onOpenImport: () => void;
+  onOpenReset: () => void;
 }
 
 const SAVE_LABELS: Record<SaveState, string> = {
@@ -40,6 +42,8 @@ const RankingsToolbar: React.FC<RankingsToolbarProps> = ({
   hasReferenceRanking,
   referenceLabel,
   saveState,
+  onOpenImport,
+  onOpenReset,
 }) => {
   return (
     <div className='flex flex-wrap items-center gap-3 mb-4'>
@@ -66,7 +70,24 @@ const RankingsToolbar: React.FC<RankingsToolbarProps> = ({
         })}
       </div>
 
-      <div className='flex items-center gap-4 ml-auto'>
+      <div className='flex items-center gap-2 ml-auto'>
+        <button
+          type='button'
+          data-testid='rankings-open-import'
+          onClick={onOpenImport}
+          className='px-2.5 py-1.5 rounded-md text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+        >
+          Import
+        </button>
+        <button
+          type='button'
+          data-testid='rankings-open-reset'
+          onClick={onOpenReset}
+          className='px-2.5 py-1.5 rounded-md text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+        >
+          Reset
+        </button>
+
         {hasReferenceRanking && (
           <button
             type='button'

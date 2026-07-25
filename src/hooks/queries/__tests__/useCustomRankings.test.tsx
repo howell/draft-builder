@@ -8,7 +8,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   useCustomRankingsQuery,
   useSaveCustomRankingsMutation,
-  useCopyCustomRankingsMutation,
+  useImportCustomRankingsMutation,
   useCustomRankingsIndexQuery,
   customRankingsKey,
   CrossPlatformCopyError,
@@ -32,6 +32,8 @@ jest.mock('@/lib/storage/hooks', () => ({
 const TEST_USER = { id: 'user-1' };
 const LEAGUE = '111';
 const OTHER_LEAGUE = '222';
+const SEASON = '2026';
+const PRIOR_SEASON = '2025';
 
 function makeWrapper() {
   const queryClient = new QueryClient({
@@ -52,7 +54,7 @@ function board(overrides: Partial<StoredCustomRankings> = {}): StoredCustomRanki
     schemaVersion: 1,
     leagueId: LEAGUE,
     platform: 'espn',
-    season: '2026',
+    season: SEASON,
     updated: 1,
     positions: { QB: [{ kind: 'player', playerId: 'a' }] },
     ...overrides,
@@ -67,7 +69,7 @@ beforeEach(() => {
 describe('useCustomRankingsQuery', () => {
   it('returns null when the league has no saved board', async () => {
     const { wrapper } = makeWrapper();
-    const { result } = renderHook(() => useCustomRankingsQuery(LEAGUE), { wrapper });
+    const { result } = renderHook(() => useCustomRankingsQuery(LEAGUE, SEASON), { wrapper });
 
     await settle();
     expect(result.current.data).toBeNull();
@@ -75,20 +77,36 @@ describe('useCustomRankingsQuery', () => {
 
   it('returns the stored board', async () => {
     const stored = board();
-    await adapter.setUserSetting('app', customRankingsKey(LEAGUE), stored);
+    await adapter.setUserSetting('app', customRankingsKey(LEAGUE, SEASON), stored);
 
     const { wrapper } = makeWrapper();
-    const { result } = renderHook(() => useCustomRankingsQuery(LEAGUE), { wrapper });
+    const { result } = renderHook(() => useCustomRankingsQuery(LEAGUE, SEASON), { wrapper });
 
     await settle();
     expect(result.current.data).toEqual(stored);
   });
 
   it('keeps each league under its own key', async () => {
-    await adapter.setUserSetting('app', customRankingsKey(OTHER_LEAGUE), board({ leagueId: OTHER_LEAGUE }));
+    await adapter.setUserSetting('app', customRankingsKey(OTHER_LEAGUE, SEASON), board({ leagueId: OTHER_LEAGUE }));
 
     const { wrapper } = makeWrapper();
-    const { result } = renderHook(() => useCustomRankingsQuery(LEAGUE), { wrapper });
+    const { result } = renderHook(() => useCustomRankingsQuery(LEAGUE, SEASON), { wrapper });
+
+    await settle();
+    expect(result.current.data).toBeNull();
+  });
+
+  it('keeps each season under its own key', async () => {
+    // Pools turn over yearly, so last season's board must not silently surface
+    // as this season's.
+    await adapter.setUserSetting(
+      'app',
+      customRankingsKey(LEAGUE, PRIOR_SEASON),
+      board({ season: PRIOR_SEASON })
+    );
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useCustomRankingsQuery(LEAGUE, SEASON), { wrapper });
 
     await settle();
     expect(result.current.data).toBeNull();
@@ -96,7 +114,7 @@ describe('useCustomRankingsQuery', () => {
 
   it('stays disabled without a league id', async () => {
     const { wrapper } = makeWrapper();
-    const { result } = renderHook(() => useCustomRankingsQuery(undefined), { wrapper });
+    const { result } = renderHook(() => useCustomRankingsQuery(undefined, SEASON), { wrapper });
 
     await settle();
     expect(result.current.fetchStatus).toBe('idle');
@@ -106,17 +124,16 @@ describe('useCustomRankingsQuery', () => {
 describe('useSaveCustomRankingsMutation', () => {
   it('persists the board under the league key', async () => {
     const { wrapper } = makeWrapper();
-    const { result } = renderHook(() => useSaveCustomRankingsMutation(LEAGUE), { wrapper });
+    const { result } = renderHook(() => useSaveCustomRankingsMutation(LEAGUE, SEASON), { wrapper });
 
     await act(async () => {
       await result.current.mutateAsync({
         platform: 'espn',
-        season: '2026',
         positions: { WR: [{ kind: 'player', playerId: 'w1' }] },
       });
     });
 
-    const stored = await adapter.getUserSetting<StoredCustomRankings>('app', customRankingsKey(LEAGUE));
+    const stored = await adapter.getUserSetting<StoredCustomRankings>('app', customRankingsKey(LEAGUE, SEASON));
     expect(stored?.positions.WR).toEqual([{ kind: 'player', playerId: 'w1' }]);
     expect(stored?.leagueId).toBe(LEAGUE);
     expect(stored?.schemaVersion).toBe(1);
@@ -124,58 +141,88 @@ describe('useSaveCustomRankingsMutation', () => {
 
   it('overwrites rather than appending on repeated saves', async () => {
     const { wrapper } = makeWrapper();
-    const { result } = renderHook(() => useSaveCustomRankingsMutation(LEAGUE), { wrapper });
+    const { result } = renderHook(() => useSaveCustomRankingsMutation(LEAGUE, SEASON), { wrapper });
 
     for (const playerId of ['a', 'b', 'c']) {
       await act(async () => {
         await result.current.mutateAsync({
           platform: 'espn',
-          season: '2026',
           positions: { QB: [{ kind: 'player', playerId }] },
         });
       });
     }
 
-    const stored = await adapter.getUserSetting<StoredCustomRankings>('app', customRankingsKey(LEAGUE));
+    const stored = await adapter.getUserSetting<StoredCustomRankings>('app', customRankingsKey(LEAGUE, SEASON));
     expect(stored?.positions.QB).toEqual([{ kind: 'player', playerId: 'c' }]);
   });
 
   it('round-trips the hide-platform-rank preference', async () => {
     const { wrapper } = makeWrapper();
-    const { result } = renderHook(() => useSaveCustomRankingsMutation(LEAGUE), { wrapper });
+    const { result } = renderHook(() => useSaveCustomRankingsMutation(LEAGUE, SEASON), { wrapper });
 
     await act(async () => {
       await result.current.mutateAsync({
         platform: 'espn',
-        season: '2026',
         positions: {},
         hidePlatformRank: true,
       });
     });
 
-    const stored = await adapter.getUserSetting<StoredCustomRankings>('app', customRankingsKey(LEAGUE));
+    const stored = await adapter.getUserSetting<StoredCustomRankings>('app', customRankingsKey(LEAGUE, SEASON));
     expect(stored?.hidePlatformRank).toBe(true);
   });
 });
 
-describe('useCopyCustomRankingsMutation', () => {
+describe('useImportCustomRankingsMutation', () => {
   it('clones a same-platform board onto the target league', async () => {
     await adapter.setUserSetting(
       'app',
-      customRankingsKey(OTHER_LEAGUE),
+      customRankingsKey(OTHER_LEAGUE, SEASON),
       board({ leagueId: OTHER_LEAGUE, positions: { RB: [{ kind: 'player', playerId: 'r1' }] } })
     );
 
     const { wrapper } = makeWrapper();
-    const { result } = renderHook(() => useCopyCustomRankingsMutation(LEAGUE, 'espn'), { wrapper });
+    const { result } = renderHook(() => useImportCustomRankingsMutation(LEAGUE, SEASON, 'espn'), { wrapper });
 
     await act(async () => {
-      await result.current.mutateAsync({ sourceLeagueId: OTHER_LEAGUE });
+      await result.current.mutateAsync({ sourceLeagueId: OTHER_LEAGUE, sourceSeason: SEASON });
     });
 
-    const stored = await adapter.getUserSetting<StoredCustomRankings>('app', customRankingsKey(LEAGUE));
+    const stored = await adapter.getUserSetting<StoredCustomRankings>('app', customRankingsKey(LEAGUE, SEASON));
     expect(stored?.positions.RB).toEqual([{ kind: 'player', playerId: 'r1' }]);
     expect(stored?.leagueId).toBe(LEAGUE);
+  });
+
+  it('imports an earlier season of the same league', async () => {
+    await adapter.setUserSetting(
+      'app',
+      customRankingsKey(LEAGUE, PRIOR_SEASON),
+      board({ season: PRIOR_SEASON, positions: { TE: [{ kind: 'player', playerId: 't1' }] } })
+    );
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useImportCustomRankingsMutation(LEAGUE, SEASON, 'espn'),
+      { wrapper }
+    );
+
+    await act(async () => {
+      await result.current.mutateAsync({ sourceLeagueId: LEAGUE, sourceSeason: PRIOR_SEASON });
+    });
+
+    const stored = await adapter.getUserSetting<StoredCustomRankings>(
+      'app',
+      customRankingsKey(LEAGUE, SEASON)
+    );
+    expect(stored?.positions.TE).toEqual([{ kind: 'player', playerId: 't1' }]);
+    // Stamped as this season, not the source's.
+    expect(stored?.season).toBe(SEASON);
+    // The source is left intact.
+    const source = await adapter.getUserSetting<StoredCustomRankings>(
+      'app',
+      customRankingsKey(LEAGUE, PRIOR_SEASON)
+    );
+    expect(source?.positions.TE).toEqual([{ kind: 'player', playerId: 't1' }]);
   });
 
   it('refuses a cross-platform copy instead of silently emptying the board', async () => {
@@ -183,29 +230,29 @@ describe('useCopyCustomRankingsMutation', () => {
     // during reconciliation and the board would reset to a prefill.
     await adapter.setUserSetting(
       'app',
-      customRankingsKey(OTHER_LEAGUE),
+      customRankingsKey(OTHER_LEAGUE, SEASON),
       board({ leagueId: OTHER_LEAGUE, platform: 'sleeper' })
     );
 
     const { wrapper } = makeWrapper();
-    const { result } = renderHook(() => useCopyCustomRankingsMutation(LEAGUE, 'espn'), { wrapper });
+    const { result } = renderHook(() => useImportCustomRankingsMutation(LEAGUE, SEASON, 'espn'), { wrapper });
 
     await expect(
       act(async () => {
-        await result.current.mutateAsync({ sourceLeagueId: OTHER_LEAGUE });
+        await result.current.mutateAsync({ sourceLeagueId: OTHER_LEAGUE, sourceSeason: SEASON });
       })
     ).rejects.toBeInstanceOf(CrossPlatformCopyError);
 
-    expect(await adapter.getUserSetting('app', customRankingsKey(LEAGUE))).toBeUndefined();
+    expect(await adapter.getUserSetting('app', customRankingsKey(LEAGUE, SEASON))).toBeUndefined();
   });
 
   it('errors when the source league has no board', async () => {
     const { wrapper } = makeWrapper();
-    const { result } = renderHook(() => useCopyCustomRankingsMutation(LEAGUE, 'espn'), { wrapper });
+    const { result } = renderHook(() => useImportCustomRankingsMutation(LEAGUE, SEASON, 'espn'), { wrapper });
 
     await expect(
       act(async () => {
-        await result.current.mutateAsync({ sourceLeagueId: OTHER_LEAGUE });
+        await result.current.mutateAsync({ sourceLeagueId: OTHER_LEAGUE, sourceSeason: SEASON });
       })
     ).rejects.toThrow(/No saved rankings/);
   });
@@ -215,7 +262,7 @@ describe('useCustomRankingsIndexQuery', () => {
   it('lists only leagues that have a saved board, with player counts', async () => {
     await adapter.setUserSetting(
       'app',
-      customRankingsKey(OTHER_LEAGUE),
+      customRankingsKey(OTHER_LEAGUE, SEASON),
       board({
         leagueId: OTHER_LEAGUE,
         positions: {
@@ -226,7 +273,7 @@ describe('useCustomRankingsIndexQuery', () => {
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(
-      () => useCustomRankingsIndexQuery([LEAGUE, OTHER_LEAGUE], true),
+      () => useCustomRankingsIndexQuery([LEAGUE, OTHER_LEAGUE], [SEASON], true),
       { wrapper }
     );
 
@@ -238,10 +285,32 @@ describe('useCustomRankingsIndexQuery', () => {
     expect(result.current.data?.[0].counts.QB).toBe(2);
   });
 
+  it('finds boards across both leagues and seasons, newest first', async () => {
+    await adapter.setUserSetting(
+      'app', customRankingsKey(LEAGUE, PRIOR_SEASON), board({ season: PRIOR_SEASON, updated: 1 }));
+    await adapter.setUserSetting(
+      'app', customRankingsKey(OTHER_LEAGUE, SEASON), board({ leagueId: OTHER_LEAGUE, updated: 5 }));
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useCustomRankingsIndexQuery([LEAGUE, OTHER_LEAGUE], [SEASON, PRIOR_SEASON], true),
+      { wrapper }
+    );
+
+    await settle();
+
+    expect(result.current.data).toHaveLength(2);
+    expect(result.current.data?.map(e => [e.leagueId, e.season])).toEqual([
+      [OTHER_LEAGUE, SEASON],
+      [LEAGUE, PRIOR_SEASON],
+    ]);
+    expect(result.current.data?.[0].totalPlayers).toBe(1);
+  });
+
   it('does not run until enabled', async () => {
     const { wrapper } = makeWrapper();
     const { result } = renderHook(
-      () => useCustomRankingsIndexQuery([LEAGUE], false),
+      () => useCustomRankingsIndexQuery([LEAGUE], [SEASON], false),
       { wrapper }
     );
 
