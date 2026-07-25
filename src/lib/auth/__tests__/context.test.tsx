@@ -356,6 +356,35 @@ describe('useAuth Hook - Reference Stability', () => {
     });
   });
 
+  describe('failed session restore', () => {
+    // The watchdog used to fall through to the anonymous state, which handed a
+    // possibly-signed-in user the shared anonymous Dexie store. Identity is unknown
+    // here, not absent, so the adapter must be inert.
+    it('hands out an inert adapter, not the shared anonymous store', async () => {
+      jest.useFakeTimers();
+      try {
+        // getSession hangs — the case the watchdog exists for.
+        mockSupabase.auth.getSession.mockImplementation(() => new Promise(() => {}));
+
+        const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+
+        // Before the watchdog: still loading, still inert.
+        expect(result.current.loading).toBe(true);
+        expect(result.current.storageAdapter.constructor.name).toBe('MemoryStorageAdapter');
+
+        await act(async () => { jest.advanceTimersByTime(5000); });
+
+        // After the watchdog: no longer loading, but identity never resolved.
+        expect(result.current.loading).toBe(false);
+        expect(result.current.error).toMatch(/could not restore your session/i);
+        expect(result.current.storageAdapter.constructor.name).toBe('MemoryStorageAdapter');
+        expect(result.current.storageAdapter.constructor.name).not.toBe('DexieStorageAdapter');
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+  });
+
   describe('onAuthStateChange deadlock guard', () => {
     // Regression guard. auth-js awaits every subscriber
     // (`_notifyAllSubscribers` -> `await x.callback(...)`) and, on a fresh document

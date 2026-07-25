@@ -13,6 +13,14 @@ interface AuthState {
   session: Session | null;
   loading: boolean;
   error: string | null;
+  /**
+   * Session restore failed outright (watchdog timeout or a getSession error), as
+   * opposed to resolving cleanly to "no user". Both leave `user` null, but they mean
+   * different things: the first is "we don't know who this is", the second is "this
+   * is a genuine anonymous visitor". Only the second may safely read the shared
+   * anonymous local store — see the adapter selection below.
+   */
+  sessionRestoreFailed: boolean;
 }
 
 // Authentication context interface
@@ -44,18 +52,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     session: null,
     loading: true,
     error: null,
+    sessionRestoreFailed: false,
   });
 
   // Create storage adapter based on current auth state.
   // - Server-side: MemoryStorageAdapter (no IndexedDB/Supabase available)
+  // - Identity not yet known: MemoryStorageAdapter (inert — see below)
   // - Authenticated: SupabaseStorageAdapter with Dexie fallback for offline
-  // - Anonymous / loading: DexieStorageAdapter (better performance than localStorage)
+  // - Anonymous: DexieStorageAdapter (better performance than localStorage)
   const storageAdapter = useMemo(() => {
     if (typeof window === 'undefined') {
       return new MemoryStorageAdapter();
     }
 
-    if (authState.user && !authState.loading) {
+    // Identity unknown: session restore is still in flight, or it failed. Hand out an
+    // inert, empty adapter rather than the shared anonymous Dexie store.
+    //
+    // Handing out the anonymous store here is what caused the stale-mock-draft bug:
+    // a signed-in user whose restore hadn't finished (or had timed out) would read a
+    // *different* store's leftover local data, render it as their own, and — because
+    // the consumer then autosaved — write it back over the real thing. Reading empty
+    // is recoverable; reading someone else's data and persisting it is not.
+    if (authState.loading || authState.sessionRestoreFailed) {
+      return new MemoryStorageAdapter();
+    }
+
+    if (authState.user) {
       return createStorageAdapter({
         type: 'supabase',
         supabase: supabase,
@@ -64,11 +86,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
     }
 
+    // Resolved cleanly to no user — a genuine anonymous visitor, who owns this store.
     return createStorageAdapter({
       type: 'dexie',
       userId: 'anonymous',
     });
-  }, [authState.user, authState.loading]);
+  }, [authState.user, authState.loading, authState.sessionRestoreFailed]);
 
   // Ensure user record exists in our database
   const ensureUserRecord = useCallback(async (user: User) => {
@@ -95,15 +118,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     // Watchdog: supabase-js auth calls can hang indefinitely (stale/corrupt
     // stored token, or the Navigator LockManager lock held by a wedged tab).
-    // Degrade to the anonymous state instead of an infinite loading spinner;
-    // if getSession() eventually resolves, the normal state update below (or
+    // Clear the loading state instead of showing an infinite spinner; if
+    // getSession() eventually resolves, the normal state update below (or
     // onAuthStateChange) still applies the session.
+    //
+    // This marks the restore as *failed* rather than falling through to the
+    // anonymous state. Identity is unknown here, not "absent" — treating it as
+    // anonymous handed a possibly-signed-in user the shared local store.
+    //
+    // console.warn, not error: in dev, console.error pops the Next error overlay,
+    // whose "Console Error" text trips e2e assertions that scan for /error/i.
     const watchdog = setTimeout(() => {
-      console.error('[AuthContext] getSession timed out; continuing without a session');
+      console.warn('[AuthContext] getSession timed out; continuing without a session');
       setAuthState(prev => (prev.loading
         ? {
             ...prev,
             loading: false,
+            sessionRestoreFailed: true,
             error: 'Could not restore your session. Close other tabs of this site or clear site data, then reload.',
           }
         : prev));
@@ -120,6 +151,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setAuthState(prev => ({
             ...prev,
             loading: false,
+            sessionRestoreFailed: true,
             error: error.message,
           }));
           return;
@@ -133,8 +165,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const userChanged = prev.user?.id !== newUser?.id;
           const sessionChanged = prev.session?.access_token !== session?.access_token;
           const loadingChanged = prev.loading !== newLoading;
+          // A late resolve after the watchdog fired still tells us the identity, so
+          // clear the failed flag and let the real adapter take over.
+          const restoreFailedChanged = prev.sessionRestoreFailed;
 
-          if (!userChanged && !sessionChanged && !loadingChanged) {
+          if (!userChanged && !sessionChanged && !loadingChanged && !restoreFailedChanged) {
             return prev;
           }
 
@@ -143,6 +178,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             user: newUser,
             session,
             loading: newLoading,
+            sessionRestoreFailed: false,
           };
         });
 
@@ -155,6 +191,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setAuthState(prev => ({
           ...prev,
           loading: false,
+          sessionRestoreFailed: true,
           error: 'Failed to initialize authentication',
         }));
       }
@@ -185,8 +222,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const sessionChanged = prev.session?.access_token !== session?.access_token;
           const loadingChanged = prev.loading !== newLoading;
           const errorChanged = prev.error !== newError;
+          // Any auth event tells us the identity, even if the earlier restore gave up.
+          const restoreFailedChanged = prev.sessionRestoreFailed;
 
-          if (!userChanged && !sessionChanged && !loadingChanged && !errorChanged) {
+          if (!userChanged && !sessionChanged && !loadingChanged && !errorChanged && !restoreFailedChanged) {
             return prev;
           }
 
@@ -196,6 +235,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             session,
             loading: newLoading,
             error: newError,
+            sessionRestoreFailed: false,
           };
         });
 
