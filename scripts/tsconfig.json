@@ -10,11 +10,17 @@
     "resolveJsonModule": true,
     "baseUrl": "../",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": [
+        "src/*"
+      ]
     }
   },
   "ts-node": {
     "esm": false,
-    "require": ["tsconfig-paths/register"]
+    "files": true,
+    "require": [
+      "tsconfig-paths/register",
+      "./stub-static-assets.js"
+    ]
   }
 }

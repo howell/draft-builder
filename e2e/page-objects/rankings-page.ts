@@ -74,6 +74,15 @@ export class RankingsPage extends BasePage {
     return this.page.getByTestId(`ranking-platform-rank-${playerId}`);
   }
 
+  /** Every visible platform rank, in board order. */
+  async platformRanks(): Promise<number[]> {
+    const cells = await this.page
+      .locator('[data-testid^="ranking-platform-rank-"]')
+      .allTextContents();
+    // Rendered as "<label> <rank>", e.g. "Rnk 28".
+    return cells.map(text => Number(text.trim().split(/\s+/).pop()));
+  }
+
   async moveDown(playerId: string): Promise<void> {
     await this.page.getByTestId(`ranking-move-down-${playerId}`).click();
   }

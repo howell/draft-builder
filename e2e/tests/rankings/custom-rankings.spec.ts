@@ -41,6 +41,17 @@ test.describe('Custom positional rankings', () => {
     await expect(rankings.ordinal(secondId)).toHaveText('2');
   });
 
+  test('prefills in ascending platform-rank order', async () => {
+    // The ESPN fixture publishes a draft rank for ~987 of 1000 players but a
+    // nonzero auction value for only 197, so most of the board is ordered by the
+    // rank tie-break rather than by price. Before that tie-break existed those
+    // players fell back to whatever order the API returned.
+    const ranks = await rankings.platformRanks();
+
+    expect(ranks.length).toBeGreaterThan(5);
+    expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
+  });
+
   test('shows a board for every position', async () => {
     for (const position of ['RB', 'WR', 'TE']) {
       await rankings.selectPosition(position);

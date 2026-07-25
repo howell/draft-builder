@@ -225,10 +225,12 @@ degrading. This is what made the rankings page hang whenever Supabase was slow.
 - **Position drift.** Using `player.position` means an ESPN reclassification moves a
   player between boards and loses their manual placement. Reconciliation handles it
   correctly, but the placement is not recoverable.
-- **ESPN fixtures predate `platformRank`.** `e2e/fixtures/espn/fetch-players-espn.json`
-  is mapped output captured before the field existed, so E2E does not exercise the
-  dense-rank path. Regenerating requires live ESPN credentials and would rewrite
-  2025-era committed fixtures.
+- **The ESPN fixture is pinned to season 2024.** League 80193 returns 401 for 2025 and
+  2026, so credential-free regeneration can only capture 2024. That is a deliberate
+  trade: no spec asserts on ESPN player names, and keeping regeneration runnable by
+  anyone is worth more than fixture freshness. Refresh with
+  `scripts/generate-espn-players-fixture.ts` — *not* `scripts/generate-espn-fixtures.ts`,
+  which writes mapped data over the raw-shaped league fixtures (see its header).
 
 ## Testing
 

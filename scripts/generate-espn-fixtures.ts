@@ -3,6 +3,25 @@
  * Generate ESPN fixtures using the application's existing EspnApi class
  * Uses public ESPN league 80193 to create realistic test fixture data
  * Run with: npx ts-node --project scripts/tsconfig.json scripts/generate-espn-fixtures.ts
+ *
+ * ⚠️  DO NOT RUN THIS WITHOUT READING THIS FIRST.
+ *
+ * This script writes every fixture in the *mapped* PlatformApi shape, but the
+ * committed fixtures are deliberately mixed. FixtureBasedPlatformApi returns
+ * `fetch-players-espn` verbatim as `Player[]`, while it pipes `fetch-league-espn`
+ * and `fetch-league-history-espn` through `importEspnLeagueInfo` /
+ * `importEspnLeagueHistory` — so those two must stay *raw ESPN payloads*.
+ * Running this as-is overwrites them with mapped data and breaks league loading.
+ *
+ * It is also stale in two other ways: it hardcodes seasons 2024/2023 while the
+ * committed set includes 2025, and it does not produce the private-league or 403
+ * fixtures at all, so those would be left inconsistent with the rest.
+ *
+ * To refresh player data — the common case — use the targeted script instead:
+ *   scripts/generate-espn-players-fixture.ts
+ *
+ * Fixing this script properly means fetching raw payloads for the league and
+ * history endpoints rather than reusing the mapped PlatformApi methods.
  */
 
 import fs from 'fs';

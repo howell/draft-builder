@@ -25,7 +25,7 @@ task below.
 | 9. Copy from another league | 🔄 IN PROGRESS — hooks done, picker UI not built |
 | 10. Reset to platform order | ⏳ PENDING |
 | 11. Migrate anonymous settings on signup | ⏳ PENDING |
-| 12. Regenerate ESPN fixtures with `platformRank` | ⏳ PENDING |
+| 12. Regenerate ESPN fixtures with `platformRank` | ✅ COMPLETED |
 
 ---
 
@@ -372,16 +372,52 @@ existing behaviour for v1.
 
 ---
 
-## Task 12: Regenerate ESPN Fixtures With `platformRank` ⏳ PENDING
+## Task 12: Regenerate ESPN Fixtures With `platformRank` ✅ COMPLETED
 
 **Objective**: Let E2E exercise the dense-rank ordering added in Task 2.
 
-**Problem**: `e2e/fixtures/espn/fetch-players-espn.json` is mapped `Player[]` output
-captured before `platformRank` existed, so every fixture player has it undefined and the
-tie-break path is never hit in tests.
+**Files**:
+- `e2e/fixtures/espn/fetch-players-espn.json` ✅ regenerated
+- `scripts/generate-espn-players-fixture.ts` ✅ new, targeted regeneration
+- `scripts/stub-static-assets.js` ✅ new, unblocks ts-node
+- `scripts/tsconfig.json` ✅ `files: true` + the asset stub
+- `scripts/generate-espn-fixtures.ts` ✅ hazard documented
+- `e2e/tests/rankings/custom-rankings.spec.ts` ✅ rank-order assertion
 
-**Plan**: run `scripts/generate-espn-fixtures.ts`.
+**Result**:
 
-**Blocked on**: requires live ESPN credentials, and the committed fixtures are 2025-era
-while the script would capture the current season — a large diff that may break other
-specs asserting 2025 values. Needs an explicit decision before running.
+| | before | after |
+| --- | --- | --- |
+| players | 985 | 1000 |
+| nonzero auction value | 124 | 197 |
+| **with `platformRank`** | **0** | **987** |
+
+790 players now carry a rank but no price — precisely the population that used to
+fall back to arbitrary API order, and what the tie-break exists to sort.
+
+**Three things found along the way**:
+
+1. **The documented regeneration path was broken.** `scripts/generate-espn-fixtures.ts`
+   imports `EspnApi` → `src/platforms/common.ts`, which imports `.webp` logos. ts-node
+   does not load ambient `.d.ts` by default so the types failed to resolve, and once
+   that was fixed Node tried to parse the binary as JavaScript. Fixed with
+   `ts-node.files: true` plus a `require.extensions` stub for static assets. This
+   unblocks `scripts/ingest-espn-values.ts` too.
+
+2. **Running the existing script would have corrupted the fixtures.** It writes every
+   endpoint in the mapped PlatformApi shape, but the committed set is deliberately
+   mixed: `FixtureBasedPlatformApi` returns `fetch-players-espn` verbatim as `Player[]`
+   while piping `fetch-league-espn` and `fetch-league-history-espn` through
+   `importEspnLeagueInfo`/`importEspnLeagueHistory`, so those two are raw ESPN payloads.
+   Mapped data over the raw files breaks league loading. Hence a targeted script for the
+   one file that needs refreshing, and a warning header on the old one.
+
+3. **Only season 2024 is publicly readable.** League 80193 returns 401 for 2025 and
+   2026. Keeping regeneration credential-free is worth more than fixture freshness —
+   anyone can re-run it, and no spec asserts on ESPN player names (the name-dependent
+   mock-draft specs all use the Sleeper fixture). The script fails loudly rather than
+   writing a thin fixture if coverage drops below a floor.
+
+**Deviation from plan**: the plan assumed this needed live ESPN credentials and would
+rewrite 2025-era fixtures wholesale. Neither held — the source league is public, and
+scoping to the players fixture avoided the large diff entirely.
