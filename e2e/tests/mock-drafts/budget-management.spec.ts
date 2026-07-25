@@ -52,11 +52,10 @@ test.describe('Mock Draft Budget Management', () => {
     // Should show full $200 auction budget initially
     await expect(page.getByText(/budget.*200|200.*budget/i).first()).toBeVisible();
     
-    // The budget display should be present (more flexible check)
-    const budgetSection = page.locator('[data-testid="budget-display"], .budget, .auction-budget').first();
-    if (await budgetSection.count() > 0) {
-      await expect(budgetSection).toBeVisible();
-    }
+    // The budget display must be present. This was previously guarded by
+    // `if (await budgetSection.count() > 0)`, so it passed whether or not the budget
+    // display rendered at all — the assertion could not fail.
+    await expect(page.getByTestId('budget-display')).toBeVisible();
     
     // Look for any budget-related numbers (more flexible)
     const budgetText = page.getByText(/\$?\d+/).first();
@@ -183,35 +182,27 @@ test.describe('Mock Draft Budget Management', () => {
     expect(budgetAfterPlayer1).toBeLessThan(initialRemaining);
     
     // Add player 2 using robust selection (try multiple players)
-    try {
-      await mockDraftHelpers.selectPlayer('Christian McCaffrey', 'RB');
-      await mockDraftHelpers.expectPlayerSelected('Christian McCaffrey', 'RB');
-      
-      // Budget should be further reduced
-      const budgetAfterPlayer2 = await mockDraftHelpers.getBudgetRemaining();
-      expect(budgetAfterPlayer2).toBeLessThan(budgetAfterPlayer1);
-      
-      // Remove player 1 using robust clearing
-      await mockDraftHelpers.clearPlayer('QB', 0);
-      
-      // Budget should increase back up (should be same as budgetAfterPlayer1 or higher)
-      const budgetAfterRemoval = await mockDraftHelpers.getBudgetRemaining();
-      expect(budgetAfterRemoval).toBeGreaterThan(budgetAfterPlayer2);
-      
-      // Player should be removed from roster
-      const qbPlayer = await mockDraftHelpers.getSelectedPlayer('QB', 0);
-      expect(qbPlayer).toBe('');
-      
-    } catch (error) {
-      console.log('Could not select second player, testing with first player only');
-      
-      // Remove first player
-      await mockDraftHelpers.clearPlayer('QB', 0);
-      
-      // Budget should be restored close to initial
-      const budgetAfterRemoval = await mockDraftHelpers.getBudgetRemaining();
-      expect(budgetAfterRemoval).toBeGreaterThan(budgetAfterPlayer1);
-    }
+    // Previously the whole block below sat in a try/catch whose handler fell back to
+    // a weaker single-player check. The handler caught not just a failed selection but
+    // every expect() inside the try, so a genuine budget-arithmetic regression was
+    // silently downgraded to the fallback path and the test still passed.
+    await mockDraftHelpers.selectPlayer('Christian McCaffrey', 'RB');
+    await mockDraftHelpers.expectPlayerSelected('Christian McCaffrey', 'RB');
+
+    // Budget should be further reduced
+    const budgetAfterPlayer2 = await mockDraftHelpers.getBudgetRemaining();
+    expect(budgetAfterPlayer2).toBeLessThan(budgetAfterPlayer1);
+
+    // Remove player 1 using robust clearing
+    await mockDraftHelpers.clearPlayer('QB', 0);
+
+    // Budget should increase back up (should be same as budgetAfterPlayer1 or higher)
+    const budgetAfterRemoval = await mockDraftHelpers.getBudgetRemaining();
+    expect(budgetAfterRemoval).toBeGreaterThan(budgetAfterPlayer2);
+
+    // Player should be removed from roster
+    const qbPlayer = await mockDraftHelpers.getSelectedPlayer('QB', 0);
+    expect(qbPlayer).toBe('');
     
     // Final budget should still be valid
     const finalBudget = await mockDraftHelpers.getBudgetTotal();
@@ -304,12 +295,11 @@ test.describe('Mock Draft Budget Management', () => {
     await mockDraftHelpers.selectPlayer('Josh Allen', 'QB');
     await mockDraftHelpers.expectPlayerSelected('Josh Allen', 'QB');
     
-    try {
-      await mockDraftHelpers.selectPlayer('Christian McCaffrey', 'RB');
-      await mockDraftHelpers.expectPlayerSelected('Christian McCaffrey', 'RB');
-    } catch (error) {
-      console.log('Could not select RB, continuing with QB only');
-    }
+    // Not wrapped in try/catch: the player fixture is deterministic (Christian
+    // McCaffrey is in fetch-players-sleeper.json), so "could not select RB,
+    // continuing with QB only" only ever hid a real failure.
+    await mockDraftHelpers.selectPlayer('Christian McCaffrey', 'RB');
+    await mockDraftHelpers.expectPlayerSelected('Christian McCaffrey', 'RB');
     
     // Verify all budget components are visible using MockDraftHelpers
     await mockDraftHelpers.expectBudgetComponentsVisible();

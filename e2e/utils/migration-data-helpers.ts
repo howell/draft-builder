@@ -124,7 +124,8 @@ export class MigrationDataHelpers {
     // Verify navigation to league page
     const currentUrl = this.page.url();
     if (!currentUrl.includes('/league/')) {
-      await this.page.screenshot({ path: `debug-connection-failure-${Date.now()}.png`, fullPage: true });
+      // No manual screenshot: playwright.config sets screenshot: 'only-on-failure',
+      // which captures into test-results/. Writing here polluted the repo root.
       throw new Error(`League connection failed - stayed on home page instead of navigating to /league/${leagueId}`);
     }
     
@@ -144,7 +145,6 @@ export class MigrationDataHelpers {
     // Verify navigation
     const urlAfterNavigation = this.page.url();
     if (!urlAfterNavigation.includes('/mocks')) {
-      await this.page.screenshot({ path: `debug-mock-draft-navigation-${Date.now()}.png`, fullPage: true });
       throw new Error(`Failed to navigate to mock drafts page. Expected URL with /mocks but got: ${urlAfterNavigation}`);
     }
     

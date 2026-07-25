@@ -165,9 +165,6 @@ export class TestJourneys {
       });
       console.log('[NavigateToMockDrafts] Storage debug:', storageDebug);
       
-      // Take a screenshot for debugging
-      await page.screenshot({ path: 'mock-draft-error-debug.png', fullPage: true });
-      
       throw new Error(`Mock draft page shows error: ${errorText}`);
     }
     
