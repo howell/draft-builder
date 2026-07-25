@@ -151,8 +151,8 @@ Placed in `src/lib` rather than the app-router tree so hooks can import it witho
 repeating the layering mistake fixed in Task 2. Note `src/rankings/` is **not** in the
 Tailwind content globs, so UI must not live there.
 
-`nextTierId` is deterministic rather than `crypto.randomUUID()`, because `jest.setup.ts`
-stubs `global.window` and a pure generator is trivially testable.
+`nextTierId` is deterministic rather than `crypto.randomUUID()`, so tier ids are stable
+and assertable in tests.
 
 **Testing**: 37 unit tests, including that `buildRankingPool` does not mutate its input,
 tolerates `position: null` (~240 Sleeper players have it), de-duplicates a corrupted

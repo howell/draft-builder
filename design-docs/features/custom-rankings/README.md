@@ -239,9 +239,15 @@ degrading. This is what made the rankings page hang whenever Supabase was slow.
 | `src/rankings/__tests__/loadRankings.test.ts` | 6 tests — price ordering, rank tie-break, no input mutation |
 | `e2e/tests/rankings/custom-rankings.spec.ts` | 8 specs — prefill order, position switching, button/drag/keyboard reorder, and persistence of order, hidden rank and tiers across reload |
 
-The bulk of the logic is deliberately in pure functions because `jest.setup.ts` replaces
-`global.window` with a stub, which breaks React 19's value tracking and rules out testing
-the drag surface in jsdom. Drag is covered in Playwright only.
+The bulk of the logic is deliberately in pure functions so the ordering rules can be
+tested directly. Drag is covered in Playwright only: dnd-kit's sensors need pointer
+events and `getBoundingClientRect` measurement that jsdom does not provide.
+
+> Historical note: this split was originally motivated by `jest.setup.ts` replacing
+> `global.window` with a stub, which broke React 19's value tracking. `origin/main`
+> fixed that in `cd16e51`, so stateful component tests are viable again — but the
+> pure-function split is worth keeping on its own merits, and the drag surface still
+> belongs in Playwright.
 
 **E2E environment caveat.** The fixture environment has no usable Supabase, so the
 league, players, rankings and saved-board reads each spend the adapter's full 8s timeout

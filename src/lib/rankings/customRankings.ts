@@ -1,11 +1,10 @@
 /**
  * Pure operations backing the custom positional rankings board.
  *
- * Deliberately free of React and of any app-router import. This repo's
- * `jest.setup.ts` replaces `global.window` with a stub, which breaks React 19's
- * value tracking and rules out meaningfully testing the drag surface in jsdom —
- * so the logic lives here, gets unit-tested directly, and the components stay
- * thin. See the Playwright specs for drag coverage.
+ * Deliberately free of React and of any app-router import, so the ordering rules
+ * can be unit-tested directly and the components stay thin. dnd-kit's sensors
+ * need pointer events and layout measurement that jsdom does not provide, so the
+ * drag surface itself is covered by Playwright rather than Jest.
  */
 
 import type { Platform } from '@/platforms/common';
