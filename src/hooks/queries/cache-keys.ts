@@ -20,6 +20,14 @@ export const cacheKeys = {
 
   leaguePriceMultipliers: (userId?: string) => ['leaguePriceMultipliers', userId ?? 'anonymous'],
 
+  customRankings: (userId?: string, leagueId?: LeagueId) => [
+    'customRankings',
+    userId ?? 'anonymous',
+    leagueId,
+  ],
+
+  customRankingsIndex: (userId?: string) => ['customRankingsIndex', userId ?? 'anonymous'],
+
   liveDraftIngestToken: (userId?: string) => ['liveDraftIngestToken', userId ?? 'anonymous'],
 
   liveDraftFrames: (userId?: string, leagueId?: LeagueId) => [
