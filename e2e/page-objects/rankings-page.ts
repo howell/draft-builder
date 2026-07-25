@@ -3,6 +3,14 @@ import { BasePage } from './base-page';
 import { TEST_TIMEOUTS } from '../utils/test-constants';
 
 /**
+ * First paint of the board. Deliberately far above TEST_TIMEOUTS.TABLE_RENDER:
+ * the fixture environment has no usable Supabase, so the league, players,
+ * rankings and saved-board reads each spend the adapter's full 8s timeout
+ * before falling back to Dexie. The page is not slow in production.
+ */
+const BOARD_READY_TIMEOUT = 45_000;
+
+/**
  * Page object for the custom positional rankings board.
  */
 export class RankingsPage extends BasePage {
@@ -31,8 +39,8 @@ export class RankingsPage extends BasePage {
     // timeout before falling back to Dexie. That pushes first paint past the
     // 15s table budget even though the page itself is not slow.
     const loading = this.page.locator('[role="dialog"][aria-labelledby="loading-title"]');
-    await expect(loading).toHaveCount(0, { timeout: TEST_TIMEOUTS.NETWORK_TIMEOUT });
-    await expect(this.board(position)).toBeVisible({ timeout: TEST_TIMEOUTS.NETWORK_TIMEOUT });
+    await expect(loading).toHaveCount(0, { timeout: BOARD_READY_TIMEOUT });
+    await expect(this.board(position)).toBeVisible({ timeout: BOARD_READY_TIMEOUT });
   }
 
   board(position = 'QB'): Locator {
@@ -78,6 +86,44 @@ export class RankingsPage extends BasePage {
     await this.page.getByTestId(`ranking-insert-tier-${playerId}`).click();
   }
 
+  dragHandle(playerId: string): Locator {
+    return this.page.getByTestId(`ranking-drag-handle-p:${playerId}`);
+  }
+
+  /**
+   * Drag one row onto another.
+   *
+   * Hand-rolled rather than `locator.dragTo`: dnd-kit's PointerSensor has a
+   * distance activation constraint and tracks intermediate pointermove events,
+   * so a single-step drag never activates the sensor.
+   */
+  async dragOnto(sourcePlayerId: string, targetPlayerId: string): Promise<void> {
+    const source = this.dragHandle(sourcePlayerId);
+    const target = this.row(targetPlayerId);
+
+    const from = await source.boundingBox();
+    const to = await target.boundingBox();
+    if (!from || !to) {
+      throw new Error(`Cannot drag ${sourcePlayerId} onto ${targetPlayerId}: row not visible`);
+    }
+
+    const startX = from.x + from.width / 2;
+    const startY = from.y + from.height / 2;
+    const endX = to.x + to.width / 2;
+    const endY = to.y + to.height / 2;
+
+    await this.page.mouse.move(startX, startY);
+    await this.page.mouse.down();
+    const steps = 12;
+    for (let i = 1; i <= steps; i++) {
+      await this.page.mouse.move(
+        startX + ((endX - startX) * i) / steps,
+        startY + ((endY - startY) * i) / steps
+      );
+    }
+    await this.page.mouse.up();
+  }
+
   tiers(): Locator {
     return this.page.locator('[data-testid^="ranking-tier-"]:not([data-testid*="-label-"]):not([data-testid*="-up-"]):not([data-testid*="-down-"]):not([data-testid*="-remove-"])');
   }
@@ -90,8 +136,15 @@ export class RankingsPage extends BasePage {
     return this.page.getByTestId('rankings-save-state');
   }
 
-  /** Autosave is debounced; wait for it to land before reloading. */
+  /**
+   * Wait for the debounced autosave to land before reloading.
+   *
+   * Sleeps past the debounce window first: the indicator still reads "Saved"
+   * from a previous edit, so asserting on it immediately would pass without the
+   * pending save having fired, and a reload would then lose the change.
+   */
   async waitForSaved(): Promise<void> {
+    await this.page.waitForTimeout(900);
     await expect(this.saveState()).toHaveText('Saved', { timeout: TEST_TIMEOUTS.ERROR_MESSAGE });
   }
 

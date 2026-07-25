@@ -1,11 +1,27 @@
 'use client';
 
 import React, { useCallback, useMemo } from 'react';
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { EmptyState } from '../live-draft/components/common';
 import type { CustomRankingItem, RankablePosition } from '@/types/customRankings';
 import {
   itemKey,
   moveBy,
+  moveItem,
   insertTierBefore,
   removeTier,
   renameTier,
@@ -13,6 +29,7 @@ import {
 } from '@/lib/rankings/customRankings';
 import PlayerRow from './PlayerRow';
 import TierDividerRow from './TierDividerRow';
+import SortableRow from './SortableRow';
 
 export interface PositionBoardProps {
   position: RankablePosition;
@@ -70,6 +87,28 @@ const PositionBoard: React.FC<PositionBoardProps> = ({
     [items, onChange]
   );
 
+  const sensors = useSensors(
+    // A small distance threshold keeps the handle's click behaviour usable.
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    // Without a hold delay, touch-dragging swallows page scroll and the board
+    // becomes unscrollable on a phone.
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) {
+        return;
+      }
+      onChange(moveItem(items, String(active.id), String(over.id)));
+    },
+    [items, onChange]
+  );
+
+  const sortableIds = useMemo(() => items.map(itemKey), [items]);
+
   if (!pool.length) {
     return (
       <EmptyState
@@ -80,58 +119,108 @@ const PositionBoard: React.FC<PositionBoardProps> = ({
   }
 
   return (
-    <div
-      role='list'
-      aria-label={`${position} rankings`}
-      data-testid={`ranking-board-${position}`}
-      className='rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden'
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+      accessibility={{
+        announcements: {
+          onDragStart: ({ active }) => `Picked up ${describe(active.id, items, playersById)}.`,
+          onDragOver: ({ active, over }) =>
+            over
+              ? `${describe(active.id, items, playersById)} is over position ${positionOf(over.id, items)} of ${items.length}.`
+              : undefined,
+          onDragEnd: ({ active, over }) =>
+            over
+              ? `${describe(active.id, items, playersById)} dropped at position ${positionOf(over.id, items)} of ${items.length}.`
+              : `${describe(active.id, items, playersById)} dropped.`,
+          onDragCancel: ({ active }) => `Reordering ${describe(active.id, items, playersById)} cancelled.`,
+        },
+      }}
     >
-      {items.map((item, index) => {
-        const key = itemKey(item);
-        const canMoveUp = index > 0;
-        const canMoveDown = index < items.length - 1;
+      <div
+        role='list'
+        aria-label={`${position} rankings`}
+        data-testid={`ranking-board-${position}`}
+        className='rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden'
+      >
+        <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+          {items.map((item, index) => {
+            const key = itemKey(item);
+            const canMoveUp = index > 0;
+            const canMoveDown = index < items.length - 1;
 
-        if (item.kind === 'tier') {
-          return (
-            <TierDividerRow
-              key={key}
-              tierId={item.tierId}
-              label={item.label?.trim() || defaultTierLabel(items, item.tierId)}
-              playerCount={tierCounts.get(item.tierId) ?? 0}
-              canMoveUp={canMoveUp}
-              canMoveDown={canMoveDown}
-              onMoveUp={() => handleMove(key, -1)}
-              onMoveDown={() => handleMove(key, 1)}
-              onRename={label => onChange(renameTier(items, item.tierId, label))}
-              onRemove={() => onChange(removeTier(items, item.tierId))}
-            />
-          );
-        }
+            if (item.kind === 'tier') {
+              const label = item.label?.trim() || defaultTierLabel(items, item.tierId);
+              return (
+                <SortableRow key={key} id={key} handleLabel={`Reorder ${label}`}>
+                  {dragHandle => (
+                    <TierDividerRow
+                      tierId={item.tierId}
+                      label={label}
+                      playerCount={tierCounts.get(item.tierId) ?? 0}
+                      canMoveUp={canMoveUp}
+                      canMoveDown={canMoveDown}
+                      onMoveUp={() => handleMove(key, -1)}
+                      onMoveDown={() => handleMove(key, 1)}
+                      onRename={newLabel => onChange(renameTier(items, item.tierId, newLabel))}
+                      onRemove={() => onChange(removeTier(items, item.tierId))}
+                      dragHandle={dragHandle}
+                    />
+                  )}
+                </SortableRow>
+              );
+            }
 
-        const player = playersById.get(item.playerId);
-        if (!player) {
-          return null;
-        }
+            const player = playersById.get(item.playerId);
+            if (!player) {
+              return null;
+            }
 
-        return (
-          <PlayerRow
-            key={key}
-            player={player}
-            ordinal={ordinals.get(item.playerId) ?? 0}
-            hidePlatformRank={hidePlatformRank}
-            referenceLabel={referenceLabel}
-            isNew={addedSet.has(item.playerId)}
-            canMoveUp={canMoveUp}
-            canMoveDown={canMoveDown}
-            onMoveUp={() => handleMove(key, -1)}
-            onMoveDown={() => handleMove(key, 1)}
-            onInsertTierAbove={() => onChange(insertTierBefore(items, key))}
-          />
-        );
-      })}
-    </div>
+            return (
+              <SortableRow key={key} id={key} handleLabel={`Reorder ${player.name}`}>
+                {dragHandle => (
+                  <PlayerRow
+                    player={player}
+                    ordinal={ordinals.get(item.playerId) ?? 0}
+                    hidePlatformRank={hidePlatformRank}
+                    referenceLabel={referenceLabel}
+                    isNew={addedSet.has(item.playerId)}
+                    canMoveUp={canMoveUp}
+                    canMoveDown={canMoveDown}
+                    onMoveUp={() => handleMove(key, -1)}
+                    onMoveDown={() => handleMove(key, 1)}
+                    onInsertTierAbove={() => onChange(insertTierBefore(items, key))}
+                    dragHandle={dragHandle}
+                  />
+                )}
+              </SortableRow>
+            );
+          })}
+        </SortableContext>
+      </div>
+    </DndContext>
   );
 };
+
+/** Human-readable name for a dnd-kit id, for screen-reader announcements. */
+function describe(
+  id: string | number,
+  items: CustomRankingItem[],
+  playersById: Map<string, PoolPlayer>
+): string {
+  const key = String(id);
+  const item = items.find(i => itemKey(i) === key);
+  if (!item) return 'item';
+  if (item.kind === 'tier') {
+    return item.label?.trim() || defaultTierLabel(items, item.tierId);
+  }
+  return playersById.get(item.playerId)?.name ?? 'player';
+}
+
+function positionOf(id: string | number, items: CustomRankingItem[]): number {
+  return items.findIndex(i => itemKey(i) === String(id)) + 1;
+}
 
 function defaultTierLabel(items: CustomRankingItem[], tierId: string): string {
   let n = 0;

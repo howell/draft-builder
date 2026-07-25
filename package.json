@@ -32,6 +32,9 @@
     "ingest:espn-values": "ts-node --project scripts/tsconfig.json scripts/ingest-espn-values.ts"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.50.0",
     "@tanstack/react-query": "^5.85.0",
