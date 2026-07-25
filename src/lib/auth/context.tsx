@@ -162,9 +162,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     initializeAuth();
 
-    // Listen for auth changes
+    // Listen for auth changes.
+    //
+    // This callback MUST stay synchronous. auth-js awaits every subscriber
+    // (`_notifyAllSubscribers` -> `await x.callback(...)`), and on a fresh document
+    // with a stored session it emits SIGNED_IN from *inside* `_initialize()`, while
+    // `initializePromise` is still pending. Any Supabase query awaited in here calls
+    // `getSession()`, whose first line is `await this.initializePromise` — so the
+    // callback waits on the query, the query waits on initialize, and initialize
+    // waits on the callback. That deadlock is permanent (no timeout, no request ever
+    // sent); it made every authenticated page load hang until the 5s watchdog below
+    // gave up and silently degraded the user to the anonymous adapter.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         // Only update state if values actually changed to prevent unnecessary re-renders
         setAuthState(prev => {
           const newUser = session?.user ?? null;
@@ -190,7 +200,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
 
         if (event === 'SIGNED_IN' && session?.user) {
-          await ensureUserRecord(session.user);
+          // Deferred to a fresh task so it runs after initializePromise settles —
+          // see the deadlock note above. Fire-and-forget: ensureUserRecord already
+          // logs its own failures and nothing here awaits the result.
+          const signedInUser = session.user;
+          setTimeout(() => { void ensureUserRecord(signedInUser); }, 0);
         }
       }
     );
