@@ -539,4 +539,30 @@ describe('DexieStorageAdapter', () => {
       return failingAdapter;
     }));
   });
+
+  describe('clearAllData and settings', () => {
+    it('deletes the settings rows it owns', async () => {
+      await adapter.setUserSetting('app', 'leaguePriceMultipliers', { 'lg-1': 1.2 });
+      await adapter.setUserSetting('app', 'customRankings:1:2026', { schemaVersion: 1 });
+      expect(await adapter.getUserSetting('app', 'customRankings:1:2026')).toBeDefined();
+
+      await adapter.clearAllData();
+
+      // Settings sit outside the league/draft graph, so they were previously
+      // left behind by both migration cleanup and "Delete Local Data".
+      expect(await adapter.getUserSetting('app', 'leaguePriceMultipliers')).toBeUndefined();
+      expect(await adapter.getUserSetting('app', 'customRankings:1:2026')).toBeUndefined();
+    });
+
+    it('leaves another user\'s settings untouched', async () => {
+      const other = new DexieStorageAdapter('someone-else');
+      await adapter.setUserSetting('app', 'leaguePriceMultipliers', { mine: 1 });
+      await other.setUserSetting('app', 'leaguePriceMultipliers', { theirs: 1 });
+
+      await adapter.clearAllData();
+
+      expect(await adapter.getUserSetting('app', 'leaguePriceMultipliers')).toBeUndefined();
+      expect(await other.getUserSetting('app', 'leaguePriceMultipliers')).toEqual({ theirs: 1 });
+    });
+  });
 });

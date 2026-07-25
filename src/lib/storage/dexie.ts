@@ -547,8 +547,11 @@ export class DexieStorageAdapter implements StorageAdapter {
       const drafts = await db.getDraftsForUser(this.userId);
       console.log(`[DexieAdapter] Clearing ${leagues.length} leagues and ${drafts.length} drafts for user ${this.userId}`);
 
-      // Use transaction to ensure atomicity
-      await db.transaction('rw', db.leagues, db.drafts, db.players, async () => {
+      // Use transaction to ensure atomicity. `db.settings` must appear in this
+      // argument list, not just in the body — Dexie throws NotFoundError for a
+      // table outside the transaction's scope, and callers such as
+      // clearDexieDataAfterMigration swallow that silently.
+      await db.transaction('rw', db.leagues, db.drafts, db.players, db.settings, async () => {
         // Delete all player selections for user's drafts
         const draftIds = drafts.map(d => d.id).filter((id): id is number => id !== undefined);
         if (draftIds.length > 0) {
@@ -560,6 +563,11 @@ export class DexieStorageAdapter implements StorageAdapter {
 
         // Delete all leagues for this user
         await db.leagues.where('userId').equals(this.userId).delete();
+
+        // Settings live outside the league/draft graph, so they were previously
+        // left behind entirely — anonymous rankings and price multipliers
+        // survived both "Delete Local Data" and a completed migration.
+        await db.settings.where('userId').equals(this.userId).delete();
       });
 
       console.log(`[DexieAdapter] ✅ Successfully cleared all data for user: ${this.userId}`);
