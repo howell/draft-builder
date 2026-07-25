@@ -10,10 +10,13 @@ import LeagueMultiplierRow from '../LeagueMultiplierRow';
 import type { LeagueInfo } from '@/platforms/PlatformApi';
 import type { PlatformLeague } from '@/platforms/common';
 
-// NOTE: the repo's jest.setup replaces `global.window` with a stub, which breaks
-// React 19's input value-tracker / focus polyfill, so simulated *typing* into an
-// input does not propagate (button clicks do). The save/validation rule is covered
-// by the pure `parseMultiplierInput` unit tests; here we cover display + the parts
+// NOTE: this file's coverage is narrower than it needs to be. It was written when
+// jest.setup replaced `global.window` with a stub, whose `document: {}` made React's
+// canUseDOM false and so disabled onChange for text inputs — simulated typing did not
+// propagate (button clicks did). The stub has since been removed, so typing works
+// here now; broadening these tests to cover the save/validation flow directly is
+// worthwhile follow-up. For now that rule stays covered by the pure
+// `parseMultiplierInput` unit tests, and this file covers display plus the parts
 // driven by props and clicks.
 
 const mockUseLeagueInfoQuery = jest.fn();

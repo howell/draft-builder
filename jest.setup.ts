@@ -7,26 +7,28 @@ import 'whatwg-fetch'; // Provides proper fetch, Request, Response, Headers
 // IndexedDB polyfill for testing Dexie
 import 'fake-indexeddb/auto';
 
-// Mock window object for client-side checks in tests
-// Note: jsdom provides localStorage, but we need to ensure it's available in our window mock
+// NOTE: do not replace `global.window` with a hand-rolled stub.
 //
-// `document` MUST stay the real jsdom document. Under testEnvironment: "jsdom",
-// `global` IS the window, so this replaces the window property wholesale. With
-// `document: {}`, `typeof window.document.createElement` is 'undefined', which makes
-// React's canUseDOM false (react-dom-client.development.js:25141-25145). That
-// silently disables the ChangeEventPlugin's modern path, so onChange never fires for
-// text inputs, and it breaks @testing-library's getDocument(), so a bare waitFor()
-// throws. Both symptoms were long mistaken for "setState doesn't re-render under
-// jest" — it does; see src/ui/tests/LoadingScreen.test.tsx.
-Object.defineProperty(global, 'window', {
-  value: {
-    location: { href: 'http://localhost' },
-    document: global.document,
-    navigator: { userAgent: 'test' },
-    localStorage: global.localStorage // Use jsdom's localStorage
-  },
-  writable: true
-});
+// Under testEnvironment: "jsdom", `global` IS the window, so assigning to it swaps the
+// real window for whatever the stub defines — and anything absent from the stub simply
+// breaks. This setup used to install a four-key object, which caused two long-lived
+// and badly misdiagnosed failures:
+//
+//   - `document: {}` left `typeof window.document.createElement === 'undefined'`, so
+//     React's canUseDOM was false (react-dom-client.development.js:25141-25145). That
+//     disables the ChangeEventPlugin's modern path, so onChange never fired for text
+//     inputs, and it broke @testing-library's getDocument(), so bare waitFor() threw.
+//   - no `addEventListener`, so any component subscribing to window events threw on
+//     mount (e.g. MockRosterEntry), making the whole tree unrenderable.
+//
+// These were recorded in comments across the suite as "React state updates don't
+// re-render under jest", and stateful component coverage was given up and pushed to
+// Playwright as a result. Re-renders were never broken.
+//
+// jsdom already provides window.location, window.document, window.navigator and
+// window.localStorage, so the stub was redundant even before it was harmful. Tests
+// that need an SSR-like environment (e.g. storage factory tests) delete and restore
+// `global.window` themselves.
 
 // Polyfill for structuredClone (used by fake-indexeddb)
 if (typeof global.structuredClone === 'undefined') {
