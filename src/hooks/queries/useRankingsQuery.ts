@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { LeagueId, PlatformLeague } from '@/platforms/common';
 import { ScoringType, Player } from '@/platforms/PlatformApi';
-import { loadRankingsFor } from '@/app/league/[leagueID]/mocks/MockDraft';
+import { loadRankingsFor } from '@/rankings/loadRankings';
 import { useAuth } from '@/lib/auth/context';
 
 export function useRankingsQuery(

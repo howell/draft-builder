@@ -129,7 +129,8 @@ export function importEspnPlayerInfo(info: EspnT.PlayerInfo): Player {
         fullName: info.player.fullName,
         position: positionName(info.player.defaultPositionId),
         eligiblePositions: info.player.eligibleSlots.map(slotName),
-        platformPrice: espnPlatformPrice(info)
+        platformPrice: espnPlatformPrice(info),
+        platformRank: espnPlatformRank(info)
     };
 }
 
@@ -143,4 +144,16 @@ function espnPlatformPrice(info: EspnT.PlayerInfo): number {
         || ranks?.PPR?.auctionValue
         || ranks?.STANDARD?.auctionValue
         || 0;
+}
+
+// ESPN publishes a dense draft rank alongside the sparse auction values: in a
+// season-2025 sample every one of the 2750 players carrying
+// `draftRanksByRankType` had a nonzero PPR rank, while only 250 had a nonzero
+// auction value. Prefer PPR (most leagues are PPR or half-PPR, and ESPN offers
+// no half-PPR rank type) and fall back to STANDARD, mirroring the price lookup
+// above. Returns undefined rather than 0 so "unranked" stays distinguishable
+// from "ranked first".
+function espnPlatformRank(info: EspnT.PlayerInfo): number | undefined {
+    const ranks = info.player.draftRanksByRankType;
+    return ranks?.PPR?.rank || ranks?.STANDARD?.rank || undefined;
 }

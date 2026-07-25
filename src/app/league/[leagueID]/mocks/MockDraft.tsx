@@ -1,15 +1,13 @@
 'use client';
 import { DraftedPlayer, mergeDraftAndPlayerInfo, Player, RosterSettings, ScoringType } from "@/platforms/PlatformApi";
 import MockTable, { MockTableProps } from './MockTable';
-import { Ranking } from '@/app/storage/savedMockTypes';
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer, Rankings } from '@/app/storage/savedMockTypes';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import LoadingScreen from "@/ui/LoadingScreen";
 import ErrorScreen from "@/ui/ErrorScreen";
 import { CURRENT_SEASON } from "@/constants";
 import { createBaselineModels, BaselineDraftPick } from "../../analytics";
-import { LeagueId, Platform, PlatformLeague, SeasonId } from "@/platforms/common";
-import RankingsClient from "@/rankings/RankingsClient";
+import { LeagueId, Platform, SeasonId } from "@/platforms/common";
 import { useAuth } from '@/lib/auth/context';
 import { usePlayersQuery, useLeagueHistoryQuery, useDraftHistoryQuery, useRankingsQuery } from '@/hooks/queries';
 import { useLeagueQuery } from '@/hooks/queries/useLeagueQuery';
@@ -148,61 +146,6 @@ function buildPlayerDb(platform: Platform, players: Player[], rankings: Rankings
         }));
 }
 
-function rankByPlatformPrice(platform: Platform, players: Player[], scoringType: ScoringType): Rankings {
-    const comparePlayers = (a: Player, b: Player) => {
-        const aCost = a.platformPrice;
-        const bCost = b.platformPrice;
-        return (bCost ?? 0) - (aCost ?? 0);
-        // if (aCost !== bCost) {
-        //     return (bCost ?? 0) - (aCost ?? 0);
-        // }
-        // if (!a.player.draftRanksByRankType || !a.player.draftRanksByRankType[scoringType]) {
-        //     return 1;
-        // }
-        // if (!b.player.draftRanksByRankType || !b.player.draftRanksByRankType[scoringType]) {
-        //     return -1;
-        // }
-        // let aRank: (RankInfo | number) = b.player.draftRanksByRankType[scoringType];
-        // if (typeof aRank !== 'number') {
-        //     aRank = aRank.rank;
-        // }
-        // let bRank: (RankInfo | number) = a.player.draftRanksByRankType[scoringType];
-        // if (typeof bRank !== 'number') {
-        //     bRank = bRank.rank;
-        // }
-        // return bRank - aRank;
-    }
-    players.sort(comparePlayers);
-    const positionOrder = new Map<string, Player[]>();
-    for (const playerInfo of players) {
-        const position = playerInfo.position;
-        if (!positionOrder.has(position)) {
-            const positionData = players.filter(p => p.position === position);
-            positionOrder.set(position, positionData);
-        }
-    }
-
-    const overallRankings = new Map<string, number>();
-    const positionRankings = new Map<string, Map<string, number>>();
-
-    players.forEach((player, index) => {
-        overallRankings.set(player.ids[platform], index);
-        const position = player.position;
-        if (!positionRankings.has(position)) {
-            positionRankings.set(position, new Map<string, number>());
-        }
-        const positionRank = positionOrder.get(position)?.indexOf(player) as number;
-        positionRankings.get(position)?.set(player.ids[platform], positionRank);
-    });
-
-    return {
-        platform: platform,
-        overall: overallRankings,
-        positional: positionRankings
-    };
-
-}
-
 function analyzeDraft(draftedPlayers: DraftedPlayer[]): DraftAnalysis {
     // Convert to BaselineDraftPick format and use shared utility
     const picks: BaselineDraftPick[] = draftedPlayers.map(player => ({
@@ -224,29 +167,4 @@ function analyzeDraft(draftedPlayers: DraftedPlayer[]): DraftAnalysis {
         overall,
         positions
     };
-}
-
-export async function loadRankingsFor(league: PlatformLeague,
-    googleApiKey: string,
-    scoringType: ScoringType,
-    players: Player[]): Promise<Ranking[]>
-{
-    const client = new RankingsClient(league, scoringType, googleApiKey);
-    const rankingsReq = client.fetchRanks();
-
-    const rankings: Ranking[] = [];
-    const hasPlatformPrice = players.some(player => player.platformPrice !== undefined);
-    if (hasPlatformPrice) {
-        const platformRanking: Ranking = {
-            name: 'Platform',
-            shortName: 'Rnk',
-            value: rankByPlatformPrice(league.platform, players, scoringType)
-        };
-        rankings.push(platformRanking);
-    }
-    const rankingsResp = await rankingsReq;
-    if (rankingsResp) {
-        rankings.push(...rankingsResp);
-    }
-    return rankings;
 }

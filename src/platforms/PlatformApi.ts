@@ -44,7 +44,14 @@ export type Player = {
     position: string;
     eligiblePositions: string[];
     platformPrice?: number
-
+    /**
+     * The platform's own draft ranking for this player (1 = best), where it
+     * publishes one. Unlike `platformPrice` this is dense — ESPN ranks
+     * essentially every player it returns but assigns a nonzero auction value to
+     * only a few hundred, so price alone leaves the long tail in an arbitrary
+     * order. Used to break ties when ordering by price.
+     */
+    platformRank?: number
 };
 
 export type PlayerId = string;
