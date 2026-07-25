@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import LoadingScreen from '@/ui/LoadingScreen';
 import ErrorScreen from '@/ui/ErrorScreen';
 import Alert from '@/ui/Alert';
+import Button from '@/ui/Button';
 import { CURRENT_SEASON } from '@/constants';
 import { LeagueId } from '@/platforms/common';
 import { ScoringType } from '@/platforms/PlatformApi';
@@ -130,13 +131,27 @@ const CustomRankings: React.FC<CustomRankingsProps> = ({ leagueId, googleApiKey 
           hidePlatformRank: nextHideRank,
         },
         {
-          onSuccess: () => setSaveState('saved'),
+          onSuccess: () => {
+            // Only now is the edit safely stored, so only now may it stop being
+            // pending. Clearing it before the attempt meant a failed save left
+            // nothing for the retry or the unmount flush to send.
+            pendingRef.current = null;
+            setSaveState('saved');
+          },
           onError: () => setSaveState('error'),
         }
       );
     },
     [league, saveMutation]
   );
+
+  // The unmount flush below runs once, so it would otherwise close over the
+  // first render's `persist` — when `league` is still undefined and `persist`
+  // returns immediately, making the flush silently inert.
+  const persistRef = useRef(persist);
+  useEffect(() => {
+    persistRef.current = persist;
+  });
 
   // Debounced autosave. There is no natural commit point in a drag interaction,
   // and an explicit Save button loses a long reordering session to a stray
@@ -148,7 +163,6 @@ const CustomRankings: React.FC<CustomRankingsProps> = ({ leagueId, googleApiKey 
       return;
     }
     const timer = setTimeout(() => {
-      pendingRef.current = null;
       persist(pending.board, pending.hideRank);
     }, AUTOSAVE_DELAY_MS);
 
@@ -161,12 +175,11 @@ const CustomRankings: React.FC<CustomRankingsProps> = ({ leagueId, googleApiKey 
     return () => {
       const pending = pendingRef.current;
       if (pending) {
-        pendingRef.current = null;
-        persist(pending.board, pending.hideRank);
+        persistRef.current(pending.board, pending.hideRank);
       }
     };
-    // Intentionally unmount-only: flush whatever is outstanding on the way out.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Intentionally unmount-only: flush whatever is outstanding on the way out,
+    // reading `persist` through a ref so it is never the first render's copy.
   }, []);
 
   const updateItems = useCallback(
@@ -229,6 +242,13 @@ const CustomRankings: React.FC<CustomRankingsProps> = ({ leagueId, googleApiKey 
     [importMutation]
   );
 
+  const retrySave = useCallback(() => {
+    const pending = pendingRef.current;
+    if (pending) {
+      persist(pending.board, pending.hideRank);
+    }
+  }, [persist]);
+
   const handleReset = useCallback(
     (positions: readonly RankablePosition[]) => {
       if (!pools) {
@@ -276,7 +296,17 @@ const CustomRankings: React.FC<CustomRankingsProps> = ({ leagueId, googleApiKey 
 
         {saveState === 'error' && (
           <Alert variant='error' className='mb-4'>
-            Could not save your rankings. Your changes are still here — editing again will retry.
+            <div className='flex flex-wrap items-center gap-3'>
+              <span>Could not save your rankings. Your changes are still on screen.</span>
+              <Button
+                variant='outline'
+                size='sm'
+                data-testid='rankings-retry-save'
+                onClick={retrySave}
+              >
+                Retry
+              </Button>
+            </div>
           </Alert>
         )}
 

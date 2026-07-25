@@ -184,6 +184,10 @@ export class RankingsPage extends BasePage {
     await this.page.getByTestId('rankings-hide-platform-rank').click();
   }
 
+  retrySave(): Locator {
+    return this.page.getByTestId('rankings-retry-save');
+  }
+
   saveState(): Locator {
     return this.page.getByTestId('rankings-save-state');
   }
