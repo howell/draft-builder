@@ -137,6 +137,27 @@ export class RankingsPage extends BasePage {
     return this.page.locator('[data-testid^="ranking-tier-"]:not([data-testid*="-label-"]):not([data-testid*="-up-"]):not([data-testid*="-down-"]):not([data-testid*="-remove-"])');
   }
 
+  /** The label input for a tier row. */
+  tierLabel(tierId: string): Locator {
+    return this.page.getByTestId(`ranking-tier-label-${tierId}`);
+  }
+
+  /** Tier ids currently on the board, in order. */
+  async tierIds(): Promise<string[]> {
+    const ids = await this.tiers().evaluateAll(nodes =>
+      nodes.map(n => (n.getAttribute('data-testid') ?? '').replace('ranking-tier-', ''))
+    );
+    return ids;
+  }
+
+  async renameTier(tierId: string, label: string): Promise<void> {
+    await this.tierLabel(tierId).fill(label);
+  }
+
+  async removeTier(tierId: string): Promise<void> {
+    await this.page.getByTestId(`ranking-tier-remove-${tierId}`).click();
+  }
+
   async openImport(): Promise<void> {
     await this.page.getByTestId('rankings-open-import').click();
     await expect(this.page.getByTestId('rankings-import-dialog')).toBeVisible();

@@ -151,13 +151,17 @@ const PositionBoard: React.FC<PositionBoardProps> = ({
             const canMoveDown = index < items.length - 1;
 
             if (item.kind === 'tier') {
-              const label = item.label?.trim() || defaultTierLabel(items, item.tierId);
+              // Stored label and derived name stay separate all the way down:
+              // the derived one is positional, so collapsing them here is what
+              // previously let a renumbered tier write a stale name back.
+              const placeholder = defaultTierLabel(items, item.tierId);
               return (
-                <SortableRow key={key} id={key} handleLabel={`Reorder ${label}`}>
+                <SortableRow key={key} id={key} handleLabel={`Reorder ${item.label?.trim() || placeholder}`}>
                   {dragHandle => (
                     <TierDividerRow
                       tierId={item.tierId}
-                      label={label}
+                      label={item.label}
+                      placeholder={placeholder}
                       playerCount={tierCounts.get(item.tierId) ?? 0}
                       canMoveUp={canMoveUp}
                       canMoveDown={canMoveDown}

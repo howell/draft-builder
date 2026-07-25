@@ -127,6 +127,58 @@ test.describe('Custom positional rankings', () => {
     await expect(rankings.tiers()).toHaveCount(1);
   });
 
+  test('does not freeze a renumbered tier number into storage', async () => {
+    // The corrupting case: an *unnamed* tier shows a derived number. The input
+    // used to latch that number as its value, so after an earlier tier was
+    // deleted a blur wrote the now-wrong number back as a real stored name —
+    // permanently. Merely focusing and leaving the field was enough.
+    await rankings.insertTierAbove(await rankings.playerIdAt(1));
+    await rankings.insertTierAbove(await rankings.playerIdAt(4));
+    const [firstTier, secondTier] = await rankings.tierIds();
+
+    await rankings.removeTier(firstTier);
+    await rankings.tierLabel(secondTier).focus();
+    await rankings.tierLabel(secondTier).blur();
+
+    await rankings.waitForSaved();
+    await rankings.reload();
+
+    // Still unnamed, and numbered by its new position rather than its old one.
+    await expect(rankings.tierLabel(secondTier)).toHaveValue('');
+    await expect(rankings.tierLabel(secondTier)).toHaveAttribute('placeholder', 'Tier 1');
+  });
+
+  test('keeps a user-typed tier name across a deletion and reload', async () => {
+    await rankings.insertTierAbove(await rankings.playerIdAt(1));
+    await rankings.insertTierAbove(await rankings.playerIdAt(4));
+    const [firstTier, secondTier] = await rankings.tierIds();
+
+    await rankings.renameTier(secondTier, 'Value picks');
+    await rankings.removeTier(firstTier);
+
+    await expect(rankings.tierLabel(secondTier)).toHaveValue('Value picks');
+
+    await rankings.waitForSaved();
+    await rankings.reload();
+
+    await expect(rankings.tierLabel(secondTier)).toHaveValue('Value picks');
+  });
+
+  test('renumbers unnamed tiers after a deletion', async () => {
+    await rankings.insertTierAbove(await rankings.playerIdAt(1));
+    await rankings.insertTierAbove(await rankings.playerIdAt(4));
+    const [firstTier, secondTier] = await rankings.tierIds();
+
+    // Unnamed tiers show their position as a placeholder, so removing the first
+    // must promote the second from "Tier 2" to "Tier 1".
+    await expect(rankings.tierLabel(secondTier)).toHaveAttribute('placeholder', 'Tier 2');
+    await rankings.removeTier(firstTier);
+    await expect(rankings.tierLabel(secondTier)).toHaveAttribute('placeholder', 'Tier 1');
+
+    // And it stays unnamed rather than having a number written into storage.
+    await expect(rankings.tierLabel(secondTier)).toHaveValue('');
+  });
+
   test('resets one position back to platform order', async () => {
     const originalFirst = await rankings.playerIdAt(0);
 
