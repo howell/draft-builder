@@ -169,110 +169,34 @@ export class MockDraftHelpers {
     // Wait for input to be ready
     await expect(nameInput).toBeEditable({ timeout: TEST_TIMEOUTS.ELEMENT_ENABLED });
     
-    // Clear existing value and type new name
+    // Clear existing value and type new name, then assert it landed. This used to
+    // sleep 500ms, compare, and silently retry via the keyboard on mismatch — which
+    // hid whichever underlying problem made the first fill not stick.
     await nameInput.clear();
     await nameInput.fill(name);
-    
-    // Small wait to ensure React state updates
-    await this.page.waitForTimeout(500);
-    
-    // Verify the value was entered correctly
-    const enteredValue = await nameInput.inputValue();
-    if (enteredValue !== name) {
-      console.warn(`[MockDraftHelpers] Name input mismatch! Expected "${name}" but got "${enteredValue}"`);
-      // Try again with different approach
-      await nameInput.click();
-      await this.page.keyboard.press('Control+A');
-      await this.page.keyboard.type(name);
-      
-      const secondTry = await nameInput.inputValue();
-      console.log(`[MockDraftHelpers] Second attempt value: "${secondTry}"`);
-    }
-    
-    // Debug: Check the React component state
-    await this.page.evaluate((expectedName) => {
-      const input = document.querySelector('[data-testid="roster-name-input"]') as HTMLInputElement;
-      const button = document.querySelector('[data-testid="save-roster-button"]') as HTMLButtonElement;
-      console.log('[Browser Debug] Input value:', input?.value);
-      console.log('[Browser Debug] Expected name:', expectedName);
-      console.log('[Browser Debug] Button disabled:', button?.disabled);
-      console.log('[Browser Debug] Button onclick:', button?.onclick ? 'exists' : 'null');
-    }, name);
-    
-    // Click save button using robust click to handle UI interference
+    await expect(nameInput).toHaveValue(name, { timeout: TEST_TIMEOUTS.ELEMENT_ENABLED });
+
     const saveButton = this.getSaveRosterButton();
-    
-    // Ensure button is visible and enabled before clicking
+
     await expect(saveButton).toBeVisible({ timeout: TEST_TIMEOUTS.ELEMENT_ENABLED });
     await expect(saveButton).toBeEnabled({ timeout: TEST_TIMEOUTS.ELEMENT_ENABLED });
-    
-    console.log(`[MockDraftHelpers] About to click save button`);
-    
-    // Force click via JavaScript since the normal click isn't working
-    await this.page.evaluate(() => {
-      const button = document.querySelector('[data-testid="save-roster-button"]') as HTMLButtonElement;
-      if (button) {
-        console.log('[SaveButton] Found button, will click');
-        button.click();
-        console.log('[SaveButton] Button clicked via JS');
-      } else {
-        console.error('[SaveButton] Button not found!');
-      }
-    });
-    
-    console.log(`[MockDraftHelpers] Save button clicked`);
-    
-    // Skip confirmation check if requested (for faster testing)
-    if (options.skipConfirmation) {
-      console.log(`[MockDraftHelpers] Skip confirmation mode - monitoring save progress...`);
-      
-      // Still monitor the save operation even in skip mode to verify success
-      let saveCompleted = false;
-      let attempt = 0;
-      const maxAttempts = 10; // 10 attempts * 300ms = 3000ms total
-      
-      while (attempt < maxAttempts && !saveCompleted) {
-        attempt++;
-        await this.page.waitForTimeout(300);
-        
-        // Check if button text changed to indicate save completion
-        const buttonText = await saveButton.textContent();
-        console.log(`[MockDraftHelpers] Attempt ${attempt}: Button text = "${buttonText}"`);
-        
-        if (buttonText && /Saved.*✓|✓.*Saved/i.test(buttonText)) {
-          saveCompleted = true;
-          console.log(`[MockDraftHelpers] Save completed successfully on attempt ${attempt}`);
-          break;
-        }
-        
-        // Also check if button is no longer disabled (alternative success indicator)
-        const isDisabled = await saveButton.isDisabled();
-        console.log(`[MockDraftHelpers] Attempt ${attempt}: Button disabled = ${isDisabled}`);
-        
-        // Check browser console for any save-related errors
-        if (attempt % 3 === 0) { // Every 3rd attempt (every ~1 second)
-          await this.page.evaluate(() => {
-            console.log('[Save Progress] Checking Dexie/IndexedDB state...');
-          });
-        }
-      }
-      
-      if (!saveCompleted) {
-        console.error(`[MockDraftHelpers] Save did not complete within ${maxAttempts * 300}ms. Button text: "${await saveButton.textContent()}"`);
-        
-        // Take a debug screenshot to see what's happening
-        await this.page.screenshot({ path: `debug-save-timeout-${Date.now()}.png`, fullPage: true });
-        
-        // Don't throw error yet - let the test continue and see what happens
-        console.warn(`[MockDraftHelpers] Continuing despite save timeout - data may not be persisted`);
-      }
-      
-      console.log(`[MockDraftHelpers] Roster save completed (skip confirmation mode)`);
-      return;
-    }
-    
-    // Wait for save confirmation - button text changes to "Saved ✓"
-    await expect(saveButton).toHaveText(/Saved.*✓|✓.*Saved/i, { timeout: TEST_TIMEOUTS.BUTTON_CLICK });
+
+    // Click through Playwright, not page.evaluate. A JS .click() bypasses every
+    // actionability check — it will happily "succeed" against a button that is
+    // disabled, detached, or covered, which is exactly how a broken save used to
+    // register as a pass and then fail confusingly several steps later.
+    await this.robustClick(saveButton);
+
+    // Both modes assert the same thing; skipConfirmation only shortens the budget.
+    // It previously polled by hand for 3s, wrote a PNG into the repo root on
+    // failure, and then continued anyway with "data may not be persisted" — so a
+    // failed save surfaced later as an unrelated-looking assertion failure in
+    // loadSavedDraft. If the save did not complete, that is the failure; report it here.
+    const timeout = options.skipConfirmation
+      ? TEST_TIMEOUTS.BUTTON_CLICK
+      : TEST_TIMEOUTS.LOADING_DIALOG;
+
+    await expect(saveButton).toHaveText(/Saved.*✓|✓.*Saved/i, { timeout });
     console.log(`[MockDraftHelpers] Roster saved successfully with name: "${name}"`);
   }
 
@@ -406,7 +330,8 @@ export class MockDraftHelpers {
       
       // Then check the specific position checkbox
       // Find the label that contains this position text, then get the checkbox within it
-      const positionLabel = this.page.locator('label').filter({ hasText: position });
+      // Exact text, not a substring: hasText: 'RB' also matches "FLEX (RB/WR/TE)".
+      const positionLabel = this.page.locator('label').filter({ hasText: new RegExp(`^\\s*${position}\\s*$`) });
       const positionCheckbox = positionLabel.locator('input[type="checkbox"]');
       await positionCheckbox.click();
     }
@@ -474,7 +399,9 @@ export class MockDraftHelpers {
    */
   async waitForStability(): Promise<void> {
     // Wait for any save operations to complete
-    const savingIndicator = this.page.locator('text=/saving.../i');
+    // .first(): an unqualified text locator strict-mode-violates once more than one
+    // element mentions saving.
+    const savingIndicator = this.page.locator('text=/saving.../i').first();
     if (await savingIndicator.isVisible()) {
       await expect(savingIndicator).not.toBeVisible({ timeout: 10000 });
     }

@@ -276,11 +276,15 @@ describe('Complete Error Recovery Tests (Isolated)', () => {
       expect(isRetryableError(new Error('Temporary failure'))).toBe(true);
       expect(isRetryableError(new Error('NETWORK ERROR'))).toBe(true);
 
-      // Non-retryable errors
+      // Non-retryable errors (permission denials)
       expect(isRetryableError({ code: '42501', message: 'RLS violation' })).toBe(false);
-      expect(isRetryableError({ code: 'PGRST301', message: 'JWT expired' })).toBe(false);
       expect(isRetryableError(new Error('RLS policy violated'))).toBe(false);
       expect(isRetryableError(new Error('Authorization failed'))).toBe(false);
+
+      // Expired tokens retry within a bounded budget rather than falling straight
+      // through to the local fallback adapter.
+      expect(isRetryableError({ code: 'PGRST301', message: 'JWT expired' }, 0)).toBe(true);
+      expect(isRetryableError({ code: 'PGRST301', message: 'JWT expired' }, 2)).toBe(false);
     });
 
     it('should generate appropriate error messages', () => {

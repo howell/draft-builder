@@ -143,7 +143,6 @@ test.describe('User Signup with Data Migration', () => {
       console.log('[Test] Migration may not have started, loading screen not visible');
       
       // Take screenshot for debugging
-      await page.screenshot({ path: `debug-migration-start-failure-${Date.now()}.png`, fullPage: true });
       
       // Check if there are any error messages
       const errorElements = await page.locator('[data-testid="signup-error-alert"], .text-red-800, .bg-red-50').all();

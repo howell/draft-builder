@@ -5,6 +5,7 @@ import MockRosterEntry from './MockRosterEntry';
 import PlayerTable, { ColumnName } from '../drafts/[draftYear]/PlayerTable';
 import { DraftAnalysis, ExponentialCoefficients, MockPlayer, CostEstimatedPlayer, RosterSlot, RosterSelections, SearchSettingsState, EstimationSettingsState, StoredDraftDataCurrent, Rankings, RankedPlayer, Ranking } from '@/app/storage/savedMockTypes';
 import { useStorageAdapter } from '@/lib/storage/hooks';
+import { useAuth } from '@/lib/auth/context';
 import { getInProgressSelectionsKey } from '@/lib/storage/constants';
 import { StorageError } from '@/lib/storage/interface';
 import SearchSettings, { SearchLabel } from './SearchSettings';
@@ -22,6 +23,7 @@ import { Input } from '@/ui/Input';
 import { Alert } from '@/ui/Alert';
 import { Badge, PositionBadge } from '@/ui/Badge';
 import { useSaveRosterMutation } from '@/hooks/queries/useSaveRosterMutation';
+import { useDeleteRosterMutation } from '@/hooks/queries/useDeleteRosterMutation';
 
 export interface MockTableProps {
     leagueId: LeagueId;
@@ -72,6 +74,7 @@ const defaultCostPredictor: CostPredictor = {
 
 const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, auctionBudget, players, draftHistory, playerPositions, availableRankings }) => {
     const storageAdapter = useStorageAdapter();
+    const { loading: authLoading } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
 
@@ -93,8 +96,15 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
 
     // Mutation for saving rosters with automatic cache invalidation
     const saveRosterMutation = useSaveRosterMutation();
-    const defaultSearchSettings: SearchSettingsState = { positions: playerPositions, playerCount: 200, minPrice: 1, maxPrice: auctionBudget, showOnlyAvailable: true };
-    const defaultEstimationSettings: EstimationSettingsState = { years: Array.from(draftHistory.keys()), weight: 50 };
+    const deleteRosterMutation = useDeleteRosterMutation();
+    const defaultSearchSettings: SearchSettingsState = useMemo(
+        () => ({ positions: playerPositions, playerCount: 200, minPrice: 1, maxPrice: auctionBudget, showOnlyAvailable: true }),
+        [playerPositions, auctionBudget]
+    );
+    const defaultEstimationSettings: EstimationSettingsState = useMemo(
+        () => ({ years: Array.from(draftHistory.keys()), weight: 50 }),
+        [draftHistory]
+    );
     const [playerDb, _setPlayerDb] = useState<MockPlayer[]>(players);
     const [estimationSettings, setEstimationSettings] = useState<EstimationSettingsState>(defaultEstimationSettings);
     const [searchSettings, setSearchSettings] = useState<SearchSettingsState>(defaultSearchSettings);
@@ -169,36 +179,71 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
         return { availablePlayers: nextPlayers, positionallyAvailablePlayers: nextPositionallyAvailablePlayers };
     }, [costPredictor, searchSettings, rankedPlayers, selectedPlayers, budgetSpent, auctionBudget, playerPositions]);
 
+    // Everything the load path below populates, returned to a blank New draft. Used when
+    // the authoritative read finds nothing stored under the key we asked for. Held in a ref
+    // so the load effect doesn't have to depend on the default-settings identities — a
+    // reload triggered by an unstable prop would discard in-flight user edits.
+    const resetLoadedDraftState = useCallback(() => {
+        setRosterSelections({});
+        setCostAdjustments(new Map());
+        setEstimationSettings(defaultEstimationSettings);
+        setSearchSettings(defaultSearchSettings);
+    }, [defaultEstimationSettings, defaultSearchSettings]);
+    const resetLoadedDraftStateRef = useRef(resetLoadedDraftState);
     useEffect(() => {
+        resetLoadedDraftStateRef.current = resetLoadedDraftState;
+    }, [resetLoadedDraftState]);
+
+    useEffect(() => {
+        // Wait for auth to settle before reading. While authState.loading is true the
+        // auth context hands out a DexieStorageAdapter('anonymous') placeholder; loading
+        // from it would surface another (stale, possibly long-abandoned) browser-local
+        // draft, and the autosave below would then write it back over the real one.
+        if (authLoading) return;
+
+        // The effect re-runs when the adapter identity changes (anonymous -> Supabase on
+        // sign-in). Responses can land out of order, so ignore any that are no longer current.
+        let cancelled = false;
+
         const loadDraftData = async () => {
             setIsLoadingDraft(true);
             setDraftLoadError(null);
-            
+
             try {
                 // Always attempt to load draft data - if no draftName is provided, load in-progress selections
                 const name = draftName === '' ? getInProgressSelectionsKey(leagueId) : (draftName || getInProgressSelectionsKey(leagueId));
                 const loadedDraft = await storageAdapter.loadDraftByName(leagueId, name);
-                console.log('[MockTable] Loaded draft:', loadedDraft);
+                if (cancelled) return;
                 if (loadedDraft && loadedDraft.rosterSelections && loadedDraft.costAdjustments && loadedDraft.estimationSettings && loadedDraft.searchSettings) {
                     setRosterSelections(loadedDraft.rosterSelections);
                     setCostAdjustments(new Map(Object.entries(loadedDraft.costAdjustments)));
                     setEstimationSettings(loadedDraft.estimationSettings);
                     setSearchSettings(loadedDraft.searchSettings);
+                } else {
+                    // No stored draft under this key: this is a blank slate. Reset rather
+                    // than leaving whatever a previous load put in state — an explicit save
+                    // deletes the in-progress key, so "not found" is the normal path back to
+                    // a New draft and must not resurrect the pre-save selections.
+                    resetLoadedDraftStateRef.current();
                 }
             } catch (error) {
-                const errorMessage = error instanceof StorageError 
-                    ? error.message 
+                if (cancelled) return;
+                const errorMessage = error instanceof StorageError
+                    ? error.message
                     : 'Failed to load draft data';
                 setDraftLoadError(errorMessage);
                 console.error('Error loading draft data:', error);
             } finally {
+                if (cancelled) return;
                 setIsLoadingDraft(false);
                 setFinishedLoading(true);
             }
         };
-        
+
         loadDraftData();
-    }, [leagueId, draftName, storageAdapter]);
+
+        return () => { cancelled = true; };
+    }, [leagueId, draftName, storageAdapter, authLoading]);
 
     // Holds the latest performAutosave so the retry timeout can call it without the
     // callback referencing itself before it is declared.
@@ -382,8 +427,10 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
                     // selections have been promoted to the named draft, so the
                     // next "New" draft should start blank. Non-fatal if it
                     // fails — the save itself succeeded.
-                    storageAdapter.deleteRoster(leagueId, getInProgressSelectionsKey(leagueId))
-                        .catch((e) => console.warn('[MockTable] Failed to clear in-progress selections:', e));
+                    deleteRosterMutation.mutate(
+                        { leagueId, rosterName: getInProgressSelectionsKey(leagueId) },
+                        { onError: (e) => console.warn('[MockTable] Failed to clear in-progress selections:', e) }
+                    );
                 }
 
                 if (isLeagueMocksRoute && savedName !== draftName) {
@@ -432,7 +479,9 @@ const MockTable: React.FC<MockTableProps> = ({ leagueId, draftName, positions, a
         setSaveError(null);
         
         try {
-            await storageAdapter.deleteRoster(leagueId, rosterName);
+            // Via the mutation so the sidebar/draft lists drop the deleted name
+            // immediately instead of holding it for the query's 2-minute staleTime.
+            await deleteRosterMutation.mutateAsync({ leagueId, rosterName });
             // The deleted name must no longer be an autosave target.
             savedNameRef.current = undefined;
             resetRoster();

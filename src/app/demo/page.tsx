@@ -2,6 +2,7 @@
 import { PlatformLeague, SeasonId } from '@/platforms/common';
 import React, { useEffect, useState } from 'react';
 import { useStorageAdapter } from '@/lib/storage/hooks';
+import { useAuth } from '@/lib/auth/context';
 import Sidebar from '@/ui/Sidebar';
 import MockTable, { MockTableProps } from '../league/[leagueID]/mocks/MockTable';
 import { DraftAnalysis, Rankings, } from '../storage/savedMockTypes';
@@ -9,27 +10,39 @@ import { DraftAnalysis, Rankings, } from '../storage/savedMockTypes';
 
 export default function Demo() {
   const storageAdapter = useStorageAdapter();
+  const { loading: authLoading } = useAuth();
   const [availableLeagues, setAvailableLeagues] = useState<PlatformLeague[]>([]);
   const [isLoadingLeagues, setIsLoadingLeagues] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Wait for auth to settle: until it does the adapter is an inert placeholder
+    // (identity unknown), so this would render an empty league list and then have
+    // to correct itself.
+    if (authLoading) return;
+
+    let cancelled = false;
+
     const loadData = async () => {
       try {
         setIsLoadingLeagues(true);
         setError(null);
         const availableLeaguesData = await storageAdapter.loadLeagues();
+        if (cancelled) return;
         setAvailableLeagues(Object.values(availableLeaguesData.leagues));
       } catch (err) {
+        if (cancelled) return;
         console.error('Failed to load leagues for demo:', err);
         setError('Failed to load leagues');
         setAvailableLeagues([]);
       } finally {
-        setIsLoadingLeagues(false);
+        if (!cancelled) setIsLoadingLeagues(false);
       }
     };
     loadData();
-  }, [storageAdapter]);
+
+    return () => { cancelled = true; };
+  }, [storageAdapter, authLoading]);
 
   return (
         <div className='flex flex-col md:flex-row min-h-screen bg-gray-50 dark:bg-gray-900'>

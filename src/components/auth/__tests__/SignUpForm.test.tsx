@@ -17,11 +17,15 @@ jest.mock('../../../lib/supabase', () => ({
   supabase: { auth: { resend: jest.fn().mockResolvedValue({ error: null }) } },
 }));
 
-// NOTE: This project's jest setup replaces global.window with a plain object,
-// which prevents React state updates from re-rendering in jsdom. So these tests
-// assert what is driven by props on the initial render. The full signup ->
-// "check your email" -> confirm round-trip is covered by the Playwright E2E
-// spec (e2e/tests/auth/signup-confirmation.spec.ts), which exercises real state.
+// NOTE: this file's coverage is narrower than it needs to be. It was written when
+// jest.setup replaced global.window with a plain object, which was believed to stop
+// React state updates from re-rendering. That diagnosis was wrong (the stub's
+// `document: {}` disabled React's onChange for text inputs, and it had no
+// addEventListener) and the stub has since been removed, so simulated typing and
+// state transitions now work here. These tests still only assert what is driven by
+// props on the initial render; broadening them is worthwhile follow-up. The full
+// signup -> "check your email" -> confirm round-trip stays covered by
+// e2e/tests/auth/signup-confirmation.spec.ts.
 describe('SignUpForm', () => {
   beforeEach(() => {
     (useRouter as jest.Mock).mockReturnValue({ push: jest.fn() });

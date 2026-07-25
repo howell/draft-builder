@@ -16,10 +16,14 @@ import 'fake-indexeddb/auto';
 
 // Mock window object for client-side checks in tests
 // Note: jsdom provides localStorage, but we need to ensure it's available in our window mock
+//
+// `document` MUST stay the real jsdom document — see the matching note in
+// jest.setup.ts. A `{}` stub makes React's canUseDOM false, which disables
+// onChange for text inputs and breaks @testing-library's bare waitFor().
 Object.defineProperty(global, 'window', {
   value: {
     location: { href: 'http://localhost' },
-    document: {},
+    document: global.document,
     navigator: { userAgent: 'test' },
     localStorage: global.localStorage // Use jsdom's localStorage
   },
@@ -96,3 +100,42 @@ if (typeof global.setImmediate === 'undefined') {
 }
 
 // NOTE: We DO NOT mock Supabase modules here - integration tests need real Supabase clients
+
+// Fail loudly when the local Supabase env is missing.
+//
+// Each integration file computes its own SUPABASE_AVAILABLE gate and, when it is
+// false, console.warns and no-ops — so the suite reports "passed" having asserted
+// nothing. That has silently hidden these tests at least twice (see the comments in
+// supabase.integration.test.ts about the .env.test.local load and the
+// localhost/127.0.0.1 hostname mismatch), and a green run that tested nothing is
+// worse than a red one.
+//
+// `npm run test:integration` is an explicit request to run against a real database,
+// so treat missing env as an error. Set SKIP_INTEGRATION_TESTS=1 to opt out
+// deliberately.
+if (!process.env.SKIP_INTEGRATION_TESTS) {
+  // The integration jest config does not auto-load env files, so each test file has
+  // been doing this itself at module scope. Load here too — this runs first, and the
+  // per-file calls are then no-ops (dotenv does not override already-set vars).
+  const { config: loadEnv } = require('dotenv');
+  loadEnv({ path: '.env.test.local' });
+  loadEnv({ path: '.env.local' });
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const localUrl = url?.includes('localhost:54321') || url?.includes('127.0.0.1:54321');
+
+  if (!localUrl || !serviceKey) {
+    throw new Error(
+      [
+        'Integration tests require a local Supabase instance.',
+        `  NEXT_PUBLIC_SUPABASE_URL: ${url ?? '(unset)'}${url && !localUrl ? ' (not localhost:54321)' : ''}`,
+        `  SUPABASE_SERVICE_ROLE_KEY: ${serviceKey ? 'set' : '(unset)'}`,
+        '',
+        'Start it with `npm run dev:db`, and make sure .env.test.local is present',
+        '(git worktrees do not inherit it from the main checkout).',
+        'To skip these tests deliberately, set SKIP_INTEGRATION_TESTS=1.',
+      ].join('\n')
+    );
+  }
+}

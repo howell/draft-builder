@@ -58,13 +58,32 @@ describe('Focused Error Recovery Tests', () => {
       expect(isRetryableError(new Error('Connection timeout'))).toBe(true);
       expect(isRetryableError({ message: 'NETWORK ERROR' })).toBe(true);
 
-      // Test non-retryable errors (auth, JWT, RLS)
+      // Test non-retryable errors (permission denials - retrying can't change these)
       expect(isRetryableError({ code: '42501', message: 'RLS violation' })).toBe(false);
-      expect(isRetryableError({ code: 'PGRST301', message: 'JWT expired' })).toBe(false);
       expect(isRetryableError(new Error('RLS policy violated'))).toBe(false);
-      expect(isRetryableError(new Error('JWT token invalid'))).toBe(false);
       expect(isRetryableError(new Error('Authorization failed'))).toBe(false);
       expect(isRetryableError(new Error('Access denied'))).toBe(false);
+    });
+
+    it('retries expired tokens within a bounded budget, but never request timeouts', () => {
+      const mockSupabase = createMockSupabase();
+      const adapter = new SupabaseStorageAdapter(mockSupabase as any, 'test-user');
+      const isRetryableError = (adapter as any).isRetryableError.bind(adapter);
+
+      // An expired token is the routine first-request-after-idle failure: supabase-js
+      // refreshes in the background, so retry rather than falling through to the local
+      // fallback adapter and answering from a stale IndexedDB subset. These fail fast,
+      // so the extra attempts cost almost nothing.
+      expect(isRetryableError({ code: 'PGRST301', message: 'JWT expired' }, 0)).toBe(true);
+      expect(isRetryableError(new Error('JWT token invalid'), 1)).toBe(true);
+      expect(isRetryableError({ code: 'PGRST301', message: 'JWT expired' }, 2)).toBe(false);
+
+      // Request timeouts stay non-retryable: each attempt burns a full timeout window,
+      // so retrying doubles an 8s stall before anything renders.
+      expect(isRetryableError(new Error('loadSavedMocks timeout after 8000ms'), 0)).toBe(false);
+
+      // Connection/network timeouts stay on the general retry budget.
+      expect(isRetryableError(new Error('Connection timeout'), 2)).toBe(true);
     });
 
     it('should handle case-insensitive error message matching', () => {
@@ -77,8 +96,11 @@ describe('Focused Error Recovery Tests', () => {
       expect(isRetryableError(new Error('NETWORK ERROR'))).toBe(true);
       expect(isRetryableError(new Error('temporary failure'))).toBe(true);
       expect(isRetryableError(new Error('RLS Policy Violation'))).toBe(false);
-      expect(isRetryableError(new Error('JWT EXPIRED'))).toBe(false);
       expect(isRetryableError(new Error('Row Level Security violation'))).toBe(false);
+      // Uppercase still matches the token branch, which is budget-bounded rather
+      // than flatly non-retryable.
+      expect(isRetryableError(new Error('JWT EXPIRED'), 0)).toBe(true);
+      expect(isRetryableError(new Error('JWT EXPIRED'), 2)).toBe(false);
     });
   });
 

@@ -67,9 +67,10 @@ export class MockDraftPage extends BasePage {
       await this.positionNoneButton.click();
       await this.page.waitForTimeout(200);
       
-      // Then check the specific position checkbox
-      // Find the label that contains this position text, then get the checkbox within it
-      const positionLabel = this.page.locator('label').filter({ hasText: position });
+      // Then check the specific position checkbox.
+      // Exact text, not a substring: hasText: 'RB' also matches labels like
+      // "FLEX (RB/WR/TE)", which multi-matches and then strict-mode-violates on click.
+      const positionLabel = this.page.locator('label').filter({ hasText: new RegExp(`^\\s*${position}\\s*$`) });
       const positionCheckbox = positionLabel.locator('input[type="checkbox"]');
       await positionCheckbox.click();
     }

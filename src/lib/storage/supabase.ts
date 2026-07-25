@@ -46,6 +46,13 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
 };
 
 /**
+ * Retry budget for expired access tokens, bounded well below maxRetries. See
+ * isRetryableError: these are retried specifically so they don't fall through to the
+ * local fallback adapter, and they fail fast enough that the attempts are nearly free.
+ */
+const EXPIRED_TOKEN_RETRIES = 2;
+
+/**
  * SupabaseStorageAdapter implementation
  */
 export class SupabaseStorageAdapter implements StorageAdapter {
@@ -73,35 +80,47 @@ export class SupabaseStorageAdapter implements StorageAdapter {
   }
 
   /**
-   * Check if an error is retryable
+   * Check if an error is retryable.
+   *
+   * Anything that returns false here falls straight through to the local fallback
+   * adapter, whose contents can be a stale subset of the server's — so classes of
+   * failure that routinely resolve themselves on a second attempt must be retried
+   * rather than silently answered from IndexedDB.
    */
-  private isRetryableError(error: any): boolean {
+  private isRetryableError(error: any, attempt = 0): boolean {
     const errorMessage = error?.message?.toLowerCase?.() || '';
-    
+
     // Don't retry on authentication/authorization errors
-    if (error?.code === '42501' || 
-        errorMessage.includes('rls') || 
+    if (error?.code === '42501' ||
+        errorMessage.includes('rls') ||
         errorMessage.includes('row level security') ||
         errorMessage.includes('policy') ||
         errorMessage.includes('authorization') ||
         errorMessage.includes('access denied')) {
       return false;
     }
-    
-    // Don't retry on JWT errors  
-    if (error?.code === 'PGRST301' || 
+
+    // An expired access token is the normal first-request-after-a-long-idle failure.
+    // supabase-js refreshes it in the background, so a backed-off retry usually
+    // succeeds; these fail fast, so a couple of attempts are cheap.
+    if (error?.code === 'PGRST301' ||
         errorMessage.includes('jwt') ||
         errorMessage.includes('token')) {
-      return false;
+      return attempt < EXPIRED_TOKEN_RETRIES;
     }
-    
-    // Don't retry on operation/request timeouts, but do retry on connection timeouts
-    if (errorMessage.includes('timeout') && 
+
+    // Request timeouts stay non-retryable. Retrying one is tempting — it means the
+    // server was reachable but slow, so the local fallback may well be a stale subset —
+    // but each attempt burns a full timeout window, so a single retry doubles an
+    // already-8s stall to ~17s before anything renders. Measured against the e2e
+    // mock-draft suite that made things distinctly worse (34 failures vs 12 baseline,
+    // cascading timeouts), so the faster degraded answer wins here.
+    if (errorMessage.includes('timeout') &&
         !errorMessage.includes('connection timeout') &&
         !errorMessage.includes('network timeout')) {
       return false;
     }
-    
+
     // Retry on network/connection errors and other transient failures
     return true;
   }
@@ -119,7 +138,7 @@ export class SupabaseStorageAdapter implements StorageAdapter {
       return await fn();
     } catch (error) {
       // Check if error is retryable before attempting retry
-      if (attempt < this.retryConfig.maxRetries && this.isRetryableError(error)) {
+      if (attempt < this.retryConfig.maxRetries && this.isRetryableError(error, attempt)) {
         const delay = this.retryConfig.backoffMs * Math.pow(2, attempt);
         console.warn(`[SupabaseStorage] Retrying ${operation} after ${delay}ms (attempt ${attempt + 1}/${this.retryConfig.maxRetries})`);
         

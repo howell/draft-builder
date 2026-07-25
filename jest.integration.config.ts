@@ -9,6 +9,31 @@
  */
 
 import type {Config} from 'jest';
+import * as path from 'path';
+import * as fs from 'fs';
+
+/**
+ * Locate an installed package directory by walking up from this config file.
+ *
+ * These mappings point at CJS builds, which are deep subpaths that the packages'
+ * `exports` fields do not expose — so `require.resolve` cannot be used. The previous
+ * literal `<rootDir>/node_modules/...` form broke in git worktrees, which have no
+ * node_modules of their own and resolve upward to the main checkout; the whole
+ * integration suite failed to start there with "Could not locate module ... mapped
+ * as". Walking up mirrors Node's own resolution without consulting `exports`.
+ */
+function packageDir(name: string): string {
+  let dir = __dirname;
+  for (;;) {
+    const candidate = path.join(dir, 'node_modules', name);
+    if (fs.existsSync(candidate)) return candidate;
+    const parent = path.dirname(dir);
+    if (parent === dir) {
+      throw new Error(`[jest.integration.config] Cannot find ${name}. Run npm install.`);
+    }
+    dir = parent;
+  }
+}
 
 const config: Config = {
   // Automatically clear mock calls, instances, contexts and results before every test
@@ -48,8 +73,9 @@ const config: Config = {
   // Module name mapping for path aliases and forcing CommonJS versions of problematic packages
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^@supabase/supabase-js$': '<rootDir>/node_modules/@supabase/supabase-js/dist/main/index.js',
-    '^@supabase/realtime-js$': '<rootDir>/node_modules/@supabase/realtime-js/dist/main/index.js',
+    // See packageDir above for why these are resolved rather than hardcoded.
+    '^@supabase/supabase-js$': path.join(packageDir('@supabase/supabase-js'), 'dist/main/index.js'),
+    '^@supabase/realtime-js$': path.join(packageDir('@supabase/realtime-js'), 'dist/main/index.js'),
   },
 
   // Longer timeout for integration tests

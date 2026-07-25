@@ -219,7 +219,14 @@ describe('Authenticated Storage Adapter E2E Test', () => {
 
   });
 
-  test('loading state returns dexie adapter for consistency', async () => {
+  // Reversed deliberately. This previously asserted a Dexie adapter during loading,
+  // "for consistency (prevents race conditions)" — and that is precisely what caused
+  // the stale-mock-draft bug: while identity is unknown, a signed-in user was handed
+  // the *shared anonymous* store, read another session's leftover local data as their
+  // own, and (because consumers autosave) wrote it back over the real thing. During
+  // loading we hand out an inert MemoryStorageAdapter instead: reading empty is
+  // recoverable, reading someone else's data and persisting it is not.
+  test('loading state returns an inert memory adapter, never the anonymous store', async () => {
 
     // Mock auth state that never resolves (simulates loading)
     const mockSupabaseAuth = {
@@ -252,12 +259,13 @@ describe('Authenticated Storage Adapter E2E Test', () => {
     // Wait for component to be ready
     expect(screen.getByTestId('adapter-ready')).toBeInTheDocument();
 
-    // Fixed: During loading state, now gets Dexie adapter for consistency (prevents race conditions)
     expect(capturedAdapter).toBeTruthy();
-    expect(isDexieAdapter(capturedAdapter)).toBe(true);
-    
+    expect(isMemoryAdapter(capturedAdapter)).toBe(true);
+    // The load-bearing half: it must NOT be the shared anonymous Dexie store.
+    expect(isDexieAdapter(capturedAdapter)).toBe(false);
+
     // Verify the adapter type is displayed correctly
-    expect(screen.getByTestId('adapter-type')).toHaveTextContent('dexie');
+    expect(screen.getByTestId('adapter-type')).toHaveTextContent('memory');
 
   });
 

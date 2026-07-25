@@ -72,11 +72,25 @@ export default defineConfig({
   ],
 
   webServer: {
-    // Use production build to eliminate Fast Refresh while keeping test environment variables
-    command: 'mkdir -p test-results && npm run dev 2>&1 | tee test-results/server.log',
+    // In CI: a production build, so the gate is not at the mercy of dev-mode cold
+    // route compiles, Fast Refresh, or the Next error overlay (whose "Console Error"
+    // text trips assertions that scan for /error/i). CI starts Supabase itself before
+    // invoking Playwright, so this must not also run `supabase start` — `npm run dev`
+    // does, and sharing the boot budget with a Docker cold start is how a 60s timeout
+    // gets blown.
+    //
+    // Locally: unchanged (`npm run dev`), to keep hot reload while writing tests.
+    command: process.env.CI
+      ? 'mkdir -p test-results && npm run build && npx next start 2>&1 | tee test-results/server.log'
+      : 'mkdir -p test-results && npm run dev 2>&1 | tee test-results/server.log',
     url: 'http://localhost:3000',
-    reuseExistingServer: false, // Always start fresh server to ensure log capture
-    timeout: 60 * 1000, // Increased timeout for build step
+    // Locally, reuse a server that is already up rather than hard-failing with
+    // "http://localhost:3000 is already used" — an orphaned server from a previous
+    // run (this command is behind a pipe, so Playwright's kill can miss the child)
+    // otherwise blocks every subsequent run until it is manually killed.
+    reuseExistingServer: !process.env.CI,
+    // CI has to build first; locally this only covers `next dev` starting up.
+    timeout: process.env.CI ? 300 * 1000 : 120 * 1000,
     env: {
       // Set environment to test for E2E testing
       E2E_FIXTURE_MODE: 'true',
