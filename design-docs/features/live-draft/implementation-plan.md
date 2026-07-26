@@ -140,7 +140,10 @@
 > the re-pooled baseline, priors, expected-unspent, regression training, and the
 > backtest/calibration set, so every model compares on the same history. At
 > least one season must stay selected; toggling clears stale backtest/calibration
-> results (`__tests__/DraftSimulator.seasons.test.tsx`).
+> results (`__tests__/DraftSimulator.seasons.test.tsx`). A "Simulated picks"
+> card (added 2026-07-26) lists each generated pick — number, player, position,
+> team, price — whenever a randomized state is active
+> (`__tests__/DraftSimulator.picks.test.tsx`).
 >
 > Tests: `__tests__/inflationModel.test.ts` (conservation — including from
 > platform values, neutral-market no-pressure invariant, over/under-spend

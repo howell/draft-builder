@@ -36,11 +36,14 @@ import {
     PlatformValueLookupEntry,
 } from '@/lib/models/live-draft/history';
 
+/** Pool player: the predictor shape plus the display name carried from MockPlayer. */
+export type SimulatorPlayer = PredictorPlayer & { name?: string };
+
 export interface SimulatorData {
     /** exponential baseline fit on every available season at once */
     baseline: BaselineModels;
     /** ranked, undrafted-at-start player pool */
-    players: PredictorPlayer[];
+    players: SimulatorPlayer[];
     rosterNeeds: RosterSettings;
     defaultBudget: number;
     teamCount: number;
@@ -152,9 +155,10 @@ export function useSimulatorData(
         const rankingsValues = rankingsQuery.data.map(r => r.value);
         const playerDb = buildPlayerDb(platform, playersQuery.data, rankingsValues, lineupSettings);
         // rankPlayers spreads MockPlayer, so suggestedCost (the platform's own
-        // suggested price for this league) rides along; expose it to predictors.
+        // suggested price for this league) and name ride along; expose them to
+        // the predictors and the simulated-picks display.
         const rankedPool = (rankPlayers(playerDb, rankingsQuery.data[0].value) as Array<
-            PredictorPlayer & { suggestedCost?: number }
+            SimulatorPlayer & { suggestedCost?: number }
         >).map(p => ({ ...p, platformValue: p.suggestedCost }));
 
         // Normalize every season with draft data for the backtest/calibration.

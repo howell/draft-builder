@@ -18,7 +18,7 @@ import { Card, CardBody, CardHeader, CardTitle } from '@/ui/Card';
 import { Input } from '@/ui/Input';
 import { Alert } from '@/ui/Alert';
 import { Badge, PositionBadge } from '@/ui/Badge';
-import { useSimulatorData } from './useSimulatorData';
+import { useSimulatorData, SimulatorPlayer } from './useSimulatorData';
 
 import {
     BaselinePredictor,
@@ -441,6 +441,56 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                     </CardBody>
                 </Card>
             </div>
+
+            {sim && sim.picks.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Simulated picks</CardTitle>
+                    </CardHeader>
+                    <CardBody>
+                        <div
+                            className="overflow-x-auto max-h-80 overflow-y-auto"
+                            data-testid="simulated-picks"
+                        >
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="text-left border-b border-gray-200 dark:border-gray-700">
+                                        <th className="py-2 pr-2">#</th>
+                                        <th className="py-2 pr-2">Player</th>
+                                        <th className="py-2 pr-2">Pos</th>
+                                        <th className="py-2 pr-2">Team</th>
+                                        <th className="py-2 pr-2 text-right">Price</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {sim.picks.map(pick => (
+                                        <tr
+                                            key={pick.pickNumber}
+                                            className="border-b border-gray-100 dark:border-gray-800"
+                                        >
+                                            <td className="py-1.5 pr-2 text-gray-500">
+                                                {pick.pickNumber}
+                                            </td>
+                                            <td className="py-1.5 pr-2">
+                                                {(pick.player as SimulatorPlayer).name ?? pick.player.id}
+                                            </td>
+                                            <td className="py-1.5 pr-2">
+                                                <PositionBadge position={pick.player.defaultPosition} />
+                                            </td>
+                                            <td className="py-1.5 pr-2 text-gray-500">
+                                                {pick.teamId.replace('team-', 'Team ')}
+                                            </td>
+                                            <td className="py-1.5 pr-2 text-right tabular-nums">
+                                                ${pick.price}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardBody>
+                </Card>
+            )}
 
             {inflationField && (
                 <Card>
