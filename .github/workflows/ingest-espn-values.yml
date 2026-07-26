@@ -37,15 +37,18 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        # Explicit `shell: bash` enables pipefail — without it the pipe through
+        # tee swallows the script's exit code and failed ingests report green.
+        shell: bash
         run: |
           if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
             echo "::error::SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY repo secrets are not set"
             exit 1
           fi
           if [ -n "${{ github.event.inputs.season }}" ]; then
-            npm run ingest:espn-values -- --current --season "${{ github.event.inputs.season }}" | tee ingest.log
+            npm run ingest:espn-values -- --current --season "${{ github.event.inputs.season }}" 2>&1 | tee ingest.log
           else
-            npm run ingest:espn-values -- --current | tee ingest.log
+            npm run ingest:espn-values -- --current 2>&1 | tee ingest.log
           fi
 
       - name: Job summary

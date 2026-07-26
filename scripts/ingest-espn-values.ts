@@ -331,6 +331,15 @@ function supabaseClient() {
     if (!process.env.SUPABASE_URL) {
         console.log('SUPABASE_URL not set — writing to the LOCAL supabase instance');
     }
+    try {
+        new URL(url);
+    } catch {
+        // Say which env var is broken — supabase-js's bare "Invalid URL" cost
+        // us a month of green-but-failing ingest runs.
+        throw new Error(
+            `SUPABASE_URL is not a valid URL (need the scheme too, e.g. https://<project-ref>.supabase.co), got: ${JSON.stringify(url)}`
+        );
+    }
     return createClient(url, key);
 }
 
