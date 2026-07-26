@@ -135,6 +135,12 @@
 > history, not just the latest), generate plausible states, and show a
 > side-by-side prediction explorer plus the held-out backtest panel with knob
 > toggles and a "Calibrate elasticity" button that applies the best grid point.
+> Season toggles (added 2026-07-26, mirroring the mocks page's estimation-years
+> setting) filter which historical drafts feed the models: one selection drives
+> the re-pooled baseline, priors, expected-unspent, regression training, and the
+> backtest/calibration set, so every model compares on the same history. At
+> least one season must stay selected; toggling clears stale backtest/calibration
+> results (`__tests__/DraftSimulator.seasons.test.tsx`).
 >
 > Tests: `__tests__/inflationModel.test.ts` (conservation — including from
 > platform values, neutral-market no-pressure invariant, over/under-spend

@@ -1,12 +1,14 @@
 'use client';
 
 /**
- * Dev-only simulated draft room.
+ * Simulated draft room (experimental).
  *
  * Lets us generate a random-but-plausible mid-draft state, tune the inflation
  * model, and compare the baseline / inflation / regression predictions against
  * each other and against historical actuals (the held-out backtest panel).
- * This page is gated behind a feature flag and has no production nav link.
+ * The season toggles filter which historical drafts feed the models: one
+ * selection drives the pooled baseline, priors, expected-unspent, regression
+ * training, and the backtest/calibration set, so results stay coherent.
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -37,6 +39,7 @@ import {
     CalibrationConfig,
     CalibrationResult,
 } from '@/lib/models/live-draft/calibrate';
+import { createPooledBaselineModels } from '@/lib/models/live-draft/history';
 import { LiveDraftPredictor } from '@/lib/models/live-draft/liveDraftPredictor';
 
 interface Props {
@@ -59,6 +62,8 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
     const [positionalValues, setPositionalValues] = useState(false);
     const [usePriors, setUsePriors] = useState(false);
     const [useExpectedUnspent, setUseExpectedUnspent] = useState(false);
+    // Stored as exclusions so the default ("all seasons") needs no sync when data loads.
+    const [excludedSeasons, setExcludedSeasons] = useState<Set<string>>(new Set());
     const [sim, setSim] = useState<SimulatedDraft | null>(null);
     const [report, setReport] = useState<BacktestReport | null>(null);
     const [calibration, setCalibration] = useState<CalibrationResult | null>(null);
@@ -77,21 +82,36 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
         [positionalValues, usePriors, useExpectedUnspent]
     );
 
+    // The selected seasons feed everything downstream — baseline, priors,
+    // expected-unspent, regression training, and the backtest/calibration set —
+    // so toggling a season keeps every model comparing on the same history.
+    const activeHistorical = useMemo(
+        () => (data ? data.historical.filter(d => !excludedSeasons.has(d.season ?? '?')) : []),
+        [data, excludedSeasons]
+    );
+
+    // Re-pool the baseline over just the selected seasons (the UI prevents
+    // deselecting the last season, so the pool is never empty).
+    const activeBaseline = useMemo(
+        () => (activeHistorical.length > 0 ? createPooledBaselineModels(activeHistorical) : null),
+        [activeHistorical]
+    );
+
     // League-history knobs (priors, expected unspent) for the live predictors,
-    // measured over every historical draft.
+    // measured over the selected historical drafts.
     const historyOptions = useMemo(() => {
-        if (!data) return null;
-        return leagueHistoryOptions(data.historical, data.baseline, calibrationConfig);
-    }, [data, calibrationConfig]);
+        if (!data || !activeBaseline) return null;
+        return leagueHistoryOptions(activeHistorical, activeBaseline, calibrationConfig);
+    }, [data, activeHistorical, activeBaseline, calibrationConfig]);
 
     // Train the legacy regression model in the background; until ready the
     // regression column falls back to baseline.
     const regressionPredictorRef = useMemo(() => {
-        if (!data) return null;
+        if (!data || !activeBaseline) return null;
         const livePredictor = new LiveDraftPredictor({
             budgetConfig: { totalBudgetPerTeam: budget, teamCount },
-            baselineModels: data.baseline,
-            historicalData: data.historical.map(draft => ({
+            baselineModels: activeBaseline,
+            historicalData: activeHistorical.map(draft => ({
                 picks: draft.picks.map(p => ({
                     player: {
                         defaultPosition: p.player.defaultPosition,
@@ -105,10 +125,10 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
             })),
         });
         return livePredictor;
-    }, [data, budget, teamCount]);
+    }, [data, activeHistorical, activeBaseline, budget, teamCount]);
 
     useEffect(() => {
-        if (!regressionPredictorRef || !data || data.historical.length === 0) return;
+        if (!regressionPredictorRef || !data || activeHistorical.length === 0) return;
         let cancelled = false;
         regressionPredictorRef
             .trainModel({
@@ -126,24 +146,24 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
         return () => {
             cancelled = true;
         };
-    }, [regressionPredictorRef, data, rosterSize, teamCount, budget]);
+    }, [regressionPredictorRef, data, activeHistorical, rosterSize, teamCount, budget]);
 
     const regressionReady = trainedPredictor === regressionPredictorRef;
 
     const predictors = useMemo<PricePredictor[]>(() => {
-        if (!data || !historyOptions) return [];
+        if (!data || !activeBaseline || !historyOptions) return [];
         const list: PricePredictor[] = [
-            new BaselinePredictor(data.baseline, positionalValues),
-            createPlatformValuePredictor(data.baseline),
-            new InflationPredictor(data.baseline, { ...historyOptions, elasticity }),
+            new BaselinePredictor(activeBaseline, positionalValues),
+            createPlatformValuePredictor(activeBaseline),
+            new InflationPredictor(activeBaseline, { ...historyOptions, elasticity }),
         ];
         if (regressionPredictorRef) {
-            list.push(new RegressionPredictor(regressionPredictorRef, data.baseline));
+            list.push(new RegressionPredictor(regressionPredictorRef, activeBaseline));
         }
         return list;
         // regressionReady included so columns refresh after training
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [data, historyOptions, positionalValues, elasticity, regressionPredictorRef, regressionReady]);
+    }, [data, activeBaseline, historyOptions, positionalValues, elasticity, regressionPredictorRef, regressionReady]);
 
     const currentContext = useMemo<PredictionContext | null>(() => {
         if (!data) return null;
@@ -160,12 +180,12 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
     }, [data, sim, budget, teamCount, rosterSize]);
 
     const inflationField = useMemo(() => {
-        if (!data || !currentContext || !historyOptions) return null;
-        return computeInflation(currentContext, data.baseline, {
+        if (!data || !activeBaseline || !currentContext || !historyOptions) return null;
+        return computeInflation(currentContext, activeBaseline, {
             ...historyOptions,
             elasticity,
         });
-    }, [data, currentContext, historyOptions, elasticity]);
+    }, [data, activeBaseline, currentContext, historyOptions, elasticity]);
 
     const explorerRows = useMemo(() => {
         if (!data || !currentContext) return [];
@@ -198,7 +218,7 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
     const handleRunBacktest = () => {
         if (!data) return;
         setReport(
-            backtestHeldOut(data.historical, (baseline, trainingDrafts) => {
+            backtestHeldOut(activeHistorical, (baseline, trainingDrafts) => {
                 const foldOptions = leagueHistoryOptions(
                     trainingDrafts,
                     baseline,
@@ -219,9 +239,24 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
 
     const handleCalibrate = () => {
         if (!data) return;
-        const result = calibrateElasticity(data.historical, calibrationConfig);
+        const result = calibrateElasticity(activeHistorical, calibrationConfig);
         setCalibration(result);
         setElasticity(result.best.elasticity);
+    };
+
+    const toggleSeason = (season: string) => {
+        setExcludedSeasons(prev => {
+            const next = new Set(prev);
+            if (next.has(season)) {
+                next.delete(season);
+            } else {
+                next.add(season);
+            }
+            return next;
+        });
+        // Results computed from the previous season set would mislead.
+        setReport(null);
+        setCalibration(null);
     };
 
     if (isLoading) {
@@ -242,20 +277,14 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
         );
     }
 
-    const seasons = data.historical
-        .map(d => {
-            const season = d.season ?? '?';
-            return data.platformValueSeasons.includes(season) ? `${season}*` : season;
-        })
-        .join(', ');
-
     return (
         <div className="max-w-6xl mx-auto p-4 space-y-4">
             <div>
                 <h1 className="text-2xl font-bold">Live Draft Simulator</h1>
                 <p className="text-sm text-gray-500">
-                    Dev sandbox · compare pricing models against a simulated or historical draft ·
-                    history: {seasons} (* = stored platform values)
+                    Experimental · compare pricing models against a simulated or historical draft ·
+                    history: {activeHistorical.length} of {data.historical.length} season
+                    {data.historical.length === 1 ? '' : 's'}
                 </p>
             </div>
 
@@ -356,6 +385,34 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                                 </span>
                             )}
                         </label>
+                    </div>
+                    <div
+                        className="flex flex-wrap items-center gap-4 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-sm"
+                        data-testid="season-toggles"
+                    >
+                        <span className="text-gray-600 dark:text-gray-300">History seasons:</span>
+                        {data.historical.map(d => {
+                            const season = d.season ?? '?';
+                            const active = !excludedSeasons.has(season);
+                            const label = data.platformValueSeasons.includes(season)
+                                ? `${season}*`
+                                : season;
+                            return (
+                                <label key={season} className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={active}
+                                        // The models need at least one season of history.
+                                        disabled={active && activeHistorical.length === 1}
+                                        onChange={() => toggleSeason(season)}
+                                    />
+                                    {label}
+                                </label>
+                            );
+                        })}
+                        <span className="text-xs text-gray-500">
+                            * = stored platform values · drives baseline, priors, regression, and backtest
+                        </span>
                     </div>
                 </CardBody>
             </Card>
@@ -532,8 +589,8 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                             <p className="text-xs text-gray-500 mt-2">
                                 {report.totalPicks} picks scored across {report.draftCount}{' '}
                                 draft{report.draftCount === 1 ? '' : 's'}. Baseline and inflation
-                                use per-fold baselines; the regression column trains on all
-                                seasons, so its row is in-sample.
+                                use per-fold baselines; the regression column trains on every
+                                selected season, so its row is in-sample.
                             </p>
                         </div>
                     )}
