@@ -142,12 +142,16 @@ export class BaselinePredictor implements PricePredictor {
 }
 
 /**
- * What the draft room actually shows: the platform's published auction value
- * scaled by the league's price multiplier (floored, min $1). No draft-state
- * awareness and no money conservation — this is the anchor everyone at the
- * table is bidding against, so it's the practical bar a live model must beat.
- * The multiplier comes from the per-league setting (see
- * `src/lib/leaguePriceMultiplier.ts`), not a hardcoded constant.
+ * What the draft room actually shows: the platform's auction value scaled by
+ * `multiplier` (floored, min $1). No draft-state awareness and no money
+ * conservation — this is the anchor everyone at the table is bidding against,
+ * so it's the practical bar a live model must beat.
+ *
+ * The right multiplier depends on the value's scale: ESPN's *published
+ * universal* values (stored draft-kit/API snapshots, $200-baseline) need the
+ * league's price multiplier (see `src/lib/leaguePriceMultiplier.ts`), while
+ * values from the league-scoped API (`draftAuctionValue`) already have it
+ * applied — pass 1 for those or the sticker double-scales.
  */
 export class StickerPredictor implements PricePredictor {
     readonly id = 'sticker';

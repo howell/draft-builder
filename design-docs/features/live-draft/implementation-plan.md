@@ -100,10 +100,14 @@
 >   (ESPN-baseline `$200`) league, `4/3` otherwise. **Stored/viewable/overridable
 >   only** until 2026-07-26, when the simulator's "Platform (sticker)" benchmark
 >   became its first consumer: `useSimulatorData` resolves the effective
->   multiplier and `StickerPredictor` prices players at
->   floor(published auction value × multiplier) — the number the draft room
->   actually displays, as an explorer column and backtest row alongside the
->   money-conserving "Platform (rescaled)" model.
+>   multiplier and `StickerPredictor` reconstructs the number the draft room
+>   displays, as an explorer column and backtest row alongside the
+>   money-conserving "Platform (rescaled)" model. Scaling depends on the value
+>   source: the multiplier applies only to ESPN's *published universal* values
+>   (the stored draft-kit/API snapshots used in the backtest) — the
+>   league-scoped API's `draftAuctionValue` (the live explorer pool) already
+>   has it applied, so the explorer passes multiplier 1 or the sticker would
+>   double-scale.
 > - **`PlatformValuePredictor`** (`createPlatformValuePredictor`): the same
 >   money-conserving identity with `valueSource: 'platform'` — "just trust the
 >   platform's prices" as a backtest column the inflation model must beat.

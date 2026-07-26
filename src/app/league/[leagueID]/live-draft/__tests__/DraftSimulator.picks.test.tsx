@@ -41,7 +41,12 @@ function makeData(): SimulatorData {
     const historical = [syntheticDraft('2024')];
     return {
         baseline: createPooledBaselineModels(historical),
-        players: historical[0].players.map((p, i) => ({ ...p, name: `Player ${i}` })),
+        // platformValue mimics the league-scoped API: already league-scaled.
+        players: historical[0].players.map((p, i) => ({
+            ...p,
+            name: `Player ${i}`,
+            platformValue: 40 - i,
+        })),
         rosterNeeds: ROSTER_NEEDS,
         defaultBudget: 200,
         teamCount: 4,
@@ -58,6 +63,20 @@ describe('DraftSimulator simulated picks', () => {
             isLoading: false,
             error: null,
         });
+    });
+
+    it('shows live sticker prices unscaled — league API values are pre-multiplied', async () => {
+        await act(async () => {
+            render(<DraftSimulator leagueId={'espn-1' as LeagueId} googleApiKey="key" />);
+        });
+
+        const explorer = screen.getByTestId('prediction-explorer');
+        const topRow = within(explorer).getAllByRole('row')[1];
+        const cells = within(topRow).getAllByRole('cell');
+
+        // rank | player | pos | Baseline | Platform (rescaled) | Platform (sticker) | Inflation
+        // Player 0 has platformValue 40; scaling it again (×4/3 → $53) is the bug.
+        expect(cells[5].textContent).toBe('$40');
     });
 
     it('lists the generated picks and clears them with the draft state', async () => {

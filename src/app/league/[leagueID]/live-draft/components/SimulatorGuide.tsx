@@ -54,7 +54,7 @@ export const MODEL_HELP: Record<string, string> = {
     platform:
         "ESPN's relative valuations, rescaled so they sum to this league's total money. Measures the quality of ESPN's player rankings, independent of scale.",
     sticker:
-        "What the draft room actually displays: ESPN's published auction value × this league's price multiplier (configurable in Settings). The anchor everyone bids against — the practical bar to beat.",
+        "What the draft room actually displays — the anchor everyone bids against and the practical bar to beat. Live values come from the league API already scaled; historical backtest values are ESPN's published universal numbers × this league's price multiplier (configurable in Settings).",
     inflation:
         'Baseline value × market inflation — how much money is left vs how much talent is left — with per-position appetite controlled by the elasticity slider. This is the model being tuned.',
     regression:
@@ -125,10 +125,12 @@ const SimulatorGuide: React.FC = () => (
                                 ESPN&apos;s opinions.
                             </Term>
                             <Term name="Platform (sticker)">
-                                what the draft room actually displays: ESPN&apos;s published value
-                                × this league&apos;s price multiplier (set in Settings, default
-                                4/3 for custom leagues). Nobody should use a model that can&apos;t
-                                beat the number already on everyone&apos;s screen.
+                                what the draft room actually displays. Live values arrive from the
+                                league API already scaled by ESPN; historical values in the
+                                backtest are the published universal numbers × this league&apos;s
+                                price multiplier (set in Settings, default 4/3 for custom
+                                leagues). Nobody should use a model that can&apos;t beat the
+                                number already on everyone&apos;s screen.
                             </Term>
                             <Term name="Inflation">
                                 Baseline × market inflation (money left vs talent left), with

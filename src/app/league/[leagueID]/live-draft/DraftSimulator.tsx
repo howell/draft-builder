@@ -181,7 +181,10 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
         const list: PricePredictor[] = [
             new BaselinePredictor(activeBaseline, positionalValues),
             createPlatformValuePredictor(activeBaseline),
-            new StickerPredictor(data.priceMultiplier),
+            // The live pool's platformValues come from the league-scoped API,
+            // which already applies ESPN's league multiplier — the value IS
+            // the sticker, so no further scaling here (multiplier 1).
+            new StickerPredictor(1),
             new InflationPredictor(activeBaseline, { ...historyOptions, elasticity }),
         ];
         if (regressionReady && regressionPredictorRef) {
@@ -254,6 +257,10 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                     const models: PricePredictor[] = [
                         new BaselinePredictor(baseline, positionalValues),
                         createPlatformValuePredictor(baseline),
+                        // Historical players carry the stored *published
+                        // universal* auction values ($200-baseline scale), so
+                        // reconstructing the room's sticker needs the league
+                        // multiplier — unlike the live pool's pre-scaled values.
                         new StickerPredictor(data.priceMultiplier),
                         new InflationPredictor(baseline, { ...foldOptions, elasticity }),
                     ];
@@ -608,7 +615,7 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                     </div>
                 </CardHeader>
                 <CardBody>
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto" data-testid="prediction-explorer">
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="text-left border-b border-gray-200 dark:border-gray-700">
