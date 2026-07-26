@@ -24,8 +24,11 @@ task below.
 | 8. Hide-platform-rank toggle | ✅ COMPLETED |
 | 9. Import from another league or season | ✅ COMPLETED |
 | 10. Reset to platform order | ✅ COMPLETED |
-| 11. Migrate anonymous settings on signup | ⏳ PENDING |
+| 11. Migrate anonymous settings on signup | ✅ COMPLETED |
 | 12. Regenerate ESPN fixtures with `platformRank` | ✅ COMPLETED |
+| 13. Tier rename wrote stale labels | ✅ COMPLETED |
+| 14. Failed saves lost on navigation | ✅ COMPLETED |
+| 15. Adopt pre-season-scoping boards | ✅ COMPLETED |
 
 ---
 
@@ -386,22 +389,89 @@ one position leaves another's manual order intact.
 
 ---
 
-## Task 11: Migrate Anonymous Settings on Signup ⏳ PENDING
+## Task 11: Migrate Anonymous Settings on Signup ✅ COMPLETED
 
-**Objective**: Stop anonymous users losing a hand-built board when they create an
-account.
+**Objective**: Stop anonymous users losing a hand-built board when they create an account.
 
-**Problem**: `src/lib/storage/migration-service.ts` migrates leagues and drafts only — it
-has zero references to `user_settings`. A board built while signed out is lost at signup,
-and `clearAllData` does not even remove the orphaned `userId: 'anonymous'` rows.
+**Files**:
+- `src/lib/storage/settings-migration.ts` ✅ new
+- `src/lib/storage/__tests__/settings-migration.test.ts` ✅ new, 16 tests
+- `src/lib/storage/__tests__/settingsMigration.integration.test.ts` ✅ new, 5 tests
+- `src/lib/storage/dexie.ts` ✅ `clearAllData` deletes settings
+- `src/lib/storage/migration-utils.ts` ✅ `settingsCount` + detection
+- `src/app/migrate/page.tsx` ✅ redirect condition, tile, ordering
+- `e2e/utils/migration-data-helpers.ts`, `e2e/tests/auth/signup-with-migration.spec.ts` ✅
 
-**Plan**: re-key anonymous `settings` rows to the real uid and upsert them into Supabase
-as part of `migrateAllUserData`. Generic over `type: 'app'` settings, so it also fixes the
-same latent gap for `useLeaguePriceMultipliers`.
+**Kept outside `DataMigrationService`.** `rollbackMigration` deletes *all* of a user's
+leagues and draft sessions, scoped by `user_id` rather than by the run — so a settings
+write throwing inside `migrateAllUserData` would land in that catch and destroy the
+leagues just migrated. Sitting outside makes that structurally impossible, which is why
+nothing in the new module throws. It also sidesteps `exportDexieData`'s refusal to run
+without leagues, and talks to the Dexie singleton rather than `DexieStorageAdapter`, so
+the 1754-line `migration-service.test.ts` and its siblings needed no changes.
 
-**Deferred because**: it expands the change into the migration service, which the storage
-design for this feature was specifically shaped to avoid. Accepted as parity with
-existing behaviour for v1.
+**Server-wins is enforced by Postgres**, not by the pre-read. `ignoreDuplicates: true`
+emits `ON CONFLICT DO NOTHING`, so a board inserted by another device between the read
+and the write survives; the pre-read is only a payload optimisation and the source of
+the migrated/skipped reporting. An integration test upserts twice against the same
+conflict target to prove it.
+
+**Ordering is forced**: settings run *before* `migrateAllUserData`, which ends by
+clearing local data — now including the settings store.
+
+**Two exclusions.** The live-draft ingest token is a bearer credential bound to another
+identity and cannot legitimately be anonymous, so any such row is residue. A
+substantive-value predicate drops empty blobs, without which a stray `{}` would make
+`hasMigratableData` true and bounce every signed-in user to `/migrate`.
+
+**Redirect-loop guard**: a settings-only user never triggers the league migration's
+cleanup, so the module clears its own rows after a clean run. On partial failure the page
+reports it and stays put, since the retained rows would otherwise bounce the user back.
+
+**Not done**: `SupabaseStorageAdapter.clearAllData` still leaves `user_settings` in the
+cloud, and boards written while signed-in but offline land under the real user id and are
+never reconciled upward. Both are pre-existing and tracked below.
+
+---
+
+## Task 13: Tier Rename Wrote Stale Labels ✅ COMPLETED
+
+The label input was uncontrolled (`defaultValue`) while its label was derived
+positionally. Deleting or reordering a tier renumbered the survivors' derived names while
+their inputs kept the original text — and the next blur wrote that stale text back through
+`renameTier`, permanently. Focus-and-blur was enough; no typing required.
+
+Stored label and derived name now stay separate: the input is controlled on `item.label`
+with the derived name only as a `placeholder`. Two of three new specs fail against the
+previous code; the third is a regression guard, since a *named* tier was never corrupted.
+
+---
+
+## Task 14: Failed Saves Lost on Navigation ✅ COMPLETED
+
+`pendingRef` was cleared *before* the save was attempted, so a failure left nothing to
+retry — and the unmount flush had `[]` deps, capturing `persist` from the first render
+when `league` is undefined and it early-returns, making it inert regardless. Both the
+"leaving the page persists" comment and the "your changes are still here" message were
+false.
+
+Now cleared only in `onSuccess`, with `persist` read through a ref, plus an explicit Retry
+button. Covered by a component test rather than e2e: the fixture environment has no
+reachable Supabase, so the adapter falls back to Dexie and every save succeeds. The
+decisive case records one save attempt instead of two against the old code.
+
+---
+
+## Task 15: Adopt Pre-Season-Scoping Boards ✅ COMPLETED
+
+The unscoped-key version is on `main` and `prod`, so real browsers hold unreachable
+boards. `loadCustomRankings` falls back to the legacy key on a miss and adopts it,
+guarded on the blob's own `season` — which the pre-scoping save already recorded. Without
+that guard every league would silently inherit last year's board on rollover.
+
+The common path still costs one read. The adoption write cannot reject the read. The old
+key is not deleted: `StorageAdapter` has no `deleteUserSetting`, and the season guard
+makes double-adoption impossible.
 
 ---
 

@@ -123,6 +123,18 @@ reporting `addedIds` / `removedIds` so the UI can mark new arrivals. It delibera
 **not** invent a tier for new players: silently restructuring someone's tiers is worse
 than telling them what changed.
 
+### Legacy key adoption
+
+Boards saved before season-scoping live under `customRankings:<leagueId>`, and that
+version reached production. `loadCustomRankings` reads the scoped key and only on a miss
+falls back to the legacy one, adopting it under the new key — so the common path is still
+a single read and the fallback becomes unreachable once anything is saved.
+
+Adoption requires the blob's own `season` to match the one being viewed. The pre-scoping
+save already wrote `season` into the payload, which is what makes this safe: without the
+check, every league would silently inherit last year's board on rollover — precisely the
+carry-forward season-scoping was introduced to stop.
+
 ### Save semantics
 
 Debounced autosave (700ms), no Save button. There is no natural commit point in a drag
@@ -215,20 +227,17 @@ degrading. This is what made the rankings page hang whenever Supabase was slow.
 
 ## Known limitations
 
-- **Anonymous boards are lost at signup.** `migration-service.ts` migrates leagues and
-  drafts only; it never touches `user_settings`. A board built while signed out does not
-  survive account creation. This is the same pre-existing gap `useLeaguePriceMultipliers`
-  has, and was accepted for v1 rather than expanding the blast radius into the migration
-  service. See [implementation-tasks.md](./implementation-tasks.md) Task 10.
+- ~~Anonymous boards are lost at signup.~~ **Fixed** — `src/lib/storage/settings-migration.ts`
+  migrates anonymous settings when an account is created, with the server winning any
+  key the account already has. See Task 11.
 - **Cross-platform import is refused.** ESPN and Sleeper player ids share no namespace,
   so importing across platforms would drop every player and present as an empty board
   rather than an error. `useImportCustomRankingsMutation` throws `CrossPlatformCopyError`,
   and the picker lists such sources disabled with the reason shown. Name-based matching
   would be needed to support it.
-- **Boards saved before season-scoping are orphaned.** Keys moved from
-  `customRankings:<league>` to `customRankings:<league>:<season>` with no migration, a
-  decision taken while the feature had been in production only a few hours. Anything
-  saved under the old key is unreachable.
+- ~~Boards saved before season-scoping are orphaned.~~ **Fixed** — `loadCustomRankings`
+  falls back to the old key and adopts the board, guarded on the season the blob itself
+  recorded. See Task 15.
 - **Import sources are probed, not enumerated.** Storage exposes no key listing, so the
   picker checks a fixed four-season window (`IMPORTABLE_SEASON_COUNT`). A board older
   than that will not appear.
@@ -266,6 +275,17 @@ league, players, rankings and saved-board reads each spend the adapter's full 8s
 before falling back to Dexie. Board-ready waits in the page object are set to 45s for
 that reason; the page is not slow in production. Under high machine load these specs
 still flake — verify on a quiet machine.
+
+## Known gaps still open
+
+- `SupabaseStorageAdapter.clearAllData()` does not delete `user_settings`, so "delete all
+  my data" is incomplete in the cloud.
+- Boards written while signed-in but offline land in Dexie under the *real* user id, so
+  they are never reconciled upward. Same class of silent loss, pre-existing.
+- `getMigrationPreview()` still reports no settings, so it and `/migrate` disagree about
+  how much data exists.
+- The populated import picker, the alphabetical-fallback UI, and the `removedIds` signal
+  remain uncovered by end-to-end tests.
 
 ## Related
 
