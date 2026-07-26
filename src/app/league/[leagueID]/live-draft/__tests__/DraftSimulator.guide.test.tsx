@@ -43,6 +43,7 @@ function makeData(): SimulatorData {
         teamCount: 4,
         historical,
         platformValueSeasons: [],
+        priceMultiplier: 4 / 3,
     };
 }
 
@@ -79,9 +80,11 @@ describe('DraftSimulator in-page help', () => {
         });
 
         // Sliders (2) + knob checkboxes (3) + stat tiles (2) + positional
-        // inflation title (1) + explorer model columns (3, regression not yet
+        // inflation title (1) + explorer model columns (4, regression not yet
         // trained) + train-regression button (1) at minimum.
         const triggers = screen.getAllByRole('tooltip-trigger');
-        expect(triggers.length).toBeGreaterThanOrEqual(12);
+        expect(triggers.length).toBeGreaterThanOrEqual(13);
+        expect(screen.getByText('Platform (sticker)')).toBeInTheDocument();
+        expect(screen.getByText('Platform (rescaled)')).toBeInTheDocument();
     });
 });

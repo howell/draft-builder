@@ -52,7 +52,9 @@ export const MODEL_HELP: Record<string, string> = {
     'baseline-positional':
         "Per-position price curves fit on the selected seasons' actual auction prices. Ignores the live draft entirely — the reference the other models try to beat.",
     platform:
-        "ESPN's own suggested values, rescaled so they sum to this league's total money. \"Just trust the platform\" as a benchmark.",
+        "ESPN's relative valuations, rescaled so they sum to this league's total money. Measures the quality of ESPN's player rankings, independent of scale.",
+    sticker:
+        "What the draft room actually displays: ESPN's published auction value × this league's price multiplier (configurable in Settings). The anchor everyone bids against — the practical bar to beat.",
     inflation:
         'Baseline value × market inflation — how much money is left vs how much talent is left — with per-position appetite controlled by the elasticity slider. This is the model being tuned.',
     regression:
@@ -115,11 +117,18 @@ const SimulatorGuide: React.FC = () => (
                                 by rank. Ignores the live draft — the reference everything else tries
                                 to beat.
                             </Term>
-                            <Term name="Platform">
-                                ESPN&apos;s own player values, rescaled so they sum to this
-                                league&apos;s total money. &quot;Just trust ESPN&quot; as a benchmark
-                                — expect it to disagree with Baseline wherever this league&apos;s
-                                history disagrees with ESPN&apos;s valuations.
+                            <Term name="Platform (rescaled)">
+                                ESPN&apos;s relative valuations, rescaled so they sum to this
+                                league&apos;s total money — a fair test of ESPN&apos;s player
+                                rankings with the scale mismatch removed. Expect it to disagree
+                                with Baseline wherever this league&apos;s history disagrees with
+                                ESPN&apos;s opinions.
+                            </Term>
+                            <Term name="Platform (sticker)">
+                                what the draft room actually displays: ESPN&apos;s published value
+                                × this league&apos;s price multiplier (set in Settings, default
+                                4/3 for custom leagues). Nobody should use a model that can&apos;t
+                                beat the number already on everyone&apos;s screen.
                             </Term>
                             <Term name="Inflation">
                                 Baseline × market inflation (money left vs talent left), with

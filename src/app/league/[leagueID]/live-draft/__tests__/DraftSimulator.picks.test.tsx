@@ -47,6 +47,7 @@ function makeData(): SimulatorData {
         teamCount: 4,
         historical,
         platformValueSeasons: [],
+        priceMultiplier: 4 / 3,
     };
 }
 
@@ -65,6 +66,11 @@ describe('DraftSimulator simulated picks', () => {
         });
 
         expect(screen.queryByTestId('simulated-picks')).not.toBeInTheDocument();
+
+        // The prediction explorer lists upcoming players by name (full name on
+        // desktop, abbreviated on narrow screens — both are in the DOM).
+        expect(screen.getByText('Player 0')).toBeInTheDocument();
+        expect(screen.getByText('P. 0')).toBeInTheDocument();
 
         fireEvent.change(screen.getByLabelText('Stop at pick'), { target: { value: '5' } });
         await act(async () => {

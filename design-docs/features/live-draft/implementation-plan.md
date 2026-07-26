@@ -98,9 +98,12 @@
 >   and the `/settings` account page (`src/app/settings/`). The best-effort
 >   default lives in `src/lib/leaguePriceMultiplier.ts`: `1.0` for a standard
 >   (ESPN-baseline `$200`) league, `4/3` otherwise. **Stored/viewable/overridable
->   only — not yet applied to any displayed price or model.** Follow-up: feed the
->   effective multiplier into `useSimulatorData` / the platform value path on the
->   live-draft page when that integration is planned.
+>   only** until 2026-07-26, when the simulator's "Platform (sticker)" benchmark
+>   became its first consumer: `useSimulatorData` resolves the effective
+>   multiplier and `StickerPredictor` prices players at
+>   floor(published auction value × multiplier) — the number the draft room
+>   actually displays, as an explorer column and backtest row alongside the
+>   money-conserving "Platform (rescaled)" model.
 > - **`PlatformValuePredictor`** (`createPlatformValuePredictor`): the same
 >   money-conserving identity with `valueSource: 'platform'` — "just trust the
 >   platform's prices" as a backtest column the inflation model must beat.
@@ -155,6 +158,8 @@
 > until pressed (or after seasons/budget/teams change, which discards the
 > model) there is no Regression column in the explorer or backtest
 > (`__tests__/DraftSimulator.regression.test.tsx`).
+> The prediction explorer shows player names (abbreviated to first-initial form
+> on narrow screens, CSS-truncated as backstop) alongside rank/position.
 > Demand-accounting fix (2026-07-26): bench slots are no longer stripped from
 > `rosterNeeds` (only IR is) — with starters-only demand the inflation
 > identity's open slots hit zero ~90 picks before real drafts ended, piling

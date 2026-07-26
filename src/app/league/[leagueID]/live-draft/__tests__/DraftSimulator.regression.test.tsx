@@ -44,6 +44,7 @@ function makeData(): SimulatorData {
         teamCount: 4,
         historical,
         platformValueSeasons: [],
+        priceMultiplier: 4 / 3,
     };
 }
 

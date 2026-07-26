@@ -348,6 +348,6 @@ export function createPlatformValuePredictor(baseline: BaselineModels): Inflatio
     return new InflationPredictor(
         baseline,
         { elasticity: 0, valueSource: 'platform' },
-        { id: 'platform', label: 'Platform' }
+        { id: 'platform', label: 'Platform (rescaled)' }
     );
 }

@@ -27,6 +27,7 @@ import {
     PredictionContext,
     PricePredictor,
     RegressionPredictor,
+    StickerPredictor,
 } from '@/lib/models/live-draft/predictor';
 import {
     InflationPredictor,
@@ -180,6 +181,7 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
         const list: PricePredictor[] = [
             new BaselinePredictor(activeBaseline, positionalValues),
             createPlatformValuePredictor(activeBaseline),
+            new StickerPredictor(data.priceMultiplier),
             new InflationPredictor(activeBaseline, { ...historyOptions, elasticity }),
         ];
         if (regressionReady && regressionPredictorRef) {
@@ -252,6 +254,7 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                     const models: PricePredictor[] = [
                         new BaselinePredictor(baseline, positionalValues),
                         createPlatformValuePredictor(baseline),
+                        new StickerPredictor(data.priceMultiplier),
                         new InflationPredictor(baseline, { ...foldOptions, elasticity }),
                     ];
                     if (regressionReady && regressionPredictorRef) {
@@ -610,6 +613,7 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                             <thead>
                                 <tr className="text-left border-b border-gray-200 dark:border-gray-700">
                                     <th className="py-2 pr-2">Rank</th>
+                                    <th className="py-2 pr-2">Player</th>
                                     <th className="py-2 pr-2">Pos</th>
                                     {predictors.map(p => (
                                         <th key={p.id} className="py-2 pr-2 text-right">
@@ -621,12 +625,21 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {explorerRows.map(({ player, prices }) => (
+                                {explorerRows.map(({ player, prices }) => {
+                                    const name = (player as SimulatorPlayer).name ?? player.id;
+                                    return (
                                     <tr
                                         key={player.id}
                                         className="border-b border-gray-100 dark:border-gray-800"
                                     >
                                         <td className="py-1.5 pr-2">{player.overallRank + 1}</td>
+                                        <td className="py-1.5 pr-2 max-w-28 sm:max-w-none truncate">
+                                            {/* Abbreviate on narrow screens; truncate is the backstop. */}
+                                            <span className="sm:hidden">
+                                                {shortPlayerName(name, player.defaultPosition)}
+                                            </span>
+                                            <span className="hidden sm:inline">{name}</span>
+                                        </td>
                                         <td className="py-1.5 pr-2">
                                             <PositionBadge position={player.defaultPosition} />
                                         </td>
@@ -636,7 +649,8 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                                             </td>
                                         ))}
                                     </tr>
-                                ))}
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
@@ -785,3 +799,10 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
 };
 
 export default DraftSimulator;
+
+/** "Ja'Marr Chase" → "J. Chase" for narrow screens; single-word and D/ST names stay whole. */
+function shortPlayerName(name: string, position: string): string {
+    const parts = name.split(' ');
+    if (parts.length < 2 || position === 'D/ST') return name;
+    return `${parts[0][0]}. ${parts.slice(1).join(' ')}`;
+}

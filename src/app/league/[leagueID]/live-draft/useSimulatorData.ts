@@ -25,6 +25,8 @@ import {
     useRankingsQuery,
     usePlayerValuesQuery,
 } from '@/hooks/queries';
+import { useLeaguePriceMultipliersQuery } from '@/hooks/queries/useLeaguePriceMultipliers';
+import { effectiveMultiplier } from '@/lib/leaguePriceMultiplier';
 import { useLeagueQuery } from '@/hooks/queries/useLeagueQuery';
 import { useAuth } from '@/lib/auth/context';
 import { rankPlayers } from '../mocks/MockTable';
@@ -51,6 +53,12 @@ export interface SimulatorData {
     historical: HistoricalDraft[];
     /** seasons whose drafts use stored platform ranks/values (vs price-derived fallback) */
     platformValueSeasons: string[];
+    /**
+     * The league's draft-room price multiplier (stored per-league setting,
+     * falling back to the computed default) — what scales published platform
+     * values into the sticker prices the draft room displays.
+     */
+    priceMultiplier: number;
 }
 
 export interface UseSimulatorDataResult {
@@ -136,6 +144,7 @@ export function useSimulatorData(
             .sort();
     }, [draftQuery.data]);
     const playerValuesQuery = usePlayerValuesQuery(draftSeasons);
+    const multipliersQuery = useLeaguePriceMultipliersQuery();
 
     const data = useMemo<SimulatorData | null>(() => {
         if (
@@ -234,8 +243,9 @@ export function useSimulatorData(
             teamCount: latestDraft.budgetConfig.teamCount,
             historical,
             platformValueSeasons: platformValueSeasons.sort(),
+            priceMultiplier: effectiveMultiplier(multipliersQuery.data?.[leagueId], latestInfo),
         };
-    }, [league, playersQuery.data, historyQuery.data, draftQuery.data, rankingsQuery.data, playerValuesQuery.data]);
+    }, [league, leagueId, playersQuery.data, historyQuery.data, draftQuery.data, rankingsQuery.data, playerValuesQuery.data, multipliersQuery.data]);
 
     const isLoading =
         authLoading ||
@@ -245,7 +255,9 @@ export function useSimulatorData(
         draftQuery.isLoading ||
         rankingsQuery.isLoading ||
         // Wait for stored values, but a failure falls back to price-derived ranks.
-        playerValuesQuery.isLoading;
+        playerValuesQuery.isLoading ||
+        // Same for the multiplier setting: a failure falls back to the default.
+        multipliersQuery.isLoading;
 
     const error =
         leagueQuery.error ||

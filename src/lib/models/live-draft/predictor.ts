@@ -142,6 +142,30 @@ export class BaselinePredictor implements PricePredictor {
 }
 
 /**
+ * What the draft room actually shows: the platform's published auction value
+ * scaled by the league's price multiplier (floored, min $1). No draft-state
+ * awareness and no money conservation — this is the anchor everyone at the
+ * table is bidding against, so it's the practical bar a live model must beat.
+ * The multiplier comes from the per-league setting (see
+ * `src/lib/leaguePriceMultiplier.ts`), not a hardcoded constant.
+ */
+export class StickerPredictor implements PricePredictor {
+    readonly id = 'sticker';
+    readonly label = 'Platform (sticker)';
+
+    constructor(private readonly multiplier: number) {}
+
+    predict(player: PredictorPlayer): PredictionResult {
+        const value = player.platformValue;
+        const price = value === undefined ? 1 : Math.max(1, Math.floor(value * this.multiplier));
+        return {
+            price,
+            breakdown: { platformValue: value ?? 0, multiplier: this.multiplier },
+        };
+    }
+}
+
+/**
  * Adapter exposing the legacy 8-feature linear-regression `LiveDraftPredictor`
  * through the unified interface. The wrapped predictor must already be trained
  * (see `createRegressionPredictor`); if a prediction can't be produced it falls

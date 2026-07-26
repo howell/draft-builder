@@ -14,8 +14,9 @@ import type { LeagueInfo } from '@/platforms/PlatformApi';
  *
  * The exact constant is league-specific and not derivable from a clean formula,
  * so we store an explicit per-league value the user can view and override (see
- * the account settings page). These helpers only provide the best-effort default
- * and resolve the effective value; nothing yet applies the multiplier to prices.
+ * the account settings page). These helpers provide the best-effort default and
+ * resolve the effective value; the live-draft simulator's "Platform (sticker)"
+ * benchmark applies it to published platform values.
  */
 
 /** ESPN's editorial baseline auction budget (10-team / $200 league). */

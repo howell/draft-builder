@@ -5,7 +5,12 @@
  * weights and rendered "$NaN" for every row in the prediction explorer.
  */
 
-import { RegressionPredictor, PredictionContext, BaselineModels } from '../predictor';
+import {
+    RegressionPredictor,
+    StickerPredictor,
+    PredictionContext,
+    BaselineModels,
+} from '../predictor';
 import { LiveDraftPredictor } from '../liveDraftPredictor';
 import { DraftPick } from '../featureExtraction';
 
@@ -79,6 +84,33 @@ describe('LiveDraftPredictor with 0-indexed ranks', () => {
         });
 
         expect(Number.isFinite(result.predictionDollars)).toBe(true);
+    });
+});
+
+describe('StickerPredictor', () => {
+    const player = (platformValue?: number) => ({
+        id: 'p1',
+        defaultPosition: 'RB',
+        positionRank: 0,
+        overallRank: 0,
+        platformValue,
+    });
+
+    it('scales the published value by the league multiplier, floored', () => {
+        const predictor = new StickerPredictor(4 / 3);
+        expect(predictor.predict(player(40)).price).toBe(53); // floor(53.33)
+        expect(predictor.predict(player(3)).price).toBe(4); // floor(4.0)
+    });
+
+    it('passes values through unchanged for a standard league (multiplier 1)', () => {
+        const predictor = new StickerPredictor(1);
+        expect(predictor.predict(player(40)).price).toBe(40);
+    });
+
+    it('floors at $1 for missing or zero platform values', () => {
+        const predictor = new StickerPredictor(4 / 3);
+        expect(predictor.predict(player(undefined)).price).toBe(1);
+        expect(predictor.predict(player(0)).price).toBe(1);
     });
 });
 
