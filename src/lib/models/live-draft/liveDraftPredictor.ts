@@ -185,10 +185,17 @@ export class LiveDraftPredictor {
             try {
                 const pick = draft.picks[i];
                 const contextAtPick = this.createContextAtPick(draft, i);
-                
+
                 const features = featureExtractor.extractFeatures(pick.player, contextAtPick);
                 const actualPricePct = budgetConverter.toLeagueBudgetPercentage(pick.price);
-                
+
+                // A single NaN/Infinity in the training matrix poisons every
+                // regression weight (and returns NaN rather than throwing).
+                if (!hasFiniteFeatures(features) || !Number.isFinite(actualPricePct)) {
+                    console.warn(`Skipping pick ${i}: non-finite training features`);
+                    continue;
+                }
+
                 trainingData.push({ features, actualPricePct });
             } catch (error) {
                 console.warn(`Failed to extract features for pick ${i}:`, error);
@@ -353,6 +360,18 @@ export class LiveDraftPredictor {
         this.modelPositions = []; 
         this.trainingDataCache = null;
     }
+}
+
+function hasFiniteFeatures(features: LiveDraftFeatures): boolean {
+    return [
+        features.playerPositionRank,
+        features.playerOverallRank,
+        features.positionScarcity,
+        features.overallScarcity,
+        features.budgetSpentPct,
+        features.budgetPressure,
+        features.positionalPressure,
+    ].every(Number.isFinite);
 }
 
 // Supporting interfaces

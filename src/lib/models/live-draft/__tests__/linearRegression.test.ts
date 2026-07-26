@@ -166,7 +166,7 @@ describe('LinearRegressionTrainer', () => {
         });
 
         it('should reject invalid features', () => {
-            const invalidFeatures = createMockFeatures('RB', 0, 15); // Invalid rank
+            const invalidFeatures = createMockFeatures('RB', -1, 15); // Invalid negative rank (ranks are 0-indexed)
             expect(LinearRegressionTrainer.validateFeatures(invalidFeatures)).toBe(false);
         });
 

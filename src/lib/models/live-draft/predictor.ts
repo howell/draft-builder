@@ -172,18 +172,22 @@ export class RegressionPredictor implements PricePredictor {
                 totalPicks: totalLeagueSlots(ctx),
                 budgetConfig: ctx.budgetConfig,
             });
-            return {
-                price: Math.max(1, Math.round(result.predictionDollars)),
-                breakdown: {
-                    baseline: result.baselinePrediction,
-                    adjustment: result.adjustment,
-                    confidence: result.confidence,
-                },
-            };
+            // A degenerate fit returns NaN rather than throwing — Math.max(1, NaN)
+            // is NaN, so a non-finite prediction must route to the fallback too.
+            if (Number.isFinite(result.predictionDollars)) {
+                return {
+                    price: Math.max(1, Math.round(result.predictionDollars)),
+                    breakdown: {
+                        baseline: result.baselinePrediction,
+                        adjustment: result.adjustment,
+                        confidence: result.confidence,
+                    },
+                };
+            }
         } catch {
             // Model not trained / positions mismatch — fall back to baseline.
-            const value = baselineValue(player, this.baseline);
-            return { price: value, breakdown: { baseValue: value, fallback: 1 } };
         }
+        const value = baselineValue(player, this.baseline);
+        return { price: value, breakdown: { baseValue: value, fallback: 1 } };
     }
 }

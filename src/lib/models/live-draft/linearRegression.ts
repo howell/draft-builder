@@ -285,8 +285,8 @@ export class LinearRegressionTrainer {
      * Validate features are reasonable for prediction
      */
     static validateFeatures(features: LiveDraftFeatures): boolean {
-        // Ranks should be positive
-        if (features.playerPositionRank <= 0 || features.playerOverallRank <= 0) return false;
+        // Ranks are 0-indexed; only negative ranks are invalid
+        if (features.playerPositionRank < 0 || features.playerOverallRank < 0) return false;
         
         // Scarcity should be 0-1
         if (features.positionScarcity < 0 || features.positionScarcity > 1) return false;

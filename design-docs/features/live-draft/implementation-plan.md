@@ -109,7 +109,12 @@
 > - `predictor.ts` — unified `PricePredictor` interface; `BaselinePredictor`,
 >   `InflationPredictor`, `RegressionPredictor` all implement it so the UI and
 >   backtest treat them interchangeably. `PredictionContext` carries the league's
->   `rosterNeeds`.
+>   `rosterNeeds`. Fixed 2026-07-26: the legacy regression's scarcity features
+>   divided by the 0-indexed rank (0/0 = NaN for every draft's top player),
+>   which poisoned the trained weights and rendered "$NaN" in the explorer's
+>   Regression column. `featureExtraction.ts` now divides by rank + 1, training
+>   skips non-finite rows, and `RegressionPredictor` routes non-finite
+>   predictions to the baseline fallback (`__tests__/predictor.test.ts`).
 > - `draftSimulator.ts` — seeded generative simulator: teams nominate and win
 >   players at a predictor's price + noise, respecting budgets/slots/$1 minimums.
 >   Produces plausible mid-draft states and validates a model (full draft should

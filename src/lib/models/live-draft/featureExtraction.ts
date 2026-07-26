@@ -121,7 +121,10 @@ export class FeatureExtractor {
     }
 
     /**
-     * Generic scarcity calculation: drafted higher-ranked players / player rank
+     * Generic scarcity calculation: drafted higher-ranked players / (rank + 1).
+     * Ranks are 0-indexed (app convention), so the top-ranked player is rank 0
+     * — dividing by the raw rank would be 0/0 = NaN, which poisons the whole
+     * regression fit if it reaches the training matrix.
      */
     private calculateScarcityMetric(
         picks: DraftPick[],
@@ -129,7 +132,7 @@ export class FeatureExtractor {
         playerRank: number
     ): number {
         const higherRankedDrafted = picks.filter(filterPredicate).length;
-        return Math.min(1.0, higherRankedDrafted / playerRank);
+        return Math.min(1.0, higherRankedDrafted / (playerRank + 1));
     }
 
     /**
@@ -192,8 +195,8 @@ export class FeatureExtractor {
      * Validate extracted features
      */
     static validateFeatures(features: LiveDraftFeatures): boolean {
-        // Ranks should be positive
-        if (features.playerPositionRank <= 0 || features.playerOverallRank <= 0) return false;
+        // Ranks are 0-indexed; only negative ranks are invalid
+        if (features.playerPositionRank < 0 || features.playerOverallRank < 0) return false;
         
         // Scarcity should be 0-1
         if (features.positionScarcity < 0 || features.positionScarcity > 1) return false;
