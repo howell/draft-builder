@@ -365,4 +365,53 @@ test.describe('User Signup with Data Migration', () => {
     expect(dataAfter.leagues).toBe(dataCounts.leagues);
     expect(dataAfter.drafts).toBe(dataCounts.drafts);
   });
+
+  test('migrates a ranking board for a user with no leagues', async ({ page }) => {
+    // Previously impossible: hasMigratableData only looked at leagues, and
+    // /migrate redirected home when the league and draft counts were zero, so a
+    // user whose only work was a ranking board could never migrate it.
+    await page.goto('/');
+    await page.waitForLoadState('domcontentloaded');
+
+    const seeded = await migrationHelpers.seedAnonymousSettings([
+      {
+        key: 'customRankings:123456789:2026',
+        data: {
+          schemaVersion: 1,
+          leagueId: '123456789',
+          platform: 'sleeper',
+          season: '2026',
+          updated: Date.now(),
+          positions: { QB: [{ kind: 'player', playerId: 'p1' }, { kind: 'player', playerId: 'p2' }] },
+        },
+      },
+      { key: 'leaguePriceMultipliers', data: { '123456789': 1.25 } },
+    ]);
+    expect(seeded).toBe(2);
+
+    const credentials = createUserCredentials();
+    await authPage.navigateToAuth();
+    await authPage.switchToSignupButton.click();
+    await authPage.emailInput.fill(credentials.email);
+    await authPage.passwordInput.fill(credentials.password);
+    await authPage.confirmPasswordInput.fill(credentials.password);
+    await authPage.signupButton.click();
+
+    // Reached /migrate rather than being bounced home.
+    await expect(page).toHaveURL(/\/migrate/, { timeout: TEST_TIMEOUTS.SLOW_NAVIGATION });
+    await expect(page.getByTestId('migration-settings-count')).toHaveText('2');
+    await expect(page.getByTestId('migration-leagues-count')).toHaveText('0');
+
+    const migrateButton = page.getByRole('button', { name: /migrate my data/i });
+    await expect(migrateButton).toBeVisible();
+    await migrateButton.click();
+
+    await expect(page).toHaveURL(/\/$|\/#/, { timeout: TEST_TIMEOUTS.NETWORK_TIMEOUT });
+
+    // And the local rows are gone, so navigating does not bounce back to
+    // /migrate forever.
+    await page.goto('/');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page).not.toHaveURL(/\/migrate/);
+  });
 });

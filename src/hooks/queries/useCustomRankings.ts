@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth/context';
 import { useStorageAdapter } from '@/lib/storage/hooks';
+import type { StorageAdapter } from '@/lib/storage/interface';
 import type { LeagueId, Platform, SeasonId } from '@/platforms/common';
 import {
   CUSTOM_RANKINGS_SCHEMA_VERSION,
@@ -31,19 +32,82 @@ export function customRankingsKey(leagueId: LeagueId, season: SeasonId): string 
   return `customRankings:${leagueId}:${season}`;
 }
 
+/**
+ * The key used before boards were season-scoped.
+ *
+ * Compatibility shim. That version shipped to production, so real browsers hold
+ * boards under this key; without a fallback they are simply unreachable. The
+ * blob itself already recorded its season, which is what makes adopting one
+ * safe. Removable once the 2026 rollover has passed.
+ */
+export function legacyCustomRankingsKey(leagueId: LeagueId): string {
+  return `customRankings:${leagueId}`;
+}
+
+function hasAnyPlayers(board: StoredCustomRankings): boolean {
+  return Object.values(board.positions ?? {}).some(
+    items => (items ?? []).some(item => item.kind === 'player')
+  );
+}
+
+/**
+ * Read a board, falling back to the pre-season-scoping key and adopting it.
+ *
+ * A plain function rather than inline in the queryFn so it is testable without
+ * React and reusable by the import picker. Deliberately not in
+ * `src/lib/rankings/customRankings.ts`, which is kept free of storage concerns.
+ */
+export async function loadCustomRankings(
+  adapter: Pick<StorageAdapter, 'getUserSetting' | 'setUserSetting'>,
+  leagueId: LeagueId,
+  season: SeasonId,
+  options: { adopt?: boolean } = {}
+): Promise<StoredCustomRankings | null> {
+  const scoped = await adapter.getUserSetting<StoredCustomRankings>(
+    SETTING_TYPE,
+    customRankingsKey(leagueId, season)
+  );
+  // The common path costs exactly one read; the fallback below is unreachable
+  // once a board has been saved under the scoped key.
+  if (scoped) {
+    return scoped;
+  }
+
+  const legacy = await adapter.getUserSetting<StoredCustomRankings>(
+    SETTING_TYPE,
+    legacyCustomRankingsKey(leagueId)
+  );
+  if (!legacy) {
+    return null;
+  }
+
+  // The season check is load-bearing. Without it, every league would silently
+  // inherit last year's board on rollover — exactly the implicit carry-forward
+  // that season-scoping was introduced to stop.
+  if (legacy.season !== season || legacy.leagueId !== leagueId || !hasAnyPlayers(legacy)) {
+    return null;
+  }
+
+  if (options.adopt !== false) {
+    try {
+      await adapter.setUserSetting(SETTING_TYPE, customRankingsKey(leagueId, season), legacy);
+    } catch (error) {
+      // A failed adoption must never fail the read. The page's autosave will
+      // persist it on the first edit, and the next visit retries.
+      console.error('[useCustomRankings] Could not adopt legacy board:', error);
+    }
+  }
+
+  return legacy;
+}
+
 export function useCustomRankingsQuery(leagueId: LeagueId | undefined, season: SeasonId) {
   const { user, loading: authLoading } = useAuth();
   const storageAdapter = useStorageAdapter();
 
   return useQuery<StoredCustomRankings | null>({
     queryKey: cacheKeys.customRankings(user?.id, leagueId, season),
-    queryFn: async () => {
-      const stored = await storageAdapter.getUserSetting<StoredCustomRankings>(
-        SETTING_TYPE,
-        customRankingsKey(leagueId!, season)
-      );
-      return stored ?? null;
-    },
+    queryFn: () => loadCustomRankings(storageAdapter, leagueId!, season),
     enabled: !!leagueId && !authLoading,
     staleTime: 5 * 60 * 1000,
     // The board holds unsaved edits in local state. A refetch triggered by a tab

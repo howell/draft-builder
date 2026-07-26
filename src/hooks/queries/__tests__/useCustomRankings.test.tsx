@@ -11,6 +11,8 @@ import {
   useImportCustomRankingsMutation,
   useCustomRankingsIndexQuery,
   customRankingsKey,
+  legacyCustomRankingsKey,
+  loadCustomRankings,
   CrossPlatformCopyError,
 } from '../useCustomRankings';
 import { MemoryStorageAdapter } from '@/lib/storage/memory';
@@ -316,5 +318,98 @@ describe('useCustomRankingsIndexQuery', () => {
 
     await settle();
     expect(result.current.fetchStatus).toBe('idle');
+  });
+});
+
+describe('loadCustomRankings legacy adoption', () => {
+  it('adopts a pre-season-scoping board and rewrites it under the scoped key', async () => {
+    // That key shipped to production, so real browsers hold boards under it.
+    await adapter.setUserSetting(
+      'app',
+      legacyCustomRankingsKey(LEAGUE),
+      board({ season: SEASON, positions: { QB: [{ kind: 'player', playerId: 'a' }] } })
+    );
+
+    const loaded = await loadCustomRankings(adapter, LEAGUE, SEASON);
+
+    expect(loaded?.positions.QB).toEqual([{ kind: 'player', playerId: 'a' }]);
+    // Adopted, so the next read is a single hit on the scoped key.
+    expect(await adapter.getUserSetting('app', customRankingsKey(LEAGUE, SEASON))).toBeDefined();
+  });
+
+  it('ignores a legacy board from a different season', async () => {
+    // Otherwise every league would silently inherit last year's board on
+    // rollover — the carry-forward season-scoping exists to prevent.
+    await adapter.setUserSetting(
+      'app',
+      legacyCustomRankingsKey(LEAGUE),
+      board({ season: PRIOR_SEASON, positions: { QB: [{ kind: 'player', playerId: 'a' }] } })
+    );
+
+    expect(await loadCustomRankings(adapter, LEAGUE, SEASON)).toBeNull();
+    expect(await adapter.getUserSetting('app', customRankingsKey(LEAGUE, SEASON))).toBeUndefined();
+  });
+
+  it('ignores a legacy board with no players', async () => {
+    await adapter.setUserSetting(
+      'app',
+      legacyCustomRankingsKey(LEAGUE),
+      board({ season: SEASON, positions: { QB: [] } })
+    );
+
+    expect(await loadCustomRankings(adapter, LEAGUE, SEASON)).toBeNull();
+  });
+
+  it('never touches the legacy key once a scoped board exists', async () => {
+    const scoped = board({ positions: { QB: [{ kind: 'player', playerId: 'scoped' }] } });
+    await adapter.setUserSetting('app', customRankingsKey(LEAGUE, SEASON), scoped);
+    await adapter.setUserSetting(
+      'app',
+      legacyCustomRankingsKey(LEAGUE),
+      board({ season: SEASON, positions: { QB: [{ kind: 'player', playerId: 'legacy' }] } })
+    );
+
+    const reads: string[] = [];
+    const spy = {
+      getUserSetting: (type: any, key: string) => {
+        reads.push(key);
+        return adapter.getUserSetting(type, key);
+      },
+      setUserSetting: adapter.setUserSetting.bind(adapter),
+    };
+
+    const loaded = await loadCustomRankings(spy as any, LEAGUE, SEASON);
+
+    expect(loaded?.positions.QB).toEqual([{ kind: 'player', playerId: 'scoped' }]);
+    expect(reads).toEqual([customRankingsKey(LEAGUE, SEASON)]);
+  });
+
+  it('still returns the board when adopting it fails to write', async () => {
+    await adapter.setUserSetting(
+      'app',
+      legacyCustomRankingsKey(LEAGUE),
+      board({ season: SEASON, positions: { QB: [{ kind: 'player', playerId: 'a' }] } })
+    );
+    const failing = {
+      getUserSetting: adapter.getUserSetting.bind(adapter),
+      setUserSetting: () => Promise.reject(new Error('offline')),
+    };
+
+    // A failed adoption must never fail the read.
+    const loaded = await loadCustomRankings(failing as any, LEAGUE, SEASON);
+    expect(loaded?.positions.QB).toEqual([{ kind: 'player', playerId: 'a' }]);
+  });
+
+  it('does not write when adoption is disabled', async () => {
+    await adapter.setUserSetting(
+      'app',
+      legacyCustomRankingsKey(LEAGUE),
+      board({ season: SEASON, positions: { QB: [{ kind: 'player', playerId: 'a' }] } })
+    );
+
+    const loaded = await loadCustomRankings(adapter, LEAGUE, SEASON, { adopt: false });
+
+    expect(loaded).not.toBeNull();
+    expect(await adapter.getUserSetting('app', customRankingsKey(LEAGUE, SEASON))).toBeUndefined();
   });
 });

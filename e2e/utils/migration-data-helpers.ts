@@ -27,9 +27,50 @@ export interface DataCounts {
   leagues: number;
   drafts: number;
   selections?: number;
+  settings?: number;
 }
 
 export class MigrationDataHelpers {
+  /**
+   * Seed anonymous settings straight into IndexedDB.
+   *
+   * Unlike leagues and drafts, settings are not seeded through the UI: a
+   * ranking board is ~250 dragged rows, which would be slow and brittle to
+   * build for a migration fixture. The rows are written in exactly the shape
+   * DexieStorageAdapter writes them.
+   */
+  async seedAnonymousSettings(
+    settings: Array<{ type?: string; key: string; data: unknown }>
+  ): Promise<number> {
+    return this.page.evaluate(async (rows) => {
+      const findDb = async (): Promise<any> => {
+        const w = window as any;
+        if (w.Dexie?.connections) {
+          for (const conn of w.Dexie.connections) {
+            if (conn?.name === 'DraftBuilderDB') return conn;
+          }
+        }
+        return w.__draftBuilderDB ?? null;
+      };
+
+      const db = await findDb();
+      if (!db) throw new Error('DraftBuilderDB not found; open a page that uses storage first');
+      if (!db.isOpen()) await db.open();
+
+      for (const row of rows) {
+        await db.settings.put({
+          userId: 'anonymous',
+          type: row.type ?? 'app',
+          key: row.key,
+          data: row.data,
+          updatedAt: new Date(),
+        });
+      }
+
+      return db.settings.where('userId').equals('anonymous').count();
+    }, settings);
+  }
+
   private homePage: HomePage;
   private mockDraftPage: MockDraftPage;
   private mockDraftHelpers: MockDraftHelpers;
