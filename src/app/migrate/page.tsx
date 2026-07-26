@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../lib/auth/context';
 import { getLocalStorageDataSummary, clearLocalStorageData } from '../../lib/storage/migration-utils';
 import { DataMigrationService } from '../../lib/storage/migration-service';
+import { migrateAnonymousSettings } from '../../lib/storage/settings-migration';
 import { supabase } from '../../lib/supabase';
 import LoadingScreen from '@/ui/LoadingScreen';
 import type { DataSummary } from '../../lib/storage/migration-utils';
@@ -36,8 +37,10 @@ export default function MigratePage() {
       try {
         const summary = await getLocalStorageDataSummary();
         
-        // If no data to migrate, redirect to dashboard
-        if (summary.leagueCount === 0 && summary.draftCount === 0) {
+        // If no data to migrate, redirect to dashboard. Settings count too:
+        // a ranking board is worth migrating on its own, and without this a
+        // settings-only user is bounced home and can never migrate it.
+        if (summary.leagueCount === 0 && summary.draftCount === 0 && summary.settingsCount === 0) {
           router.push('/');
           return;
         }
@@ -66,26 +69,47 @@ export default function MigratePage() {
     setError(null);
     
     try {
-      const migrationService = new DataMigrationService(
-        supabase,
-        user.id,
-        (progress: MigrationProgress) => {
-          setMigrationProgress(progress);
-        }
-      );
-      
-      // Start the migration and get the promise
-      const migrationPromise = migrationService.migrateAllUserData();
-      
-      // Create loading task for UI feedback
       setIsProcessing(true);
       setProcessingMessage('Migrating your fantasy data to the cloud...');
-      
-      await migrationPromise;
-      
-      // Migration completed successfully
+
+      // Settings first, and not optionally: the league migration ends by
+      // clearing local data, which now includes the settings store, so running
+      // it first would delete the rows this needs to read.
+      const settingsResult = await migrateAnonymousSettings(supabase, user.id);
+
+      // The service refuses to run without leagues, so a settings-only user
+      // must not reach it.
+      if ((dataSummary?.leagueCount ?? 0) > 0) {
+        const migrationService = new DataMigrationService(
+          supabase,
+          user.id,
+          (progress: MigrationProgress) => {
+            setMigrationProgress(progress);
+          },
+          {
+            // Keep the local copy when settings could not all be moved — those
+            // rows are now the only surviving copy.
+            clearLocalStorageAfterMigration: settingsResult.failed.length === 0,
+          }
+        );
+
+        await migrationService.migrateAllUserData();
+      }
+
       setIsProcessing(false);
       setProcessingMessage('');
+
+      if (settingsResult.failed.length > 0) {
+        // Stay put rather than redirecting: the local rows are retained, so the
+        // user can retry, and leaving would bounce them straight back here.
+        setError(
+          `Migrated your leagues, but ${settingsResult.failed.length} saved ` +
+          `setting(s) could not be moved. Your local copy is intact — please try again.`
+        );
+        setMigrationState('ready');
+        return;
+      }
+
       router.push('/');
       
     } catch (error) {
@@ -165,6 +189,10 @@ export default function MigratePage() {
                   <div>
                     <span className="font-medium text-blue-800">Drafts:</span>
                     <span className="text-blue-700 ml-2" data-testid="migration-drafts-count">{dataSummary.draftCount}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-blue-800">Rankings &amp; settings:</span>
+                    <span className="text-blue-700 ml-2" data-testid="migration-settings-count">{dataSummary.settingsCount}</span>
                   </div>
                 </div>
               </div>

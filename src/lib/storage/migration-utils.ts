@@ -6,6 +6,7 @@
 import { LeagueId } from '@/platforms/common';
 import { DexieStorageAdapter } from './dexie';
 import { isInProgressSelectionsKey } from './constants';
+import { countMigratableAnonymousSettings } from './settings-migration';
 
 /**
  * Summary of user data available for migration
@@ -15,6 +16,8 @@ export interface DataSummary {
   leagueCount: number;
   /** Number of draft sessions saved */
   draftCount: number;
+  /** Number of saved settings blobs — ranking boards, price multipliers. */
+  settingsCount: number;
 }
 
 /**
@@ -44,8 +47,16 @@ export async function hasMigratableData(): Promise<boolean> {
       console.log(`[MigrationUtils.hasMigratableData] Found ${leagueIds.length} leagues:`, leagueIds);
       return true;
     }
-    
-    console.log('[MigrationUtils.hasMigratableData] No leagues found');
+
+    // Rankings and price multipliers are worth migrating on their own — a user
+    // can have built a board without ever connecting a league.
+    const settingsCount = await countMigratableAnonymousSettings();
+    if (settingsCount > 0) {
+      console.log(`[MigrationUtils.hasMigratableData] Found ${settingsCount} settings`);
+      return true;
+    }
+
+    console.log('[MigrationUtils.hasMigratableData] No leagues or settings found');
     return false;
   } catch (error) {
     console.error('[MigrationUtils.hasMigratableData] Error checking for data:', error);
@@ -66,13 +77,18 @@ export async function getLocalStorageDataSummary(): Promise<DataSummary> {
     // Initialize summary with zero counts
     const summary: DataSummary = {
       leagueCount: 0,
-      draftCount: 0
+      draftCount: 0,
+      settingsCount: 0
     };
     
     // Check if running in browser environment
     if (typeof window === 'undefined') {
       return summary;
     }
+    
+    // Counted before the league lookups below, which return early when there are
+    // no leagues — a settings-only user must still be reported accurately.
+    summary.settingsCount = await countMigratableAnonymousSettings();
     
     // Use DexieStorageAdapter for anonymous user
     const adapter = new DexieStorageAdapter('anonymous');
@@ -123,7 +139,8 @@ export async function getLocalStorageDataSummary(): Promise<DataSummary> {
     // Return zero counts on any error
     return {
       leagueCount: 0,
-      draftCount: 0
+      draftCount: 0,
+      settingsCount: 0
     };
   }
 }
