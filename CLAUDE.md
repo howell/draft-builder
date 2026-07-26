@@ -258,8 +258,8 @@ Ensure all components are accessible from the start.
 ### Active branch: `setup_db`
 This branch contains significant storage/auth work that is production-ready but not yet merged to `main`.
 
-### Deferred feature: Live Draft
-The live-draft feature (`src/app/league/[leagueID]/live-draft/`) is fully implemented (model, hooks, components, storage types) but intentionally unreachable — there is no `page.tsx` and no sidebar nav link. It is deferred to post-v1. Do not add a page or nav link until the post-v1 live-draft integration work is planned.
+### Experimental feature: Live Draft
+The live-draft feature (`src/app/league/[leagueID]/live-draft/`) is reachable in production via the "Live Draft" sidebar link. It is still experimental — the sole user is the site owner, who keeps it accessible for testing and experimentation. The page requires `GOOGLE_API_KEY` to be set in the server environment.
 
 ## Feature Planning Guidelines
 

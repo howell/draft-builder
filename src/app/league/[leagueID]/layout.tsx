@@ -109,6 +109,7 @@ const LeagueLayout = (
     const currentYear = parseDraftYear(usePathname());
     const currentMock = parseMockName(usePathname());
     const isRankingsPage = usePathname().endsWith('/rankings');
+    const isLiveDraftPage = usePathname().endsWith('/live-draft');
     
     const router = useRouter();
     const { loading: authLoading } = useAuth();
@@ -196,6 +197,11 @@ const LeagueLayout = (
                         {/* Rankings Section */}
                         <h2 className={`mt-2 text-xl ${isRankingsPage ? 'font-bold' : ''}`}>
                             <Link href={`/league/${leagueID}/rankings`}>Rankings</Link>
+                        </h2>
+
+                        {/* Live Draft Section */}
+                        <h2 className={`mt-2 text-xl ${isLiveDraftPage ? 'font-bold' : ''}`}>
+                            <Link href={`/league/${leagueID}/live-draft`}>Live Draft</Link>
                         </h2>
 
                         {/* Drafts Section */}

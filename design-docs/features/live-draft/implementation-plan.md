@@ -100,7 +100,7 @@
 >   (ESPN-baseline `$200`) league, `4/3` otherwise. **Stored/viewable/overridable
 >   only — not yet applied to any displayed price or model.** Follow-up: feed the
 >   effective multiplier into `useSimulatorData` / the platform value path on the
->   dev-gated live-draft page when that integration is planned.
+>   live-draft page when that integration is planned.
 > - **`PlatformValuePredictor`** (`createPlatformValuePredictor`): the same
 >   money-conserving identity with `valueSource: 'platform'` — "just trust the
 >   platform's prices" as a backtest column the inflation model must beat.
@@ -122,10 +122,10 @@
 > - `calibrate.ts` — `calibrateElasticity` grid-searches elasticity by held-out
 >   MAE in one pass (one predictor per grid point), honoring the knob toggles.
 >
-> ### UI — dev-gated simulator
-> `src/app/league/[leagueID]/live-draft/page.tsx` is gated behind
-> `NEXT_PUBLIC_ENABLE_LIVE_DRAFT_SIM=1` (or `NODE_ENV=development`) and has **no
-> production nav link**, honoring the v1 deferral. `DraftSimulator.tsx` +
+> ### UI — simulator
+> `src/app/league/[leagueID]/live-draft/page.tsx` is reachable in production via
+> the "Live Draft" sidebar link (dev gating removed 2026-07-26 — the site's only
+> user is the owner, who wants it available for testing). `DraftSimulator.tsx` +
 > `useSimulatorData.ts` load real league data (**all seasons** with draft
 > history, not just the latest), generate plausible states, and show a
 > side-by-side prediction explorer plus the held-out backtest panel with knob
