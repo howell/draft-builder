@@ -164,6 +164,17 @@
 > (`__tests__/DraftSimulator.regression.test.tsx`).
 > The prediction explorer shows player names (abbreviated to first-initial form
 > on narrow screens, CSS-truncated as backstop) alongside rank/position.
+> Manual pick entry (2026-07-26): the Picks card accepts hand-entered picks —
+> player search (reusing `PlayerSearchInput`/`usePlayerSearch` from the
+> deferred live-draft work, whose value-sync/suggestion-state bugs were fixed
+> in the process), price prefilled from the inflation model, team select with
+> budget guard, Undo — alone or stacked on a randomized state, for what-ifs
+> like "the first stars go $20 over" (`__tests__/DraftSimulator.manual.test.tsx`).
+> The picks table's "Δ Infl" column attributes global-inflation movement to
+> each pick via `computeInflationTimeline` (inflationModel.ts): the board is
+> replayed pick-by-pick and the factor differenced — overpays are negative
+> (money drains faster than talent), bargains positive. Deltas telescope to
+> the total movement by construction.
 > Demand-accounting fix (2026-07-26): bench slots are no longer stripped from
 > `rosterNeeds` (only IR is) — with starters-only demand the inflation
 > identity's open slots hit zero ~90 picks before real drafts ended, piling

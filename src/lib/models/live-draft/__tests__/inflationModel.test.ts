@@ -14,6 +14,7 @@
 import { createBaselineModels, BaselineDraftPick } from '@/app/league/analytics';
 import {
     computeInflation,
+    computeInflationTimeline,
     moneySurplus,
     draftablePlayers,
     InflationPredictor,
@@ -272,5 +273,55 @@ describe('InflationModel', () => {
         const predictor = new InflationPredictor(baseline, { elasticity: 0 });
         const lastPlayer = ctx.availablePlayers[0];
         expect(predictor.predict(lastPlayer, ctx).price).toBeLessThanOrEqual(2);
+    });
+});
+
+describe('computeInflationTimeline', () => {
+    const { players, picks } = buildPool(220);
+    const baseline: BaselineModels = createBaselineModels(picks);
+    const budgetConfig = { totalBudgetPerTeam: BUDGET, teamCount: TEAM_COUNT };
+
+    const pickAt = (player: PredictorPlayer, price: number, pickNumber: number) => ({
+        player,
+        price,
+        teamId: `team-${((pickNumber - 1) % TEAM_COUNT) + 1}`,
+        pickNumber,
+    });
+
+    it('returns an empty timeline for an empty board', () => {
+        expect(
+            computeInflationTimeline([], players, budgetConfig, ROSTER_NEEDS, baseline)
+        ).toEqual([]);
+    });
+
+    it('attributes overpays as negative deltas and bargains as positive', () => {
+        const starValue = baselineValue(players[0], baseline);
+        const overpay = [pickAt(players[0], Math.round(starValue * 2), 1)];
+        const overTimeline = computeInflationTimeline(
+            overpay, players, budgetConfig, ROSTER_NEEDS, baseline
+        );
+        expect(overTimeline[0].delta).toBeLessThan(0);
+
+        const bargain = [pickAt(players[1], 1, 1)];
+        const bargainTimeline = computeInflationTimeline(
+            bargain, players, budgetConfig, ROSTER_NEEDS, baseline
+        );
+        expect(bargainTimeline[0].delta).toBeGreaterThan(0);
+    });
+
+    it('telescopes: deltas sum to the total inflation movement', () => {
+        const board = [
+            pickAt(players[0], Math.round(baselineValue(players[0], baseline) * 1.5), 1),
+            pickAt(players[1], 1, 2),
+            pickAt(players[2], Math.round(baselineValue(players[2], baseline)), 3),
+        ];
+        const timeline = computeInflationTimeline(
+            board, players, budgetConfig, ROSTER_NEEDS, baseline
+        );
+        const summed = timeline.reduce((s, point) => s + point.delta, 0);
+        const startGlobal = timeline[0].global - timeline[0].delta;
+        expect(startGlobal + summed).toBeCloseTo(timeline[timeline.length - 1].global, 10);
+        // Pick numbers pass through for table lookup.
+        expect(timeline.map(p => p.pickNumber)).toEqual([1, 2, 3]);
     });
 });

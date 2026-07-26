@@ -46,18 +46,16 @@ const PlayerSearchInput: React.FC<PlayerSearchInputProps> = ({
     onPlayerSelected
   });
 
-  // Sync external value with internal state
+  // Adopt the external value only when the PROP changes (select/clear from the
+  // parent). Syncing whenever it merely differs from internal state would
+  // clobber the user's in-progress typing on every render.
+  const lastSyncedValue = React.useRef(value);
   React.useEffect(() => {
-    if (value !== searchValue) {
+    if (value !== lastSyncedValue.current) {
+      lastSyncedValue.current = value;
       setSearchValue(value);
     }
-  }, [value, searchValue, setSearchValue]);
-
-  const handleInternalPlayerSelected = (player: CostEstimatedPlayer) => {
-    handlePlayerSelected(player);
-    // Also call the external handler
-    onPlayerSelected(player);
-  };
+  }, [value, setSearchValue]);
 
   return (
     <div className={`relative ${className}`}>
@@ -76,10 +74,12 @@ const PlayerSearchInput: React.FC<PlayerSearchInputProps> = ({
         aria-autocomplete="list"
       />
       
+      {/* The hook's handler already forwards to onPlayerSelected — calling
+          both here would fire the parent's callback twice per selection. */}
       <PlayerSearchDropdown
         suggestions={suggestions}
         highlightedIndex={highlightedIndex}
-        onPlayerSelected={handleInternalPlayerSelected}
+        onPlayerSelected={handlePlayerSelected}
         isVisible={hasSuggestions && !disabled}
       />
     </div>

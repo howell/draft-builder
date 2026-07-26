@@ -26,6 +26,8 @@ export interface UsePlayerSearchReturn {
 /**
  * Checks if a player matches the search query
  */
+const EMPTY_SUGGESTIONS: CostEstimatedPlayer[] = [];
+
 const matchesSearchQuery = (player: CostEstimatedPlayer, query: string): boolean => {
   const normalizedQuery = query.toLowerCase().trim();
   if (!normalizedQuery) return false;
@@ -47,44 +49,32 @@ export function usePlayerSearch({
   onPlayerSelected
 }: UsePlayerSearchOptions): UsePlayerSearchReturn {
   const [searchValue, setSearchValue] = useState<string>('');
-  const [suggestions, setSuggestions] = useState<CostEstimatedPlayer[]>([]);
+  // Selecting or Escape closes the dropdown even though the text (now the
+  // player's name) still matches — suggestions are otherwise pure derived state.
+  const [dismissed, setDismissed] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
 
   // Memoized filtered suggestions
   const filteredSuggestions = useMemo(() => {
     if (!searchValue.trim()) return [];
-    
+
     return players
       .filter(player => matchesSearchQuery(player, searchValue))
       .slice(0, maxSuggestions);
   }, [players, searchValue, maxSuggestions]);
 
-  // Update suggestions when filtered results change
-  useState(() => {
-    setSuggestions(filteredSuggestions);
-    // Reset highlighted index if suggestions changed
-    if (filteredSuggestions.length === 0) {
-      setHighlightedIndex(-1);
-    } else if (highlightedIndex >= filteredSuggestions.length) {
-      setHighlightedIndex(0);
-    }
-  });
+  const suggestions = dismissed ? EMPTY_SUGGESTIONS : filteredSuggestions;
 
   const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     setSearchValue(value);
-    
-    if (value.trim() === '') {
-      setSuggestions([]);
-      setHighlightedIndex(-1);
-    } else {
-      setHighlightedIndex(filteredSuggestions.length > 0 ? 0 : -1);
-    }
-  }, [filteredSuggestions.length]);
+    setDismissed(false);
+    setHighlightedIndex(value.trim() === '' ? -1 : 0);
+  }, []);
 
   const handlePlayerSelected = useCallback((player: CostEstimatedPlayer) => {
     setSearchValue(player.name);
-    setSuggestions([]);
+    setDismissed(true);
     setHighlightedIndex(-1);
     onPlayerSelected?.(player);
   }, [onPlayerSelected]);
@@ -116,7 +106,7 @@ export function usePlayerSearch({
         
       case 'Escape':
         event.preventDefault();
-        setSuggestions([]);
+        setDismissed(true);
         setHighlightedIndex(-1);
         break;
         
@@ -127,20 +117,20 @@ export function usePlayerSearch({
 
   const clearSearch = useCallback(() => {
     setSearchValue('');
-    setSuggestions([]);
+    setDismissed(false);
     setHighlightedIndex(-1);
   }, []);
 
   return {
     searchValue,
     setSearchValue,
-    suggestions: filteredSuggestions,
+    suggestions,
     highlightedIndex,
     setHighlightedIndex,
     handleInputChange,
     handlePlayerSelected,
     handleKeyDown,
     clearSearch,
-    hasSuggestions: filteredSuggestions.length > 0
+    hasSuggestions: suggestions.length > 0
   };
 }

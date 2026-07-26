@@ -24,17 +24,22 @@ import SimulatorGuide, { HELP, MODEL_HELP } from './components/SimulatorGuide';
 
 import {
     BaselinePredictor,
+    CompletedPick,
     PredictionContext,
+    PredictorTeam,
     PricePredictor,
     RegressionPredictor,
     StickerPredictor,
 } from '@/lib/models/live-draft/predictor';
+import { CostEstimatedPlayer } from '@/types/storage';
+import PlayerSearchInput from './components/PlayerSearchInput';
 import {
     InflationPredictor,
     computeInflation,
+    computeInflationTimeline,
     createPlatformValuePredictor,
 } from '@/lib/models/live-draft/inflationModel';
-import { simulateDraft, SimulatedDraft } from '@/lib/models/live-draft/draftSimulator';
+import { simulateDraft } from '@/lib/models/live-draft/draftSimulator';
 import { backtestHeldOut, BacktestReport } from '@/lib/models/live-draft/backtest';
 import {
     calibrateElasticity,
@@ -52,6 +57,12 @@ interface Props {
 
 const EXPLORER_LIMIT = 50;
 
+/** The current board: randomized, hand-entered, or a mix of both. */
+interface DraftState {
+    picks: CompletedPick[];
+    teams: PredictorTeam[];
+}
+
 const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
     const { data, isLoading, error } = useSimulatorData(leagueId, googleApiKey);
 
@@ -67,7 +78,13 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
     const [useExpectedUnspent, setUseExpectedUnspent] = useState(false);
     // Stored as exclusions so the default ("all seasons") needs no sync when data loads.
     const [excludedSeasons, setExcludedSeasons] = useState<Set<string>>(new Set());
-    const [sim, setSim] = useState<SimulatedDraft | null>(null);
+    const [draftState, setDraftState] = useState<DraftState | null>(null);
+    // Manual pick entry ("what if Chase goes $20 over?")
+    const [entryPlayer, setEntryPlayer] = useState<CostEstimatedPlayer | null>(null);
+    const [entrySearch, setEntrySearch] = useState('');
+    const [entryPrice, setEntryPrice] = useState('');
+    const [entryTeamId, setEntryTeamId] = useState('');
+    const [entryError, setEntryError] = useState<string | null>(null);
     const [report, setReport] = useState<BacktestReport | null>(null);
     const [calibration, setCalibration] = useState<CalibrationResult | null>(null);
     const [trainedPredictor, setTrainedPredictor] = useState<LiveDraftPredictor | null>(null);
@@ -195,17 +212,17 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
 
     const currentContext = useMemo<PredictionContext | null>(() => {
         if (!data) return null;
-        const draftedIds = new Set((sim?.picks ?? []).map(p => p.player.id));
+        const draftedIds = new Set((draftState?.picks ?? []).map(p => p.player.id));
         return {
             budgetConfig: { totalBudgetPerTeam: budget, teamCount },
             rosterSize,
             rosterNeeds: data.rosterNeeds,
-            picks: sim?.picks ?? [],
-            teams: sim?.teams ?? [],
+            picks: draftState?.picks ?? [],
+            teams: draftState?.teams ?? [],
             availablePlayers: data.players.filter(p => !draftedIds.has(p.id)),
-            currentPickNumber: (sim?.picks.length ?? 0) + 1,
+            currentPickNumber: (draftState?.picks.length ?? 0) + 1,
         };
-    }, [data, sim, budget, teamCount, rosterSize]);
+    }, [data, draftState, budget, teamCount, rosterSize]);
 
     const inflationField = useMemo(() => {
         if (!data || !activeBaseline || !currentContext || !historyOptions) return null;
@@ -227,6 +244,40 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
             }));
     }, [data, currentContext, predictors]);
 
+    // Per-pick attribution: how much each pick moved global inflation at the
+    // moment it happened, keyed by pick number for the picks table.
+    const pickDeltas = useMemo(() => {
+        if (!data || !activeBaseline || !historyOptions || !draftState) {
+            return new Map<number, number>();
+        }
+        const timeline = computeInflationTimeline(
+            draftState.picks,
+            data.players,
+            { totalBudgetPerTeam: budget, teamCount },
+            data.rosterNeeds,
+            activeBaseline,
+            { ...historyOptions, elasticity }
+        );
+        return new Map(timeline.map(point => [point.pickNumber, point.delta]));
+    }, [data, activeBaseline, historyOptions, elasticity, draftState, budget, teamCount]);
+
+    // The pick-entry search pool: every available player, priced by the
+    // inflation model so the suggestion list and prefill carry the current
+    // prediction.
+    const searchablePlayers = useMemo<CostEstimatedPlayer[]>(() => {
+        if (!currentContext) return [];
+        const inflation = predictors.find(p => p.id === 'inflation');
+        return currentContext.availablePlayers.map(p => {
+            const sp = p as SimulatorPlayer & { positions?: string[] };
+            return {
+                ...(p as object),
+                name: sp.name ?? p.id,
+                positions: sp.positions ?? [p.defaultPosition],
+                estimatedCost: inflation ? inflation.predict(p, currentContext).price : 1,
+            } as CostEstimatedPlayer;
+        });
+    }, [currentContext, predictors]);
+
     const handleGenerate = () => {
         if (!data) return;
         const drivingPredictor =
@@ -240,7 +291,110 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
             seed,
             noise,
         });
-        setSim(result);
+        setDraftState({ picks: result.picks, teams: result.teams });
+    };
+
+    const freshTeams = (): PredictorTeam[] =>
+        Array.from({ length: teamCount }, (_, i) => ({
+            id: `team-${i + 1}`,
+            remainingBudget: budget,
+            rosterNeeds: { ...(data?.rosterNeeds ?? {}) },
+            filledPositions: {},
+        }));
+
+    // Teams for the entry form (and validation): the live state's, or a fresh
+    // full-budget league when no picks have been made yet.
+    const entryTeams = draftState?.teams.length ? draftState.teams : freshTeams();
+    // Round-robin default matching simulateDraft's nomination order.
+    const defaultTeamId = `team-${((draftState?.picks.length ?? 0) % teamCount) + 1}`;
+    const effectiveTeamId = entryTeamId || defaultTeamId;
+
+    const handleEntryPlayerSelected = (player: CostEstimatedPlayer) => {
+        setEntryPlayer(player);
+        setEntrySearch(player.name);
+        // Prefill with the inflation model's current price; the whole point is
+        // overriding it, but the anchor saves a lookup.
+        setEntryPrice(String(player.estimatedCost));
+        setEntryError(null);
+    };
+
+    const handleAddPick = () => {
+        if (!data) return;
+        if (!entryPlayer) {
+            setEntryError('Pick a player first');
+            return;
+        }
+        const price = Number(entryPrice);
+        if (!Number.isInteger(price) || price < 1) {
+            setEntryError('Price must be a whole number of at least $1');
+            return;
+        }
+        const team = entryTeams.find(t => t.id === effectiveTeamId);
+        if (!team) return;
+        if (price > team.remainingBudget) {
+            setEntryError(
+                `${team.id.replace('team-', 'Team ')} only has $${team.remainingBudget} left`
+            );
+            return;
+        }
+        const poolPlayer = data.players.find(p => p.id === entryPlayer.id);
+        if (!poolPlayer) {
+            setEntryError('Player is no longer available');
+            return;
+        }
+        setDraftState(prev => {
+            const teams = (prev?.teams.length ? prev.teams : freshTeams()).map(t =>
+                t.id === effectiveTeamId
+                    ? {
+                          ...t,
+                          remainingBudget: t.remainingBudget - price,
+                          filledPositions: {
+                              ...t.filledPositions,
+                              [poolPlayer.defaultPosition]:
+                                  (t.filledPositions[poolPlayer.defaultPosition] ?? 0) + 1,
+                          },
+                      }
+                    : t
+            );
+            const picks = [
+                ...(prev?.picks ?? []),
+                {
+                    player: poolPlayer,
+                    price,
+                    teamId: effectiveTeamId,
+                    pickNumber: (prev?.picks.length ?? 0) + 1,
+                },
+            ];
+            return { picks, teams };
+        });
+        setEntryPlayer(null);
+        setEntrySearch('');
+        setEntryPrice('');
+        setEntryTeamId('');
+        setEntryError(null);
+    };
+
+    const handleUndoPick = () => {
+        setDraftState(prev => {
+            if (!prev || prev.picks.length === 0) return prev;
+            const last = prev.picks[prev.picks.length - 1];
+            const teams = prev.teams.map(t =>
+                t.id === last.teamId
+                    ? {
+                          ...t,
+                          remainingBudget: t.remainingBudget + last.price,
+                          filledPositions: {
+                              ...t.filledPositions,
+                              [last.player.defaultPosition]: Math.max(
+                                  0,
+                                  (t.filledPositions[last.player.defaultPosition] ?? 0) - 1
+                              ),
+                          },
+                      }
+                    : t
+            );
+            return { picks: prev.picks.slice(0, -1), teams };
+        });
     };
 
     const handleRunBacktest = () => {
@@ -402,7 +556,17 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                         <Button variant="primary" onClick={handleGenerate}>
                             Randomize to plausible state
                         </Button>
-                        <Button variant="ghost" onClick={() => setSim(null)}>
+                        <Button
+                            variant="ghost"
+                            onClick={() => {
+                                setDraftState(null);
+                                setEntryPlayer(null);
+                                setEntrySearch('');
+                                setEntryPrice('');
+                                setEntryTeamId('');
+                                setEntryError(null);
+                            }}
+                        >
                             Clear
                         </Button>
                     </div>
@@ -480,7 +644,7 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                 <Card>
                     <CardBody>
                         <div className="text-sm text-gray-500">Picks made</div>
-                        <div className="text-2xl font-bold">{sim?.picks.length ?? 0}</div>
+                        <div className="text-2xl font-bold">{draftState?.picks.length ?? 0}</div>
                     </CardBody>
                 </Card>
                 <Card>
@@ -491,7 +655,8 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                             </Tooltip>
                         </div>
                         <div className="text-2xl font-bold">
-                            ${sim?.invariants.totalSpent ?? 0} / ${budget * teamCount}
+                            ${(draftState?.picks ?? []).reduce((s, p) => s + p.price, 0)} / $
+                            {budget * teamCount}
                         </div>
                     </CardBody>
                 </Card>
@@ -509,12 +674,66 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                 </Card>
             </div>
 
-            {sim && sim.picks.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Simulated picks</CardTitle>
-                    </CardHeader>
-                    <CardBody>
+            <Card>
+                <CardHeader>
+                    <CardTitle>
+                        <Tooltip text={HELP.picks}>
+                            <span>Picks</span>
+                        </Tooltip>
+                    </CardTitle>
+                </CardHeader>
+                <CardBody>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 items-end mb-3">
+                        <div className="col-span-2">
+                            <PlayerSearchInput
+                                label="Player"
+                                players={searchablePlayers}
+                                value={entrySearch}
+                                onPlayerSelected={handleEntryPlayerSelected}
+                                placeholder="Search available players…"
+                            />
+                        </div>
+                        <Input
+                            label="Price"
+                            type="number"
+                            value={entryPrice}
+                            onChange={e => {
+                                setEntryPrice(e.target.value);
+                                setEntryError(null);
+                            }}
+                        />
+                        <label className="text-sm">
+                            <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Team
+                            </span>
+                            <select
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm dark:bg-gray-800 dark:text-gray-100"
+                                value={effectiveTeamId}
+                                onChange={e => setEntryTeamId(e.target.value)}
+                                data-testid="entry-team"
+                            >
+                                {entryTeams.map(t => (
+                                    <option key={t.id} value={t.id}>
+                                        {t.id.replace('team-', 'Team ')} (${t.remainingBudget})
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        <div className="flex gap-2">
+                            <Button variant="primary" onClick={handleAddPick}>
+                                Add pick
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={handleUndoPick}
+                                disabled={!draftState || draftState.picks.length === 0}
+                            >
+                                Undo
+                            </Button>
+                        </div>
+                    </div>
+                    {entryError && <p className="text-xs text-red-500 mb-3">{entryError}</p>}
+                    {draftState && draftState.picks.length > 0 ? (
                         <div
                             className="overflow-x-auto max-h-80 overflow-y-auto"
                             data-testid="simulated-picks"
@@ -527,10 +746,15 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                                         <th className="py-2 pr-2">Pos</th>
                                         <th className="py-2 pr-2">Team</th>
                                         <th className="py-2 pr-2 text-right">Price</th>
+                                        <th className="py-2 pr-2 text-right">
+                                            <Tooltip text={HELP.pickDelta}>
+                                                <span>Δ Infl</span>
+                                            </Tooltip>
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {sim.picks.map(pick => (
+                                    {draftState.picks.map(pick => (
                                         <tr
                                             key={pick.pickNumber}
                                             className="border-b border-gray-100 dark:border-gray-800"
@@ -550,14 +774,24 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                                             <td className="py-1.5 pr-2 text-right tabular-nums">
                                                 ${pick.price}
                                             </td>
+                                            <td
+                                                className="py-1.5 pr-2 text-right tabular-nums text-gray-500"
+                                                data-testid="pick-delta"
+                                            >
+                                                {formatDelta(pickDeltas.get(pick.pickNumber))}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                         </div>
-                    </CardBody>
-                </Card>
-            )}
+                    ) : (
+                        <p className="text-sm text-gray-500">
+                            No picks yet — search a player above, or randomize a plausible state.
+                        </p>
+                    )}
+                </CardBody>
+            </Card>
 
             {inflationField && (
                 <Card>
@@ -806,6 +1040,12 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
 };
 
 export default DraftSimulator;
+
+/** Signed inflation delta for the picks table, e.g. "+0.012×" / "-0.008×". */
+function formatDelta(delta: number | undefined): string {
+    if (delta === undefined || !Number.isFinite(delta)) return '—';
+    return `${delta >= 0 ? '+' : ''}${delta.toFixed(3)}×`;
+}
 
 /** "Ja'Marr Chase" → "J. Chase" for narrow screens; single-word and D/ST names stay whole. */
 function shortPlayerName(name: string, position: string): string {

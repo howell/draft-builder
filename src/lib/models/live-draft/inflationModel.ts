@@ -40,8 +40,10 @@
  */
 
 import {
+    CompletedPick,
     PricePredictor,
     PredictorPlayer,
+    PredictorTeam,
     PredictionContext,
     PredictionResult,
     BaselineModels,
@@ -303,6 +305,73 @@ export function computeInflation(
     }
 
     return { global, byPosition, valueSurplusByPosition };
+}
+
+export interface InflationTimelinePoint {
+    pickNumber: number;
+    /** global inflation after this pick */
+    global: number;
+    /** how much this pick moved global inflation (after − before) */
+    delta: number;
+}
+
+/**
+ * Replay a board pick-by-pick and attribute the movement of global inflation
+ * to each pick: overpaying drains money faster than talent leaves the board
+ * (negative delta — remaining players get cheaper), bargains leave extra
+ * money chasing what's left (positive delta). Teams are reconstructed from
+ * full budgets in `team-N` id order, matching `simulateDraft`'s convention.
+ */
+export function computeInflationTimeline(
+    picks: CompletedPick[],
+    allPlayers: PredictorPlayer[],
+    budgetConfig: { totalBudgetPerTeam: number; teamCount: number },
+    rosterNeeds: Record<string, number>,
+    baseline: BaselineModels,
+    options: Partial<InflationModelOptions> = {}
+): InflationTimelinePoint[] {
+    const rosterSize = Object.values(rosterNeeds).reduce((a, b) => a + b, 0);
+    let teams: PredictorTeam[] = Array.from({ length: budgetConfig.teamCount }, (_, i) => ({
+        id: `team-${i + 1}`,
+        remainingBudget: budgetConfig.totalBudgetPerTeam,
+        rosterNeeds: { ...rosterNeeds },
+        filledPositions: {},
+    }));
+    const drafted = new Set<string>();
+    const soFar: CompletedPick[] = [];
+    const ctxAt = (): PredictionContext => ({
+        budgetConfig,
+        rosterSize,
+        rosterNeeds,
+        picks: [...soFar],
+        teams,
+        availablePlayers: allPlayers.filter(p => !drafted.has(p.id)),
+        currentPickNumber: soFar.length + 1,
+    });
+
+    let prev = computeInflation(ctxAt(), baseline, options).global;
+    const timeline: InflationTimelinePoint[] = [];
+    for (const pick of picks) {
+        soFar.push(pick);
+        drafted.add(pick.player.id);
+        teams = teams.map(t =>
+            t.id === pick.teamId
+                ? {
+                      ...t,
+                      remainingBudget: t.remainingBudget - pick.price,
+                      filledPositions: {
+                          ...t.filledPositions,
+                          [pick.player.defaultPosition]:
+                              (t.filledPositions[pick.player.defaultPosition] ?? 0) + 1,
+                      },
+                  }
+                : t
+        );
+        const global = computeInflation(ctxAt(), baseline, options).global;
+        timeline.push({ pickNumber: pick.pickNumber, global, delta: global - prev });
+        prev = global;
+    }
+    return timeline;
 }
 
 export class InflationPredictor implements PricePredictor {

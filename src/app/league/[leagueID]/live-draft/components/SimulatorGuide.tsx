@@ -43,6 +43,10 @@ export const HELP = {
     lateMae: 'Dollar miss over the final third of each draft, where most picks land near $1.',
     trainRegression:
         'Train the legacy 8-feature linear model on the selected seasons and add its column to the explorer and backtest. Changing seasons, budget, or teams discards the trained model.',
+    picks:
+        'The current board. Randomize a plausible state, enter picks by hand, or mix both — e.g. put in the first few stars $20 over their prediction and watch how every model reacts. Prices prefill with the inflation model\'s current prediction.',
+    pickDelta:
+        'How much this pick moved global inflation when it happened. Overpays drain money faster than talent leaves the board (negative — remaining players get cheaper); bargains leave extra money chasing what\'s left (positive).',
 } as const;
 
 /** Tooltip text per prediction-explorer column, keyed by predictor id. */
@@ -104,7 +108,9 @@ const SimulatorGuide: React.FC = () => (
                             </li>
                             <li>
                                 Randomize to plausible state — fakes a mid-draft so you can eyeball
-                                what each model would say at that point.
+                                what each model would say at that point. Or enter picks by hand in
+                                the Picks card (alone or on top of a randomized state) to explore
+                                what-ifs like the first stars going well over their predictions.
                             </li>
                         </ol>
                     </div>
