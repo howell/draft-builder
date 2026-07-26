@@ -9,6 +9,11 @@ import { createSupabaseServerClient } from '@/lib/supabase';
 const COLUMNS =
     'season, source, snapshot_date, rank_type, player_id, player_name, position, overall_rank, position_rank, auction_value';
 
+// The current season gets a fresh API snapshot daily (and ingests can land any
+// time), so the default 24h public cache guarantees up to a day of staleness —
+// browsers held the pre-backfill empty response long after prod had data.
+const CACHE_TTL_SECONDS = 60 * 60;
+
 /**
  * Global platform player values (preseason ranks + auction dollars) ingested
  * by scripts/ingest-espn-values.ts. Per season, draft-kit PDF rows (frozen
@@ -26,7 +31,8 @@ export async function GET(req: NextRequest) {
     if (body instanceof DecodeFailure) {
         return makeResponse<PlayerValuesResponse>(
             { status: `Invalid request, malformed parameter ${body.getKey()}` },
-            400
+            400,
+            false
         );
     }
 
@@ -35,9 +41,11 @@ export async function GET(req: NextRequest) {
 
     const failure = results.find((r): r is Error => r instanceof Error);
     if (failure) {
+        // Never cache failures — a cached 500 pins the outage for the TTL.
         return makeResponse<PlayerValuesResponse>(
             { status: `Failed to load player values: ${failure.message}` },
-            500
+            500,
+            false
         );
     }
 
@@ -46,7 +54,7 @@ export async function GET(req: NextRequest) {
         data[season] = results[i] as PlatformPlayerValue[];
     });
 
-    return makeResponse<PlayerValuesResponse>({ status: 'ok', data }, 200);
+    return makeResponse<PlayerValuesResponse>({ status: 'ok', data }, 200, true, CACHE_TTL_SECONDS);
 }
 
 async function loadSeason(

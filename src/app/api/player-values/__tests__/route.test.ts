@@ -96,6 +96,8 @@ describe('GET /api/player-values', () => {
 
         expect(res.status).toBe(200);
         expect(body.status).toBe('ok');
+        // One hour, not the default day — daily snapshots made 24h staleness real.
+        expect(res.headers.get('Cache-Control')).toContain('max-age=3600');
         for (const season of seasons) {
             expect(body.data[season]).toHaveLength(1);
             expect(body.data[season][0]).toMatchObject({
@@ -151,5 +153,7 @@ describe('GET /api/player-values', () => {
 
         expect(res.status).toBe(500);
         expect(body.status).toContain('boom');
+        // A cached failure would pin the outage for the whole TTL.
+        expect(res.headers.get('Cache-Control')).toBe('no-cache');
     });
 });
