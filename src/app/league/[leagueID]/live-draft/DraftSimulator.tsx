@@ -18,7 +18,9 @@ import { Card, CardBody, CardHeader, CardTitle } from '@/ui/Card';
 import { Input } from '@/ui/Input';
 import { Alert } from '@/ui/Alert';
 import { Badge, PositionBadge } from '@/ui/Badge';
+import Tooltip from '@/ui/Tooltip';
 import { useSimulatorData, SimulatorPlayer } from './useSimulatorData';
+import SimulatorGuide, { HELP, MODEL_HELP } from './components/SimulatorGuide';
 
 import {
     BaselinePredictor,
@@ -288,6 +290,8 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                 </p>
             </div>
 
+            <SimulatorGuide />
+
             <Card>
                 <CardHeader>
                     <CardTitle>Draft configuration</CardTitle>
@@ -299,30 +303,36 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                             type="number"
                             value={budget}
                             onChange={e => setBudgetOverride(Number(e.target.value))}
+                            helperText={HELP.budget}
                         />
                         <Input
                             label="Teams"
                             type="number"
                             value={teamCount}
                             onChange={e => setTeamCountOverride(Number(e.target.value))}
+                            helperText={HELP.teams}
                         />
                         <Input
                             label="Stop at pick"
                             type="number"
                             value={stopAtPick}
                             onChange={e => setStopAtPick(Number(e.target.value))}
+                            helperText={HELP.stopAtPick}
                         />
                         <Input
                             label="Seed"
                             type="number"
                             value={seed}
                             onChange={e => setSeed(Number(e.target.value))}
+                            helperText={HELP.seed}
                         />
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 items-end">
                         <label className="text-sm">
                             <span className="block text-gray-600 dark:text-gray-300 mb-1">
-                                Inflation elasticity: {elasticity.toFixed(2)}
+                                <Tooltip text={HELP.elasticity}>
+                                    <span>Inflation elasticity: {elasticity.toFixed(2)}</span>
+                                </Tooltip>
                             </span>
                             <input
                                 type="range"
@@ -336,7 +346,9 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                         </label>
                         <label className="text-sm">
                             <span className="block text-gray-600 dark:text-gray-300 mb-1">
-                                Price noise: {noise.toFixed(2)}
+                                <Tooltip text={HELP.noise}>
+                                    <span>Price noise: {noise.toFixed(2)}</span>
+                                </Tooltip>
                             </span>
                             <input
                                 type="range"
@@ -356,35 +368,43 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                         </Button>
                     </div>
                     <div className="flex flex-wrap gap-4 mt-3 text-sm">
-                        <label className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                checked={positionalValues}
-                                onChange={e => setPositionalValues(e.target.checked)}
-                            />
-                            Positional value curves
-                        </label>
-                        <label className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                checked={usePriors}
-                                onChange={e => setUsePriors(e.target.checked)}
-                            />
-                            League positional priors
-                        </label>
-                        <label className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                checked={useExpectedUnspent}
-                                onChange={e => setUseExpectedUnspent(e.target.checked)}
-                            />
-                            Expected-unspent correction
-                            {historyOptions?.expectedUnspent !== undefined && (
-                                <span className="text-gray-500">
-                                    (${Math.round(historyOptions.expectedUnspent)})
-                                </span>
-                            )}
-                        </label>
+                        {/* Tooltips wrap the labels so the info icon sits outside them —
+                            tapping it must not toggle the checkbox. */}
+                        <Tooltip text={HELP.positionalValues}>
+                            <label className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    checked={positionalValues}
+                                    onChange={e => setPositionalValues(e.target.checked)}
+                                />
+                                Positional value curves
+                            </label>
+                        </Tooltip>
+                        <Tooltip text={HELP.priors}>
+                            <label className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    checked={usePriors}
+                                    onChange={e => setUsePriors(e.target.checked)}
+                                />
+                                League positional priors
+                            </label>
+                        </Tooltip>
+                        <Tooltip text={HELP.expectedUnspent}>
+                            <label className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    checked={useExpectedUnspent}
+                                    onChange={e => setUseExpectedUnspent(e.target.checked)}
+                                />
+                                Expected-unspent correction
+                                {historyOptions?.expectedUnspent !== undefined && (
+                                    <span className="text-gray-500">
+                                        (${Math.round(historyOptions.expectedUnspent)})
+                                    </span>
+                                )}
+                            </label>
+                        </Tooltip>
                     </div>
                     <div
                         className="flex flex-wrap items-center gap-4 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-sm"
@@ -426,7 +446,11 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                 </Card>
                 <Card>
                     <CardBody>
-                        <div className="text-sm text-gray-500">Spent / total</div>
+                        <div className="text-sm text-gray-500">
+                            <Tooltip text={HELP.spent}>
+                                <span>Spent / total</span>
+                            </Tooltip>
+                        </div>
                         <div className="text-2xl font-bold">
                             ${sim?.invariants.totalSpent ?? 0} / ${budget * teamCount}
                         </div>
@@ -434,7 +458,11 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                 </Card>
                 <Card>
                     <CardBody>
-                        <div className="text-sm text-gray-500">Global inflation</div>
+                        <div className="text-sm text-gray-500">
+                            <Tooltip text={HELP.globalInflation}>
+                                <span>Global inflation</span>
+                            </Tooltip>
+                        </div>
                         <div className="text-2xl font-bold">
                             {inflationField ? inflationField.global.toFixed(2) : '—'}×
                         </div>
@@ -495,7 +523,11 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
             {inflationField && (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Positional inflation</CardTitle>
+                        <CardTitle>
+                            <Tooltip text={HELP.positionalInflation}>
+                                <span>Positional inflation</span>
+                            </Tooltip>
+                        </CardTitle>
                     </CardHeader>
                     <CardBody>
                         <div className="flex flex-wrap gap-2">
@@ -527,7 +559,9 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                                     <th className="py-2 pr-2">Pos</th>
                                     {predictors.map(p => (
                                         <th key={p.id} className="py-2 pr-2 text-right">
-                                            {p.label}
+                                            <Tooltip text={MODEL_HELP[p.id] ?? p.label}>
+                                                <span>{p.label}</span>
+                                            </Tooltip>
                                         </th>
                                     ))}
                                 </tr>
@@ -568,11 +602,13 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                             Calibrate elasticity
                         </Button>
                         {report && (
-                            <Badge variant={report.heldOut ? 'success' : 'warning'}>
-                                {report.heldOut
-                                    ? `held-out · ${report.draftCount} drafts`
-                                    : 'in-sample · 1 draft'}
-                            </Badge>
+                            <Tooltip text={HELP.heldOut}>
+                                <Badge variant={report.heldOut ? 'success' : 'warning'}>
+                                    {report.heldOut
+                                        ? `held-out · ${report.draftCount} drafts`
+                                        : 'in-sample · 1 draft'}
+                                </Badge>
+                            </Tooltip>
                         )}
                     </div>
                     {calibration && (
@@ -607,10 +643,18 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                                 <thead>
                                     <tr className="text-left border-b border-gray-200 dark:border-gray-700">
                                         <th className="py-2 pr-2">Model</th>
-                                        <th className="py-2 pr-2 text-right">MAE</th>
-                                        <th className="py-2 pr-2 text-right">MAPE</th>
-                                        <th className="py-2 pr-2 text-right">Bias</th>
-                                        <th className="py-2 pr-2 text-right">Late MAE</th>
+                                        <th className="py-2 pr-2 text-right">
+                                            <Tooltip text={HELP.mae}><span>MAE</span></Tooltip>
+                                        </th>
+                                        <th className="py-2 pr-2 text-right">
+                                            <Tooltip text={HELP.mape}><span>MAPE</span></Tooltip>
+                                        </th>
+                                        <th className="py-2 pr-2 text-right">
+                                            <Tooltip text={HELP.bias}><span>Bias</span></Tooltip>
+                                        </th>
+                                        <th className="py-2 pr-2 text-right">
+                                            <Tooltip text={HELP.lateMae}><span>Late MAE</span></Tooltip>
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>

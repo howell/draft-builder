@@ -143,7 +143,11 @@
 > results (`__tests__/DraftSimulator.seasons.test.tsx`). A "Simulated picks"
 > card (added 2026-07-26) lists each generated pick — number, player, position,
 > team, price — whenever a randomized state is active
-> (`__tests__/DraftSimulator.picks.test.tsx`).
+> (`__tests__/DraftSimulator.picks.test.tsx`). In-page help (added 2026-07-26):
+> a collapsed "How this page works" guide card (workflow, model descriptions,
+> how to read inflation and the backtest metrics) plus tooltips on every knob,
+> stat tile, explorer column, and backtest metric; help text lives in
+> `components/SimulatorGuide.tsx` (`__tests__/DraftSimulator.guide.test.tsx`).
 >
 > Tests: `__tests__/inflationModel.test.ts` (conservation — including from
 > platform values, neutral-market no-pressure invariant, over/under-spend
