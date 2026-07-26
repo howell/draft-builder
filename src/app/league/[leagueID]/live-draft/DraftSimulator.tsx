@@ -731,6 +731,12 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                                             <Tooltip text={HELP.bias}><span>Bias</span></Tooltip>
                                         </th>
                                         <th className="py-2 pr-2 text-right">
+                                            <Tooltip text={HELP.earlyMae}><span>Early MAE</span></Tooltip>
+                                        </th>
+                                        <th className="py-2 pr-2 text-right">
+                                            <Tooltip text={HELP.midMae}><span>Mid MAE</span></Tooltip>
+                                        </th>
+                                        <th className="py-2 pr-2 text-right">
                                             <Tooltip text={HELP.lateMae}><span>Late MAE</span></Tooltip>
                                         </th>
                                     </tr>
@@ -750,6 +756,12 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                                             </td>
                                             <td className="py-1.5 pr-2 text-right tabular-nums">
                                                 ${m.overall.bias.toFixed(1)}
+                                            </td>
+                                            <td className="py-1.5 pr-2 text-right tabular-nums">
+                                                ${m.byPhase.early.mae.toFixed(1)}
+                                            </td>
+                                            <td className="py-1.5 pr-2 text-right tabular-nums">
+                                                ${m.byPhase.mid.mae.toFixed(1)}
                                             </td>
                                             <td className="py-1.5 pr-2 text-right tabular-nums">
                                                 ${m.byPhase.late.mae.toFixed(1)}

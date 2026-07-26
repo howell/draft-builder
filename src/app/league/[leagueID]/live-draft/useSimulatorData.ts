@@ -81,11 +81,18 @@ function buildPlayerDb(
         }));
 }
 
-function stripBenchSlots(rosterSettings: RosterSettings | undefined): RosterSettings {
+/**
+ * The roster slots an auction actually fills: everything except IR. Bench
+ * slots stay — they're drafted with real money. Stripping them (the old
+ * behavior) made the inflation identity's demand run out ~90 picks before the
+ * real draft ended, so all remaining cash piled onto a vanishing set of
+ * starter slots and mid-draft prices blew up (backtest bias +$10/pick).
+ * Bench keys don't match any player position, so the inflation model treats
+ * them as shared flex capacity.
+ */
+export function draftableRosterSlots(rosterSettings: RosterSettings | undefined): RosterSettings {
     const lineup: RosterSettings = { ...(rosterSettings ?? {}) };
     delete lineup['IR'];
-    delete lineup['BN'];
-    delete lineup['Bench'];
     return lineup;
 }
 
@@ -149,7 +156,7 @@ export function useSimulatorData(
             Object.values(history).find(info => typeof info !== 'number');
         if (!latestInfo || typeof latestInfo === 'number') return null;
 
-        const lineupSettings = stripBenchSlots(latestInfo.rosterSettings);
+        const lineupSettings = draftableRosterSlots(latestInfo.rosterSettings);
 
         const platform = league.platform;
         const rankingsValues = rankingsQuery.data.map(r => r.value);
@@ -172,7 +179,7 @@ export function useSimulatorData(
                 200;
             const seasonLineup =
                 typeof seasonInfo === 'object' && seasonInfo?.rosterSettings
-                    ? stripBenchSlots(seasonInfo.rosterSettings)
+                    ? draftableRosterSlots(seasonInfo.rosterSettings)
                     : lineupSettings;
 
             const drafted = mergeDraftAndPlayerInfo(draftDetail.picks, draftPlayers, [], platform);

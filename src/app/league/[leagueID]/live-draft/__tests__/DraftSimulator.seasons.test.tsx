@@ -80,6 +80,9 @@ describe('DraftSimulator season toggles', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Run backtest' }));
         expect(await screen.findByText('held-out · 2 drafts')).toBeInTheDocument();
+        expect(screen.getByText('Early MAE')).toBeInTheDocument();
+        expect(screen.getByText('Mid MAE')).toBeInTheDocument();
+        expect(screen.getByText('Late MAE')).toBeInTheDocument();
 
         const toggles = within(screen.getByTestId('season-toggles'));
         await act(async () => {

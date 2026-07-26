@@ -155,6 +155,13 @@
 > until pressed (or after seasons/budget/teams change, which discards the
 > model) there is no Regression column in the explorer or backtest
 > (`__tests__/DraftSimulator.regression.test.tsx`).
+> Demand-accounting fix (2026-07-26): bench slots are no longer stripped from
+> `rosterNeeds` (only IR is) — with starters-only demand the inflation
+> identity's open slots hit zero ~90 picks before real drafts ended, piling
+> all remaining money onto a vanishing draftable set (backtest bias +$10/pick,
+> MAPE 269%). Bench keys count as flex capacity in `remainingCapacity`. The
+> backtest table now shows Early/Mid/Late MAE so phase-local failures like
+> this are visible.
 >
 > Tests: `__tests__/inflationModel.test.ts` (conservation — including from
 > platform values, neutral-market no-pressure invariant, over/under-spend

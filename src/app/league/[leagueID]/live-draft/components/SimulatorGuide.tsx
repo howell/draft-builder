@@ -36,7 +36,11 @@ export const HELP = {
     mae: 'Mean absolute error: the average dollar miss per pick. The headline number — lower is better.',
     mape: 'Mean absolute percentage error: the average miss as a percentage of the actual price.',
     bias: 'Signed average miss. Positive = the model over-prices players; negative = under-prices.',
-    lateMae: 'Dollar miss over just the late-draft picks, where price models usually fall apart.',
+    earlyMae:
+        'Dollar miss over the first third of each draft — the expensive picks, where absolute errors are biggest.',
+    midMae:
+        'Dollar miss over the middle third of each draft — where inflation dynamics (money vs talent remaining) matter most.',
+    lateMae: 'Dollar miss over the final third of each draft, where most picks land near $1.',
     trainRegression:
         'Train the legacy 8-feature linear model on the selected seasons and add its column to the explorer and backtest. Changing seasons, budget, or teams discards the trained model.',
 } as const;
@@ -152,8 +156,10 @@ const SimulatorGuide: React.FC = () => (
                             <Term name="Bias">
                                 signed miss: positive means the model systematically over-prices.
                             </Term>
-                            <Term name="Late MAE">
-                                the miss over late-draft picks only, where models usually fall apart.
+                            <Term name="Early / Mid / Late MAE">
+                                the miss split by draft phase (thirds of each draft). Early is where
+                                absolute errors are biggest; mid is where inflation dynamics matter
+                                most; late picks mostly land near $1.
                             </Term>
                             <Term name="held-out badge">
                                 each draft was scored by models fit on the <em>other</em> drafts — the
