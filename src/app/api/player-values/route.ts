@@ -6,10 +6,20 @@ import { Decoder, DecodeFailure } from '../Decoder';
 import { isSeasonId, SeasonId } from '@/platforms/common';
 import { createSupabaseServerClient } from '@/lib/supabase';
 
+const COLUMNS =
+    'season, source, snapshot_date, rank_type, player_id, player_name, position, overall_rank, position_rank, auction_value';
+
 /**
  * Global platform player values (preseason ranks + auction dollars) ingested
  * by scripts/ingest-espn-values.ts. Per season, draft-kit PDF rows (frozen
  * preseason artifacts) win; otherwise the latest API snapshot is returned.
+ *
+ * Each season is fetched with its own bounded queries, and API-source seasons
+ * are narrowed to their latest snapshot_date server-side. A single combined
+ * fetch silently truncates at PostgREST's max-rows cap (1000): ~280 kit rows
+ * per season across 7+ seasons blew the cap the moment the historical
+ * backfill landed, and the current season accumulates a ~400-row snapshot per
+ * day on its own.
  */
 export async function GET(req: NextRequest) {
     const body = decodeRequest(req.nextUrl.searchParams);
@@ -21,47 +31,75 @@ export async function GET(req: NextRequest) {
     }
 
     const supabase = createSupabaseServerClient();
-    const { data: rows, error } = await supabase
-        .from('platform_player_values')
-        .select(
-            'season, source, snapshot_date, rank_type, player_id, player_name, position, overall_rank, position_rank, auction_value'
-        )
-        .eq('platform', 'espn')
-        .eq('rank_type', 'PPR')
-        .in('season', body.seasons);
+    const results = await Promise.all(body.seasons.map(season => loadSeason(supabase, season)));
 
-    if (error) {
+    const failure = results.find((r): r is Error => r instanceof Error);
+    if (failure) {
         return makeResponse<PlayerValuesResponse>(
-            { status: `Failed to load player values: ${error.message}` },
+            { status: `Failed to load player values: ${failure.message}` },
             500
         );
     }
 
     const data: Record<string, PlatformPlayerValue[]> = {};
-    for (const season of body.seasons) {
-        const seasonRows = (rows ?? []).filter(r => r.season === season);
-        const kitRows = seasonRows.filter(r => r.source === 'draft_kit_pdf');
-        let chosen = kitRows;
-        if (chosen.length === 0) {
-            const latest = seasonRows.reduce<string | null>(
-                (max, r) => (max === null || r.snapshot_date > max ? r.snapshot_date : max),
-                null
-            );
-            chosen = seasonRows.filter(r => r.snapshot_date === latest);
-        }
-        data[season] = chosen.map(r => ({
-            playerId: r.player_id,
-            playerName: r.player_name,
-            position: r.position,
-            overallRank: r.overall_rank,
-            positionRank: r.position_rank,
-            auctionValue: r.auction_value,
-            source: r.source as PlatformPlayerValue['source'],
-            snapshotDate: r.snapshot_date,
-        }));
-    }
+    body.seasons.forEach((season, i) => {
+        data[season] = results[i] as PlatformPlayerValue[];
+    });
 
     return makeResponse<PlayerValuesResponse>({ status: 'ok', data }, 200);
+}
+
+async function loadSeason(
+    supabase: ReturnType<typeof createSupabaseServerClient>,
+    season: SeasonId
+): Promise<PlatformPlayerValue[] | Error> {
+    // Frozen preseason kit rows win when present.
+    const kit = await supabase
+        .from('platform_player_values')
+        .select(COLUMNS)
+        .eq('platform', 'espn')
+        .eq('rank_type', 'PPR')
+        .eq('season', season)
+        .eq('source', 'draft_kit_pdf');
+    if (kit.error) return new Error(kit.error.message);
+    if (kit.data && kit.data.length > 0) return kit.data.map(toPlayerValue);
+
+    // No kit for this season: find the latest API snapshot date, then fetch
+    // just that snapshot so the row count stays bounded.
+    const latest = await supabase
+        .from('platform_player_values')
+        .select('snapshot_date')
+        .eq('platform', 'espn')
+        .eq('rank_type', 'PPR')
+        .eq('season', season)
+        .order('snapshot_date', { ascending: false })
+        .limit(1);
+    if (latest.error) return new Error(latest.error.message);
+    const snapshotDate = latest.data?.[0]?.snapshot_date;
+    if (!snapshotDate) return [];
+
+    const snapshot = await supabase
+        .from('platform_player_values')
+        .select(COLUMNS)
+        .eq('platform', 'espn')
+        .eq('rank_type', 'PPR')
+        .eq('season', season)
+        .eq('snapshot_date', snapshotDate);
+    if (snapshot.error) return new Error(snapshot.error.message);
+    return (snapshot.data ?? []).map(toPlayerValue);
+}
+
+function toPlayerValue(r: any): PlatformPlayerValue {
+    return {
+        playerId: r.player_id,
+        playerName: r.player_name,
+        position: r.position,
+        overallRank: r.overall_rank,
+        positionRank: r.position_rank,
+        auctionValue: r.auction_value,
+        source: r.source as PlatformPlayerValue['source'],
+        snapshotDate: r.snapshot_date,
+    };
 }
 
 function isSeasonIdArray(value: any): value is SeasonId[] {
