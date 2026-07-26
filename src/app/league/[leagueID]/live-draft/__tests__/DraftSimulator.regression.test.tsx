@@ -1,6 +1,7 @@
 /**
- * The in-page help: a collapsed "How this page works" guide card, plus
- * tooltip triggers on the model columns, metrics, and knobs.
+ * Regression training is opt-in: no Regression column exists until "Train
+ * regression" is pressed, the button reports progress and the trained R²,
+ * and changing the league config discards the trained model.
  */
 
 import React from 'react';
@@ -46,7 +47,7 @@ function makeData(): SimulatorData {
     };
 }
 
-describe('DraftSimulator in-page help', () => {
+describe('DraftSimulator regression opt-in', () => {
     beforeEach(() => {
         mockedUseSimulatorData.mockReturnValue({
             data: makeData(),
@@ -55,33 +56,26 @@ describe('DraftSimulator in-page help', () => {
         });
     });
 
-    it('shows the guide collapsed by default and expands on toggle', async () => {
+    it('adds the Regression column only after training, and drops it on config change', async () => {
         await act(async () => {
             render(<DraftSimulator leagueId={'espn-1' as LeagueId} googleApiKey="key" />);
         });
 
-        expect(screen.getByText('How this page works')).toBeInTheDocument();
-        expect(screen.queryByText('Suggested workflow')).not.toBeInTheDocument();
+        // Untrained: no Regression column anywhere.
+        expect(screen.queryByText('Regression')).not.toBeInTheDocument();
 
-        fireEvent.click(screen.getByTestId('simulator-guide-toggle'));
+        fireEvent.click(screen.getByRole('button', { name: 'Train regression' }));
 
-        expect(screen.getByText('Suggested workflow')).toBeInTheDocument();
-        expect(screen.getByText(/The price models/)).toBeInTheDocument();
-        expect(screen.getByText(/Reading the backtest table/)).toBeInTheDocument();
+        // Training is deferred so the busy state can paint; wait for the result.
+        expect(await screen.findByText('Regression')).toBeInTheDocument();
+        expect(screen.getByTestId('regression-status').textContent).toMatch(/R² -?\d/);
+        expect(
+            screen.queryByRole('button', { name: 'Train regression' })
+        ).not.toBeInTheDocument();
 
-        fireEvent.click(screen.getByTestId('simulator-guide-toggle'));
-        expect(screen.queryByText('Suggested workflow')).not.toBeInTheDocument();
-    });
-
-    it('attaches tooltip triggers to the knobs, tiles, and explorer columns', async () => {
-        await act(async () => {
-            render(<DraftSimulator leagueId={'espn-1' as LeagueId} googleApiKey="key" />);
-        });
-
-        // Sliders (2) + knob checkboxes (3) + stat tiles (2) + positional
-        // inflation title (1) + explorer model columns (3, regression not yet
-        // trained) + train-regression button (1) at minimum.
-        const triggers = screen.getAllByRole('tooltip-trigger');
-        expect(triggers.length).toBeGreaterThanOrEqual(12);
+        // Changing the league config invalidates the trained model.
+        fireEvent.change(screen.getByLabelText('Budget / team'), { target: { value: '240' } });
+        expect(screen.queryByText('Regression')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Train regression' })).toBeInTheDocument();
     });
 });

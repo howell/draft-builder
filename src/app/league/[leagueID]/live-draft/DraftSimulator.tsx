@@ -11,7 +11,7 @@
  * training, and the backtest/calibration set, so results stay coherent.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { LeagueId } from '@/platforms/common';
 import { Button } from '@/ui/Button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/ui/Card';
@@ -70,6 +70,23 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
     const [report, setReport] = useState<BacktestReport | null>(null);
     const [calibration, setCalibration] = useState<CalibrationResult | null>(null);
     const [trainedPredictor, setTrainedPredictor] = useState<LiveDraftPredictor | null>(null);
+    const [busy, setBusy] = useState<'backtest' | 'calibrate' | 'train' | null>(null);
+    const [durations, setDurations] = useState<{ backtest?: number; calibrate?: number }>({});
+    const [trainInfo, setTrainInfo] = useState<{ r2: number; seconds: number } | null>(null);
+    const [trainError, setTrainError] = useState<string | null>(null);
+
+    // The model work is synchronous and would freeze the page before the
+    // button's busy state ever painted — defer it a tick so the spinner shows.
+    const runBlocking = (kind: 'backtest' | 'calibrate' | 'train', work: () => void | Promise<void>) => {
+        setBusy(kind);
+        setTimeout(async () => {
+            try {
+                await work();
+            } finally {
+                setBusy(null);
+            }
+        }, 50);
+    };
 
     const budget = budgetOverride ?? data?.defaultBudget ?? 200;
     const teamCount = teamCountOverride ?? data?.teamCount ?? 12;
@@ -129,28 +146,34 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
         return livePredictor;
     }, [data, activeHistorical, activeBaseline, budget, teamCount]);
 
-    useEffect(() => {
-        if (!regressionPredictorRef || !data || activeHistorical.length === 0) return;
-        let cancelled = false;
-        regressionPredictorRef
-            .trainModel({
-                picks: [],
-                currentPickNumber: 1,
-                totalPicks: rosterSize * teamCount,
-                budgetConfig: { totalBudgetPerTeam: budget, teamCount },
-            })
-            .then(() => {
-                if (!cancelled) setTrainedPredictor(regressionPredictorRef);
-            })
-            .catch(() => {
-                /* falls back to baseline */
-            });
-        return () => {
-            cancelled = true;
-        };
-    }, [regressionPredictorRef, data, activeHistorical, rosterSize, teamCount, budget]);
+    // Training is opt-in: until the button is pressed (or after the seasons /
+    // league config change, which mints a new predictor ref), there is no
+    // regression column anywhere.
+    const regressionReady = trainedPredictor !== null && trainedPredictor === regressionPredictorRef;
 
-    const regressionReady = trainedPredictor === regressionPredictorRef;
+    const handleTrainRegression = () => {
+        const predictor = regressionPredictorRef;
+        if (!predictor || !data || activeHistorical.length === 0) return;
+        setTrainError(null);
+        runBlocking('train', async () => {
+            const started = performance.now();
+            try {
+                await predictor.trainModel({
+                    picks: [],
+                    currentPickNumber: 1,
+                    totalPicks: rosterSize * teamCount,
+                    budgetConfig: { totalBudgetPerTeam: budget, teamCount },
+                });
+                setTrainedPredictor(predictor);
+                setTrainInfo({
+                    r2: predictor.getModelStatistics()?.r2 ?? NaN,
+                    seconds: (performance.now() - started) / 1000,
+                });
+            } catch (err) {
+                setTrainError(err instanceof Error ? err.message : 'Training failed');
+            }
+        });
+    };
 
     const predictors = useMemo<PricePredictor[]>(() => {
         if (!data || !activeBaseline || !historyOptions) return [];
@@ -159,12 +182,10 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
             createPlatformValuePredictor(activeBaseline),
             new InflationPredictor(activeBaseline, { ...historyOptions, elasticity }),
         ];
-        if (regressionPredictorRef) {
+        if (regressionReady && regressionPredictorRef) {
             list.push(new RegressionPredictor(regressionPredictorRef, activeBaseline));
         }
         return list;
-        // regressionReady included so columns refresh after training
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [data, activeBaseline, historyOptions, positionalValues, elasticity, regressionPredictorRef, regressionReady]);
 
     const currentContext = useMemo<PredictionContext | null>(() => {
@@ -219,31 +240,39 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
 
     const handleRunBacktest = () => {
         if (!data) return;
-        setReport(
-            backtestHeldOut(activeHistorical, (baseline, trainingDrafts) => {
-                const foldOptions = leagueHistoryOptions(
-                    trainingDrafts,
-                    baseline,
-                    calibrationConfig
-                );
-                const models: PricePredictor[] = [
-                    new BaselinePredictor(baseline, positionalValues),
-                    createPlatformValuePredictor(baseline),
-                    new InflationPredictor(baseline, { ...foldOptions, elasticity }),
-                ];
-                if (regressionPredictorRef) {
-                    models.push(new RegressionPredictor(regressionPredictorRef, baseline));
-                }
-                return models;
-            })
-        );
+        runBlocking('backtest', () => {
+            const started = performance.now();
+            setReport(
+                backtestHeldOut(activeHistorical, (baseline, trainingDrafts) => {
+                    const foldOptions = leagueHistoryOptions(
+                        trainingDrafts,
+                        baseline,
+                        calibrationConfig
+                    );
+                    const models: PricePredictor[] = [
+                        new BaselinePredictor(baseline, positionalValues),
+                        createPlatformValuePredictor(baseline),
+                        new InflationPredictor(baseline, { ...foldOptions, elasticity }),
+                    ];
+                    if (regressionReady && regressionPredictorRef) {
+                        models.push(new RegressionPredictor(regressionPredictorRef, baseline));
+                    }
+                    return models;
+                })
+            );
+            setDurations(d => ({ ...d, backtest: (performance.now() - started) / 1000 }));
+        });
     };
 
     const handleCalibrate = () => {
         if (!data) return;
-        const result = calibrateElasticity(activeHistorical, calibrationConfig);
-        setCalibration(result);
-        setElasticity(result.best.elasticity);
+        runBlocking('calibrate', () => {
+            const started = performance.now();
+            const result = calibrateElasticity(activeHistorical, calibrationConfig);
+            setCalibration(result);
+            setElasticity(result.best.elasticity);
+            setDurations(d => ({ ...d, calibrate: (performance.now() - started) / 1000 }));
+        });
     };
 
     const toggleSeason = (season: string) => {
@@ -548,7 +577,32 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Prediction explorer (top {EXPLORER_LIMIT} available)</CardTitle>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <CardTitle>Prediction explorer (top {EXPLORER_LIMIT} available)</CardTitle>
+                        {regressionReady && trainInfo ? (
+                            <span className="text-xs text-gray-500" data-testid="regression-status">
+                                regression trained · R² {trainInfo.r2.toFixed(2)} ·{' '}
+                                {trainInfo.seconds.toFixed(1)}s
+                            </span>
+                        ) : (
+                            <span className="flex items-center gap-2">
+                                <Tooltip text={HELP.trainRegression}>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        loading={busy === 'train'}
+                                        disabled={busy !== null}
+                                        onClick={handleTrainRegression}
+                                    >
+                                        Train regression
+                                    </Button>
+                                </Tooltip>
+                                {trainError && (
+                                    <span className="text-xs text-red-500">{trainError}</span>
+                                )}
+                            </span>
+                        )}
+                    </div>
                 </CardHeader>
                 <CardBody>
                     <div className="overflow-x-auto">
@@ -595,12 +649,34 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                 </CardHeader>
                 <CardBody>
                     <div className="flex flex-wrap items-center gap-2 mb-3">
-                        <Button variant="outline" onClick={handleRunBacktest}>
+                        <Button
+                            variant="outline"
+                            loading={busy === 'backtest'}
+                            disabled={busy !== null}
+                            onClick={handleRunBacktest}
+                        >
                             Run backtest
                         </Button>
-                        <Button variant="outline" onClick={handleCalibrate}>
+                        <Button
+                            variant="outline"
+                            loading={busy === 'calibrate'}
+                            disabled={busy !== null}
+                            onClick={handleCalibrate}
+                        >
                             Calibrate elasticity
                         </Button>
+                        {busy === 'backtest' || busy === 'calibrate' ? (
+                            <span className="text-xs text-gray-500">
+                                {busy === 'backtest' ? 'replaying drafts…' : 'searching the grid…'}
+                            </span>
+                        ) : (
+                            report &&
+                            durations.backtest !== undefined && (
+                                <span className="text-xs text-gray-500">
+                                    done in {durations.backtest.toFixed(1)}s
+                                </span>
+                            )
+                        )}
                         {report && (
                             <Tooltip text={HELP.heldOut}>
                                 <Badge variant={report.heldOut ? 'success' : 'warning'}>
@@ -620,6 +696,8 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                                 (MAE ${calibration.best.mae.toFixed(2)},{' '}
                                 {calibration.heldOut ? 'held-out' : 'in-sample'} over{' '}
                                 {calibration.totalPicks} picks) · applied to the slider
+                                {durations.calibrate !== undefined &&
+                                    ` · took ${durations.calibrate.toFixed(1)}s`}
                             </span>
                             <div className="flex flex-wrap gap-1 mt-1">
                                 {calibration.points.map(point => (

@@ -37,6 +37,8 @@ export const HELP = {
     mape: 'Mean absolute percentage error: the average miss as a percentage of the actual price.',
     bias: 'Signed average miss. Positive = the model over-prices players; negative = under-prices.',
     lateMae: 'Dollar miss over just the late-draft picks, where price models usually fall apart.',
+    trainRegression:
+        'Train the legacy 8-feature linear model on the selected seasons and add its column to the explorer and backtest. Changing seasons, budget, or teams discards the trained model.',
 } as const;
 
 /** Tooltip text per prediction-explorer column, keyed by predictor id. */
@@ -50,7 +52,7 @@ export const MODEL_HELP: Record<string, string> = {
     inflation:
         'Baseline value × market inflation — how much money is left vs how much talent is left — with per-position appetite controlled by the elasticity slider. This is the model being tuned.',
     regression:
-        'Legacy 8-feature linear regression, trained on the selected seasons in the background. Shows baseline prices until training finishes.',
+        'Legacy 8-feature linear regression, trained on the selected seasons via the "Train regression" button. The column only exists while a trained model matches the current seasons and league config.',
 };
 
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -121,8 +123,10 @@ const SimulatorGuide: React.FC = () => (
                                 being tuned.
                             </Term>
                             <Term name="Regression">
-                                the older 8-feature linear model, trained in the background. Its
-                                column shows Baseline prices until training finishes.
+                                the older 8-feature linear model. Opt-in: its column only appears
+                                after you press &quot;Train regression&quot;, and it disappears again
+                                if you change the seasons, budget, or team count (retrain to bring
+                                it back).
                             </Term>
                         </ul>
                     </div>

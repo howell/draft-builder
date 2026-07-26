@@ -148,6 +148,13 @@
 > how to read inflation and the backtest metrics) plus tooltips on every knob,
 > stat tile, explorer column, and backtest metric; help text lives in
 > `components/SimulatorGuide.tsx` (`__tests__/DraftSimulator.guide.test.tsx`).
+> Busy/done feedback (added 2026-07-26): backtest and calibration run deferred
+> so the buttons can show a spinner (the work is synchronous and would freeze
+> the page first), with elapsed-time readouts on completion. Regression
+> training is opt-in via a "Train regression" button on the explorer card —
+> until pressed (or after seasons/budget/teams change, which discards the
+> model) there is no Regression column in the explorer or backtest
+> (`__tests__/DraftSimulator.regression.test.tsx`).
 >
 > Tests: `__tests__/inflationModel.test.ts` (conservation — including from
 > platform values, neutral-market no-pressure invariant, over/under-spend
