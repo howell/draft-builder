@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Draft Builder — ESPN draft room tap
 // @namespace    https://know-your-league.com
-// @version      0.2
+// @version      0.3
 // @description  Capture the ESPN draft-room WebSocket (every nomination, bid, and sale) for Draft Builder. Adds a floating capture badge with JSONL download; optionally live-forwards frames to the Draft Builder ingest endpoint.
 // @match        https://fantasy.espn.com/football/draft*
 // @match        https://lm.fantasy.espn.com/football/draft*
@@ -27,7 +27,12 @@
 (function () {
     'use strict';
 
-    const MAX_BATCH = 500; // also keeps keepalive flushes under the 64KB body cap
+    const MAX_BATCH = 500;
+    // fetch() with keepalive rejects bodies >= 64KB outright (and the failure
+    // requeues forever), so batches are also capped by bytes — a lone INIT
+    // frame runs ~11KB and bursts of frames add up.
+    const MAX_BODY_BYTES = 48 * 1024;
+    const KEEPALIVE_LIMIT = 60 * 1024;
 
     const frames = [];
     let socketUrl = null;
@@ -65,14 +70,25 @@
         const url = ingestUrl();
         const token = ingestToken();
         if (!url || !token || pending.length === 0 || flushing) return;
-        const batch = pending.slice(0, MAX_BATCH);
+        // Byte-aware batch: a single oversized frame still ships (alone), but
+        // a batch never grows past the keepalive-safe budget.
+        const batch = [];
+        let bytes = 0;
+        while (batch.length < MAX_BATCH && batch.length < pending.length) {
+            const next = pending[batch.length];
+            const cost = next.data.length + 120; // rough per-frame JSON overhead
+            if (batch.length > 0 && bytes + cost > MAX_BODY_BYTES) break;
+            batch.push(next);
+            bytes += cost;
+        }
         pending = pending.slice(batch.length);
         flushing = true;
+        const body = JSON.stringify({ leagueId: leagueIdFromUrl(socketUrl), frames: batch });
         fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ leagueId: leagueIdFromUrl(socketUrl), frames: batch }),
-            keepalive: true,
+            body,
+            keepalive: body.length < KEEPALIVE_LIMIT,
         }).then((res) => {
             // Retry-able failures (5xx, 429) re-queue at the FRONT to preserve
             // per-capture seq order; other 4xx are permanent (bad token/shape)

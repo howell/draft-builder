@@ -32,6 +32,9 @@ function corsHeaders(origin: string | null): Record<string, string> {
         headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS';
         headers['Access-Control-Allow-Headers'] = 'content-type, authorization';
         headers['Access-Control-Max-Age'] = '86400';
+        // Chrome gates public-site → localhost requests behind Private Network
+        // Access preflights (dev-server testing from the ESPN draft room).
+        headers['Access-Control-Allow-Private-Network'] = 'true';
     }
     return headers;
 }
