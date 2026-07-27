@@ -79,11 +79,11 @@ describe('DraftSimulator in-page help', () => {
             render(<DraftSimulator leagueId={'espn-1' as LeagueId} googleApiKey="key" />);
         });
 
-        // Sliders (2) + knob checkboxes (3) + stat tiles (2) + positional
-        // inflation title (1) + explorer model columns (4, regression not yet
-        // trained) + train-regression button (1) at minimum.
+        // Sliders (3, incl. blend) + knob checkboxes (3) + stat tiles (2) +
+        // positional inflation title (1) + picks card (1) + explorer model
+        // columns (4, regression not yet trained) + train-regression button (1).
         const triggers = screen.getAllByRole('tooltip-trigger');
-        expect(triggers.length).toBeGreaterThanOrEqual(13);
+        expect(triggers.length).toBeGreaterThanOrEqual(15);
         expect(screen.getByText('Platform (sticker)')).toBeInTheDocument();
         expect(screen.getByText('Platform (rescaled)')).toBeInTheDocument();
     });

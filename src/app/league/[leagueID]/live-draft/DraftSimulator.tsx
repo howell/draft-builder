@@ -42,10 +42,10 @@ import {
 import { simulateDraft } from '@/lib/models/live-draft/draftSimulator';
 import { backtestHeldOut, BacktestReport } from '@/lib/models/live-draft/backtest';
 import {
-    calibrateElasticity,
+    calibrateModel,
     leagueHistoryOptions,
     CalibrationConfig,
-    CalibrationResult,
+    ModelCalibrationResult,
 } from '@/lib/models/live-draft/calibrate';
 import { createPooledBaselineModels } from '@/lib/models/live-draft/history';
 import { LiveDraftPredictor } from '@/lib/models/live-draft/liveDraftPredictor';
@@ -70,6 +70,7 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
     const [budgetOverride, setBudgetOverride] = useState<number | null>(null);
     const [teamCountOverride, setTeamCountOverride] = useState<number | null>(null);
     const [elasticity, setElasticity] = useState(0.5);
+    const [blend, setBlend] = useState(1);
     const [seed, setSeed] = useState(1);
     const [stopAtPick, setStopAtPick] = useState(40);
     const [noise, setNoise] = useState(0.15);
@@ -86,7 +87,7 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
     const [entryTeamId, setEntryTeamId] = useState('');
     const [entryError, setEntryError] = useState<string | null>(null);
     const [report, setReport] = useState<BacktestReport | null>(null);
-    const [calibration, setCalibration] = useState<CalibrationResult | null>(null);
+    const [calibration, setCalibration] = useState<ModelCalibrationResult | null>(null);
     const [trainedPredictor, setTrainedPredictor] = useState<LiveDraftPredictor | null>(null);
     const [busy, setBusy] = useState<'backtest' | 'calibrate' | 'train' | null>(null);
     const [durations, setDurations] = useState<{ backtest?: number; calibrate?: number }>({});
@@ -202,13 +203,13 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
             // which already applies ESPN's league multiplier — the value IS
             // the sticker, so no further scaling here (multiplier 1).
             new StickerPredictor(1),
-            new InflationPredictor(activeBaseline, { ...historyOptions, elasticity }),
+            new InflationPredictor(activeBaseline, { ...historyOptions, elasticity, blend }),
         ];
         if (regressionReady && regressionPredictorRef) {
             list.push(new RegressionPredictor(regressionPredictorRef, activeBaseline));
         }
         return list;
-    }, [data, activeBaseline, historyOptions, positionalValues, elasticity, regressionPredictorRef, regressionReady]);
+    }, [data, activeBaseline, historyOptions, positionalValues, elasticity, blend, regressionPredictorRef, regressionReady]);
 
     const currentContext = useMemo<PredictionContext | null>(() => {
         if (!data) return null;
@@ -416,7 +417,7 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                         // reconstructing the room's sticker needs the league
                         // multiplier — unlike the live pool's pre-scaled values.
                         new StickerPredictor(data.priceMultiplier),
-                        new InflationPredictor(baseline, { ...foldOptions, elasticity }),
+                        new InflationPredictor(baseline, { ...foldOptions, elasticity, blend }),
                     ];
                     if (regressionReady && regressionPredictorRef) {
                         models.push(new RegressionPredictor(regressionPredictorRef, baseline));
@@ -432,9 +433,10 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
         if (!data) return;
         runBlocking('calibrate', () => {
             const started = performance.now();
-            const result = calibrateElasticity(activeHistorical, calibrationConfig);
+            const result = calibrateModel(activeHistorical, calibrationConfig);
             setCalibration(result);
             setElasticity(result.best.elasticity);
+            setBlend(result.best.blend);
             setDurations(d => ({ ...d, calibrate: (performance.now() - started) / 1000 }));
         });
     };
@@ -534,6 +536,22 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                                 step={0.05}
                                 value={elasticity}
                                 onChange={e => setElasticity(Number(e.target.value))}
+                                className="w-full"
+                            />
+                        </label>
+                        <label className="text-sm">
+                            <span className="block text-gray-600 dark:text-gray-300 mb-1">
+                                <Tooltip text={HELP.blend}>
+                                    <span>Inflation blend (w): {blend.toFixed(2)}</span>
+                                </Tooltip>
+                            </span>
+                            <input
+                                type="range"
+                                min={0}
+                                max={1}
+                                step={0.05}
+                                value={blend}
+                                onChange={e => setBlend(Number(e.target.value))}
                                 className="w-full"
                             />
                         </label>
@@ -918,7 +936,7 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                             disabled={busy !== null}
                             onClick={handleCalibrate}
                         >
-                            Calibrate elasticity
+                            Calibrate model
                         </Button>
                         {busy === 'backtest' || busy === 'calibrate' ? (
                             <span className="text-xs text-gray-500">
@@ -945,17 +963,18 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                     {calibration && (
                         <div className="mb-3 text-sm">
                             <span className="font-medium">
-                                Best elasticity: {calibration.best.elasticity}
+                                Best elasticity: {calibration.best.elasticity} · blend:{' '}
+                                {calibration.best.blend}
                             </span>{' '}
                             <span className="text-gray-500">
                                 (MAE ${calibration.best.mae.toFixed(2)},{' '}
                                 {calibration.heldOut ? 'held-out' : 'in-sample'} over{' '}
-                                {calibration.totalPicks} picks) · applied to the slider
+                                {calibration.totalPicks} picks) · applied to the sliders
                                 {durations.calibrate !== undefined &&
                                     ` · took ${durations.calibrate.toFixed(1)}s`}
                             </span>
                             <div className="flex flex-wrap gap-1 mt-1">
-                                {calibration.points.map(point => (
+                                {calibration.elasticityPoints.map(point => (
                                     <Badge
                                         key={point.elasticity}
                                         variant={
@@ -965,6 +984,20 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                                         }
                                     >
                                         e={point.elasticity}: ${point.mae.toFixed(2)}
+                                    </Badge>
+                                ))}
+                            </div>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                                {calibration.blendPoints.map(point => (
+                                    <Badge
+                                        key={point.blend}
+                                        variant={
+                                            point.blend === calibration.best.blend
+                                                ? 'success'
+                                                : 'neutral'
+                                        }
+                                    >
+                                        w={point.blend}: ${point.mae.toFixed(2)}
                                     </Badge>
                                 ))}
                             </div>

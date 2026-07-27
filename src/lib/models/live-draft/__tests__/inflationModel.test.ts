@@ -325,3 +325,38 @@ describe('computeInflationTimeline', () => {
         expect(timeline.map(p => p.pickNumber)).toEqual([1, 2, 3]);
     });
 });
+
+describe('blend weight', () => {
+    const { players, picks } = buildPool(220);
+    const baseline: BaselineModels = createBaselineModels(picks);
+    // Overspend heavily so the measured inflation sits well away from 1.
+    const drafted = players.slice(0, 20);
+    const prices = drafted.map(p => baselineValue(p, baseline) * 2);
+    const ctx = makeContext(players, drafted, prices);
+    const target = ctx.availablePlayers[0];
+
+    it('w=0 collapses to the baseline price', () => {
+        const predictor = new InflationPredictor(baseline, { elasticity: 0, blend: 0 });
+        expect(predictor.predict(target, ctx).price).toBe(
+            Math.max(1, Math.round(baselineValue(target, baseline)))
+        );
+    });
+
+    it('w=1 matches the unblended model exactly', () => {
+        const full = new InflationPredictor(baseline, { elasticity: 0, blend: 1 });
+        const legacy = new InflationPredictor(baseline, { elasticity: 0 });
+        expect(full.predict(target, ctx).price).toBe(legacy.predict(target, ctx).price);
+    });
+
+    it('intermediate w lands between the endpoints', () => {
+        const base = Math.round(baselineValue(target, baseline));
+        const full = new InflationPredictor(baseline, { elasticity: 0 }).predict(target, ctx).price;
+        const half = new InflationPredictor(baseline, { elasticity: 0, blend: 0.5 })
+            .predict(target, ctx).price;
+
+        // The overspent state must move prices, or this test tests nothing.
+        expect(full).not.toBe(base);
+        expect(half).toBeGreaterThanOrEqual(Math.min(base, full));
+        expect(half).toBeLessThanOrEqual(Math.max(base, full));
+    });
+});

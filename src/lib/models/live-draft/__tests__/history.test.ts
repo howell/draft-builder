@@ -12,7 +12,7 @@ import {
     RawHistoricalDraft,
 } from '../history';
 import { backtestHeldOut, HistoricalDraft } from '../backtest';
-import { calibrateElasticity } from '../calibrate';
+import { calibrateElasticity, calibrateModel } from '../calibrate';
 import { BaselineModels, BaselinePredictor, PricePredictor } from '../predictor';
 import { InflationPredictor } from '../inflationModel';
 
@@ -187,5 +187,37 @@ describe('calibrateElasticity', () => {
         for (const point of result.points) {
             expect(Number.isFinite(point.mae)).toBe(true);
         }
+    });
+});
+
+describe('calibrateModel', () => {
+    const drafts = [
+        normalizeHistoricalDraft(buildRawDraft('2023', 55))!,
+        normalizeHistoricalDraft(buildRawDraft('2024', 60))!,
+    ];
+
+    it('sweeps elasticity then blend, and the best point wins both grids', () => {
+        const grid = [0, 1];
+        const blendGrid = [0, 0.5, 1];
+        const result = calibrateModel(drafts, { grid, blendGrid });
+
+        expect(result.elasticityPoints).toHaveLength(grid.length);
+        expect(result.blendPoints).toHaveLength(blendGrid.length);
+        expect(grid).toContain(result.best.elasticity);
+        expect(blendGrid).toContain(result.best.blend);
+        // The blend sweep runs at the winning elasticity, so its minimum is
+        // the calibrated MAE.
+        const bestBlendMae = Math.min(...result.blendPoints.map(p => p.mae));
+        expect(result.best.mae).toBe(bestBlendMae);
+        expect(result.heldOut).toBe(true);
+    });
+
+    it('can never lose to the baseline or the full identity', () => {
+        const result = calibrateModel(drafts, { grid: [0], blendGrid: [0, 0.5, 1] });
+        const endpointMae = Math.max(
+            result.blendPoints[0].mae, // w=0: the baseline, up to rounding
+            result.blendPoints[result.blendPoints.length - 1].mae // w=1: full identity
+        );
+        expect(result.best.mae).toBeLessThanOrEqual(endpointMae);
     });
 });

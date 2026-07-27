@@ -73,6 +73,15 @@ export interface InflationModelOptions {
     priors?: Record<string, number>;
     /** dollars the league historically leaves unspent at the end of the draft */
     expectedUnspent?: number;
+    /**
+     * How much of the inflation deviation to apply to prices: 0 = pure
+     * baseline, 1 = the full money-conserving identity (default). The measured
+     * factor mixes signal with curve-scale artifact and small-sample noise, so
+     * shrinking it toward neutral is a bias-variance trade — calibrated
+     * against held-out history like every other knob. Note that at blend < 1
+     * predicted prices no longer sum to the league's money.
+     */
+    blend?: number;
 }
 
 const DEFAULT_ELASTICITY = 0.5;
@@ -394,12 +403,15 @@ export class InflationPredictor implements PricePredictor {
         const field = computeInflation(ctx, this.baseline, this.options);
         const value = valueOf(player, this.baseline, this.options);
         const inflation = field.byPosition[player.defaultPosition] ?? field.global;
-        const price = Math.max(1, Math.round(1 + surplus(value) * inflation));
+        const blend = this.options.blend ?? 1;
+        const applied = 1 + blend * (inflation - 1);
+        const price = Math.max(1, Math.round(1 + surplus(value) * applied));
         return {
             price,
             breakdown: {
                 baseValue: value,
-                inflation,
+                inflation: applied,
+                rawInflation: inflation,
                 globalInflation: field.global,
             },
         };

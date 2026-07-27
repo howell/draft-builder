@@ -17,7 +17,9 @@ export const HELP = {
     stopAtPick: 'How deep a randomized draft runs before stopping.',
     seed: 'Same seed → the same randomized draft, so states are reproducible.',
     elasticity:
-        'How strongly per-position prices react to over/under-investment. 0 = every position shares one global inflation factor. "Calibrate elasticity" picks this from your history.',
+        'How strongly per-position prices react to over/under-investment. 0 = every position shares one global inflation factor. "Calibrate model" picks this from your history.',
+    blend:
+        'How much of the measured inflation deviation to apply to prices: 0 = pure baseline, 1 = the full money-conservation identity. The factor mixes real signal with noise, so partial trust usually scores best — "Calibrate model" measures how much from your history.',
     noise:
         'Random jitter added to each simulated winning bid, as a fraction of price. Only affects "Randomize to plausible state".',
     positionalValues:
@@ -101,7 +103,10 @@ const SimulatorGuide: React.FC = () => (
                                 Run backtest — replays every selected draft pick-by-pick and scores
                                 each model&apos;s predictions against the real prices.
                             </li>
-                            <li>Calibrate elasticity — finds the best slider value and applies it.</li>
+                            <li>
+                                Calibrate model — grid-searches elasticity and the inflation blend
+                                weight on held-out history and applies the winners to the sliders.
+                            </li>
                             <li>
                                 Toggle a model knob, re-run the backtest, and keep the knob only if
                                 it lowers the held-out MAE.
@@ -140,8 +145,9 @@ const SimulatorGuide: React.FC = () => (
                             </Term>
                             <Term name="Inflation">
                                 Baseline × market inflation (money left vs talent left), with
-                                per-position appetite set by the elasticity slider. This is the model
-                                being tuned.
+                                per-position appetite set by the elasticity slider and the overall
+                                strength of the effect set by the blend slider (w=0 collapses to
+                                Baseline). This is the model being tuned.
                             </Term>
                             <Term name="Regression">
                                 the older 8-feature linear model. Opt-in: its column only appears

@@ -175,6 +175,16 @@
 > replayed pick-by-pick and the factor differenced — overpays are negative
 > (money drains faster than talent), bargains positive. Deltas telescope to
 > the total movement by construction.
+> Calibrated blend weight (2026-07-26): `blend` (w) in `InflationModelOptions`
+> shrinks the inflation factor toward neutral — price = 1 + surplus ×
+> (1 + w·(inflation − 1)); w=0 is the baseline, w=1 the full identity (which
+> no longer conserves money at w<1, deliberately). "Calibrate model" runs a
+> coordinate sweep (elasticity at w=1, then w at the winning elasticity, each
+> a single multi-predictor backtest pass) and applies both. Motivated by the
+> 2026-07-26 backtest sweeps: elasticity calibrated to 0 on every consecutive
+> season window, and full-blend inflation only beat the baseline with all 7
+> starred seasons ($4.03 vs $4.10 MAE) while losing on short windows — the
+> optimal w is data-dependent, so it's measured.
 > Demand-accounting fix (2026-07-26): bench slots are no longer stripped from
 > `rosterNeeds` (only IR is) — with starters-only demand the inflation
 > identity's open slots hit zero ~90 picks before real drafts ended, piling
