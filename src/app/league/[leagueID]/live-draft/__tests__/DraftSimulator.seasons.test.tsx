@@ -17,6 +17,13 @@ import type { LeagueId } from '@/platforms/common';
 
 jest.mock('../useSimulatorData');
 
+// DraftSimulator persists calibrated knobs; this suite renders without a
+// QueryClientProvider and also asserts on the persisted payload.
+const mockSaveKnobs = jest.fn();
+jest.mock('@/hooks/queries/useLeagueModelKnobs', () => ({
+    useSaveLeagueModelKnobsMutation: () => ({ mutate: mockSaveKnobs }),
+}));
+
 const mockedUseSimulatorData = useSimulatorData as jest.MockedFunction<typeof useSimulatorData>;
 
 const ROSTER_NEEDS = { QB: 1, RB: 2, WR: 2 };
@@ -60,10 +67,33 @@ async function renderSimulator() {
 
 describe('DraftSimulator season toggles', () => {
     beforeEach(() => {
+        mockSaveKnobs.mockClear();
         mockedUseSimulatorData.mockReturnValue({
             data: makeData(),
             isLoading: false,
             error: null,
+        });
+    });
+
+    it('persists the calibrated knobs and config for game day', async () => {
+        await renderSimulator();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Calibrate model' }));
+        expect(await screen.findByText(/Best elasticity/)).toBeInTheDocument();
+
+        expect(mockSaveKnobs).toHaveBeenCalledWith({
+            leagueId: 'espn-1',
+            knobs: expect.objectContaining({
+                elasticity: expect.any(Number),
+                blend: expect.any(Number),
+                calibratedAt: expect.any(String),
+                seasons: ['2023', '2024'],
+                config: {
+                    positionalValues: false,
+                    usePriors: false,
+                    useExpectedUnspent: false,
+                },
+            }),
         });
     });
 

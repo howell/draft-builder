@@ -360,3 +360,32 @@ describe('blend weight', () => {
         expect(half).toBeLessThanOrEqual(Math.max(base, full));
     });
 });
+
+describe('computeInflationTimeline with real team ids', () => {
+    const { players, picks } = buildPool(220);
+    const baseline: BaselineModels = createBaselineModels(picks);
+    const budgetConfig = { totalBudgetPerTeam: BUDGET, teamCount: TEAM_COUNT };
+
+    it('tracks budgets for ESPN-style team ids exactly like the team-N default', () => {
+        const board = [
+            { player: players[0], price: 90, teamId: 'team-3', pickNumber: 1 },
+            { player: players[1], price: 1, teamId: 'team-7', pickNumber: 2 },
+            { player: players[2], price: 45, teamId: 'team-3', pickNumber: 3 },
+        ];
+        const espnIds = Array.from({ length: TEAM_COUNT }, (_, i) => String(i + 1));
+        const espnBoard = board.map(p => ({
+            ...p,
+            teamId: p.teamId.replace('team-', ''),
+        }));
+
+        const legacy = computeInflationTimeline(
+            board, players, budgetConfig, ROSTER_NEEDS, baseline
+        );
+        const espn = computeInflationTimeline(
+            espnBoard, players, budgetConfig, ROSTER_NEEDS, baseline, {}, espnIds
+        );
+
+        expect(espn.map(p => p.delta)).toEqual(legacy.map(p => p.delta));
+        expect(espn.map(p => p.global)).toEqual(legacy.map(p => p.global));
+    });
+});

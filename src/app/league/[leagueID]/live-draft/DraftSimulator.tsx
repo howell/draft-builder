@@ -17,10 +17,15 @@ import { Button } from '@/ui/Button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/ui/Card';
 import { Input } from '@/ui/Input';
 import { Alert } from '@/ui/Alert';
-import { Badge, PositionBadge } from '@/ui/Badge';
+import { Badge } from '@/ui/Badge';
 import Tooltip from '@/ui/Tooltip';
+import { useSaveLeagueModelKnobsMutation } from '@/hooks/queries/useLeagueModelKnobs';
 import { useSimulatorData, SimulatorPlayer } from './useSimulatorData';
-import SimulatorGuide, { HELP, MODEL_HELP } from './components/SimulatorGuide';
+import SimulatorGuide, { HELP } from './components/SimulatorGuide';
+import StatTiles from './components/board/StatTiles';
+import PicksTable from './components/board/PicksTable';
+import PositionalInflationCard from './components/board/PositionalInflationCard';
+import PredictionExplorer from './components/board/PredictionExplorer';
 
 import {
     BaselinePredictor,
@@ -65,6 +70,7 @@ interface DraftState {
 
 const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
     const { data, isLoading, error } = useSimulatorData(leagueId, googleApiKey);
+    const saveKnobs = useSaveLeagueModelKnobsMutation();
 
     // Budget/teamCount default to the league's values until the user overrides.
     const [budgetOverride, setBudgetOverride] = useState<number | null>(null);
@@ -437,6 +443,22 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
             setCalibration(result);
             setElasticity(result.best.elasticity);
             setBlend(result.best.blend);
+            // Persist for the game-day board, alongside the config the knobs
+            // were tuned under — they're only meaningful together.
+            saveKnobs.mutate({
+                leagueId,
+                knobs: {
+                    elasticity: result.best.elasticity,
+                    blend: result.best.blend,
+                    calibratedAt: new Date().toISOString(),
+                    seasons: activeHistorical.map(d => d.season ?? '?'),
+                    config: {
+                        positionalValues: calibrationConfig.positionalValues ?? false,
+                        usePriors: calibrationConfig.usePriors ?? false,
+                        useExpectedUnspent: calibrationConfig.useExpectedUnspent ?? false,
+                    },
+                },
+            });
             setDurations(d => ({ ...d, calibrate: (performance.now() - started) / 1000 }));
         });
     };
@@ -477,7 +499,7 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
     return (
         <div className="max-w-6xl mx-auto p-4 space-y-4">
             <div>
-                <h1 className="text-2xl font-bold">Live Draft Simulator</h1>
+                <h1 className="text-2xl font-bold">Draft Simulator</h1>
                 <p className="text-sm text-gray-500">
                     Experimental · compare pricing models against a simulated or historical draft ·
                     history: {activeHistorical.length} of {data.historical.length} season
@@ -658,39 +680,12 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                 </CardBody>
             </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <Card>
-                    <CardBody>
-                        <div className="text-sm text-gray-500">Picks made</div>
-                        <div className="text-2xl font-bold">{draftState?.picks.length ?? 0}</div>
-                    </CardBody>
-                </Card>
-                <Card>
-                    <CardBody>
-                        <div className="text-sm text-gray-500">
-                            <Tooltip text={HELP.spent}>
-                                <span>Spent / total</span>
-                            </Tooltip>
-                        </div>
-                        <div className="text-2xl font-bold">
-                            ${(draftState?.picks ?? []).reduce((s, p) => s + p.price, 0)} / $
-                            {budget * teamCount}
-                        </div>
-                    </CardBody>
-                </Card>
-                <Card>
-                    <CardBody>
-                        <div className="text-sm text-gray-500">
-                            <Tooltip text={HELP.globalInflation}>
-                                <span>Global inflation</span>
-                            </Tooltip>
-                        </div>
-                        <div className="text-2xl font-bold">
-                            {inflationField ? inflationField.global.toFixed(2) : '—'}×
-                        </div>
-                    </CardBody>
-                </Card>
-            </div>
+            <StatTiles
+                picksCount={draftState?.picks.length ?? 0}
+                spent={(draftState?.picks ?? []).reduce((s, p) => s + p.price, 0)}
+                totalPool={budget * teamCount}
+                inflationGlobal={inflationField ? inflationField.global : null}
+            />
 
             <Card>
                 <CardHeader>
@@ -751,170 +746,47 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                         </div>
                     </div>
                     {entryError && <p className="text-xs text-red-500 mb-3">{entryError}</p>}
-                    {draftState && draftState.picks.length > 0 ? (
-                        <div
-                            className="overflow-x-auto max-h-80 overflow-y-auto"
-                            data-testid="simulated-picks"
-                        >
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="text-left border-b border-gray-200 dark:border-gray-700">
-                                        <th className="py-2 pr-2">#</th>
-                                        <th className="py-2 pr-2">Player</th>
-                                        <th className="py-2 pr-2">Pos</th>
-                                        <th className="py-2 pr-2">Team</th>
-                                        <th className="py-2 pr-2 text-right">Price</th>
-                                        <th className="py-2 pr-2 text-right">
-                                            <Tooltip text={HELP.pickDelta}>
-                                                <span>Δ Infl</span>
-                                            </Tooltip>
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {draftState.picks.map(pick => (
-                                        <tr
-                                            key={pick.pickNumber}
-                                            className="border-b border-gray-100 dark:border-gray-800"
-                                        >
-                                            <td className="py-1.5 pr-2 text-gray-500">
-                                                {pick.pickNumber}
-                                            </td>
-                                            <td className="py-1.5 pr-2">
-                                                {(pick.player as SimulatorPlayer).name ?? pick.player.id}
-                                            </td>
-                                            <td className="py-1.5 pr-2">
-                                                <PositionBadge position={pick.player.defaultPosition} />
-                                            </td>
-                                            <td className="py-1.5 pr-2 text-gray-500">
-                                                {pick.teamId.replace('team-', 'Team ')}
-                                            </td>
-                                            <td className="py-1.5 pr-2 text-right tabular-nums">
-                                                ${pick.price}
-                                            </td>
-                                            <td
-                                                className="py-1.5 pr-2 text-right tabular-nums text-gray-500"
-                                                data-testid="pick-delta"
-                                            >
-                                                {formatDelta(pickDeltas.get(pick.pickNumber))}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                    <PicksTable
+                        picks={draftState?.picks ?? []}
+                        pickDeltas={pickDeltas}
+                        teamLabel={id => id.replace('team-', 'Team ')}
+                        emptyText="No picks yet — search a player above, or randomize a plausible state."
+                    />
+                </CardBody>
+            </Card>
+
+            {inflationField && <PositionalInflationCard field={inflationField} />}
+
+            <PredictionExplorer
+                title={`Prediction explorer (top ${EXPLORER_LIMIT} available)`}
+                headerRight={
+                    regressionReady && trainInfo ? (
+                        <span className="text-xs text-gray-500" data-testid="regression-status">
+                            regression trained · R² {trainInfo.r2.toFixed(2)} ·{' '}
+                            {trainInfo.seconds.toFixed(1)}s
+                        </span>
                     ) : (
-                        <p className="text-sm text-gray-500">
-                            No picks yet — search a player above, or randomize a plausible state.
-                        </p>
-                    )}
-                </CardBody>
-            </Card>
-
-            {inflationField && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>
-                            <Tooltip text={HELP.positionalInflation}>
-                                <span>Positional inflation</span>
+                        <span className="flex items-center gap-2">
+                            <Tooltip text={HELP.trainRegression}>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    loading={busy === 'train'}
+                                    disabled={busy !== null}
+                                    onClick={handleTrainRegression}
+                                >
+                                    Train regression
+                                </Button>
                             </Tooltip>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardBody>
-                        <div className="flex flex-wrap gap-2">
-                            {Object.entries(inflationField.byPosition)
-                                .sort((a, b) => b[1] - a[1])
-                                .map(([pos, factor]) => (
-                                    <Badge
-                                        key={pos}
-                                        variant={factor > inflationField.global ? 'warning' : 'info'}
-                                    >
-                                        {pos}: {factor.toFixed(2)}×
-                                    </Badge>
-                                ))}
-                        </div>
-                    </CardBody>
-                </Card>
-            )}
-
-            <Card>
-                <CardHeader>
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                        <CardTitle>Prediction explorer (top {EXPLORER_LIMIT} available)</CardTitle>
-                        {regressionReady && trainInfo ? (
-                            <span className="text-xs text-gray-500" data-testid="regression-status">
-                                regression trained · R² {trainInfo.r2.toFixed(2)} ·{' '}
-                                {trainInfo.seconds.toFixed(1)}s
-                            </span>
-                        ) : (
-                            <span className="flex items-center gap-2">
-                                <Tooltip text={HELP.trainRegression}>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        loading={busy === 'train'}
-                                        disabled={busy !== null}
-                                        onClick={handleTrainRegression}
-                                    >
-                                        Train regression
-                                    </Button>
-                                </Tooltip>
-                                {trainError && (
-                                    <span className="text-xs text-red-500">{trainError}</span>
-                                )}
-                            </span>
-                        )}
-                    </div>
-                </CardHeader>
-                <CardBody>
-                    <div className="overflow-x-auto" data-testid="prediction-explorer">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="text-left border-b border-gray-200 dark:border-gray-700">
-                                    <th className="py-2 pr-2">Rank</th>
-                                    <th className="py-2 pr-2">Player</th>
-                                    <th className="py-2 pr-2">Pos</th>
-                                    {predictors.map(p => (
-                                        <th key={p.id} className="py-2 pr-2 text-right">
-                                            <Tooltip text={MODEL_HELP[p.id] ?? p.label}>
-                                                <span>{p.label}</span>
-                                            </Tooltip>
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {explorerRows.map(({ player, prices }) => {
-                                    const name = (player as SimulatorPlayer).name ?? player.id;
-                                    return (
-                                    <tr
-                                        key={player.id}
-                                        className="border-b border-gray-100 dark:border-gray-800"
-                                    >
-                                        <td className="py-1.5 pr-2">{player.overallRank + 1}</td>
-                                        <td className="py-1.5 pr-2 max-w-28 sm:max-w-none truncate">
-                                            {/* Abbreviate on narrow screens; truncate is the backstop. */}
-                                            <span className="sm:hidden">
-                                                {shortPlayerName(name, player.defaultPosition)}
-                                            </span>
-                                            <span className="hidden sm:inline">{name}</span>
-                                        </td>
-                                        <td className="py-1.5 pr-2">
-                                            <PositionBadge position={player.defaultPosition} />
-                                        </td>
-                                        {prices.map((price, i) => (
-                                            <td key={i} className="py-1.5 pr-2 text-right tabular-nums">
-                                                ${price}
-                                            </td>
-                                        ))}
-                                    </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                </CardBody>
-            </Card>
+                            {trainError && (
+                                <span className="text-xs text-red-500">{trainError}</span>
+                            )}
+                        </span>
+                    )
+                }
+                predictors={predictors}
+                rows={explorerRows}
+            />
 
             <Card>
                 <CardHeader>
@@ -969,7 +841,8 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                             <span className="text-gray-500">
                                 (MAE ${calibration.best.mae.toFixed(2)},{' '}
                                 {calibration.heldOut ? 'held-out' : 'in-sample'} over{' '}
-                                {calibration.totalPicks} picks) · applied to the sliders
+                                {calibration.totalPicks} picks) · applied to the sliders · saved
+                                for game day
                                 {durations.calibrate !== undefined &&
                                     ` · took ${durations.calibrate.toFixed(1)}s`}
                             </span>
@@ -1073,16 +946,3 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
 };
 
 export default DraftSimulator;
-
-/** Signed inflation delta for the picks table, e.g. "+0.012×" / "-0.008×". */
-function formatDelta(delta: number | undefined): string {
-    if (delta === undefined || !Number.isFinite(delta)) return '—';
-    return `${delta >= 0 ? '+' : ''}${delta.toFixed(3)}×`;
-}
-
-/** "Ja'Marr Chase" → "J. Chase" for narrow screens; single-word and D/ST names stay whole. */
-function shortPlayerName(name: string, position: string): string {
-    const parts = name.split(' ');
-    if (parts.length < 2 || position === 'D/ST') return name;
-    return `${parts[0][0]}. ${parts.slice(1).join(' ')}`;
-}

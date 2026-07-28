@@ -154,10 +154,12 @@ before the socket connected).
 - [x] **App ingest endpoint** — `/api/live-draft-ingest` (2026-07-20): token
       auth, CORS, validation, `live_draft_frames` storage, polling read hook,
       mint UI. Verified end-to-end locally (curl matrix + browser loop).
-- [ ] **Live-draft page consumption** — parse the polled frames
-      (`parseDraftSocketFrame`/`reconstructLots` + `parseInitBlob`), maintain
-      draft state, drive the inflation model; reconcile against
-      `mDraftDetail` after the draft ends.
+- [x] **Live-draft page consumption** (2026-07-27) — `buildLiveBoard`
+      (`src/lib/models/live-draft/liveBoard.ts`) folds polled frames into
+      picks/teams/current-lot state (INIT snapshot-replaces the ledger, SOLD
+      updates it) and drives the calibrated inflation model on the game-day
+      page (`/league/<id>/live-draft`, `LiveDraftBoard.tsx`). Post-draft
+      `mDraftDetail` reconciliation remains open.
 - [ ] **Dress-rehearsal test draft** with the userscript installed end-to-end
       (test league + dummy accounts make this cheap). Do this before any app
       work depends on the script.

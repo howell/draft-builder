@@ -19,6 +19,7 @@ export const cacheKeys = {
   leagueHistory: (leagueId: LeagueId) => ['leagueHistory', leagueId],
 
   leaguePriceMultipliers: (userId?: string) => ['leaguePriceMultipliers', userId ?? 'anonymous'],
+  leagueModelKnobs: (userId?: string) => ['leagueModelKnobs', userId ?? 'anonymous'],
 
   customRankings: (userId?: string, leagueId?: LeagueId, season?: string) => [
     'customRankings',

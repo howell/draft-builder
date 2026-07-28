@@ -110,6 +110,7 @@ const LeagueLayout = (
     const currentMock = parseMockName(usePathname());
     const isRankingsPage = usePathname().endsWith('/rankings');
     const isLiveDraftPage = usePathname().endsWith('/live-draft');
+    const isSimulatorPage = usePathname().endsWith('/live-draft/simulator');
     
     const router = useRouter();
     const { loading: authLoading } = useAuth();
@@ -203,6 +204,11 @@ const LeagueLayout = (
                         <h2 className={`mt-2 text-xl ${isLiveDraftPage ? 'font-bold' : ''}`}>
                             <Link href={`/league/${leagueID}/live-draft`}>Live Draft</Link>
                         </h2>
+                        <ul>
+                            <li className={isSimulatorPage ? 'font-bold text-lg' : ''}>
+                                <Link href={`/league/${leagueID}/live-draft/simulator`}>Simulator</Link>
+                            </li>
+                        </ul>
 
                         {/* Drafts Section */}
                         <CollapsibleComponent label={<h2 className='mt-2 text-xl'>Drafts</h2>}>

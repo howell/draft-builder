@@ -134,6 +134,29 @@
 > - `calibrate.ts` — `calibrateElasticity` grid-searches elasticity by held-out
 >   MAE in one pass (one predictor per grid point), honoring the knob toggles.
 >
+> ### Game-day board (2026-07-27 split)
+> `/league/[leagueID]/live-draft` is now the **read-only game-day page**
+> (`LiveDraftBoard.tsx`): ingested draft-room frames (2s poll via
+> `useLiveDraftFramesQuery`) are folded into board state by
+> `src/lib/models/live-draft/liveBoard.ts` — INIT **snapshot-replaces** the
+> pick ledger (official numbers win; a fresh draft's INIT wipes stale
+> rehearsal captures), SOLD updates it, pool-miss picks get fallback players
+> so budgets stay honest, and the unsold tail lot of the last capture becomes
+> the "On the clock" callout (current bid vs the calibrated model's price).
+> Team names come from `useLeagueTeamsQuery`; model settings come from the
+> per-league knobs persisted by the simulator's "Calibrate model"
+> (`useLeagueModelKnobs`, setting key 'leagueModelKnobs', including the
+> CalibrationConfig they were tuned under) — absent knobs fall back to the
+> plain identity (e=0, w=1) with an "uncalibrated" badge. The simulator moved
+> to `/live-draft/simulator` (sidebar sub-link); manual pick entry stays there
+> as the tap-failure fallback. Shared render pieces live in
+> `components/board/` (StatTiles, PicksTable, PositionalInflationCard,
+> PredictionExplorer, CurrentLotCard). `parseInitBlob` is Buffer-free
+> (DataView/atob) so the decoder runs client-side. Tests:
+> `__tests__/liveBoard.test.ts` (snapshot-replace, reconnect merge,
+> stale-capture reset, pool-miss, in-progress lot, retry ordering),
+> `__tests__/LiveDraftBoard.test.tsx`, `useLeagueModelKnobs.test.tsx`.
+>
 > ### UI — simulator
 > `src/app/league/[leagueID]/live-draft/page.tsx` is reachable in production via
 > the "Live Draft" sidebar link (dev gating removed 2026-07-26 — the site's only

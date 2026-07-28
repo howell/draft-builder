@@ -329,7 +329,9 @@ export interface InflationTimelinePoint {
  * to each pick: overpaying drains money faster than talent leaves the board
  * (negative delta — remaining players get cheaper), bargains leave extra
  * money chasing what's left (positive delta). Teams are reconstructed from
- * full budgets in `team-N` id order, matching `simulateDraft`'s convention.
+ * full budgets — pass `teamIds` when picks carry real platform team ids, or
+ * budget tracking silently no-ops; the default is `simulateDraft`'s
+ * `team-N` convention.
  */
 export function computeInflationTimeline(
     picks: CompletedPick[],
@@ -337,11 +339,16 @@ export function computeInflationTimeline(
     budgetConfig: { totalBudgetPerTeam: number; teamCount: number },
     rosterNeeds: Record<string, number>,
     baseline: BaselineModels,
-    options: Partial<InflationModelOptions> = {}
+    options: Partial<InflationModelOptions> = {},
+    teamIds?: string[]
 ): InflationTimelinePoint[] {
     const rosterSize = Object.values(rosterNeeds).reduce((a, b) => a + b, 0);
-    let teams: PredictorTeam[] = Array.from({ length: budgetConfig.teamCount }, (_, i) => ({
-        id: `team-${i + 1}`,
+    const ids =
+        teamIds && teamIds.length > 0
+            ? teamIds
+            : Array.from({ length: budgetConfig.teamCount }, (_, i) => `team-${i + 1}`);
+    let teams: PredictorTeam[] = ids.map(id => ({
+        id,
         remainingBudget: budgetConfig.totalBudgetPerTeam,
         rosterNeeds: { ...rosterNeeds },
         filledPositions: {},

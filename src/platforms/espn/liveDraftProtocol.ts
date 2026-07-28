@@ -107,19 +107,43 @@ export interface InitDraftState {
 const INIT_RECORD_SIZE = 45;
 const MIN_LEDGER_RECORDS = 4;
 
+// Engine-neutral base64 decode: this parser now runs in client components as
+// well as Node scripts/tests, so it cannot rely on Buffer. atob throws on
+// malformed input where Buffer is lenient — callers get null either way.
+function base64ToBytes(b64: string): Uint8Array | null {
+    try {
+        if (typeof atob === 'function') {
+            const bin = atob(b64);
+            const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            return bytes;
+        }
+        if (typeof Buffer !== 'undefined') {
+            return new Uint8Array(Buffer.from(b64, 'base64'));
+        }
+        return null;
+    } catch {
+        return null;
+    }
+}
+
 export function parseInitBlob(blobBase64: string, leagueId: number): InitDraftState | null {
-    const buf = Buffer.from(blobBase64, 'base64');
+    const bytes = base64ToBytes(blobBase64);
+    if (!bytes) return null;
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const u32 = (o: number) => view.getUint32(o, false);
+    const i32 = (o: number) => view.getInt32(o, false);
 
     // The ledger is the longest run of consecutive 45-byte records that each
     // begin with the league id; locating it by content avoids hardcoding
     // offsets into the undecoded parts of the blob.
     let bestStart = -1;
     let bestLen = 0;
-    for (let start = 0; start + INIT_RECORD_SIZE <= buf.length; start++) {
-        if (buf.readUInt32BE(start) !== leagueId) continue;
+    for (let start = 0; start + INIT_RECORD_SIZE <= bytes.length; start++) {
+        if (u32(start) !== leagueId) continue;
         let len = 0;
-        while (start + (len + 1) * INIT_RECORD_SIZE <= buf.length
-            && buf.readUInt32BE(start + len * INIT_RECORD_SIZE) === leagueId) {
+        while (start + (len + 1) * INIT_RECORD_SIZE <= bytes.length
+            && u32(start + len * INIT_RECORD_SIZE) === leagueId) {
             len++;
         }
         if (len > bestLen) {
@@ -132,9 +156,9 @@ export function parseInitBlob(blobBase64: string, leagueId: number): InitDraftSt
     const state: InitDraftState = { leagueId, completedPicks: [], pendingPicks: [] };
     for (let i = 0; i < bestLen; i++) {
         const o = bestStart + i * INIT_RECORD_SIZE;
-        const teamId = buf.readUInt32BE(o + 4);
-        const pickNumber = buf.readUInt32BE(o + 8);
-        const playerId = buf.readInt32BE(o + 12);
+        const teamId = u32(o + 4);
+        const pickNumber = u32(o + 8);
+        const playerId = i32(o + 12);
         if (playerId === -1) {
             state.pendingPicks.push({ pickNumber, scheduledNominatingTeamId: teamId });
         } else {
@@ -142,8 +166,8 @@ export function parseInitBlob(blobBase64: string, leagueId: number): InitDraftSt
                 pickNumber,
                 teamId,
                 playerId,
-                slotIdHint: buf.readUInt32BE(o + 16),
-                price: buf.readUInt32BE(o + 20),
+                slotIdHint: u32(o + 16),
+                price: u32(o + 20),
             });
         }
     }

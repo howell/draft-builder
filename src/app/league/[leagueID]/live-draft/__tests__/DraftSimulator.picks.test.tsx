@@ -15,6 +15,10 @@ import {
 import type { LeagueId } from '@/platforms/common';
 
 jest.mock('../useSimulatorData');
+// DraftSimulator persists calibrated knobs; these suites render without a QueryClientProvider.
+jest.mock('@/hooks/queries/useLeagueModelKnobs', () => ({
+    useSaveLeagueModelKnobsMutation: () => ({ mutate: jest.fn() }),
+}));
 
 const mockedUseSimulatorData = useSimulatorData as jest.MockedFunction<typeof useSimulatorData>;
 
