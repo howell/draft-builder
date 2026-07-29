@@ -179,8 +179,12 @@ export interface DraftLot {
     playerId: number;
     nominatingTeamId: number | null;
     bids: { teamId: number; amount: number; atMs: number | null }[];
+    /** PASSED events, positioned by how many bids preceded them. */
+    passes: { teamId: number; atMs: number | null; afterBidIndex: number }[];
     winningTeamId: number | null;
     price: number | null;
+    /** Capture-time epoch ms of the SOLD frame; null when unsold or ts unknown. */
+    soldAtMs: number | null;
     /** Distinct teams that placed at least one bid (appetite signal). */
     biddingTeamIds: number[];
 }
@@ -194,7 +198,16 @@ export function reconstructLots(events: { event: DraftSocketEvent; atMs?: number
     const lot = (playerId: number): DraftLot => {
         let l = lots.get(playerId);
         if (!l) {
-            l = { playerId, nominatingTeamId: null, bids: [], winningTeamId: null, price: null, biddingTeamIds: [] };
+            l = {
+                playerId,
+                nominatingTeamId: null,
+                bids: [],
+                passes: [],
+                winningTeamId: null,
+                price: null,
+                soldAtMs: null,
+                biddingTeamIds: [],
+            };
             lots.set(playerId, l);
         }
         return l;
@@ -226,10 +239,18 @@ export function reconstructLots(events: { event: DraftSocketEvent; atMs?: number
                 l.bids.push({ teamId: event.teamId, amount: event.amount, atMs: atMs ?? null });
                 break;
             }
+            case 'passed': {
+                // -1 is the empty-lot sentinel; D/ST players have other negative IDs.
+                if (!Number.isFinite(event.playerId) || event.playerId === -1 || event.playerId === 0) break;
+                const l = lot(event.playerId);
+                l.passes.push({ teamId: event.teamId, atMs: atMs ?? null, afterBidIndex: l.bids.length });
+                break;
+            }
             case 'sold': {
                 const l = lot(event.playerId);
                 l.winningTeamId = event.teamId;
                 l.price = event.price;
+                l.soldAtMs = atMs ?? null;
                 break;
             }
             default:

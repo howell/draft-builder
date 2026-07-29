@@ -111,6 +111,7 @@ const LeagueLayout = (
     const isRankingsPage = usePathname().endsWith('/rankings');
     const isLiveDraftPage = usePathname().endsWith('/live-draft');
     const isSimulatorPage = usePathname().endsWith('/live-draft/simulator');
+    const isArchivesPage = usePathname().includes('/live-draft/archives');
     
     const router = useRouter();
     const { loading: authLoading } = useAuth();
@@ -207,6 +208,9 @@ const LeagueLayout = (
                         <ul>
                             <li className={isSimulatorPage ? 'font-bold text-lg' : ''}>
                                 <Link href={`/league/${leagueID}/live-draft/simulator`}>Simulator</Link>
+                            </li>
+                            <li className={isArchivesPage ? 'font-bold text-lg' : ''}>
+                                <Link href={`/league/${leagueID}/live-draft/archives`}>Archives</Link>
                             </li>
                         </ul>
 

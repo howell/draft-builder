@@ -39,6 +39,13 @@ jest.mock('@/hooks/queries/useLeagueModelKnobs', () => ({
     useLeagueModelKnobsQuery: () => mockKnobs(),
 }));
 
+const idleMutation = () => ({ mutate: jest.fn(), isPending: false, isError: false, error: null });
+jest.mock('@/hooks/queries/useLiveDraftArchives', () => ({
+    useLiveDraftArchivesQuery: () => ({ data: [] }),
+    useArchiveLiveDraftMutation: () => idleMutation(),
+    useClearLiveDraftFramesMutation: () => idleMutation(),
+}));
+
 const mockedUseSimulatorData = useSimulatorData as jest.MockedFunction<typeof useSimulatorData>;
 
 const ROSTER_NEEDS = { QB: 1, RB: 2, WR: 2 };
@@ -145,6 +152,26 @@ describe('LiveDraftBoard', () => {
             within(screen.getByTestId('prediction-explorer')).queryByText('Player 101')
         ).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Add pick' })).not.toBeInTheDocument();
+    });
+
+    it('offers archive and clear-buffer actions only once frames exist', async () => {
+        await renderBoard();
+        expect(screen.queryByRole('button', { name: 'Archive draft…' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Clear buffer' })).not.toBeInTheDocument();
+    });
+
+    it('opens the archive panel from the board actions', async () => {
+        mockFrames.mockReturnValue({ data: [frame(0, 'SOLD 2 101 10 55 0')] });
+        await renderBoard();
+
+        expect(screen.getByRole('button', { name: 'Clear buffer' })).toBeInTheDocument();
+        await act(async () => {
+            screen.getByRole('button', { name: 'Archive draft…' }).click();
+        });
+        expect(screen.getByText('Archive this draft')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Archive & clear buffer' })).toBeInTheDocument();
+        // 1 frame, 1 pick parsed out of it.
+        expect(screen.getByText(/1 frames · 1 capture · 1 picks/)).toBeInTheDocument();
     });
 
     it('shows the on-the-clock lot with a model price and gap', async () => {

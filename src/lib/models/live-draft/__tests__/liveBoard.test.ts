@@ -7,34 +7,12 @@
  * lot comes from the last capture's unsold tail.
  */
 
-import { buildLiveBoard, BoardFrame, BoardPlayer, LiveBoardConfig } from '../liveBoard';
+import { buildLiveBoard, BoardPlayer, LiveBoardConfig } from '../liveBoard';
+import { makeFrameFixtures } from './test-utils/frameFixtures';
 
 const LEAGUE = 999001;
 
-/** 45-byte INIT ledger record, as observed in real blobs. */
-function record(teamId: number, pickNumber: number, playerId: number, price: number): Buffer {
-    const b = Buffer.alloc(45);
-    b.writeUInt32BE(LEAGUE, 0);
-    b.writeUInt32BE(teamId, 4);
-    b.writeUInt32BE(pickNumber, 8);
-    b.writeInt32BE(playerId, 12);
-    b.writeUInt32BE(7, 16); // slot hint (unused)
-    b.writeUInt32BE(price, 20);
-    return b;
-}
-
-function pending(teamId: number, pickNumber: number): Buffer {
-    return record(teamId, pickNumber, -1, 0);
-}
-
-function initFrame(captureId: string, seq: number, id: number, ...records: Buffer[]): BoardFrame {
-    return frame(captureId, seq, `INIT ${Buffer.concat(records).toString('base64')}`, id);
-}
-
-let autoId = 1;
-function frame(captureId: string, seq: number, data: string, id?: number, dir: 'send' | 'receive' = 'receive'): BoardFrame {
-    return { id: id ?? autoId++, captureId, seq, ts: '2026-07-27T12:45:00.000Z', dir, data };
-}
+const { frame, record, pending, initFrame, resetIds } = makeFrameFixtures(LEAGUE);
 
 const pool: BoardPlayer[] = [
     { id: '101', name: 'Alpha One', defaultPosition: 'WR', positionRank: 0, overallRank: 0 },
@@ -50,9 +28,7 @@ const config: LiveBoardConfig = {
     knownTeamIds: ['1', '2', '3', '4'],
 };
 
-beforeEach(() => {
-    autoId = 1;
-});
+beforeEach(resetIds);
 
 describe('buildLiveBoard', () => {
     it('builds the ledger from SOLD frames alone, in order', () => {

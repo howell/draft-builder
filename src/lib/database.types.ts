@@ -256,6 +256,233 @@ export type Database = {
           },
         ]
       }
+      live_draft_archive_bids: {
+        Row: {
+          amount: number | null
+          archive_id: string
+          at_ms: number | null
+          id: number
+          kind: string
+          player_id: number
+          seq: number
+          team_id: number
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          archive_id: string
+          at_ms?: number | null
+          id?: never
+          kind: string
+          player_id: number
+          seq: number
+          team_id: number
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          archive_id?: string
+          at_ms?: number | null
+          id?: never
+          kind?: string
+          player_id?: number
+          seq?: number
+          team_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_draft_archive_bids_archive_id_fkey"
+            columns: ["archive_id"]
+            isOneToOne: false
+            referencedRelation: "live_draft_archives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_draft_archive_bids_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_draft_archive_frames: {
+        Row: {
+          archive_id: string
+          capture_id: string
+          data: string
+          dir: string
+          id: number
+          seq: number
+          source_frame_id: number
+          ts: string
+          user_id: string
+        }
+        Insert: {
+          archive_id: string
+          capture_id: string
+          data: string
+          dir: string
+          id?: never
+          seq: number
+          source_frame_id: number
+          ts: string
+          user_id: string
+        }
+        Update: {
+          archive_id?: string
+          capture_id?: string
+          data?: string
+          dir?: string
+          id?: never
+          seq?: number
+          source_frame_id?: number
+          ts?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_draft_archive_frames_archive_id_fkey"
+            columns: ["archive_id"]
+            isOneToOne: false
+            referencedRelation: "live_draft_archives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_draft_archive_frames_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_draft_archive_picks: {
+        Row: {
+          archive_id: string
+          distinct_bidders: number | null
+          id: number
+          nominating_team_id: number | null
+          observed_bid_count: number | null
+          pick_number: number
+          player_id: number
+          player_name: string | null
+          position: string | null
+          price: number
+          sold_at_ms: number | null
+          team_id: number
+          user_id: string
+        }
+        Insert: {
+          archive_id: string
+          distinct_bidders?: number | null
+          id?: never
+          nominating_team_id?: number | null
+          observed_bid_count?: number | null
+          pick_number: number
+          player_id: number
+          player_name?: string | null
+          position?: string | null
+          price: number
+          sold_at_ms?: number | null
+          team_id: number
+          user_id: string
+        }
+        Update: {
+          archive_id?: string
+          distinct_bidders?: number | null
+          id?: never
+          nominating_team_id?: number | null
+          observed_bid_count?: number | null
+          pick_number?: number
+          player_id?: number
+          player_name?: string | null
+          position?: string | null
+          price?: number
+          sold_at_ms?: number | null
+          team_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_draft_archive_picks_archive_id_fkey"
+            columns: ["archive_id"]
+            isOneToOne: false
+            referencedRelation: "live_draft_archives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_draft_archive_picks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_draft_archives: {
+        Row: {
+          bid_count: number
+          capture_count: number
+          created_at: string | null
+          drafted_at: string | null
+          frame_count: number
+          id: string
+          kind: string
+          league_id: string
+          name: string
+          pick_count: number
+          season: string
+          status: string
+          total_spent: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bid_count?: number
+          capture_count?: number
+          created_at?: string | null
+          drafted_at?: string | null
+          frame_count?: number
+          id?: string
+          kind: string
+          league_id: string
+          name: string
+          pick_count?: number
+          season: string
+          status?: string
+          total_spent?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bid_count?: number
+          capture_count?: number
+          created_at?: string | null
+          drafted_at?: string | null
+          frame_count?: number
+          id?: string
+          kind?: string
+          league_id?: string
+          name?: string
+          pick_count?: number
+          season?: string
+          status?: string
+          total_spent?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_draft_archives_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_draft_frames: {
         Row: {
           capture_id: string

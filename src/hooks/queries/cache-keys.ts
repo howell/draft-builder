@@ -37,4 +37,16 @@ export const cacheKeys = {
     userId ?? 'anonymous',
     leagueId,
   ],
+
+  liveDraftArchives: (userId?: string, leagueId?: LeagueId) => [
+    'liveDraftArchives',
+    userId ?? 'anonymous',
+    leagueId,
+  ],
+
+  liveDraftArchive: (userId?: string, archiveId?: string) => [
+    'liveDraftArchive',
+    userId ?? 'anonymous',
+    archiveId,
+  ],
 } as const;

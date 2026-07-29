@@ -12,18 +12,20 @@
  * page — the fallback if the tap dies mid-draft.
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { LeagueId } from '@/platforms/common';
 import { LeagueTeam } from '@/platforms/PlatformApi';
 import { CURRENT_SEASON } from '@/constants';
 import { Alert } from '@/ui/Alert';
 import { Badge } from '@/ui/Badge';
+import { Button } from '@/ui/Button';
 import { Card, CardBody } from '@/ui/Card';
 import { usePlayersQuery } from '@/hooks/queries';
 import { useLeagueQuery } from '@/hooks/queries/useLeagueQuery';
 import { useLeagueTeamsQuery } from '@/hooks/queries/useLeagueTeamsQuery';
 import { useLiveDraftFramesQuery } from '@/hooks/queries/useLiveDraftFrames';
+import { useClearLiveDraftFramesMutation } from '@/hooks/queries/useLiveDraftArchives';
 import { useLeagueModelKnobsQuery } from '@/hooks/queries/useLeagueModelKnobs';
 import {
     BaselinePredictor,
@@ -37,8 +39,9 @@ import {
     computeInflationTimeline,
 } from '@/lib/models/live-draft/inflationModel';
 import { leagueHistoryOptions } from '@/lib/models/live-draft/calibrate';
-import { buildLiveBoard } from '@/lib/models/live-draft/liveBoard';
+import { buildLiveBoard, LiveBoardConfig } from '@/lib/models/live-draft/liveBoard';
 import { useSimulatorData } from './useSimulatorData';
+import ArchiveDraftDialog from './components/ArchiveDraftDialog';
 import StatTiles from './components/board/StatTiles';
 import PicksTable from './components/board/PicksTable';
 import PositionalInflationCard from './components/board/PositionalInflationCard';
@@ -98,16 +101,29 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
     }, [playersQuery.data, leagueQuery.data]);
 
     const frames = framesQuery.data;
-    const board = useMemo(() => {
+    const boardConfig = useMemo<LiveBoardConfig | null>(() => {
         if (!data) return null;
-        return buildLiveBoard(frames ?? [], data.players, {
+        return {
             leagueId: Number(leagueId),
             totalBudgetPerTeam: data.defaultBudget,
             rosterNeeds: data.rosterNeeds,
             knownTeamIds: leagueTeams.map(t => t.id),
             playerLookup,
-        });
-    }, [data, frames, leagueTeams, playerLookup, leagueId]);
+        };
+    }, [data, leagueTeams, playerLookup, leagueId]);
+    const board = useMemo(() => {
+        if (!data || !boardConfig) return null;
+        return buildLiveBoard(frames ?? [], data.players, boardConfig);
+    }, [data, frames, boardConfig]);
+
+    const [archiving, setArchiving] = useState(false);
+    const clearMutation = useClearLiveDraftFramesMutation(leagueId);
+    const clearBuffer = () => {
+        const count = frames?.length ?? 0;
+        if (window.confirm(`Delete all ${count} ingested frames for this league? Archived drafts are not affected.`)) {
+            clearMutation.mutate();
+        }
+    };
 
     const rosterSize = useMemo(
         () => (data ? Object.values(data.rosterNeeds).reduce((a, b) => a + b, 0) : 0),
@@ -234,6 +250,36 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                     {lastFrameTs && ` · last ${new Date(lastFrameTs).toLocaleTimeString()}`}
                 </p>
             </div>
+
+            {!quiet && !archiving && (
+                <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setArchiving(true)}>
+                        Archive draft…
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearBuffer}
+                        disabled={clearMutation.isPending}
+                    >
+                        {clearMutation.isPending ? 'Clearing…' : 'Clear buffer'}
+                    </Button>
+                </div>
+            )}
+            {clearMutation.isError && (
+                <Alert variant="error">
+                    Failed to clear the buffer: {(clearMutation.error as Error).message}
+                </Alert>
+            )}
+            {archiving && boardConfig && (
+                <ArchiveDraftDialog
+                    leagueId={leagueId}
+                    frames={frames ?? []}
+                    pool={data.players}
+                    config={boardConfig}
+                    onClose={() => setArchiving(false)}
+                />
+            )}
 
             {quiet ? (
                 <Card>

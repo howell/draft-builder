@@ -157,6 +157,73 @@
 > stale-capture reset, pool-miss, in-progress lot, retry ordering),
 > `__tests__/LiveDraftBoard.test.tsx`, `useLeagueModelKnobs.test.tsx`.
 >
+> ### Draft archives (2026-07-29) ✅ COMPLETED
+>
+> The ingest buffer (`live_draft_frames`) is a hot buffer, not an archive:
+> frames pile into one `(user, league)` bucket with no draft identity, and
+> the board is only correct because INIT snapshot-replaces the ledger. The
+> archive feature (migration `008_live_draft_archives.sql`) adds durable,
+> named, per-draft persistence — raw frames plus parsed picks **and
+> bid-level events** for SQL analysis of auction dynamics (the
+> appetite/inflation modeling corpus).
+>
+> - **Schema** (all browser-writable under direct-ownership RLS, explicit
+>   grants per the migration-004 gotcha): `live_draft_archives` (header:
+>   name, kind `real|test`, season, `status pending|complete`, counts),
+>   `live_draft_archive_frames` (raw copy; `source_frame_id` preserves the
+>   live fold order), `live_draft_archive_picks` (denormalized
+>   player_name/position so archives outlive pool availability; lot
+>   enrichment: nominator, bid counts, sold_at_ms; BIGINT ids — D/ST ids are
+>   negative), `live_draft_archive_bids` (one row per `open|bid|pass` event
+>   in lot order; unsold lots keep their rows — failed nominations are
+>   appetite signal; LEFT JOIN picks on `(archive_id, player_id)`).
+> - **Extraction** (`src/lib/models/live-draft/archiveExtract.ts`): picks
+>   delegate to `buildLiveBoard`; bids are deduped across captures by
+>   per-lot best-capture selection (most bids wins, tie → longest-lived
+>   capture) behind a **fresh-draft epoch guard** — only an INIT that parses
+>   to an *empty* ledger advances the epoch, so rehearsal bids are excluded
+>   but pre-reconnect bids survive a mid-draft INIT (the originally planned
+>   "any INIT" guard would have dropped them). Residual gap: rehearsal
+>   residue + joining the real draft mid-draft (no empty INIT anywhere)
+>   can't be separated — covered by clearing the buffer before draft night.
+> - **Flow** (`src/lib/live-draft/archive.ts`, client-side under RLS like
+>   the frames poll): header `pending` → batch-copy frames (500/insert) →
+>   picks → bids → flip `complete` (commit point) → delete buffer
+>   `id <= maxFrameId` (watermark-bounded; mid-archive arrivals survive).
+>   Failure deletes the header (cascade) and leaves the buffer untouched —
+>   always re-runnable; stranded `pending` rows surface in the list UI with
+>   a delete action. `useLiveDraftFramesQuery` accumulation moved from a ref
+>   into the React Query cache so `resetLiveDraftFrames` genuinely resets a
+>   mounted board after archive/clear.
+> - **UI**: board actions "Archive draft…" (inline panel: parse preview,
+>   name with collision-proof default, real/test toggle defaulting to the
+>   league's last-used kind) and "Clear buffer" (test-iteration reset);
+>   `/live-draft/archives` list (kind badges, export, delete; sidebar
+>   sub-link) and `/live-draft/archives/[archiveId]` read-only board
+>   (archived frames replayed through `buildLiveBoard`; falls back to the
+>   denormalized pick rows without a pool; no predictors — archives show
+>   what happened, not what the model thought). The detail page renders a
+>   **Bid history** card (`BidHistory.tsx` + pure `groupBidLots.ts`,
+>   2026-07-29): per-lot event chips (open/bid/pass, hammer, duration,
+>   distinct bidders), sold lots in pick order then unsold nominations;
+>   picks with no observed bidding are reported as an INIT-catch-up count. JSONL export matches the
+>   userscript badge format (ts normalized to `Z`) so exports replay via
+>   `scripts/replay-frames.ts` and feed the corpus tooling.
+> - **Tests**: `archiveExtract.test.ts` (dedup, epoch guard, reconnect
+>   survival, pass interleaving, unsold lots), `archive.test.ts` (JSONL
+>   round-trip), `archive.integration.test.ts` (real local Supabase: grants,
+>   WITH CHECK, RLS isolation, watermark survival, unique constraints,
+>   cascade, updated_at trigger), extended `LiveDraftBoard.test.tsx`.
+> - **Manual E2E loop (test league)**: `npm run dev` → mint token on the
+>   live-draft page → `npx tsx scripts/replay-frames.ts --frames
+>   draft-captures/<corpus>.frames.jsonl --league <testLeagueId> --token <t>
+>   --fresh --delay-ms 250` → board folds picks → Archive draft… (kind=test)
+>   → board resets to waiting → verify list row / detail board / `select *
+>   from live_draft_archive_bids order by player_id, seq` in Studio →
+>   Export JSONL → re-replay the export with `--fresh` → identical board →
+>   Clear buffer → delete the test archive. **Before a real draft night:
+>   Clear buffer once so the draft starts from an empty buffer.**
+>
 > ### UI — simulator
 > `src/app/league/[leagueID]/live-draft/page.tsx` is reachable in production via
 > the "Live Draft" sidebar link (dev gating removed 2026-07-26 — the site's only

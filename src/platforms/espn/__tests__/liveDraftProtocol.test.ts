@@ -170,4 +170,39 @@ describe('reconstructLots', () => {
         expect(lots[0].bids).toHaveLength(1);
         expect(lots[0].nominatingTeamId).toBe(2);
     });
+
+    it('records PASSED events positioned by preceding bid count', () => {
+        const lots = reconstructLots([
+            ev('BID 1 4428331 1 25000 24000'),
+            ev('PASSED 4 4428331 false'),
+            ev('BID 3 4428331 8 25000 20000'),
+            ev('PASSED 2 4428331 false'),
+            ev('SOLD 3 4428331 11 8 0'),
+        ]);
+        expect(lots[0].passes).toEqual([
+            { teamId: 4, atMs: null, afterBidIndex: 1 },
+            { teamId: 2, atMs: null, afterBidIndex: 2 },
+        ]);
+    });
+
+    it('ignores PASSED frames for the empty-lot sentinel', () => {
+        const lots = reconstructLots([ev('PASSED 4 -1 false')]);
+        expect(lots).toHaveLength(0);
+    });
+
+    it('captures soldAtMs from the SOLD event timestamp', () => {
+        const lots = reconstructLots([
+            { ...ev('BID 2 4426502 1 25000 24000'), atMs: 1000 },
+            { ...ev('SOLD 2 4426502 10 18 0'), atMs: 2500 },
+        ]);
+        expect(lots[0].soldAtMs).toBe(2500);
+        expect(lots[0].bids[0].atMs).toBe(1000);
+    });
+
+    it('leaves soldAtMs null for unsold lots and timestamp-less streams', () => {
+        const unsold = reconstructLots([ev('BID 2 4426502 1 25000 24000')]);
+        expect(unsold[0].soldAtMs).toBeNull();
+        const noTs = reconstructLots([ev('BID 2 4426502 1 25000 24000'), ev('SOLD 2 4426502 10 18 0')]);
+        expect(noTs[0].soldAtMs).toBeNull();
+    });
 });
