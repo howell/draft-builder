@@ -37,11 +37,14 @@ import {
     InflationPredictor,
     computeInflation,
     computeInflationTimeline,
+    priceWithInflationField,
 } from '@/lib/models/live-draft/inflationModel';
+import { PlannerPlayer } from '@/lib/models/live-draft/rosterPlan';
 import { leagueHistoryOptions } from '@/lib/models/live-draft/calibrate';
 import { buildLiveBoard, LiveBoardConfig } from '@/lib/models/live-draft/liveBoard';
 import { useSimulatorData } from './useSimulatorData';
 import ArchiveDraftDialog from './components/ArchiveDraftDialog';
+import MyRosterPlanner from './components/board/MyRosterPlanner';
 import StatTiles from './components/board/StatTiles';
 import PicksTable from './components/board/PicksTable';
 import PositionalInflationCard from './components/board/PositionalInflationCard';
@@ -166,6 +169,15 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
         if (!data || !currentContext || !historyOptions) return null;
         return computeInflation(currentContext, data.baseline, { ...historyOptions, elasticity });
     }, [data, currentContext, historyOptions, elasticity]);
+
+    // Planner pricing goes through the same memoized field as everything
+    // else on the board, so plan estimates can't drift from other columns.
+    const planEstimate = useMemo(() => {
+        if (!data || !inflationField || !historyOptions) return null;
+        const options = { ...historyOptions, elasticity, blend };
+        return (player: PlannerPlayer) =>
+            priceWithInflationField(player, inflationField, data.baseline, options);
+    }, [data, inflationField, historyOptions, elasticity, blend]);
 
     const explorerRows = useMemo(() => {
         if (!currentContext) return [];
@@ -313,6 +325,17 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                         spent={board.picks.reduce((s, p) => s + p.price, 0)}
                         totalPool={data.defaultBudget * teamCount}
                         inflationGlobal={inflationField ? inflationField.global : null}
+                    />
+
+                    <MyRosterPlanner
+                        leagueId={leagueId}
+                        board={board}
+                        players={data.players}
+                        rosterNeeds={data.rosterNeeds}
+                        budget={data.defaultBudget}
+                        estimate={planEstimate}
+                        teams={leagueTeams}
+                        teamLabel={teamLabel}
                     />
 
                     {board.unresolvedPlayerIds.length > 0 && (

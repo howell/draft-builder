@@ -39,7 +39,11 @@ import {
 } from '@/lib/models/live-draft/history';
 
 /** Pool player: the predictor shape plus the display name carried from MockPlayer. */
-export type SimulatorPlayer = PredictorPlayer & { name?: string };
+/**
+ * Pool players are built from MockPlayer (buildPlayerDb) and spread through
+ * rankPlayers, so at runtime they also carry the platform eligibility list.
+ */
+export type SimulatorPlayer = PredictorPlayer & { name?: string; positions?: string[] };
 
 export interface SimulatorData {
     /** exponential baseline fit on every available season at once */

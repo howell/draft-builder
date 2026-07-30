@@ -4,10 +4,11 @@ interface ToggleComponentProps {
     label: React.ReactNode;
     children: React.ReactNode;
     testId?: string;
+    defaultOpen?: boolean;
 }
 
-const CollapsibleComponent: React.FC<ToggleComponentProps> = ({ label, children, testId }) => {
-    const [isVisible, setIsVisible] = useState(false);
+const CollapsibleComponent: React.FC<ToggleComponentProps> = ({ label, children, testId, defaultOpen = false }) => {
+    const [isVisible, setIsVisible] = useState(defaultOpen);
 
     const handleClick = () => {
         setIsVisible(!isVisible);

@@ -20,6 +20,7 @@ export const cacheKeys = {
 
   leaguePriceMultipliers: (userId?: string) => ['leaguePriceMultipliers', userId ?? 'anonymous'],
   leagueModelKnobs: (userId?: string) => ['leagueModelKnobs', userId ?? 'anonymous'],
+  leagueRosterPlans: (userId?: string) => ['leagueRosterPlans', userId ?? 'anonymous'],
 
   customRankings: (userId?: string, leagueId?: LeagueId, season?: string) => [
     'customRankings',

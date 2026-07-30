@@ -19,6 +19,7 @@ import {
     draftablePlayers,
     InflationPredictor,
     createPlatformValuePredictor,
+    priceWithInflationField,
 } from '../inflationModel';
 import {
     PredictionContext,
@@ -387,5 +388,29 @@ describe('computeInflationTimeline with real team ids', () => {
 
         expect(espn.map(p => p.delta)).toEqual(legacy.map(p => p.delta));
         expect(espn.map(p => p.global)).toEqual(legacy.map(p => p.global));
+    });
+});
+
+describe('priceWithInflationField', () => {
+    const { players, picks } = buildPool(220);
+    const baseline: BaselineModels = createBaselineModels(picks);
+
+    it('matches InflationPredictor.predict across the pool and blend values', () => {
+        const drafted = players.slice(0, 30);
+        const ctx = makeContext(
+            players,
+            drafted,
+            drafted.map((_, i) => Math.max(1, 60 - i))
+        );
+        for (const blend of [1, 0.6, 0]) {
+            const options = { elasticity: 0.5, blend };
+            const predictor = new InflationPredictor(baseline, options);
+            const field = computeInflation(ctx, baseline, options);
+            for (const player of ctx.availablePlayers.slice(0, 40)) {
+                expect(priceWithInflationField(player, field, baseline, options)).toBe(
+                    predictor.predict(player, ctx).price
+                );
+            }
+        }
     });
 });

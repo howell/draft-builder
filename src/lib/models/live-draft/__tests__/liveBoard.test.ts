@@ -191,6 +191,52 @@ describe('buildLiveBoard', () => {
         expect(board.picks.map(p => p.player.id)).toEqual(['101', '102']);
     });
 
+    it('detects my team from TOKEN frames, last in fold order winning', () => {
+        const single = buildLiveBoard(
+            [frame('cap-a', 0, 'TOKEN 1:999001:4:{A9F38A4C}:1655956939')],
+            pool,
+            config
+        );
+        expect(single.myTeamId).toBe('4');
+
+        // Newest capture has no TOKEN (rare) — the older capture's carries forward.
+        const carried = buildLiveBoard(
+            [
+                frame('cap-a', 0, 'TOKEN 1:999001:4:{A9F38A4C}:1655956939', 1),
+                frame('cap-b', 0, 'SOLD 2 101 10 55 0', 2),
+            ],
+            pool,
+            config
+        );
+        expect(carried.myTeamId).toBe('4');
+
+        // Rejoining as a different team: the later capture's TOKEN wins.
+        const rejoined = buildLiveBoard(
+            [
+                frame('cap-a', 0, 'TOKEN 1:999001:4:{A9F38A4C}:1655956939', 1),
+                frame('cap-b', 0, 'TOKEN 1:999001:2:{A9F38A4C}:1655956940', 2),
+            ],
+            pool,
+            config
+        );
+        expect(rejoined.myTeamId).toBe('2');
+    });
+
+    it('leaves myTeamId null without a TOKEN and ignores send-direction ones', () => {
+        const none = buildLiveBoard([frame('cap-a', 0, 'SOLD 2 101 10 55 0')], pool, config);
+        expect(none.myTeamId).toBeNull();
+
+        const sendOnly = buildLiveBoard(
+            [
+                frame('cap-a', 0, 'SOLD 2 101 10 55 0', 1),
+                frame('cap-a', 1, 'TOKEN 1:999001:4:{A9F38A4C}:1655956939', 2, 'send'),
+            ],
+            pool,
+            config
+        );
+        expect(sendOnly.myTeamId).toBeNull();
+    });
+
     it('ignores send-direction frames', () => {
         const board = buildLiveBoard(
             [

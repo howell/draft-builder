@@ -73,6 +73,12 @@ export interface LiveBoard {
     captureCount: number;
     /** pick player ids that matched no ranked-pool player (fallbacks used) */
     unresolvedPlayerIds: string[];
+    /**
+     * The team the draft-room socket authenticated as (TOKEN frame), i.e. the
+     * user's own team. Last TOKEN in fold order wins, so a capture without one
+     * (rare) inherits the previous capture's. Null until any TOKEN arrives.
+     */
+    myTeamId: string | null;
 }
 
 /** Sentinel rank for players outside the ranked pool — prices at the $1 floor. */
@@ -116,6 +122,7 @@ export function buildLiveBoard(
     const ledger = new Map<number, LedgerEntry>();
     const teamIdsSeen = new Set<number>();
     let order = 0;
+    let myTeamId: string | null = null;
     let lastCaptureEvents: { event: DraftSocketEvent; atMs?: number }[] = [];
 
     for (const group of captures) {
@@ -152,6 +159,9 @@ export function buildLiveBoard(
                     order: existing?.order ?? order++,
                 });
                 teamIdsSeen.add(event.teamId);
+            } else if (event.type === 'token') {
+                const teamId = event.teamId?.trim();
+                if (teamId) myTeamId = teamId;
             }
         }
         lastCaptureEvents = events;
@@ -267,5 +277,6 @@ export function buildLiveBoard(
         framesSeen: received.length,
         captureCount: captures.length,
         unresolvedPlayerIds: [...unresolved],
+        myTeamId,
     };
 }

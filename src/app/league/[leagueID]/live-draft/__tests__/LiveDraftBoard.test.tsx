@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { render, screen, within, act } from '@testing-library/react';
+import { render, screen, within, act, fireEvent } from '@testing-library/react';
 import LiveDraftBoard from '../LiveDraftBoard';
 import { useSimulatorData, SimulatorData } from '../useSimulatorData';
 import {
@@ -46,6 +46,18 @@ jest.mock('@/hooks/queries/useLiveDraftArchives', () => ({
     useClearLiveDraftFramesMutation: () => idleMutation(),
 }));
 
+const mockPlans = jest.fn();
+const mockSavePlan = jest.fn();
+jest.mock('@/hooks/queries/useLeagueRosterPlans', () => ({
+    useLeagueRosterPlansQuery: () => mockPlans(),
+    useSaveLeagueRosterPlanMutation: () => ({
+        mutate: mockSavePlan,
+        isPending: false,
+        isError: false,
+        error: null,
+    }),
+}));
+
 const mockedUseSimulatorData = useSimulatorData as jest.MockedFunction<typeof useSimulatorData>;
 
 const ROSTER_NEEDS = { QB: 1, RB: 2, WR: 2 };
@@ -71,6 +83,7 @@ function makeData(): SimulatorData {
         id: String(101 + i),
         name: `Player ${101 + i}`,
         defaultPosition: positions[i % positions.length],
+        positions: [positions[i % positions.length], 'Bench'],
         positionRank: Math.floor(i / positions.length),
         overallRank: i,
     }));
@@ -117,6 +130,8 @@ beforeEach(() => {
     mockTeams.mockReturnValue({ data: TEAMS });
     mockKnobs.mockReturnValue({ data: {} });
     mockFrames.mockReturnValue({ data: [] });
+    mockPlans.mockReturnValue({ data: {}, isLoading: false });
+    mockSavePlan.mockReset();
 });
 
 describe('LiveDraftBoard', () => {
@@ -152,6 +167,83 @@ describe('LiveDraftBoard', () => {
             within(screen.getByTestId('prediction-explorer')).queryByText('Player 101')
         ).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Add pick' })).not.toBeInTheDocument();
+    });
+
+    it('detects my team from TOKEN and locks my picks at their real prices', async () => {
+        mockFrames.mockReturnValue({
+            data: [
+                frame(0, 'TOKEN 1:12345:2:{SWID}:x'),
+                frame(1, 'SOLD 2 101 10 55 0'),
+                frame(2, 'SOLD 1 102 11 40 0'),
+            ],
+        });
+        await renderBoard();
+
+        const planner = within(screen.getByTestId('my-roster-planner'));
+        // Auto option names the detected team (team 2 = Waiver Wire Warriors).
+        expect(planner.getByRole('option', { name: /Auto — Waiver Wire Warriors/ })).toBeInTheDocument();
+        // My pick (Player 101, $55) is locked; team 1's pick is not mine.
+        const locked = planner.getByTestId('locked-roster-QB-0');
+        expect(within(locked).getByText('Player 101')).toBeInTheDocument();
+        expect(within(locked).getByText('$55')).toBeInTheDocument();
+        expect(planner.getByTestId('plan-locked')).toHaveTextContent('Locked $55');
+        expect(planner.queryByText('Player 102')).not.toBeInTheDocument();
+    });
+
+    it('prompts for a team without TOKEN and persists a manual choice', async () => {
+        jest.useFakeTimers();
+        try {
+            mockFrames.mockReturnValue({ data: [frame(0, 'SOLD 2 101 10 55 0')] });
+            await renderBoard();
+
+            const planner = within(screen.getByTestId('my-roster-planner'));
+            expect(planner.getByRole('option', { name: 'Select your team…' })).toBeInTheDocument();
+            expect(planner.getByText(/Waiting for the draft room/)).toBeInTheDocument();
+
+            const select = planner.getByTestId('my-roster-team-select');
+            await act(async () => {
+                fireEvent.change(select, { target: { value: '1' } });
+            });
+            expect(planner.getByTestId('my-roster-table')).toBeInTheDocument();
+
+            await act(async () => {
+                jest.advanceTimersByTime(600);
+            });
+            expect(mockSavePlan).toHaveBeenCalledWith(
+                expect.objectContaining({ plan: expect.objectContaining({ teamId: '1' }) })
+            );
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    it('flags a planned player drafted by another team and excludes them from planned spend', async () => {
+        mockPlans.mockReturnValue({
+            data: {
+                'espn-1': {
+                    selections: {
+                        'QB#0': { playerId: '103', delta: 2 },  // sniped below
+                        'RB#0': { playerId: '105', delta: 0 },  // stays planned
+                    },
+                },
+            },
+            isLoading: false,
+        });
+        mockFrames.mockReturnValue({
+            data: [
+                frame(0, 'TOKEN 1:12345:2:{SWID}:x'),
+                frame(1, 'SOLD 4 103 10 33 0'), // team 4 takes my planned QB
+            ],
+        });
+        await renderBoard();
+
+        const planner = within(screen.getByTestId('my-roster-planner'));
+        const sniped = planner.getByTestId('sniped-roster-QB-0');
+        expect(within(sniped).getByText('Player 103')).toBeInTheDocument();
+        expect(within(sniped).getByText(/gone to Team Four for \$33/)).toBeInTheDocument();
+        // Planned spend counts only the surviving RB plan.
+        const rbPrice = planner.getByTestId('plan-planned').textContent;
+        expect(rbPrice).not.toContain('$0');
     });
 
     it('offers archive and clear-buffer actions only once frames exist', async () => {

@@ -224,6 +224,45 @@
 >   Clear buffer → delete the test archive. **Before a real draft night:
 >   Clear buffer once so the draft starts from an empty buffer.**
 >
+> ### "My roster" draft planner (2026-07-29) ✅ COMPLETED
+>
+> The game-day board's in-draft planning tool: my team's real picks locked
+> at their real prices, open slots penciled in with remaining players at the
+> live inflation estimate ± a user nudge, budget totals updating per poll.
+>
+> - **Team identity**: `buildLiveBoard` now returns `myTeamId` from the
+>   draft room's TOKEN frame (last in fold order wins; receive-dir only),
+>   with a manual dropdown override persisted per league.
+> - **Reconciliation** (`src/lib/models/live-draft/rosterPlan.ts`, pure,
+>   idempotent — unit-tested fixed point): locked picks auto-assign
+>   (defaultPosition slot → eligible slot in lineup order → overflow);
+>   plan entries are consumed when I draft the player, keep open slots
+>   (stability pass), shift when displaced by a lock, or drop with a
+>   notice; players drafted by others flag **sniped** (struck-through,
+>   excluded from spend, kept until cleared). Budget: locked + planned +
+>   $1/unfilled-slot reserve, plus `maxBid = remaining − (openSlots − 1)`.
+> - **Persistence**: `user_settings` ('app', 'liveDraftRosterPlans') —
+>   `Record<LeagueId, { teamId?, selections: {slotKey: {playerId, delta}} }>`;
+>   **deltas only, never prices**, so estimates track the market with zero
+>   poll-driven writes; 500ms debounced (`useLeagueRosterPlans` +
+>   `hooks/useRosterPlan.ts`).
+> - **Pricing**: `priceWithInflationField` extracted from
+>   `InflationPredictor.predict` (parity-tested) — planner candidates price
+>   O(n) against the board's memoized field and can't drift from the
+>   Best-available column.
+> - **UI**: `components/board/MyRosterPlanner.tsx` between StatTiles and
+>   PicksTable; reuses the mocks page's `MockRosterEntry` for open slots,
+>   new `LockedRosterRow`/`SnipedRosterRow`; budget strip visible even
+>   collapsed. `SimulatorPlayer` now declares `positions` (runtime always
+>   had it via buildPlayerDb).
+> - **Tests**: `rosterPlan.test.ts` (14 — assignment cascade, consume,
+>   shift/drop/stability, snipe, budget, idempotence),
+>   `useLeagueRosterPlans.test.tsx`, extended `liveBoard.test.ts` (TOKEN)
+>   and `LiveDraftBoard.test.tsx` (detect/lock, manual-team persist, snipe).
+>   E2E-verified against the dress-rehearsal buffer: TOKEN → team 1, Chase
+>   + JSN locked at $27, Jeanty planned at estimate+2, reload-restored,
+>   then sniped live via a replayed SOLD frame.
+>
 > ### UI — simulator
 > `src/app/league/[leagueID]/live-draft/page.tsx` is reachable in production via
 > the "Live Draft" sidebar link (dev gating removed 2026-07-26 — the site's only

@@ -390,6 +390,26 @@ export function computeInflationTimeline(
     return timeline;
 }
 
+/**
+ * Price a player against an already-computed inflation field. Computing the
+ * field (computeInflation) is O(pool); pricing against it is O(1) — callers
+ * with a candidate list should compute the field once and use this per
+ * player. InflationPredictor.predict delegates here, so field-based prices
+ * can never drift from the predictor's.
+ */
+export function priceWithInflationField(
+    player: PredictorPlayer,
+    field: InflationField,
+    baseline: BaselineModels,
+    options: Partial<InflationModelOptions> = {}
+): number {
+    const value = valueOf(player, baseline, options);
+    const inflation = field.byPosition[player.defaultPosition] ?? field.global;
+    const blend = options.blend ?? 1;
+    const applied = 1 + blend * (inflation - 1);
+    return Math.max(1, Math.round(1 + surplus(value) * applied));
+}
+
 export class InflationPredictor implements PricePredictor {
     readonly id: string;
     readonly label: string;
@@ -412,9 +432,8 @@ export class InflationPredictor implements PricePredictor {
         const inflation = field.byPosition[player.defaultPosition] ?? field.global;
         const blend = this.options.blend ?? 1;
         const applied = 1 + blend * (inflation - 1);
-        const price = Math.max(1, Math.round(1 + surplus(value) * applied));
         return {
-            price,
+            price: priceWithInflationField(player, field, this.baseline, this.options),
             breakdown: {
                 baseValue: value,
                 inflation: applied,
