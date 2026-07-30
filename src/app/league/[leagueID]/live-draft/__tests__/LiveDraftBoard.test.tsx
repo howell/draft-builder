@@ -246,6 +246,69 @@ describe('LiveDraftBoard', () => {
         expect(rbPrice).not.toContain('$0');
     });
 
+    it('filters the best-available list by name query', async () => {
+        mockFrames.mockReturnValue({ data: [frame(0, 'SOLD 2 101 10 55 0')] });
+        await renderBoard();
+
+        const explorer = () => within(screen.getByTestId('prediction-explorer'));
+        expect(explorer().getByText('Player 103')).toBeInTheDocument();
+        expect(explorer().getByText('Player 104')).toBeInTheDocument();
+
+        await act(async () => {
+            fireEvent.change(screen.getByTestId('explorer-name-search'), {
+                target: { value: 'Player 103' },
+            });
+        });
+        expect(explorer().getByText('Player 103')).toBeInTheDocument();
+        expect(explorer().queryByText('Player 104')).not.toBeInTheDocument();
+    });
+
+    it('filters the best-available list by position', async () => {
+        mockFrames.mockReturnValue({ data: [frame(0, 'SOLD 2 101 10 55 0')] });
+        await renderBoard();
+
+        // Open the Filters collapsible and uncheck WR.
+        await act(async () => {
+            screen.getByTestId('explorer-filters').click();
+        });
+        const wrToggle = within(screen.getByTestId('explorer-filters-body')).getByLabelText('WR');
+        await act(async () => {
+            fireEvent.click(wrToggle);
+        });
+
+        const explorer = within(screen.getByTestId('prediction-explorer'));
+        expect(explorer.queryByText('Player 103')).not.toBeInTheDocument(); // WR
+        expect(explorer.getByText('Player 104')).toBeInTheDocument(); // QB
+    });
+
+    it('adds a clicked explorer player to the roster plan at the model price', async () => {
+        mockFrames.mockReturnValue({
+            data: [
+                frame(0, 'TOKEN 1:12345:2:{SWID}:x'),
+                frame(1, 'SOLD 2 101 10 55 0'),
+            ],
+        });
+        await renderBoard();
+
+        const planner = within(screen.getByTestId('my-roster-planner'));
+        expect(planner.getByTestId('plan-planned')).toHaveTextContent('Planned $0');
+        expect(screen.getByText(/Click a player to add them/)).toBeInTheDocument();
+
+        // Player 102 is an RB; clicking should land them on the open RB slot.
+        await act(async () => {
+            fireEvent.click(
+                within(screen.getByTestId('prediction-explorer')).getByText('Player 102')
+            );
+        });
+
+        expect(planner.getByTestId('roster-player-input-RB-0')).toHaveValue('Player 102');
+        expect(planner.getByTestId('plan-planned')).not.toHaveTextContent('Planned $0');
+        // The clicked player leaves the available list (now planned).
+        expect(
+            within(screen.getByTestId('prediction-explorer')).queryByText('Player 102')
+        ).not.toBeInTheDocument();
+    });
+
     it('offers archive and clear-buffer actions only once frames exist', async () => {
         await renderBoard();
         expect(screen.queryByRole('button', { name: 'Archive draft…' })).not.toBeInTheDocument();

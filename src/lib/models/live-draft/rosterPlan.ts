@@ -116,6 +116,19 @@ function eligible(
     return player.defaultPosition === position || position === 'Bench';
 }
 
+/**
+ * Where a click-to-plan assignment would land: the first empty slot matching
+ * the player's default position, else the first empty slot the player is
+ * eligible for (flex, then bench, per lineup order). Null when nothing fits.
+ */
+export function firstOpenSlotFor(rows: RosterPlanRow[], player: PlannerPlayer): RosterSlot | null {
+    const empty = rows.filter((row): row is RosterPlanRowEmpty => row.kind === 'empty');
+    const exact = empty.find(row => row.slot.position === player.defaultPosition);
+    if (exact) return exact.slot;
+    const fallback = empty.find(row => eligible(player, row.slot.position));
+    return fallback?.slot ?? null;
+}
+
 export function reconcileRosterPlan(input: RosterPlanInput): RosterPlanResult {
     const { slots, picks, myTeamId, selections, pool, estimate, budget } = input;
     const slotKeys = slots.map(serializePlanSlot);

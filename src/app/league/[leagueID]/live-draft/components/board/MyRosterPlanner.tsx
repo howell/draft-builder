@@ -9,9 +9,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { LeagueId } from '@/platforms/common';
 import { LeagueTeam } from '@/platforms/PlatformApi';
-import type { RosterSettings } from '@/platforms/PlatformApi';
 import type { CostEstimatedPlayer, RosterSlot } from '@/types/storage';
 import { Card, CardBody } from '@/ui/Card';
 import { Badge } from '@/ui/Badge';
@@ -19,35 +17,30 @@ import CollapsibleComponent from '@/ui/Collapsible';
 import { LiveBoard } from '@/lib/models/live-draft/liveBoard';
 import { PlannerPlayer } from '@/lib/models/live-draft/rosterPlan';
 import MockRosterEntry from '../../../mocks/MockRosterEntry';
-import { useRosterPlan } from '../../hooks/useRosterPlan';
+import { UseRosterPlanResult } from '../../hooks/useRosterPlan';
 import { LockedRosterRow, SnipedRosterRow } from './RosterPlannerRows';
 import type { SimulatorPlayer } from '../../useSimulatorData';
 
 interface Props {
-    leagueId: LeagueId;
     board: LiveBoard;
     players: SimulatorPlayer[];
-    rosterNeeds: RosterSettings;
-    budget: number;
     estimate: ((player: PlannerPlayer) => number) | null;
     teams: LeagueTeam[];
     teamLabel: (teamId: string) => string;
+    /** Owned by LiveDraftBoard so the explorer's click-to-plan shares it. */
+    plan: UseRosterPlanResult;
 }
 
 const noopFocus = () => {};
 
 const MyRosterPlanner: React.FC<Props> = ({
-    leagueId,
     board,
     players,
-    rosterNeeds,
-    budget,
     estimate,
     teams,
     teamLabel,
+    plan,
 }) => {
-    const plan = useRosterPlan({ leagueId, board, players, rosterNeeds, budget, estimate });
-
     const draftedIds = useMemo(
         () => new Set(board.picks.map(pick => pick.player.id)),
         [board.picks]

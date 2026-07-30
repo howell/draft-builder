@@ -16,7 +16,8 @@ import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { LeagueId } from '@/platforms/common';
 import { LeagueTeam } from '@/platforms/PlatformApi';
-import { CURRENT_SEASON } from '@/constants';
+import { compareLineupPositions, CURRENT_SEASON } from '@/constants';
+import type { CostEstimatedPlayer, MockPlayer, SearchSettingsState } from '@/types/storage';
 import { Alert } from '@/ui/Alert';
 import { Badge } from '@/ui/Badge';
 import { Button } from '@/ui/Button';
@@ -42,16 +43,23 @@ import {
 import { PlannerPlayer } from '@/lib/models/live-draft/rosterPlan';
 import { leagueHistoryOptions } from '@/lib/models/live-draft/calibrate';
 import { buildLiveBoard, LiveBoardConfig } from '@/lib/models/live-draft/liveBoard';
+import { firstOpenSlotFor } from '@/lib/models/live-draft/rosterPlan';
 import { useSimulatorData } from './useSimulatorData';
+import { useRosterPlan } from './hooks/useRosterPlan';
 import ArchiveDraftDialog from './components/ArchiveDraftDialog';
 import MyRosterPlanner from './components/board/MyRosterPlanner';
 import StatTiles from './components/board/StatTiles';
+import SearchSettings from '../mocks/SearchSettings';
+import { playerAvailable } from '../mocks/MockTable';
+import CollapsibleComponent from '@/ui/Collapsible';
 import PicksTable from './components/board/PicksTable';
 import PositionalInflationCard from './components/board/PositionalInflationCard';
 import PredictionExplorer from './components/board/PredictionExplorer';
 import CurrentLotCard from './components/board/CurrentLotCard';
 
-const EXPLORER_LIMIT = 50;
+const DEFAULT_EXPLORER_COUNT = 50;
+const EMPTY_PLAYERS: never[] = [];
+const EMPTY_NEEDS = {};
 
 interface Props {
     leagueId: LeagueId;
@@ -179,17 +187,103 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
             priceWithInflationField(player, inflationField, data.baseline, options);
     }, [data, inflationField, historyOptions, elasticity, blend]);
 
+    const plan = useRosterPlan({
+        leagueId,
+        board,
+        players: data?.players ?? EMPTY_PLAYERS,
+        rosterNeeds: data?.rosterNeeds ?? EMPTY_NEEDS,
+        budget: data?.defaultBudget ?? 200,
+        estimate: planEstimate,
+    });
+
+    const playerPositions = useMemo(
+        () =>
+            [...new Set((data?.players ?? []).map(p => p.defaultPosition))].sort(
+                compareLineupPositions
+            ),
+        [data]
+    );
+    const defaultSearchSettings = useMemo<SearchSettingsState | null>(() => {
+        if (!data) return null;
+        return {
+            positions: playerPositions,
+            playerCount: DEFAULT_EXPLORER_COUNT,
+            minPrice: 1,
+            maxPrice: data.defaultBudget,
+            showOnlyAvailable: true,
+        };
+    }, [data, playerPositions]);
+    const [searchSettingsState, setSearchSettings] = useState<SearchSettingsState | null>(null);
+    const searchSettings = searchSettingsState ?? defaultSearchSettings;
+    const [nameQuery, setNameQuery] = useState('');
+
+    // Players already on my plan/roster, for the hide-unaffordable filter's
+    // "already selected" semantics (matches the mock page's playerAvailable).
+    const planSelectedPlayers = useMemo<MockPlayer[]>(() => {
+        return plan.rows.flatMap(row => {
+            const player: PlannerPlayer | null =
+                row.kind === 'locked' ? row.pick.player : row.kind === 'planned' ? row.player : null;
+            if (!player) return [];
+            return [{
+                id: player.id,
+                name: player.name ?? player.id,
+                defaultPosition: player.defaultPosition,
+                positions: player.positions ?? [player.defaultPosition],
+            }];
+        });
+    }, [plan.rows]);
+
     const explorerRows = useMemo(() => {
-        if (!currentContext) return [];
+        if (!currentContext || !searchSettings) return [];
+        const query = nameQuery.trim().toLowerCase();
         return currentContext.availablePlayers
             .slice()
             .sort((a, b) => a.overallRank - b.overallRank)
-            .slice(0, EXPLORER_LIMIT)
+            .filter(player => {
+                const name = (player as PlannerPlayer).name ?? player.id;
+                if (query && !name.toLowerCase().includes(query)) {
+                    return false;
+                }
+                // Filter on the actionable price (inflation estimate); O(1)
+                // per player against the memoized field.
+                const candidate = { ...player, estimatedCost: planEstimate ? planEstimate(player) : 1 };
+                return playerAvailable(
+                    candidate as CostEstimatedPlayer,
+                    searchSettings,
+                    planSelectedPlayers,
+                    data?.defaultBudget ?? 200,
+                    plan.budget?.totalCommitted ?? 0
+                );
+            })
+            .slice(0, searchSettings.playerCount)
             .map(player => ({
                 player,
                 prices: predictors.map(p => p.predict(player, currentContext).price),
             }));
-    }, [currentContext, predictors]);
+    }, [currentContext, predictors, searchSettings, nameQuery, planEstimate, planSelectedPlayers, data, plan.budget]);
+
+    const poolById = useMemo(
+        () => new Map((data?.players ?? []).map(p => [p.id, p])),
+        [data]
+    );
+    const handleExplorerClick = useMemo(() => {
+        if (!plan.myTeamId) return undefined;
+        return (playerId: string) => {
+            const player = poolById.get(playerId);
+            if (!player || player.name === undefined || !player.positions?.length) return;
+            const slot = firstOpenSlotFor(plan.rows, player);
+            if (!slot) return;
+            plan.selectPlayer(slot, {
+                id: player.id,
+                name: player.name,
+                defaultPosition: player.defaultPosition,
+                positions: player.positions,
+                overallRank: player.overallRank,
+                positionRank: player.positionRank,
+                estimatedCost: planEstimate ? planEstimate(player) : 1,
+            });
+        };
+    }, [plan, poolById, planEstimate]);
 
     const pickDeltas = useMemo(() => {
         if (!data || !board || !historyOptions || board.picks.length === 0) {
@@ -328,14 +422,12 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                     />
 
                     <MyRosterPlanner
-                        leagueId={leagueId}
                         board={board}
                         players={data.players}
-                        rosterNeeds={data.rosterNeeds}
-                        budget={data.defaultBudget}
                         estimate={planEstimate}
                         teams={leagueTeams}
                         teamLabel={teamLabel}
+                        plan={plan}
                     />
 
                     {board.unresolvedPlayerIds.length > 0 && (
@@ -360,6 +452,42 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                         title="Best available"
                         predictors={predictors}
                         rows={explorerRows}
+                        onRowClick={handleExplorerClick}
+                        headerRight={
+                            <input
+                                data-testid="explorer-name-search"
+                                type="text"
+                                value={nameQuery}
+                                onChange={e => setNameQuery(e.target.value)}
+                                placeholder="Search players…"
+                                className="h-8 px-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
+                            />
+                        }
+                        subHeader={
+                            searchSettings && (
+                                <div className="mb-3">
+                                    <CollapsibleComponent
+                                        testId="explorer-filters"
+                                        label={
+                                            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                Filters
+                                            </span>
+                                        }
+                                    >
+                                        <SearchSettings
+                                            positions={playerPositions}
+                                            currentSettings={searchSettings}
+                                            onSettingsChanged={setSearchSettings}
+                                        />
+                                    </CollapsibleComponent>
+                                    {handleExplorerClick && (
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            Click a player to add them to your roster plan.
+                                        </p>
+                                    )}
+                                </div>
+                            )
+                        }
                     />
                 </>
             )}

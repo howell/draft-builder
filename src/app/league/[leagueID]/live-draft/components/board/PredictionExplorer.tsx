@@ -20,10 +20,14 @@ interface Props {
     /** One price column per predictor, in order — rows' prices must match. */
     predictors: PricePredictor[];
     rows: ExplorerRow[];
+    /** When set, rows are clickable (the live board's click-to-plan). */
+    onRowClick?: (playerId: string) => void;
+    /** Rendered between the header and the table (the live board's filters). */
+    subHeader?: React.ReactNode;
 }
 
 /** Available players priced by each model — shared by simulator and live board. */
-const PredictionExplorer: React.FC<Props> = ({ title, headerRight, predictors, rows }) => (
+const PredictionExplorer: React.FC<Props> = ({ title, headerRight, predictors, rows, onRowClick, subHeader }) => (
     <Card>
         <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -32,6 +36,7 @@ const PredictionExplorer: React.FC<Props> = ({ title, headerRight, predictors, r
             </div>
         </CardHeader>
         <CardBody>
+            {subHeader}
             <div className="overflow-x-auto" data-testid="prediction-explorer">
                 <table className="w-full text-sm">
                     <thead>
@@ -54,7 +59,12 @@ const PredictionExplorer: React.FC<Props> = ({ title, headerRight, predictors, r
                             return (
                             <tr
                                 key={player.id}
-                                className="border-b border-gray-100 dark:border-gray-800"
+                                className={`border-b border-gray-100 dark:border-gray-800${
+                                    onRowClick
+                                        ? ' cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/40'
+                                        : ''
+                                }`}
+                                onClick={onRowClick ? () => onRowClick(player.id) : undefined}
                             >
                                 <td className="py-1.5 pr-2">{player.overallRank + 1}</td>
                                 <td className="py-1.5 pr-2 max-w-28 sm:max-w-none truncate">

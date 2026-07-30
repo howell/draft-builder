@@ -29,7 +29,11 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned: 'latest' (>= 2.108) starts a mailpit container alongside
+          # the deprecated [inbucket] config section and both bind port 54324
+          # ("address already in use", run 30509416897). Re-evaluate after the
+          # config migrates to [local_smtp].
+          version: 2.107.0
 
       - name: Start Supabase services
         env:
@@ -97,7 +101,11 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned: 'latest' (>= 2.108) starts a mailpit container alongside
+          # the deprecated [inbucket] config section and both bind port 54324
+          # ("address already in use", run 30509416897). Re-evaluate after the
+          # config migrates to [local_smtp].
+          version: 2.107.0
 
       - name: Start Supabase services
         env:

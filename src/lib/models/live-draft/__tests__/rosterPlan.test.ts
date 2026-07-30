@@ -7,6 +7,7 @@
 
 import { LiveBoardPick } from '../liveBoard';
 import {
+    firstOpenSlotFor,
     PlannerPlayer,
     PlanSelections,
     reconcileRosterPlan,
@@ -314,5 +315,44 @@ describe('reconcileRosterPlan', () => {
         // Roster settings changed since the plan was saved.
         const result = run({ selections: { 'SUPERFLEX#0': sel('rb1', 3) } });
         expect(result.effectiveSelections).toEqual({ [key('RB', 0)]: sel('rb1', 3) });
+    });
+});
+
+describe('firstOpenSlotFor', () => {
+    it('prefers the exact position slot, then flex, then bench, then null', () => {
+        const rowsFor = (selections: PlanSelections, picks: LiveBoardPick[] = []) =>
+            run({ selections, picks }).rows;
+
+        // Empty roster: RB lands on RB#0.
+        expect(firstOpenSlotFor(rowsFor({}), POOL.get('rb1')!)).toEqual({ position: 'RB', index: 0 });
+
+        // Both RB slots planned: flex is next.
+        const rbFull = rowsFor({ [key('RB', 0)]: sel('rb2'), [key('RB', 1)]: sel('rb3') });
+        expect(firstOpenSlotFor(rbFull, POOL.get('rb1')!)).toEqual({ position: 'RB/WR/TE', index: 0 });
+
+        // Flex planned too: bench.
+        const flexFull = rowsFor({
+            [key('RB', 0)]: sel('rb2'),
+            [key('RB', 1)]: sel('rb3'),
+            [key('RB/WR/TE', 0)]: sel('rb4'),
+        });
+        expect(firstOpenSlotFor(flexFull, POOL.get('rb1')!)).toEqual({ position: 'Bench', index: 0 });
+
+        // Everything the player is eligible for taken: null.
+        const jammed = rowsFor({
+            [key('RB', 0)]: sel('rb2'),
+            [key('RB', 1)]: sel('rb3'),
+            [key('RB/WR/TE', 0)]: sel('rb4'),
+            [key('Bench', 0)]: sel('rb5'),
+            [key('Bench', 1)]: sel('wr1'),
+        });
+        expect(firstOpenSlotFor(jammed, POOL.get('wr2')!)).toEqual({ position: 'WR', index: 0 });
+        // QB can't take RB/WR slots — with QB#0 planned and bench full, null.
+        const qbJammed = rowsFor({
+            [key('QB', 0)]: sel('qb1'),
+            [key('Bench', 0)]: sel('rb5'),
+            [key('Bench', 1)]: sel('wr1'),
+        });
+        expect(firstOpenSlotFor(qbJammed, mkPlayer('qb2', 'QB'))).toBeNull();
     });
 });

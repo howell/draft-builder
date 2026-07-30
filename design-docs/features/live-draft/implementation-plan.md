@@ -263,6 +263,21 @@
 >   + JSN locked at $27, Jeanty planned at estimate+2, reload-restored,
 >   then sniped live via a replayed SOLD frame.
 >
+> **Search/filter addendum (2026-07-30) ✅**: the board's "Best available"
+> table gained the mock page's search/filter UX plus click-to-plan —
+> `SearchSettings` (positions / count / price range, in a Filters
+> collapsible) + a name-search input filter the explorer via the mock
+> page's `playerAvailable` (affordability compares the inflation estimate
+> against `budget − plan.totalCommitted`; planned/locked players are
+> excluded like mock selections). Clicking a row assigns the player to the
+> first open eligible plan slot (`firstOpenSlotFor` in rosterPlan.ts) at
+> the live estimate. `useRosterPlan` moved up into `LiveDraftBoard` so the
+> explorer and `MyRosterPlanner` share one plan; `PredictionExplorer` grew
+> optional `onRowClick`/`subHeader` props (simulator unchanged). Filtering
+> prices all candidates O(1) via `priceWithInflationField` against the
+> memoized field. Also pinned the CI Supabase CLI to 2.107.0 (`latest`
+> ≥2.108 collides with the deprecated [inbucket] config on port 54324).
+>
 > ### UI — simulator
 > `src/app/league/[leagueID]/live-draft/page.tsx` is reachable in production via
 > the "Live Draft" sidebar link (dev gating removed 2026-07-26 — the site's only
