@@ -391,6 +391,43 @@ describe('computeInflationTimeline with real team ids', () => {
     });
 });
 
+describe('computeInflationTimeline modelPrice', () => {
+    const { players, picks } = buildPool(220);
+    const baseline: BaselineModels = createBaselineModels(picks);
+
+    it("prices each pick with the field as of when they were on the block", () => {
+        const options = { elasticity: 0.5, blend: 0.7 };
+        const drafted = players.slice(0, 3);
+        const completed = drafted.map((player, i) => ({
+            player,
+            price: 50 - i * 10,
+            teamId: `team-${i + 1}`,
+            pickNumber: i + 1,
+        }));
+        const timeline = computeInflationTimeline(
+            completed,
+            players,
+            { totalBudgetPerTeam: BUDGET, teamCount: TEAM_COUNT },
+            ROSTER_NEEDS,
+            baseline,
+            options
+        );
+
+        // Pick 1's model price is the empty-board prediction — exactly what
+        // InflationPredictor quotes before any pick.
+        const emptyCtx = makeContext(players, [], []);
+        const predictor = new InflationPredictor(baseline, options);
+        expect(timeline[0].modelPrice).toBe(predictor.predict(drafted[0], emptyCtx).price);
+
+        // Pick 2's model price uses the post-pick-1 state, not the empty board.
+        const afterOne = makeContext(players, [drafted[0]], [50], {
+            teams: [],
+        });
+        expect(timeline[1].modelPrice).toBe(predictor.predict(drafted[1], afterOne).price);
+        expect(timeline.every(p => p.modelPrice >= 1)).toBe(true);
+    });
+});
+
 describe('priceWithInflationField', () => {
     const { players, picks } = buildPool(220);
     const baseline: BaselineModels = createBaselineModels(picks);

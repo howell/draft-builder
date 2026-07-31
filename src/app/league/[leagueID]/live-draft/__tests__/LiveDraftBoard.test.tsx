@@ -246,6 +246,40 @@ describe('LiveDraftBoard', () => {
         expect(rbPrice).not.toContain('$0');
     });
 
+    it('shows model-at-pick prices with paid deltas and filters picks by position', async () => {
+        mockFrames.mockReturnValue({
+            data: [
+                frame(0, 'SOLD 2 101 10 55 0'), // QB
+                frame(1, 'SOLD 1 102 11 40 0'), // RB
+            ],
+        });
+        await renderBoard();
+
+        const picksTable = within(screen.getByTestId('simulated-picks'));
+        // Every pick row carries a model price and a signed paid−model delta.
+        const models = picksTable.getAllByTestId('pick-model');
+        const deltas = picksTable.getAllByTestId('pick-paid-delta');
+        expect(models).toHaveLength(2);
+        expect(deltas).toHaveLength(2);
+        expect(models[0].textContent).toMatch(/^\$\d+$/);
+        expect(deltas[0].textContent).toMatch(/^[+−]\$\d+$|^\$0$/);
+
+        // The trend line summarizes the unfiltered set.
+        expect(screen.getByTestId('picks-trend')).toHaveTextContent('2 picks · $95 spent');
+        expect(screen.getByTestId('picks-trend')).toHaveTextContent(/vs model/);
+
+        // Filter to RB: only the RB pick remains, trend follows.
+        await act(async () => {
+            fireEvent.click(
+                within(screen.getByTestId('picks-position-filter')).getByRole('button', { name: 'RB' })
+            );
+        });
+        const rows = within(screen.getByTestId('simulated-picks')).getAllByRole('row');
+        expect(rows).toHaveLength(2); // header + RB pick
+        expect(within(rows[1]).getByText('Player 102')).toBeInTheDocument();
+        expect(screen.getByTestId('picks-trend')).toHaveTextContent('1 pick · $40 spent');
+    });
+
     it('collapses empty bench slots into one expandable row', async () => {
         const data = makeData();
         mockedUseSimulatorData.mockReturnValue({

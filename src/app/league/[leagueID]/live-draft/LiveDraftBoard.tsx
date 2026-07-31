@@ -283,9 +283,12 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
         };
     }, [plan, poolById, planEstimate]);
 
-    const pickDeltas = useMemo(() => {
+    const pickTimeline = useMemo(() => {
         if (!data || !board || !historyOptions || board.picks.length === 0) {
-            return new Map<number, number>();
+            return {
+                deltas: new Map<number, number>(),
+                modelPrices: new Map<number, number>(),
+            };
         }
         const timeline = computeInflationTimeline(
             board.picks,
@@ -293,11 +296,34 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
             { totalBudgetPerTeam: data.defaultBudget, teamCount },
             data.rosterNeeds,
             data.baseline,
-            { ...historyOptions, elasticity },
+            // blend only affects the per-pick model pricing, not the field.
+            { ...historyOptions, elasticity, blend },
             board.teams.map(t => t.id)
         );
-        return new Map(timeline.map(point => [point.pickNumber, point.delta]));
-    }, [data, board, historyOptions, elasticity, teamCount]);
+        return {
+            deltas: new Map(timeline.map(point => [point.pickNumber, point.delta])),
+            modelPrices: new Map(timeline.map(point => [point.pickNumber, point.modelPrice])),
+        };
+    }, [data, board, historyOptions, elasticity, blend, teamCount]);
+
+    const [pickPositionFilter, setPickPositionFilter] = useState<string | null>(null);
+    const filteredPicks = useMemo(() => {
+        if (!board) return [];
+        if (!pickPositionFilter) return board.picks;
+        return board.picks.filter(p => p.player.defaultPosition === pickPositionFilter);
+    }, [board, pickPositionFilter]);
+    const pickTrend = useMemo(() => {
+        const priced = filteredPicks.filter(p => pickTimeline.modelPrices.has(p.pickNumber));
+        const deltaSum = priced.reduce(
+            (sum, p) => sum + (p.price - pickTimeline.modelPrices.get(p.pickNumber)!),
+            0
+        );
+        return {
+            count: filteredPicks.length,
+            spent: filteredPicks.reduce((sum, p) => sum + p.price, 0),
+            avgDelta: priced.length > 0 ? deltaSum / priced.length : null,
+        };
+    }, [filteredPicks, pickTimeline]);
 
     const lotModelPrice = useMemo(() => {
         if (!board?.currentLot || !currentContext) return null;
@@ -438,18 +464,63 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
 
                             <Card padding="sm">
                                 <CardBody>
-                                    <h3 className="text-lg font-semibold mb-2">
-                                        Picks
-                                        <span className="ml-2 text-sm font-normal text-gray-500">
-                                            newest first
-                                        </span>
-                                    </h3>
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-1">
+                                        <h3 className="text-lg font-semibold">Picks</h3>
+                                        <div
+                                            className="flex flex-wrap gap-1"
+                                            data-testid="picks-position-filter"
+                                        >
+                                            {[null, ...playerPositions].map(position => {
+                                                const active = pickPositionFilter === position;
+                                                return (
+                                                    <button
+                                                        key={position ?? 'all'}
+                                                        onClick={() => setPickPositionFilter(position)}
+                                                        className={`text-xs rounded px-1.5 py-0.5 border transition-colors ${
+                                                            active
+                                                                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                                                                : 'border-gray-300 dark:border-gray-600 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                                        }`}
+                                                    >
+                                                        {position ?? 'All'}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                    <p
+                                        className="text-xs text-gray-500 mb-2"
+                                        data-testid="picks-trend"
+                                    >
+                                        {pickTrend.count} pick{pickTrend.count === 1 ? '' : 's'} · $
+                                        {pickTrend.spent} spent
+                                        {pickTrend.avgDelta !== null && (
+                                            <>
+                                                {' '}
+                                                · avg{' '}
+                                                <span
+                                                    className={
+                                                        pickTrend.avgDelta > 0
+                                                            ? 'text-red-600 dark:text-red-400'
+                                                            : pickTrend.avgDelta < 0
+                                                              ? 'text-green-600 dark:text-green-400'
+                                                              : ''
+                                                    }
+                                                >
+                                                    {pickTrend.avgDelta > 0 ? '+' : pickTrend.avgDelta < 0 ? '−' : ''}
+                                                    ${Math.abs(pickTrend.avgDelta).toFixed(1)}
+                                                </span>{' '}
+                                                vs model
+                                            </>
+                                        )}
+                                    </p>
                                     <PicksTable
-                                        picks={board.picks}
-                                        pickDeltas={pickDeltas}
+                                        picks={filteredPicks}
+                                        pickDeltas={pickTimeline.deltas}
+                                        modelPrices={pickTimeline.modelPrices}
                                         teamLabel={teamLabel}
                                         newestFirst
-                                        hideDeltaBelowXl
+                                        compact
                                         emptyText="No picks yet — they appear here as the room sells players."
                                     />
                                 </CardBody>

@@ -396,6 +396,25 @@
 >   ⇋N reconnect marker), amber = the current socket really is closed,
 >   red = ingest rejected a batch (clears on the next successful flush).
 >
+> ### Picks trend tracker (2026-07-31) ✅
+>
+> The board's Picks card now answers "what did that pick go for vs the
+> model, and what's the positional trend?":
+> - `computeInflationTimeline` emits `modelPrice` per pick — the player's
+>   field-priced value **as of when they were on the block** (the post-pick
+>   field of step k−1 is the pre-pick field of step k, so this costs zero
+>   extra computeInflation calls). At-the-time model, not static baseline:
+>   in an inflationary room everything beats baseline, so paid−model-now is
+>   the actionable residual (parity-tested vs InflationPredictor).
+> - PicksTable gains Model and signed ± (paid−model) columns via the
+>   `modelPrices` prop; the `compact` prop (board only) tiers columns by
+>   viewport: ± always, #/Model from xl, Δ Infl from 2xl — width-measured
+>   zero overflow at 1024/1280/1512.
+> - Position filter chips + a trend summary line in the Picks card:
+>   "5 picks · $105 spent · avg −$10.8 vs model" for the selected position.
+>   Retroactive model prices use the current calibration knobs; a team
+>   filter would ride the same mechanism (see rival-intel backlog).
+>
 > ### Practice-draft support (2026-07-31) ✅
 >
 > ESPN "practice drafts" reuse the real draft-room UI but run in a

@@ -322,6 +322,12 @@ export interface InflationTimelinePoint {
     global: number;
     /** how much this pick moved global inflation (after − before) */
     delta: number;
+    /**
+     * What the model priced this player at the moment they were on the block
+     * (the field as of the PREVIOUS pick). paid − modelPrice is the room's
+     * miscalibration signal per pick.
+     */
+    modelPrice: number;
 }
 
 /**
@@ -365,9 +371,13 @@ export function computeInflationTimeline(
         currentPickNumber: soFar.length + 1,
     });
 
-    let prev = computeInflation(ctxAt(), baseline, options).global;
+    // The post-pick field of step k−1 IS the pre-pick field of step k, so
+    // pricing each pick "as of when they were on the block" costs nothing
+    // extra: one computeInflation per step, same as before.
+    let prevField = computeInflation(ctxAt(), baseline, options);
     const timeline: InflationTimelinePoint[] = [];
     for (const pick of picks) {
+        const modelPrice = priceWithInflationField(pick.player, prevField, baseline, options);
         soFar.push(pick);
         drafted.add(pick.player.id);
         teams = teams.map(t =>
@@ -383,9 +393,14 @@ export function computeInflationTimeline(
                   }
                 : t
         );
-        const global = computeInflation(ctxAt(), baseline, options).global;
-        timeline.push({ pickNumber: pick.pickNumber, global, delta: global - prev });
-        prev = global;
+        const field = computeInflation(ctxAt(), baseline, options);
+        timeline.push({
+            pickNumber: pick.pickNumber,
+            global: field.global,
+            delta: field.global - prevField.global,
+            modelPrice,
+        });
+        prevField = field;
     }
     return timeline;
 }
