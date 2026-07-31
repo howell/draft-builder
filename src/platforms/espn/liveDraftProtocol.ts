@@ -108,18 +108,29 @@ const INIT_RECORD_SIZE = 45;
 const MIN_LEDGER_RECORDS = 4;
 
 // Engine-neutral base64 decode: this parser now runs in client components as
-// well as Node scripts/tests, so it cannot rely on Buffer. atob throws on
-// malformed input where Buffer is lenient — callers get null either way.
+// well as Node scripts/tests, so it cannot rely on Buffer.
+//
+// ESPN blobs are not always clean base64: practice-room INITs interleave '#'
+// characters (2,048 of them in one observed 26KB blob). Buffer.from ignores
+// foreign characters; atob throws on the first one — so strip everything
+// outside the base64 alphabet first, making both paths behave like Buffer.
+// (Cross-validated: the stripped decode reproduces a ledger whose picks match
+// the room's SOLD frames.)
 function base64ToBytes(b64: string): Uint8Array | null {
+    const clean = b64.replace(/[^A-Za-z0-9+/=]/g, '');
     try {
         if (typeof atob === 'function') {
-            const bin = atob(b64);
+            const bin = atob(clean);
             const bytes = new Uint8Array(bin.length);
             for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
             return bytes;
         }
+    } catch {
+        // fall through to Buffer, which tolerates padding quirks atob rejects
+    }
+    try {
         if (typeof Buffer !== 'undefined') {
-            return new Uint8Array(Buffer.from(b64, 'base64'));
+            return new Uint8Array(Buffer.from(clean, 'base64'));
         }
         return null;
     } catch {

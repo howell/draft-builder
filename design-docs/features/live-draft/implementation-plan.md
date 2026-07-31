@@ -372,6 +372,17 @@
 >   catch-up in `liveBoard.test.ts`, lobby-INIT epoch guard in
 >   `archiveExtract.test.ts`; E2E-verified via a synthetic lobby capture
 >   replayed through ingest (INIT picks + live SOLD render on the board).
+> - **Blob encoding fix (2026-07-31, live-debugged against a real practice
+>   session)**: current ESPN INIT blobs interleave `#` characters into the
+>   base64 stream (2,048 in one observed 26KB blob) — `atob` throws on the
+>   first one, so `parseInitBlob` returned null and the board silently ran
+>   SOLD-only (missing catch-up picks, wrong spent/best-available).
+>   `base64ToBytes` now strips non-base64 characters before decoding
+>   (matching `Buffer.from` semantics; cross-validated — the decoded
+>   ledger's 58 completed picks matched the room's SOLD frames, and the
+>   record layout is unchanged: 45 bytes, league id first). Note the room
+>   also emits new verbs `AUTO_NOMINATION`/`NOMINATE`, which fall through
+>   to `{type:'unknown'}` harmlessly.
 >
 > ### 2026-07 Live data acquisition — test-draft findings ✅
 >

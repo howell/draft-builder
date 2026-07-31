@@ -115,6 +115,23 @@ describe('parseInitBlob', () => {
         expect(parseInitBlob(noise.toString('base64'), LEAGUE)).toBeNull();
         expect(parseInitBlob('', LEAGUE)).toBeNull();
     });
+
+    it('tolerates non-base64 separator characters in the blob', () => {
+        // Practice-room INITs interleave '#' into the base64 stream (2,048 in
+        // one observed blob); atob throws on them, Buffer skips them. The
+        // parse must behave like Buffer.
+        const cleanBlob = blob(noise,
+            record(1, 1, 4429795, 2, 28),
+            record(3, 2, 4430807, 2, 25),
+            record(4, 3, -1, 0, 0),
+            record(1, 4, -1, 0, 0));
+        const dirty = cleanBlob.replace(/(.{10})/g, '$1#');
+        const state = parseInitBlob(dirty, LEAGUE);
+        expect(state).not.toBeNull();
+        expect(state!.completedPicks).toHaveLength(2);
+        expect(state!.completedPicks[0]).toMatchObject({ pickNumber: 1, playerId: 4429795, price: 28 });
+        expect(state!.pendingPicks).toHaveLength(2);
+    });
 });
 
 describe('reconstructLots', () => {
