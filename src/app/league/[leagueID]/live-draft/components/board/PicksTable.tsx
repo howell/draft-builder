@@ -5,7 +5,7 @@ import Tooltip from '@/ui/Tooltip';
 import { PositionBadge } from '@/ui/Badge';
 import { CompletedPick, PredictorPlayer } from '@/lib/models/live-draft/predictor';
 import { HELP } from '../SimulatorGuide';
-import { formatDelta } from './format';
+import { formatDelta, formatDeltaTerse } from './format';
 
 export type NamedPick = CompletedPick & { player: PredictorPlayer & { name?: string } };
 
@@ -18,8 +18,9 @@ interface Props {
     newestFirst?: boolean;
     emptyText: string;
     /** Board's narrow-column mode: tier the columns by viewport instead of
-     *  forcing horizontal scroll — ± always, #/Model from xl, Δ Infl from
-     *  2xl. Simulator/mocks (no prop) always show everything. */
+     *  forcing horizontal scroll — ±/Δ Infl always (Δ in terse form, full
+     *  precision on hover), #/Model from xl. Simulator/mocks (no prop)
+     *  always show everything, verbose. */
     compact?: boolean;
     /** The model's price for each pick as of when they were on the block
      *  (pickNumber → price). Adds a model column and a paid−model ± column. */
@@ -39,7 +40,6 @@ const PicksTable: React.FC<Props> = ({ picks, pickDeltas, teamLabel, newestFirst
         return <p className="text-sm text-gray-500">{emptyText}</p>;
     }
     const xlCellClass = compact ? 'hidden xl:table-cell' : '';
-    const deltaInflCellClass = compact ? 'hidden 2xl:table-cell' : '';
     const rows = newestFirst ? [...picks].reverse() : picks;
     return (
         <div className="overflow-x-auto max-h-80 overflow-y-auto" data-testid="simulated-picks">
@@ -48,7 +48,7 @@ const PicksTable: React.FC<Props> = ({ picks, pickDeltas, teamLabel, newestFirst
                     <tr className="text-left border-b border-gray-200 dark:border-gray-700">
                         <th className={`py-2 pr-2 ${xlCellClass}`}>#</th>
                         <th className="py-2 pr-2">Player</th>
-                        <th className="py-2 pr-2">Pos</th>
+                        {!compact && <th className="py-2 pr-2">Pos</th>}
                         <th className="py-2 pr-2">Team</th>
                         <th className="py-2 pr-2 text-right">Price</th>
                         {modelPrices && (
@@ -65,7 +65,7 @@ const PicksTable: React.FC<Props> = ({ picks, pickDeltas, teamLabel, newestFirst
                                 </th>
                             </>
                         )}
-                        <th className={`py-2 pr-2 text-right ${deltaInflCellClass}`}>
+                        <th className="py-2 pr-2 text-right">
                             <Tooltip text={HELP.pickDelta}>
                                 <span>Δ Infl</span>
                             </Tooltip>
@@ -82,11 +82,18 @@ const PicksTable: React.FC<Props> = ({ picks, pickDeltas, teamLabel, newestFirst
                                 {pick.pickNumber}
                             </td>
                             <td className="py-1.5 pr-2">
+                                {compact && (
+                                    <span className="mr-1.5">
+                                        <PositionBadge position={pick.player.defaultPosition} />
+                                    </span>
+                                )}
                                 {pick.player.name ?? pick.player.id}
                             </td>
-                            <td className="py-1.5 pr-2">
-                                <PositionBadge position={pick.player.defaultPosition} />
-                            </td>
+                            {!compact && (
+                                <td className="py-1.5 pr-2">
+                                    <PositionBadge position={pick.player.defaultPosition} />
+                                </td>
+                            )}
                             <td className="py-1.5 pr-2 text-gray-500">
                                 {teamLabel(pick.teamId)}
                             </td>
@@ -124,10 +131,13 @@ const PicksTable: React.FC<Props> = ({ picks, pickDeltas, teamLabel, newestFirst
                                 </>
                             )}
                             <td
-                                className={`py-1.5 pr-2 text-right tabular-nums text-gray-500 ${deltaInflCellClass}`}
+                                className="py-1.5 pr-2 text-right tabular-nums text-gray-500"
                                 data-testid="pick-delta"
+                                title={compact ? formatDelta(pickDeltas.get(pick.pickNumber)) : undefined}
                             >
-                                {formatDelta(pickDeltas.get(pick.pickNumber))}
+                                {compact
+                                    ? formatDeltaTerse(pickDeltas.get(pick.pickNumber))
+                                    : formatDelta(pickDeltas.get(pick.pickNumber))}
                             </td>
                         </tr>
                     ))}

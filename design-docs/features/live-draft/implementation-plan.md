@@ -414,6 +414,11 @@
 >   "5 picks · $105 spent · avg −$10.8 vs model" for the selected position.
 >   Retroactive model prices use the current calibration knobs; a team
 >   filter would ride the same mechanism (see rival-intel backlog).
+> - **Δ Infl restored at all widths (2026-07-31 follow-up)**: in compact
+>   mode the column renders tersely (`+.03×` via `formatDeltaTerse`, full
+>   precision in the cell title) and the Pos badge merges into the Player
+>   cell to pay for the width — zero overflow re-measured at
+>   1024/1280/1512. Sim/mocks keep the verbose separate-column form.
 >
 > ### Practice-draft support (2026-07-31) ✅
 >
