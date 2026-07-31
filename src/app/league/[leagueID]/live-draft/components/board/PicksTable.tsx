@@ -17,13 +17,17 @@ interface Props {
     /** Live board wants the latest pick on top. */
     newestFirst?: boolean;
     emptyText: string;
+    /** In the board's narrow left column the Δ Infl column doesn't fit until
+     *  xl — hide it below that instead of forcing horizontal scroll. */
+    hideDeltaBelowXl?: boolean;
 }
 
 /** The picks board shared by the simulator and the game-day page. */
-const PicksTable: React.FC<Props> = ({ picks, pickDeltas, teamLabel, newestFirst = false, emptyText }) => {
+const PicksTable: React.FC<Props> = ({ picks, pickDeltas, teamLabel, newestFirst = false, emptyText, hideDeltaBelowXl }) => {
     if (picks.length === 0) {
         return <p className="text-sm text-gray-500">{emptyText}</p>;
     }
+    const deltaCellClass = hideDeltaBelowXl ? 'hidden xl:table-cell' : '';
     const rows = newestFirst ? [...picks].reverse() : picks;
     return (
         <div className="overflow-x-auto max-h-80 overflow-y-auto" data-testid="simulated-picks">
@@ -35,7 +39,7 @@ const PicksTable: React.FC<Props> = ({ picks, pickDeltas, teamLabel, newestFirst
                         <th className="py-2 pr-2">Pos</th>
                         <th className="py-2 pr-2">Team</th>
                         <th className="py-2 pr-2 text-right">Price</th>
-                        <th className="py-2 pr-2 text-right">
+                        <th className={`py-2 pr-2 text-right ${deltaCellClass}`}>
                             <Tooltip text={HELP.pickDelta}>
                                 <span>Δ Infl</span>
                             </Tooltip>
@@ -64,7 +68,7 @@ const PicksTable: React.FC<Props> = ({ picks, pickDeltas, teamLabel, newestFirst
                                 ${pick.price}
                             </td>
                             <td
-                                className="py-1.5 pr-2 text-right tabular-nums text-gray-500"
+                                className={`py-1.5 pr-2 text-right tabular-nums text-gray-500 ${deltaCellClass}`}
                                 data-testid="pick-delta"
                             >
                                 {formatDelta(pickDeltas.get(pick.pickNumber))}

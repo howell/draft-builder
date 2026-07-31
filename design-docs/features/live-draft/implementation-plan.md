@@ -354,6 +354,48 @@
 > - **Per-team appetite** (which *teams* are invested in a position, not just
 >   the league aggregate) — needs more signal than league-level shares.
 >
+> ### Game-day layout overhaul (2026-07-31) ✅
+>
+> Driven by a real practice-draft session's print: the board stacked
+> everything in one column, so the two mid-draft workhorses (my roster,
+> best available) were never on screen together and three full-height stat
+> cards + 13 empty slot inputs ate page one.
+> - **StatusBand** (`components/board/StatusBand.tsx`): sticky strip
+>   replacing StatTiles + CurrentLotCard on the board — on-the-clock lot
+>   (keeps `current-lot`/`lot-gap` testids), picks, spent/total, global
+>   inflation, my remaining + max bid. Always visible while scrolling.
+>   CurrentLotCard deleted (board was its only consumer); StatTiles and
+>   PositionalInflationCard remain for the simulator/archive pages.
+> - **Two-column desktop** (`lg:grid-cols-2`, container widened to
+>   `max-w-screen-2xl`): planner + picks card left, Best available right
+>   with internal scroll + sticky table header (`PredictionExplorer`
+>   `scrollBody` prop; simulator unaffected). Positional-inflation chips
+>   moved into the Best-available filters area
+>   (`positional-inflation-chips`); archive/clear actions merged into the
+>   page header.
+> - **Planner bench collapse**: >1 empty Bench slots render as one
+>   "N open slots · $N reserved" row (`bench-collapsed` testid) with
+>   plan-bench…/hide toggles.
+> - **IngestSetup auto-collapse**: once frames flow, the setup card
+>   collapses to a "✓ receiving · N frames" status line with a setup
+>   expander (open by default only while quiet).
+> - **Width tuning (measured at 1024/1280/1512, zero overflow at all
+>   three)**: asymmetric `lg:grid-cols-5` split (planner 2fr, explorer
+>   3fr); explorer abbreviates headers (Base/Sticker/Infl via
+>   `SHORT_LABELS`) and player names (`shortPlayerName`, full name in
+>   `title`) in `scrollBody` mode; PicksTable `hideDeltaBelowXl` prop hides
+>   the Δ Infl column below xl in the board's narrow column (sim/mocks
+>   unaffected); the MockRosterEntry +/- stepper went from a vertical
+>   stack to inline `- $x +`, cutting every roster row's height (mocks
+>   page benefits too). Lesson recorded: `truncate` inside auto-layout
+>   table cells RAISES intrinsic width (nowrap) — don't truncate there.
+> - **Userscript v0.5**: the badge now *derives* its state from the current
+>   socket's readyState every 2s instead of latching lifecycle events —
+>   ESPN churns draft-room sockets mid-session, and the old badge showed
+>   "(closed)" (sticky amber) after any reconnect. Blue = recording (with a
+>   ⇋N reconnect marker), amber = the current socket really is closed,
+>   red = ingest rejected a batch (clears on the next successful flush).
+>
 > ### Practice-draft support (2026-07-31) ✅
 >
 > ESPN "practice drafts" reuse the real draft-room UI but run in a

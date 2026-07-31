@@ -116,16 +116,16 @@ const MockRosterEntry: React.FC<MockRosterEntryProps> = ({ selectedPlayer = unde
                 </div>
             </td>
             <td className="py-1.5 px-1 whitespace-nowrap">
-                <div className="flex justify-start items-center">
-                    <div className="flex flex-col items-center mr-2">
-                        <CostButton onClick={() => onCostAdjusted(rosterSlot, 1)}>+</CostButton>
-                        <CostButton onClick={() => onCostAdjusted(rosterSlot, -1)}>-</CostButton>
-                    </div>
+                {/* Inline stepper: the old vertical +/- stack made every row
+                    taller than its input. */}
+                <div className="flex justify-start items-center gap-1">
+                    <CostButton onClick={() => onCostAdjusted(rosterSlot, -1)}>-</CostButton>
                     <span className="font-semibold text-gray-900 dark:text-gray-100">
                         ${costAdjustment + (selectedPlayer ? selectedPlayer.estimatedCost : 1)}
                     </span>
+                    <CostButton onClick={() => onCostAdjusted(rosterSlot, 1)}>+</CostButton>
                     {costAdjustment !== 0 && (
-                        <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
                             ({costAdjustment > 0 ? `+${costAdjustment}` : costAdjustment})
                         </span>
                     )}
@@ -144,7 +144,6 @@ const CostButton: React.FC<{ onClick: () => void, children: ReactNode }> = ({ on
                        border border-gray-300 dark:border-gray-600
                        text-xs
                        w-5 h-5
-                       my-0.5
                        rounded
                        flex justify-center items-center
                        cursor-pointer

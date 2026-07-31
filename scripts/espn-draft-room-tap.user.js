@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Draft Builder — ESPN draft room tap
 // @namespace    https://know-your-league.com
-// @version      0.4
+// @version      0.5
 // @description  Capture the ESPN draft-room WebSocket (every nomination, bid, and sale) for Draft Builder. Adds a floating capture badge with JSONL download; optionally live-forwards frames to the Draft Builder ingest endpoint.
 // @match        https://fantasy.espn.com/football/draft*
 // @match        https://lm.fantasy.espn.com/football/draft*
@@ -48,6 +48,12 @@
     // own seq sequence, so ordering within a capture is unambiguous.
     let captureId = null;
     let seq = 0;
+    // Badge state is DERIVED, not event-driven: ESPN churns draft-room
+    // sockets mid-session, and a stale close event must not report a healthy
+    // reconnected tap as "(closed)".
+    let activeSocket = null;
+    let reconnects = 0;
+    let ingestError = false;
 
     const config = (key) => {
         try { return localStorage.getItem(key); } catch { return null; }
@@ -108,21 +114,25 @@
             // Retry-able failures (5xx, 429) re-queue at the FRONT to preserve
             // per-capture seq order; other 4xx are permanent (bad token/shape)
             // and retrying would loop forever — drop and show the error state.
-            if (res.ok) return;
+            if (res.ok) {
+                ingestError = false; // recovered (e.g. after a token fix)
+                return;
+            }
             if (res.status >= 500 || res.status === 429) {
                 pending = batch.concat(pending);
             } else {
                 console.error('[DraftBuilderTap] Ingest rejected batch:', res.status);
-                updateBadge('error');
+                ingestError = true;
             }
         }).catch(() => {
             pending = batch.concat(pending); // network error: nothing was lost
         }).finally(() => {
             flushing = false;
+            updateBadge();
         });
     }
 
-    setInterval(flush, 2000);
+    setInterval(() => { flush(); updateBadge(); }, 2000);
 
     // ---- WebSocket patch --------------------------------------------------
 
@@ -131,12 +141,17 @@
         const ws = protocols === undefined ? new NativeWebSocket(url) : new NativeWebSocket(url, protocols);
         if (typeof url === 'string' && url.includes('fantasydraft.espn.com')) {
             socketUrl = url;
+            if (activeSocket) reconnects++;
+            activeSocket = ws;
             captureId = (crypto.randomUUID ? crypto.randomUUID() : `cap-${Date.now()}-${Math.random().toString(36).slice(2)}`);
             seq = 0;
             ws.addEventListener('message', (ev) => record('receive', ev.data));
             const nativeSend = ws.send.bind(ws);
             ws.send = (data) => { record('send', data); return nativeSend(data); };
-            ws.addEventListener('close', () => { flush(); updateBadge('closed'); });
+            // Flush what this socket captured; the badge re-derives from the
+            // CURRENT socket, so a superseded socket's close changes nothing.
+            ws.addEventListener('close', () => { flush(); updateBadge(); });
+            ws.addEventListener('open', () => updateBadge());
         }
         return ws;
     };
@@ -157,7 +172,7 @@
         URL.revokeObjectURL(a.href);
     }
 
-    function updateBadge(state) {
+    function updateBadge() {
         if (!document.body) return;
         if (!badge) {
             badge = document.createElement('button');
@@ -170,10 +185,17 @@
             badge.addEventListener('click', download);
             document.body.appendChild(badge);
         }
+        // Derive from the CURRENT socket every time — never latch a past event.
+        const live = activeSocket && activeSocket.readyState === NativeWebSocket.OPEN;
+        const connecting = activeSocket && activeSocket.readyState === NativeWebSocket.CONNECTING;
         const fwd = forwardingConfigured() ? ' ⇉' : '';
-        badge.textContent = `⏺ ${frames.length}${fwd}${state === 'closed' ? ' (closed)' : ''}${state === 'error' ? ' ⚠' : ''}`;
-        if (state === 'closed') badge.style.background = '#b45309';
-        if (state === 'error') badge.style.background = '#b91c1c';
+        const rejoin = reconnects > 0 && live ? ` ⇋${reconnects}` : '';
+        const state = live || connecting ? '' : activeSocket ? ' (closed)' : '';
+        badge.textContent = `⏺ ${frames.length}${fwd}${rejoin}${state}${ingestError ? ' ⚠' : ''}`;
+        badge.style.background = ingestError ? '#b91c1c' : live || connecting ? '#1d4ed8' : '#b45309';
+        badge.title = ingestError
+            ? 'Draft Builder tap — ingest rejected a batch (check token); click to download frames'
+            : `Draft Builder tap — ${live ? 'recording' : connecting ? 'connecting' : 'socket closed'}${reconnects ? `, ${reconnects} reconnect${reconnects === 1 ? '' : 's'}` : ''}; click to download frames as JSONL`;
     }
 
     // The badge needs <body>; the script runs at document-start, so wait.

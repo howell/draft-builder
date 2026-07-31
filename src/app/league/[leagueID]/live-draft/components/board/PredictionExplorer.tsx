@@ -13,6 +13,13 @@ export interface ExplorerRow {
     prices: number[];
 }
 
+/** Column-mode header abbreviations; full labels stay in the tooltips. */
+const SHORT_LABELS: Record<string, string> = {
+    baseline: 'Base',
+    sticker: 'Sticker',
+    inflation: 'Infl',
+};
+
 interface Props {
     title: React.ReactNode;
     /** e.g. the simulator's Train-regression control; omitted on the live board. */
@@ -24,10 +31,13 @@ interface Props {
     onRowClick?: (playerId: string) => void;
     /** Rendered between the header and the table (the live board's filters). */
     subHeader?: React.ReactNode;
+    /** Scroll the table internally with a sticky header (the live board's
+     *  two-column layout) instead of growing the page. */
+    scrollBody?: boolean;
 }
 
 /** Available players priced by each model — shared by simulator and live board. */
-const PredictionExplorer: React.FC<Props> = ({ title, headerRight, predictors, rows, onRowClick, subHeader }) => (
+const PredictionExplorer: React.FC<Props> = ({ title, headerRight, predictors, rows, onRowClick, subHeader, scrollBody }) => (
     <Card>
         <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -37,9 +47,12 @@ const PredictionExplorer: React.FC<Props> = ({ title, headerRight, predictors, r
         </CardHeader>
         <CardBody>
             {subHeader}
-            <div className="overflow-x-auto" data-testid="prediction-explorer">
+            <div
+                className={`overflow-x-auto${scrollBody ? ' max-h-[70vh] overflow-y-auto' : ''}`}
+                data-testid="prediction-explorer"
+            >
                 <table className="w-full text-sm">
-                    <thead>
+                    <thead className={scrollBody ? 'sticky top-0 z-10 bg-white dark:bg-gray-900' : undefined}>
                         <tr className="text-left border-b border-gray-200 dark:border-gray-700">
                             <th className="py-2 pr-2">Rank</th>
                             <th className="py-2 pr-2">Player</th>
@@ -47,7 +60,9 @@ const PredictionExplorer: React.FC<Props> = ({ title, headerRight, predictors, r
                             {predictors.map(p => (
                                 <th key={p.id} className="py-2 pr-2 text-right">
                                     <Tooltip text={MODEL_HELP[p.id] ?? p.label}>
-                                        <span>{p.label}</span>
+                                        <span>
+                                            {scrollBody ? (SHORT_LABELS[p.id] ?? p.label) : p.label}
+                                        </span>
                                     </Tooltip>
                                 </th>
                             ))}
@@ -68,11 +83,20 @@ const PredictionExplorer: React.FC<Props> = ({ title, headerRight, predictors, r
                             >
                                 <td className="py-1.5 pr-2">{player.overallRank + 1}</td>
                                 <td className="py-1.5 pr-2 max-w-28 sm:max-w-none truncate">
-                                    {/* Abbreviate on narrow screens; truncate is the backstop. */}
-                                    <span className="sm:hidden">
-                                        {shortPlayerName(name, player.defaultPosition)}
-                                    </span>
-                                    <span className="hidden sm:inline">{name}</span>
+                                    {/* Column mode lives in a half-width grid cell, so viewport
+                                        breakpoints can't judge the fit — always abbreviate. */}
+                                    {scrollBody ? (
+                                        <span title={name}>
+                                            {shortPlayerName(name, player.defaultPosition)}
+                                        </span>
+                                    ) : (
+                                        <>
+                                            <span className="sm:hidden">
+                                                {shortPlayerName(name, player.defaultPosition)}
+                                            </span>
+                                            <span className="hidden sm:inline">{name}</span>
+                                        </>
+                                    )}
                                 </td>
                                 <td className="py-1.5 pr-2">
                                     <PositionBadge position={player.defaultPosition} />

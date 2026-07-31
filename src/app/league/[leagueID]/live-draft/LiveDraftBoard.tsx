@@ -48,14 +48,12 @@ import { useSimulatorData } from './useSimulatorData';
 import { useRosterPlan } from './hooks/useRosterPlan';
 import ArchiveDraftDialog from './components/ArchiveDraftDialog';
 import MyRosterPlanner from './components/board/MyRosterPlanner';
-import StatTiles from './components/board/StatTiles';
+import StatusBand from './components/board/StatusBand';
 import SearchSettings from '../mocks/SearchSettings';
 import { playerAvailable } from '../mocks/MockTable';
 import CollapsibleComponent from '@/ui/Collapsible';
 import PicksTable from './components/board/PicksTable';
-import PositionalInflationCard from './components/board/PositionalInflationCard';
 import PredictionExplorer from './components/board/PredictionExplorer';
-import CurrentLotCard from './components/board/CurrentLotCard';
 
 const DEFAULT_EXPLORER_COUNT = 50;
 const EMPTY_PLAYERS: never[] = [];
@@ -329,7 +327,7 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
     const quiet = board.framesSeen === 0;
 
     return (
-        <div className="max-w-6xl mx-auto p-4 space-y-4">
+        <div className="max-w-screen-2xl mx-auto p-4 space-y-4">
             <div>
                 <div className="flex flex-wrap items-center gap-3">
                     <h1 className="text-2xl font-bold">Live Draft</h1>
@@ -349,6 +347,22 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                             Calibrate in the Simulator
                         </Link>
                     )}
+                    <span className="grow" />
+                    {!quiet && !archiving && (
+                        <span className="flex flex-wrap gap-2">
+                            <Button variant="outline" size="sm" onClick={() => setArchiving(true)}>
+                                Archive draft…
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={clearBuffer}
+                                disabled={clearMutation.isPending}
+                            >
+                                {clearMutation.isPending ? 'Clearing…' : 'Clear buffer'}
+                            </Button>
+                        </span>
+                    )}
                 </div>
                 <p className="text-sm text-gray-500">
                     {board.framesSeen} frames · {board.captureCount} capture
@@ -356,22 +370,6 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                     {lastFrameTs && ` · last ${new Date(lastFrameTs).toLocaleTimeString()}`}
                 </p>
             </div>
-
-            {!quiet && !archiving && (
-                <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setArchiving(true)}>
-                        Archive draft…
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={clearBuffer}
-                        disabled={clearMutation.isPending}
-                    >
-                        {clearMutation.isPending ? 'Clearing…' : 'Clear buffer'}
-                    </Button>
-                </div>
-            )}
             {clearMutation.isError && (
                 <Alert variant="error">
                     Failed to clear the buffer: {(clearMutation.error as Error).message}
@@ -406,89 +404,120 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                 </Card>
             ) : (
                 <>
-                    {board.currentLot && (
-                        <CurrentLotCard
-                            lot={board.currentLot}
-                            modelPrice={lotModelPrice}
-                            teamLabel={teamLabel}
-                        />
-                    )}
-
-                    <StatTiles
+                    <StatusBand
+                        lot={board.currentLot}
+                        lotModelPrice={lotModelPrice}
+                        teamLabel={teamLabel}
                         picksCount={board.picks.length}
                         spent={board.picks.reduce((s, p) => s + p.price, 0)}
                         totalPool={data.defaultBudget * teamCount}
                         inflationGlobal={inflationField ? inflationField.global : null}
+                        planBudget={plan.budget}
                     />
 
-                    <MyRosterPlanner
-                        board={board}
-                        players={data.players}
-                        estimate={planEstimate}
-                        teams={leagueTeams}
-                        teamLabel={teamLabel}
-                        plan={plan}
-                    />
-
-                    {board.unresolvedPlayerIds.length > 0 && (
-                        <Alert variant="warning">
-                            {board.unresolvedPlayerIds.length} pick
-                            {board.unresolvedPlayerIds.length === 1 ? '' : 's'} matched no ranked
-                            player — counted in budgets, shown by id.
-                        </Alert>
-                    )}
-
-                    <PicksTable
-                        picks={board.picks}
-                        pickDeltas={pickDeltas}
-                        teamLabel={teamLabel}
-                        newestFirst
-                        emptyText="No picks yet — they appear here as the room sells players."
-                    />
-
-                    {inflationField && <PositionalInflationCard field={inflationField} />}
-
-                    <PredictionExplorer
-                        title="Best available"
-                        predictors={predictors}
-                        rows={explorerRows}
-                        onRowClick={handleExplorerClick}
-                        headerRight={
-                            <input
-                                data-testid="explorer-name-search"
-                                type="text"
-                                value={nameQuery}
-                                onChange={e => setNameQuery(e.target.value)}
-                                placeholder="Search players…"
-                                className="h-8 px-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
+                    {/* Asymmetric split: the planner needs less width than the
+                        six-column Best-available table. */}
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 items-start">
+                        <div className="space-y-4 lg:col-span-2">
+                            <MyRosterPlanner
+                                board={board}
+                                players={data.players}
+                                estimate={planEstimate}
+                                teams={leagueTeams}
+                                teamLabel={teamLabel}
+                                plan={plan}
                             />
-                        }
-                        subHeader={
-                            searchSettings && (
-                                <div className="mb-3">
-                                    <CollapsibleComponent
-                                        testId="explorer-filters"
-                                        label={
-                                            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                Filters
-                                            </span>
-                                        }
-                                    >
-                                        <SearchSettings
-                                            positions={playerPositions}
-                                            currentSettings={searchSettings}
-                                            onSettingsChanged={setSearchSettings}
-                                        />
-                                    </CollapsibleComponent>
-                                    {handleExplorerClick && (
-                                        <p className="mt-1 text-xs text-gray-500">
-                                            Click a player to add them to your roster plan.
-                                        </p>
-                                    )}
-                                </div>
-                            )
-                        }
-                    />
+
+                            {board.unresolvedPlayerIds.length > 0 && (
+                                <Alert variant="warning">
+                                    {board.unresolvedPlayerIds.length} pick
+                                    {board.unresolvedPlayerIds.length === 1 ? '' : 's'} matched no
+                                    ranked player — counted in budgets, shown by id.
+                                </Alert>
+                            )}
+
+                            <Card padding="sm">
+                                <CardBody>
+                                    <h3 className="text-lg font-semibold mb-2">
+                                        Picks
+                                        <span className="ml-2 text-sm font-normal text-gray-500">
+                                            newest first
+                                        </span>
+                                    </h3>
+                                    <PicksTable
+                                        picks={board.picks}
+                                        pickDeltas={pickDeltas}
+                                        teamLabel={teamLabel}
+                                        newestFirst
+                                        hideDeltaBelowXl
+                                        emptyText="No picks yet — they appear here as the room sells players."
+                                    />
+                                </CardBody>
+                            </Card>
+                        </div>
+
+                        <div className="lg:col-span-3">
+                        <PredictionExplorer
+                            title="Best available"
+                            predictors={predictors}
+                            rows={explorerRows}
+                            onRowClick={handleExplorerClick}
+                            scrollBody
+                            headerRight={
+                                <input
+                                    data-testid="explorer-name-search"
+                                    type="text"
+                                    value={nameQuery}
+                                    onChange={e => setNameQuery(e.target.value)}
+                                    placeholder="Search players…"
+                                    className="h-8 px-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
+                                />
+                            }
+                            subHeader={
+                                searchSettings && (
+                                    <div className="mb-3">
+                                        <CollapsibleComponent
+                                            testId="explorer-filters"
+                                            label={
+                                                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                    Filters
+                                                </span>
+                                            }
+                                        >
+                                            <SearchSettings
+                                                positions={playerPositions}
+                                                currentSettings={searchSettings}
+                                                onSettingsChanged={setSearchSettings}
+                                            />
+                                        </CollapsibleComponent>
+                                        {inflationField && (
+                                            <p
+                                                className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500"
+                                                data-testid="positional-inflation-chips"
+                                            >
+                                                {Object.entries(inflationField.byPosition)
+                                                    .sort((a, b) => b[1] - a[1])
+                                                    .map(([position, value]) => (
+                                                        <span key={position}>
+                                                            {position}{' '}
+                                                            <span className="font-medium text-gray-700 dark:text-gray-300">
+                                                                {value.toFixed(2)}×
+                                                            </span>
+                                                        </span>
+                                                    ))}
+                                            </p>
+                                        )}
+                                        {handleExplorerClick && (
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                Click a player to add them to your roster plan.
+                                            </p>
+                                        )}
+                                    </div>
+                                )
+                            }
+                        />
+                        </div>
+                    </div>
                 </>
             )}
         </div>

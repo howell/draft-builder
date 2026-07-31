@@ -22,6 +22,8 @@ export default function IngestSetup({ leagueId }: Readonly<{ leagueId: LeagueId 
     const mintMutation = useMintLiveDraftIngestTokenMutation();
     const framesQuery = useLiveDraftFramesQuery(leagueId);
     const [copied, setCopied] = useState(false);
+    // null = follow the default (open until frames arrive); true/false = user choice.
+    const [expanded, setExpanded] = useState<boolean | null>(null);
 
     if (!user) {
         return (
@@ -55,6 +57,38 @@ export default function IngestSetup({ leagueId }: Readonly<{ leagueId: LeagueId 
     const frames = framesQuery.data ?? [];
     const lastFrame = frames[frames.length - 1];
 
+    // Once frames flow, the setup card is pre-draft plumbing — collapse it to
+    // a status line (the user can still expand it to re-copy the snippet).
+    const isOpen = expanded ?? frames.length === 0;
+
+    if (!isOpen) {
+        return (
+            <Card className="mb-4">
+                <CardBody>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                            Live draft ingest
+                        </span>
+                        <span className="text-accent-700 dark:text-accent-300">✓ receiving</span>
+                        <span className="text-gray-500">{frames.length} frames</span>
+                        {lastFrame && (
+                            <span className="text-gray-500 truncate max-w-[16rem]">
+                                last: {lastFrame.data.slice(0, 40)}
+                            </span>
+                        )}
+                        <span className="grow" />
+                        <button
+                            className="text-sm underline text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                            onClick={() => setExpanded(true)}
+                        >
+                            setup
+                        </button>
+                    </div>
+                </CardBody>
+            </Card>
+        );
+    }
+
     return (
         <Card className="mb-4">
             <CardBody>
@@ -62,14 +96,21 @@ export default function IngestSetup({ leagueId }: Readonly<{ leagueId: LeagueId 
                     <h3 className="font-semibold text-gray-900 dark:text-gray-100">
                         Live draft ingest
                     </h3>
-                    <Button
-                        variant="secondary"
-                        size="sm"
-                        loading={mintMutation.isPending}
-                        onClick={() => mintMutation.mutate()}
-                    >
-                        {token ? 'Regenerate token' : 'Generate token'}
-                    </Button>
+                    <span className="flex items-center gap-2">
+                        {frames.length > 0 && (
+                            <Button variant="ghost" size="sm" onClick={() => setExpanded(false)}>
+                                Collapse
+                            </Button>
+                        )}
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            loading={mintMutation.isPending}
+                            onClick={() => mintMutation.mutate()}
+                        >
+                            {token ? 'Regenerate token' : 'Generate token'}
+                        </Button>
+                    </span>
                 </div>
 
                 {token ? (

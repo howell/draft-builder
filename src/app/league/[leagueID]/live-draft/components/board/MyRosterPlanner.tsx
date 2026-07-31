@@ -8,11 +8,11 @@
  * manual override remembered per league.
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { LeagueTeam } from '@/platforms/PlatformApi';
 import type { CostEstimatedPlayer, RosterSlot } from '@/types/storage';
 import { Card, CardBody } from '@/ui/Card';
-import { Badge } from '@/ui/Badge';
+import { Badge, PositionBadge } from '@/ui/Badge';
 import CollapsibleComponent from '@/ui/Collapsible';
 import { LiveBoard } from '@/lib/models/live-draft/liveBoard';
 import { PlannerPlayer } from '@/lib/models/live-draft/rosterPlan';
@@ -41,6 +41,8 @@ const MyRosterPlanner: React.FC<Props> = ({
     teamLabel,
     plan,
 }) => {
+    const [benchExpanded, setBenchExpanded] = useState(false);
+
     const draftedIds = useMemo(
         () => new Set(board.picks.map(pick => pick.player.id)),
         [board.picks]
@@ -158,44 +160,102 @@ const MyRosterPlanner: React.FC<Props> = ({
                         <div className="mt-2 overflow-x-auto">
                             <table className="w-full text-sm" data-testid="my-roster-table">
                                 <tbody>
-                                    {plan.rows.map(row => {
-                                        const rowKey = `${row.slot.position}#${row.slot.index}#${row.kind}`;
-                                        if (row.kind === 'locked') {
-                                            return <LockedRosterRow key={rowKey} row={row} />;
+                                    {(() => {
+                                        // Empty bench slots dominate the card early in a draft
+                                        // (7+ full-height inputs) — collapse them to one row.
+                                        const emptyBench = plan.rows.filter(
+                                            r => r.kind === 'empty' && r.slot.position === 'Bench'
+                                        );
+                                        const collapseBench = !benchExpanded && emptyBench.length > 1;
+                                        const elements: React.ReactNode[] = [];
+                                        let benchSummaryDone = false;
+                                        for (const row of plan.rows) {
+                                            const rowKey = `${row.slot.position}#${row.slot.index}#${row.kind}`;
+                                            const isEmptyBench =
+                                                row.kind === 'empty' && row.slot.position === 'Bench';
+                                            if (collapseBench && isEmptyBench) {
+                                                if (!benchSummaryDone) {
+                                                    benchSummaryDone = true;
+                                                    elements.push(
+                                                        <tr
+                                                            key="bench-collapsed"
+                                                            data-testid="bench-collapsed"
+                                                            className="border-b border-gray-200 dark:border-gray-700"
+                                                        >
+                                                            <td className="py-1.5 pr-1 sm:px-2 whitespace-nowrap">
+                                                                <PositionBadge position="Bench" />
+                                                            </td>
+                                                            <td className="py-1.5 px-1 sm:px-2 w-full text-gray-500" colSpan={2}>
+                                                                {emptyBench.length} open slots · $
+                                                                {emptyBench.length} reserved
+                                                                <button
+                                                                    className="ml-2 underline"
+                                                                    onClick={() => setBenchExpanded(true)}
+                                                                >
+                                                                    plan bench…
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                }
+                                                continue;
+                                            }
+                                            if (row.kind === 'locked') {
+                                                elements.push(<LockedRosterRow key={rowKey} row={row} />);
+                                            } else if (
+                                                row.kind === 'planned' &&
+                                                (row.snipedBy !== null || row.player === null)
+                                            ) {
+                                                elements.push(
+                                                    <SnipedRosterRow
+                                                        key={rowKey}
+                                                        row={row}
+                                                        teamLabel={teamLabel}
+                                                        onClear={() => clearSlot(row.slot)}
+                                                    />
+                                                );
+                                            } else {
+                                                elements.push(
+                                                    <MockRosterEntry
+                                                        key={rowKey}
+                                                        rosterSlot={row.slot}
+                                                        position={row.slot.position}
+                                                        players={candidates}
+                                                        selectedPlayer={
+                                                            row.kind === 'planned'
+                                                                ? selectedFor(row)
+                                                                : undefined
+                                                        }
+                                                        costAdjustment={
+                                                            row.kind === 'planned' ? row.delta : 0
+                                                        }
+                                                        onPlayerSelected={(slot, player) =>
+                                                            plan.selectPlayer(slot, player)
+                                                        }
+                                                        onCostAdjusted={(slot, delta) =>
+                                                            plan.adjustCost(slot, delta > 0 ? 1 : -1)
+                                                        }
+                                                        onFocus={noopFocus}
+                                                    />
+                                                );
+                                            }
                                         }
-                                        if (
-                                            row.kind === 'planned' &&
-                                            (row.snipedBy !== null || row.player === null)
-                                        ) {
-                                            return (
-                                                <SnipedRosterRow
-                                                    key={rowKey}
-                                                    row={row}
-                                                    teamLabel={teamLabel}
-                                                    onClear={() => clearSlot(row.slot)}
-                                                />
+                                        if (benchExpanded && emptyBench.length > 1) {
+                                            elements.push(
+                                                <tr key="bench-hide">
+                                                    <td colSpan={3} className="py-1 text-center">
+                                                        <button
+                                                            className="text-xs underline text-gray-500"
+                                                            onClick={() => setBenchExpanded(false)}
+                                                        >
+                                                            hide empty bench slots
+                                                        </button>
+                                                    </td>
+                                                </tr>
                                             );
                                         }
-                                        return (
-                                            <MockRosterEntry
-                                                key={rowKey}
-                                                rosterSlot={row.slot}
-                                                position={row.slot.position}
-                                                players={candidates}
-                                                selectedPlayer={
-                                                    row.kind === 'planned' ? selectedFor(row) : undefined
-                                                }
-                                                costAdjustment={row.kind === 'planned' ? row.delta : 0}
-                                                onPlayerSelected={(slot, player) =>
-                                                    plan.selectPlayer(slot, player)
-                                                }
-                                                onCostAdjusted={(slot, delta) =>
-                                                    plan.adjustCost(slot, delta > 0 ? 1 : -1)
-                                                }
-                                                onFocus={noopFocus}
-                                            />
-                                        );
-                                    })}
+                                        return elements;
+                                    })()}
                                 </tbody>
                             </table>
                         </div>
