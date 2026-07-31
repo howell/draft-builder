@@ -170,6 +170,36 @@ describe('extractArchive', () => {
         expect(result.picks[0]).toMatchObject({ playerId: 101, teamId: 3, price: 7, observedBidCount: 1 });
     });
 
+    it('advances the epoch on a fresh practice-lobby INIT keyed by the TOKEN league id', () => {
+        const LOBBY = 1665107216;
+        const lobby = makeFrameFixtures(LOBBY);
+        const result = extractArchive(
+            [
+                // Stale rehearsal capture in the buffer.
+                frame('cap-old', 0, 'BID 1 101 1 25000 24000', 1),
+                frame('cap-old', 1, 'SOLD 1 101 10 30 0', 2),
+                // Practice draft opens: TOKEN carries the lobby id, INIT's
+                // ledger records begin with it (page league id differs).
+                frame('cap-practice', 0, `TOKEN 1:${LOBBY}:2:{SWID}:x`, 3),
+                lobby.initFrame(
+                    'cap-practice', 1, 4,
+                    lobby.pending(1, 1), lobby.pending(2, 2), lobby.pending(3, 3), lobby.pending(4, 4)
+                ),
+                frame('cap-practice', 2, 'BID 2 101 1 25000 24000', 5),
+                frame('cap-practice', 3, 'SOLD 2 101 10 5 0', 6),
+            ],
+            pool,
+            config
+        );
+
+        // The rehearsal's bids were excluded by the lobby INIT's epoch.
+        expect(result.bids).toEqual([
+            { playerId: 101, seq: 0, kind: 'open', teamId: 2, amount: 1, atMs: expect.any(Number) },
+        ]);
+        expect(result.picks).toHaveLength(1);
+        expect(result.picks[0]).toMatchObject({ playerId: 101, teamId: 2, price: 5 });
+    });
+
     it('keeps pre-reconnect bids: a mid-draft INIT does not advance the epoch', () => {
         const result = extractArchive(
             [

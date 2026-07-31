@@ -104,6 +104,9 @@ export function extractArchive(
         lots: Map<number, DraftLot>;
     }
     let epochFrameId = 0;
+    // The room's league id from TOKEN — practice-draft INIT records begin
+    // with the throwaway lobby id, not the page's (mirrors buildLiveBoard).
+    let roomLeagueId: number | null = null;
     const captureLots: CaptureLots[] = [];
     for (const group of captures) {
         const events: { event: ReturnType<typeof parseDraftSocketFrame>; atMs?: number }[] = [];
@@ -115,8 +118,11 @@ export function extractArchive(
             events.push({ event, atMs: Number.isFinite(atMs) ? atMs : undefined });
             lo = Math.min(lo, frame.id);
             hi = Math.max(hi, frame.id);
-            if (event.type === 'init') {
-                const init = parseInitBlob(event.blob, config.leagueId);
+            if (event.type === 'token') {
+                const leagueId = Number(event.leagueId);
+                if (Number.isFinite(leagueId) && leagueId > 0) roomLeagueId = leagueId;
+            } else if (event.type === 'init') {
+                const init = parseInitBlob(event.blob, roomLeagueId ?? config.leagueId);
                 if (init && init.completedPicks.length === 0) {
                     epochFrameId = frame.id;
                 }

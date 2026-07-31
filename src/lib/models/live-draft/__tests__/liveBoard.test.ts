@@ -222,6 +222,33 @@ describe('buildLiveBoard', () => {
         expect(rejoined.myTeamId).toBe('2');
     });
 
+    it('parses INIT with the TOKEN league id when the room is a practice lobby', () => {
+        // ESPN practice drafts run in a throwaway lobby league: the INIT
+        // ledger records begin with the lobby id, not the page's league id.
+        const LOBBY = 1665107216;
+        const lobby = makeFrameFixtures(LOBBY);
+        const board = buildLiveBoard(
+            [
+                frame('cap-a', 0, `TOKEN 1:${LOBBY}:2:{8F18CF60}:631477516`, 1),
+                lobby.initFrame(
+                    'cap-a', 1, 2,
+                    lobby.record(1, 1, 101, 60),
+                    lobby.record(2, 2, 102, 45),
+                    lobby.pending(3, 3),
+                    lobby.pending(4, 4)
+                ),
+            ],
+            pool,
+            config // config.leagueId is the real league, NOT the lobby id
+        );
+
+        expect(board.myTeamId).toBe('2');
+        expect(board.picks.map(p => [p.pickNumber, p.player.id])).toEqual([
+            [1, '101'],
+            [2, '102'],
+        ]);
+    });
+
     it('leaves myTeamId null without a TOKEN and ignores send-direction ones', () => {
         const none = buildLiveBoard([frame('cap-a', 0, 'SOLD 2 101 10 55 0')], pool, config);
         expect(none.myTeamId).toBeNull();

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Draft Builder — ESPN draft room tap
 // @namespace    https://know-your-league.com
-// @version      0.3
+// @version      0.4
 // @description  Capture the ESPN draft-room WebSocket (every nomination, bid, and sale) for Draft Builder. Adds a floating capture badge with JSONL download; optionally live-forwards frames to the Draft Builder ingest endpoint.
 // @match        https://fantasy.espn.com/football/draft*
 // @match        https://lm.fantasy.espn.com/football/draft*
@@ -23,6 +23,13 @@
  * { leagueId, frames: [...] } with the token as a Bearer header. The
  * (captureId, seq) pair makes retried batches idempotent server-side.
  * Clear either key to disable.
+ *
+ * leagueId normally comes from the draft-room WebSocket URL, but ESPN's
+ * practice drafts run in a throwaway lobby league whose id matches nothing
+ * in Draft Builder. Set
+ *   localStorage.setItem('draftBuilderLeagueId', '<real league id>');
+ * (the live-draft page's setup snippet does this) to label frames with the
+ * real league instead. Clear the key to fall back to the socket URL.
  */
 (function () {
     'use strict';
@@ -54,6 +61,14 @@
         return m ? m[1] : null;
     };
 
+    // The override wins over the socket URL (practice drafts use a throwaway
+    // lobby league id). Ignored unless it looks like a plain league id.
+    const effectiveLeagueId = () => {
+        const override = config('draftBuilderLeagueId');
+        if (override && /^\d{1,32}$/.test(override)) return override;
+        return leagueIdFromUrl(socketUrl);
+    };
+
     function record(dir, data) {
         if (typeof data !== 'string') return; // draft protocol is text-only
         const frame = { captureId, seq: seq++, ts: new Date().toISOString(), dir, data };
@@ -83,7 +98,7 @@
         }
         pending = pending.slice(batch.length);
         flushing = true;
-        const body = JSON.stringify({ leagueId: leagueIdFromUrl(socketUrl), frames: batch });
+        const body = JSON.stringify({ leagueId: effectiveLeagueId(), frames: batch });
         fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -136,7 +151,7 @@
         const jsonl = frames.map((f) => JSON.stringify(f)).join('\n') + '\n';
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([jsonl], { type: 'application/x-ndjson' }));
-        const league = leagueIdFromUrl(socketUrl) || 'unknown-league';
+        const league = effectiveLeagueId() || 'unknown-league';
         a.download = `${league}-${new Date().toISOString().replace(/[:.]/g, '-')}.frames.jsonl`;
         a.click();
         URL.revokeObjectURL(a.href);

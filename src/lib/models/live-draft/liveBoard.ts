@@ -123,6 +123,10 @@ export function buildLiveBoard(
     const teamIdsSeen = new Set<number>();
     let order = 0;
     let myTeamId: string | null = null;
+    // The room's own league id, from TOKEN (arrives at connect, before INIT).
+    // ESPN practice drafts run in a throwaway lobby league, so INIT ledger
+    // records begin with THAT id, not the page's — parse with the room's.
+    let roomLeagueId: number | null = null;
     let lastCaptureEvents: { event: DraftSocketEvent; atMs?: number }[] = [];
 
     for (const group of captures) {
@@ -133,7 +137,7 @@ export function buildLiveBoard(
             events.push({ event, atMs: Number.isFinite(atMs) ? atMs : undefined });
 
             if (event.type === 'init') {
-                const init = parseInitBlob(event.blob, config.leagueId);
+                const init = parseInitBlob(event.blob, roomLeagueId ?? config.leagueId);
                 if (init) {
                     // Snapshot-replace: the INIT ledger is complete and official.
                     ledger.clear();
@@ -162,6 +166,8 @@ export function buildLiveBoard(
             } else if (event.type === 'token') {
                 const teamId = event.teamId?.trim();
                 if (teamId) myTeamId = teamId;
+                const leagueId = Number(event.leagueId);
+                if (Number.isFinite(leagueId) && leagueId > 0) roomLeagueId = leagueId;
             }
         }
         lastCaptureEvents = events;

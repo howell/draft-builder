@@ -36,10 +36,13 @@ export default function IngestSetup({ leagueId }: Readonly<{ leagueId: LeagueId 
     }
 
     const token = tokenQuery.data;
+    // draftBuilderLeagueId pins frames to THIS league even when the draft
+    // room's socket uses a throwaway lobby id (ESPN practice drafts).
     const snippet = token
         ? [
             `localStorage.setItem('draftBuilderIngestUrl', '${typeof window !== 'undefined' ? window.location.origin : ''}/api/live-draft-ingest');`,
             `localStorage.setItem('draftBuilderIngestToken', '${token}');`,
+            `localStorage.setItem('draftBuilderLeagueId', '${leagueId}');`,
         ].join('\n')
         : '';
 

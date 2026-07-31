@@ -354,6 +354,25 @@
 > - **Per-team appetite** (which *teams* are invested in a position, not just
 >   the league aggregate) — needs more signal than league-level shares.
 >
+> ### Practice-draft support (2026-07-31) ✅
+>
+> ESPN "practice drafts" reuse the real draft-room UI but run in a
+> **throwaway lobby league** (e.g. socket `league-1665107216` while the
+> page is league 781060), which broke ingest-to-board matching two ways:
+> the userscript labeled frames with the lobby id (board polls the real
+> id → nothing appears), and INIT ledger records begin with the lobby id
+> (locator keyed on the page league finds no ledger). Fixes:
+> - Userscript v0.4: `localStorage.draftBuilderLeagueId` overrides the
+>   socket-URL scrape (validated `^\d{1,32}$`); the IngestSetup console
+>   snippet now sets it per league, so re-pasting the snippet each draft
+>   pins frames correctly with no extra steps.
+> - `buildLiveBoard` and `extractArchive` parse INIT with the **room's**
+>   league id from the TOKEN frame (fallback: config.leagueId) — a no-op
+>   on real draft night where the ids match. Tests: practice-lobby INIT
+>   catch-up in `liveBoard.test.ts`, lobby-INIT epoch guard in
+>   `archiveExtract.test.ts`; E2E-verified via a synthetic lobby capture
+>   replayed through ingest (INIT picks + live SOLD render on the board).
+>
 > ### 2026-07 Live data acquisition — test-draft findings ✅
 >
 > **Full reference: [espn-draft-room-protocol.md](espn-draft-room-protocol.md)**
