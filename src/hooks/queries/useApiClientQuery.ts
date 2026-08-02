@@ -58,6 +58,10 @@ export function useApiClientQuery<TMethod extends ApiClientMethod>({
       return result.data;
     },
     enabled: !!leagueId && !authLoading && !!leagueQuery.data?.league,
+    // Platform reads go over POST (league auth stays out of URLs), so there is
+    // no HTTP-level caching. A short staleTime keeps navigation from re-hitting
+    // the platform APIs on every mount while staying fresh on draft day.
+    staleTime: 5 * 60 * 1000,
     ...queryOptions,
   });
 }

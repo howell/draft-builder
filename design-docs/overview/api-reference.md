@@ -1,12 +1,12 @@
 # API Endpoints Reference
 
 ## Overview
-Draft Builder provides a REST API for accessing fantasy sports data from ESPN and Sleeper platforms. All endpoints follow a consistent request/response pattern and support query parameter-based requests with JSON responses.
+Draft Builder provides a REST API for accessing fantasy sports data from ESPN and Sleeper platforms. All endpoints follow a consistent request/response pattern: JSON-body POST requests with JSON responses.
 
 ## Base Configuration
 
 ### Request Format
-All API requests use GET method with parameters passed as URL query strings. Parameters are JSON-encoded before being added to the query string.
+All platform-data endpoints use POST with a JSON body. They were previously GET-with-query-string, but the `league` parameter can carry ESPN auth cookies, and credentials must never appear in URLs — URLs are cached by browsers and the Vercel edge (keyed on the full query string) and recorded in request logs.
 
 ### Response Format
 All responses follow a consistent structure:
@@ -23,10 +23,9 @@ All responses follow a consistent structure:
 - **200**: Success with data or status message
 
 ### Caching
-All successful responses include cache headers:
-- Default TTL: 24 hours (`86400` seconds)
-- Cache-Control includes `stale-while-revalidate` and `stale-if-error`
-- Some endpoints may have custom cache durations
+Platform-data endpoints respond with `Cache-Control: no-store` — the responses are per-user, credential-gated data and must not sit in shared or disk caches. (The previous 24-hour `public` cache made completed drafts invisible for up to a day after draft night.) Request coalescing/freshness is handled client-side by React Query: `useApiClientQuery` applies a 5-minute default `staleTime`, and individual hooks can override it.
+
+`makeResponse` still supports opt-in HTTP caching (`cache: true`, default TTL 24 hours) for routes serving non-sensitive, slow-changing data.
 
 ## Authentication
 API endpoints do not require authentication at the application level. Platform-specific authentication (such as ESPN cookies) is handled through the league configuration object passed in requests.
@@ -52,7 +51,7 @@ Most endpoints accept an optional season parameter:
 ## Endpoint Reference
 
 ### 1. Find League
-**Endpoint**: `GET /api/find-league`
+**Endpoint**: `POST /api/find-league`
 **Purpose**: Validates league accessibility and basic connectivity
 
 **Request Parameters**:
@@ -71,7 +70,10 @@ Most endpoints accept an optional season parameter:
 
 **Example Usage**:
 ```
-GET /api/find-league?league={"platform":"sleeper","id":"123456789"}
+POST /api/find-league
+Content-Type: application/json
+
+{"league": {"platform": "sleeper", "id": "123456789"}}
 ```
 
 **Use Cases**:
@@ -82,7 +84,7 @@ GET /api/find-league?league={"platform":"sleeper","id":"123456789"}
 ---
 
 ### 2. Fetch League Info
-**Endpoint**: `GET /api/fetch-league`
+**Endpoint**: `POST /api/fetch-league`
 **Purpose**: Retrieves comprehensive league configuration and settings
 
 **Request Parameters**:
@@ -146,7 +148,7 @@ GET /api/find-league?league={"platform":"sleeper","id":"123456789"}
 ---
 
 ### 3. Fetch League History
-**Endpoint**: `GET /api/fetch-league-history`
+**Endpoint**: `POST /api/fetch-league-history`
 **Purpose**: Retrieves multi-season league information
 
 **Request Parameters**:
@@ -173,7 +175,7 @@ GET /api/find-league?league={"platform":"sleeper","id":"123456789"}
 ---
 
 ### 4. Fetch Draft Details
-**Endpoint**: `GET /api/fetch-draft`
+**Endpoint**: `POST /api/fetch-draft`
 **Purpose**: Retrieves complete draft results and pick details
 
 **Request Parameters**:
@@ -213,7 +215,7 @@ GET /api/find-league?league={"platform":"sleeper","id":"123456789"}
 ---
 
 ### 5. Fetch League Teams
-**Endpoint**: `GET /api/fetch-league-teams`
+**Endpoint**: `POST /api/fetch-league-teams`
 **Purpose**: Retrieves team/owner information
 
 **Request Parameters**:
@@ -244,7 +246,7 @@ GET /api/find-league?league={"platform":"sleeper","id":"123456789"}
 ---
 
 ### 6. Fetch Players
-**Endpoint**: `GET /api/fetch-players`
+**Endpoint**: `POST /api/fetch-players`
 **Purpose**: Retrieves player database with eligibility and pricing
 
 **Request Parameters**:
@@ -343,19 +345,21 @@ const players = await client.fetchPlayers('2024', 1, 500);
 ### Direct HTTP Requests
 ```bash
 # Find league
-curl "https://your-domain.com/api/find-league?league=%7B%22platform%22%3A%22sleeper%22%2C%22id%22%3A%22123456789%22%7D"
+curl -X POST "https://your-domain.com/api/find-league" \
+  -H 'Content-Type: application/json' \
+  -d '{"league": {"platform": "sleeper", "id": "123456789"}}'
 
 # Fetch league info
-curl "https://your-domain.com/api/fetch-league?league=%7B%22platform%22%3A%22sleeper%22%2C%22id%22%3A%22123456789%22%7D&season=%222024%22"
+curl -X POST "https://your-domain.com/api/fetch-league" \
+  -H 'Content-Type: application/json' \
+  -d '{"league": {"platform": "sleeper", "id": "123456789"}, "season": "2024"}'
 ```
 
 ## Performance Considerations
 
 ### Caching Strategy
-- **Default Cache**: 24 hours for most endpoints
+- **Platform-data endpoints**: `no-store`; React Query staleTime (5 min default) prevents refetch storms
 - **Player Data**: Aggressively cached in Redis (Sleeper)
-- **League Info**: Standard HTTP caching
-- **Draft Data**: Cached until season changes
 
 ### Rate Limiting
 - No application-level rate limiting implemented

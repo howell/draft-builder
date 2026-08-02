@@ -1,12 +1,12 @@
-import { GET } from '../route';
+import { POST } from '../route';
 import { apiFor } from '@/platforms/ApiClient';
 import { EspnLeague } from '@/platforms/common';
 
-// Mock NextRequest
-const mockNextRequest = (url: string) => ({
-  nextUrl: new URL(url),
+// Mock NextRequest carrying a JSON body
+const mockNextRequest = (body: unknown) => ({
+  json: () => Promise.resolve(body),
   headers: new Headers(),
-  method: 'GET'
+  method: 'POST'
 } as any);
 
 // Mock the apiFor function
@@ -20,7 +20,14 @@ jest.mock('@/app/api/utils', () => ({
     json: () => Promise.resolve(body),
     status,
     headers: new Headers({ 'Content-Type': 'application/json' })
-  }))
+  })),
+  readJsonBody: async (req: any) => {
+    try {
+      return await req.json();
+    } catch {
+      return {};
+    }
+  }
 }));
 
 describe('/api/fetch-league-history', () => {
@@ -31,7 +38,7 @@ describe('/api/fetch-league-history', () => {
   describe('ESPN Private League Auth', () => {
     it('should pass ESPN auth data to the API when provided in the league parameter', async () => {
       const mockLeagueHistory = new Map([
-        ['2024', { 
+        ['2024', {
           name: 'Test League',
           drafted: true,
           scoringType: 'ppr' as const,
@@ -55,25 +62,21 @@ describe('/api/fetch-league-history', () => {
         }
       };
 
-      const url = new URL('http://localhost:3000/api/fetch-league-history');
-      url.searchParams.set('league', JSON.stringify(espnLeagueWithAuth));
-      url.searchParams.set('startSeason', JSON.stringify('2024')); // Ensure it stays as a string after JSON.parse
+      const request = mockNextRequest({ league: espnLeagueWithAuth, startSeason: '2024' });
 
-      const request = mockNextRequest(url.toString());
-      
-      const response = await GET(request);
+      const response = await POST(request);
       const data = await response.json();
 
       // Verify the request succeeded
       expect(response.status).toBe(200);
       expect(data.status).toBe('ok');
-      
+
       // Verify apiFor was called with the complete league object including auth
       expect(apiFor).toHaveBeenCalledWith(espnLeagueWithAuth);
-      
+
       // Verify the API method was called
       expect(mockApi.fetchLeagueHistory).toHaveBeenCalledWith('2024');
-      
+
       // Verify successful response
       expect(data).toEqual({
         status: 'ok',
@@ -83,7 +86,7 @@ describe('/api/fetch-league-history', () => {
 
     it('should work for ESPN public leagues without auth data', async () => {
       const mockLeagueHistory = new Map([
-        ['2024', { 
+        ['2024', {
           name: 'Public League',
           drafted: true,
           scoringType: 'standard' as const,
@@ -103,20 +106,16 @@ describe('/api/fetch-league-history', () => {
         id: '789012'
       };
 
-      const url = new URL('http://localhost:3000/api/fetch-league-history');
-      url.searchParams.set('league', JSON.stringify(espnLeaguePublic));
-      url.searchParams.set('startSeason', JSON.stringify('2024'));
-
-      const request = mockNextRequest(url.toString());
-      const response = await GET(request);
+      const request = mockNextRequest({ league: espnLeaguePublic, startSeason: '2024' });
+      const response = await POST(request);
       const data = await response.json();
 
       // Verify apiFor was called with the league object (no auth)
       expect(apiFor).toHaveBeenCalledWith(espnLeaguePublic);
-      
+
       // Verify the API method was called
       expect(mockApi.fetchLeagueHistory).toHaveBeenCalledWith('2024');
-      
+
       // Verify successful response
       expect(data).toEqual({
         status: 'ok',
@@ -136,23 +135,19 @@ describe('/api/fetch-league-history', () => {
         id: '999999'  // Private league ID that requires auth
       };
 
-      const url = new URL('http://localhost:3000/api/fetch-league-history');
-      url.searchParams.set('league', JSON.stringify(espnLeagueNoAuth));
-      url.searchParams.set('startSeason', JSON.stringify('2024'));
-
-      const request = mockNextRequest(url.toString());
-      const response = await GET(request);
+      const request = mockNextRequest({ league: espnLeagueNoAuth, startSeason: '2024' });
+      const response = await POST(request);
       const data = await response.json();
 
       // Verify apiFor was called
       expect(apiFor).toHaveBeenCalledWith(espnLeagueNoAuth);
-      
+
       // Verify error response (empty map indicates failure)
       expect(data.status).toContain('Failed to fetch league info');
     });
 
-    it('should preserve auth data structure when decoding from URL params', async () => {
-      const mockLeagueHistory = new Map([['2024', { 
+    it('should preserve auth data structure when decoding from the request body', async () => {
+      const mockLeagueHistory = new Map([['2024', {
         name: 'Auth Test League',
         drafted: true,
         scoringType: 'half-ppr' as const,
@@ -175,12 +170,8 @@ describe('/api/fetch-league-history', () => {
         }
       };
 
-      const url = new URL('http://localhost:3000/api/fetch-league-history');
-      url.searchParams.set('league', JSON.stringify(complexAuth));
-      url.searchParams.set('startSeason', JSON.stringify('2024'));
-
-      const request = mockNextRequest(url.toString());
-      await GET(request);
+      const request = mockNextRequest({ league: complexAuth, startSeason: '2024' });
+      await POST(request);
 
       // Verify the exact auth structure was preserved
       const calledWith = (apiFor as jest.Mock).mock.calls[0][0];
@@ -193,12 +184,8 @@ describe('/api/fetch-league-history', () => {
 
   describe('Error Handling', () => {
     it('should return 400 for malformed league parameter', async () => {
-      const url = new URL('http://localhost:3000/api/fetch-league-history');
-      url.searchParams.set('league', 'invalid-json');
-      url.searchParams.set('startSeason', JSON.stringify('2024'));
-
-      const request = mockNextRequest(url.toString());
-      const response = await GET(request);
+      const request = mockNextRequest({ league: 'not-a-league-object', startSeason: '2024' });
+      const response = await POST(request);
       const data = await response.json();
 
       expect(data.status).toContain('Invalid request');
@@ -206,12 +193,22 @@ describe('/api/fetch-league-history', () => {
     });
 
     it('should return 400 for missing required parameters', async () => {
-      const url = new URL('http://localhost:3000/api/fetch-league-history');
       // Missing league parameter
-      url.searchParams.set('startSeason', JSON.stringify('2024'));
+      const request = mockNextRequest({ startSeason: '2024' });
+      const response = await POST(request);
+      const data = await response.json();
 
-      const request = mockNextRequest(url.toString());
-      const response = await GET(request);
+      expect(data.status).toContain('Invalid request');
+      expect(apiFor).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 for a request with no JSON body', async () => {
+      const request = {
+        json: () => Promise.reject(new Error('no body')),
+        headers: new Headers(),
+        method: 'POST'
+      } as any;
+      const response = await POST(request);
       const data = await response.json();
 
       expect(data.status).toContain('Invalid request');

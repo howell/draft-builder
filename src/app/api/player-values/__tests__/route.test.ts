@@ -154,6 +154,6 @@ describe('GET /api/player-values', () => {
         expect(res.status).toBe(500);
         expect(body.status).toContain('boom');
         // A cached failure would pin the outage for the whole TTL.
-        expect(res.headers.get('Cache-Control')).toBe('no-cache');
+        expect(res.headers.get('Cache-Control')).toBe('no-store');
     });
 });

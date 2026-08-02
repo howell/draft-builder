@@ -192,11 +192,11 @@ describe('/api/live-draft-ingest', () => {
             expect(res.headers.get('Access-Control-Allow-Origin')).toBeNull();
         });
 
-        it('carries ACAO and no-cache on POST responses', async () => {
+        it('carries ACAO and no-store on POST responses', async () => {
             mockSupabase({ storedSecret: SECRET });
             const res = await POST(makeRequest(validBody));
             expect(res.headers.get('Access-Control-Allow-Origin')).toBe(ESPN_ORIGIN);
-            expect(res.headers.get('Cache-Control')).toBe('no-cache');
+            expect(res.headers.get('Cache-Control')).toBe('no-store');
         });
 
         it('carries ACAO even on auth failures so the userscript can read the status', async () => {

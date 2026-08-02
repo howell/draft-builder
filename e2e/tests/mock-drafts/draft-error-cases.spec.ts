@@ -16,11 +16,7 @@ test.describe('Mock Draft Error Cases', () => {
       await page.waitForTimeout(1000);
       
       // Now set up API mocking BEFORE navigation
-      await page.route('**/api/fetch-league?**', async (route) => {
-        const url = route.request().url();
-        if (url.includes('fetch-league-history')) {
-          return route.fallback();
-        }
+      await page.route(/\/api\/fetch-league(?!-history)/, async (route) => {
         return route.fulfill({ 
           status: 404, 
           contentType: 'application/json',
@@ -53,11 +49,7 @@ test.describe('Mock Draft Error Cases', () => {
       await page.waitForTimeout(1000);
       
       // Set up API mocking to return 500 errors
-      await page.route('**/api/fetch-league?**', async (route) => {
-        const url = route.request().url();
-        if (url.includes('fetch-league-history')) {
-          return route.fallback();
-        }
+      await page.route(/\/api\/fetch-league(?!-history)/, async (route) => {
         return route.fulfill({ 
           status: 500, 
           contentType: 'application/json',
@@ -90,11 +82,7 @@ test.describe('Mock Draft Error Cases', () => {
       await page.waitForTimeout(1000);
       
       // Set up API mocking to return timeout errors
-      await page.route('**/api/fetch-league?**', async (route) => {
-        const url = route.request().url();
-        if (url.includes('fetch-league-history')) {
-          return route.fallback();
-        }
+      await page.route(/\/api\/fetch-league(?!-history)/, async (route) => {
         // Simulate network delay
         await new Promise(resolve => setTimeout(resolve, 100));
         return route.fulfill({ 

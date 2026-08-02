@@ -4,6 +4,20 @@ export abstract class Decoder<T> {
         return new DecoderWithResult(params, {});
     }
 
+    // Decode a parsed JSON request body (POST routes). Values are re-stringified
+    // so the same JSON.parse + type-guard path validates both sources.
+    public static fromBody(body: unknown): Decoder<{}> {
+        const params = new URLSearchParams();
+        if (body && typeof body === 'object') {
+            for (const [key, value] of Object.entries(body)) {
+                if (value !== undefined) {
+                    params.set(key, JSON.stringify(value));
+                }
+            }
+        }
+        return new DecoderWithResult(params, {});
+    }
+
     protected params: URLSearchParams;
 
     constructor(params: URLSearchParams) {

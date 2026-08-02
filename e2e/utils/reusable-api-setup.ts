@@ -52,16 +52,18 @@ export async function setupCommonApiMocks(page: Page, config: ApiMockConfig = {}
 
   // Find league endpoint - used by platform connection
   await page.route('**/api/find-league**', async (route) => {
-    const url = route.request().url();
-    
-    if (shouldTimeout || url.includes('timeout') || url.includes(TEST_LEAGUE_IDS.TIMEOUT)) {
+    // The league payload travels in the POST body (auth never goes in URLs),
+    // so probe both the URL and the body for scenario markers.
+    const probe = route.request().url() + (route.request().postData() || '');
+
+    if (shouldTimeout || probe.includes('timeout') || probe.includes(TEST_LEAGUE_IDS.TIMEOUT)) {
       return route.fulfill({ status: 504, json: { error: 'Gateway Timeout' } });
     }
-    
-    if (shouldFailLeagueFind || url.includes('invalid')) {
+
+    if (shouldFailLeagueFind || probe.includes('invalid')) {
       return route.fulfill({ status: 404, json: { status: 'Failed to find league' } });
     }
-    
+
     return route.fulfill({ status: 200, json: { status: 'ok' } });
   });
 
@@ -151,8 +153,12 @@ export async function setupCommonApiMocks(page: Page, config: ApiMockConfig = {}
 
   // Fetch draft endpoint - used to get draft details for a specific season
   await page.route('**/api/fetch-draft**', async (route) => {
+    // Season arrives in the POST body (league auth keeps these requests out
+    // of URLs); fall back to query params for any legacy GET callers.
     const url = new URL(route.request().url());
-    const season = url.searchParams.get('season')?.replace(/"/g, '') || '2025';
+    const season = route.request().postDataJSON()?.season
+      || url.searchParams.get('season')?.replace(/"/g, '')
+      || '2025';
     
     const appApiFixturesDir = join(__dirname, '..', 'fixtures', 'app-api');
     const draftFixturePath = join(appApiFixturesDir, `fetch-draft-${season}.json`);

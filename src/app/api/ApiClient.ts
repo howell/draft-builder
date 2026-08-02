@@ -29,11 +29,13 @@ export default class ApiClient {
         return makeApiRequest<LoadLeaguesRequest, LoadLeaguesResponse>(LOAD_LEAGUES_ENDPOINT, 'GET', req);
     }
 
+    // League-carrying reads use POST: this.league can include platform auth
+    // cookies, which must never be serialized into a URL query string.
     public findLeague(): Promise<string | FindLeagueResponse> {
         const req: FindLeagueRequest = {
             league: this.league
         };
-        return makeApiRequest<FindLeagueRequest, FindLeagueResponse>(FIND_LEAGUE_ENDPOINT, 'GET', req);
+        return makeApiRequest<FindLeagueRequest, FindLeagueResponse>(FIND_LEAGUE_ENDPOINT, 'POST', req);
     }
 
     public saveLeague(userId: string): Promise<string | SaveLeagueResponse> {
@@ -49,7 +51,7 @@ export default class ApiClient {
             league: this.league,
             startSeason
         };
-        return makeApiRequest<FetchLeagueHistoryRequest, FetchLeagueHistoryResponse>(FETCH_LEAGUE_HISTORY_ENDPOINT, 'GET', req);
+        return makeApiRequest<FetchLeagueHistoryRequest, FetchLeagueHistoryResponse>(FETCH_LEAGUE_HISTORY_ENDPOINT, 'POST', req);
     }
 
     public fetchDraft(season: SeasonId): Promise<string | FetchDraftResponse> {
@@ -57,7 +59,7 @@ export default class ApiClient {
             league: this.league,
             season: season
         };
-        return makeApiRequest<FetchDraftRequest, FetchDraftResponse>(FETCH_DRAFT_ENDPOINT, 'GET', req);
+        return makeApiRequest<FetchDraftRequest, FetchDraftResponse>(FETCH_DRAFT_ENDPOINT, 'POST', req);
     }
 
     public fetchLeague(season: SeasonId): Promise<string | FetchLeagueResponse> {
@@ -65,7 +67,7 @@ export default class ApiClient {
             league: this.league,
             season: season
         };
-        return makeApiRequest<FetchLeagueRequest, FetchLeagueResponse>(FETCH_LEAGUE_ENDPOINT, 'GET', req);
+        return makeApiRequest<FetchLeagueRequest, FetchLeagueResponse>(FETCH_LEAGUE_ENDPOINT, 'POST', req);
     }
 
     public fetchLeagueTeams(season: SeasonId, scoringPeriodId: number): Promise<string | FetchLeagueTeamsResponse> {
@@ -74,7 +76,7 @@ export default class ApiClient {
             season: season,
             scoringPeriodId: scoringPeriodId
         };
-        return makeApiRequest<FetchLeagueTeamsRequest, FetchLeagueTeamsResponse>(FETCH_LEAGUE_TEAMS_ENDPOINT, 'GET', req);
+        return makeApiRequest<FetchLeagueTeamsRequest, FetchLeagueTeamsResponse>(FETCH_LEAGUE_TEAMS_ENDPOINT, 'POST', req);
     }
 
     public fetchPlayers(season: SeasonId, scoringPeriodId: number = 0, maxPlayers: number = 1000): Promise<string | FetchPlayersResponse> {
@@ -84,7 +86,7 @@ export default class ApiClient {
             scoringPeriodId: scoringPeriodId,
             maxPlayers: maxPlayers
         };
-        return makeApiRequest<FetchPlayersRequest, FetchPlayersResponse>(FETCH_PLAYERS_ENDPOINT, 'GET', req);
+        return makeApiRequest<FetchPlayersRequest, FetchPlayersResponse>(FETCH_PLAYERS_ENDPOINT, 'POST', req);
     }
 
     public buildDraftHistory(leagueHistory: LeagueInfoHistory) : Promise<Map<DraftDetail, Player[]>> {
