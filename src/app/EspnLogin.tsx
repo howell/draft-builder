@@ -4,15 +4,12 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { LeagueDataInput, LeagueLoginProps, PrivateLeagueInput, PrivateLeagueLabel, SubmitButton } from './leagueInputs';
 import { EspnLeague } from '@/platforms/common';
-import { useRouter } from 'next/navigation';
-import Cookies from 'js-cookie'; // Import the Cookies module
 
 const EspnLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
     const [leagueID, setLeagueID] = useState("");
     const [swid, setSwid] = useState("");
     const [espnS2, setEspnS2] = useState("");
     const [validationError, setValidationError] = useState<string | null>(null);
-    const router = useRouter();
 
     const handleSubmit = async () => {
       setValidationError(null);
@@ -23,11 +20,6 @@ const EspnLogin: React.FC<LeagueLoginProps> = ({ submitLeague }) => {
       }
 
       const providedLeagueId = leagueID.trim();
-
-    //   if (providedLeagueId === '781060' && Cookies.get('magic word') !== process.env.NEXT_PUBLIC_MAGIC_WORD) {
-    //     router.push('/newman.gif');
-    //     return;
-    //   }
 
       if (isNaN(parseInt(providedLeagueId))) {
         setValidationError("League ID must be a number");

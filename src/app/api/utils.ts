@@ -1,10 +1,35 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
+import { PROTECTED_LEAGUE_STATUS } from './interface';
 
 export const DEFAULT_CACHE_LENGTH = 60 * 60 * 24; // 1 day
 
+/**
+ * The signed-in user's Supabase access token, for the protected-league gate
+ * (leagueGate.ts). Browser-only: makeApiRequest also runs during SSR, where
+ * there is no session and the gate would reject anyway.
+ */
+async function sessionAuthHeader(): Promise<Record<string, string>> {
+    if (typeof window === 'undefined') return {};
+    const { supabase } = await import('@/lib/supabase');
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+/** True when a response is the protected-league gate turning us away. */
+export function isProtectedLeagueDenial(status: number | undefined, body: unknown): boolean {
+    return (
+        status === 403 &&
+        typeof body === 'object' &&
+        body !== null &&
+        (body as { status?: unknown }).status === PROTECTED_LEAGUE_STATUS
+    );
+}
+
 export async function makeApiRequest<T, U>(endpoint: string, method: string, body: T, headers?: Record<string, string>): Promise<U | string> {
     try {
+        const authHeader = await sessionAuthHeader();
         if (method.toLowerCase() === 'get') {
             // GET requests: send data as query parameters
             const searchParams = new URLSearchParams();
@@ -15,6 +40,7 @@ export async function makeApiRequest<T, U>(endpoint: string, method: string, bod
             const response = await axios.get(url, {
                 headers: {
                     'Content-Type': 'application/json',
+                    ...authHeader,
                     ...headers
                 },
                 timeout: 10_000
@@ -28,6 +54,7 @@ export async function makeApiRequest<T, U>(endpoint: string, method: string, bod
                 data: body,
                 headers: {
                     'Content-Type': 'application/json',
+                    ...authHeader,
                     ...headers
                 },
                 timeout: 10_000
@@ -36,6 +63,14 @@ export async function makeApiRequest<T, U>(endpoint: string, method: string, bod
         }
     } catch (error) {
         if (axios.isAxiosError(error)) {
+            // A league mate poking at a protected league gets Newman, not an
+            // error state (the owner asked for exactly this).
+            if (
+                typeof window !== 'undefined' &&
+                isProtectedLeagueDenial(error.response?.status, error.response?.data)
+            ) {
+                window.location.assign('/newman.gif');
+            }
             return (error.message);
         }
         throw error;
