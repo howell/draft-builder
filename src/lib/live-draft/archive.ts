@@ -312,22 +312,16 @@ export async function fetchArchiveDetail(client: Client, archiveId: string): Pro
         if (data.length < DETAIL_PAGE_SIZE) break;
     }
 
-    const [picksRes, bidsRes, valuesRes] = await Promise.all([
+    const [picksRes, bids, valuesRes] = await Promise.all([
         client
             .from('live_draft_archive_picks')
             .select('*')
             .eq('archive_id', archiveId)
             .order('pick_number'),
-        client
-            .from('live_draft_archive_bids')
-            .select('*')
-            .eq('archive_id', archiveId)
-            .order('player_id')
-            .order('seq'),
+        fetchArchiveBids(client, archiveId),
         fetchArchiveValues(client, archiveId),
     ]);
     if (picksRes.error) throw picksRes.error;
-    if (bidsRes.error) throw bidsRes.error;
 
     return {
         archive: toSummary(header),
@@ -344,16 +338,41 @@ export async function fetchArchiveDetail(client: Client, archiveId: string): Pro
             distinctBidders: row.distinct_bidders,
             soldAtMs: row.sold_at_ms,
         })),
-        bids: (bidsRes.data ?? []).map(row => ({
-            playerId: row.player_id,
-            seq: row.seq,
-            kind: row.kind as ArchivedBid['kind'],
-            teamId: row.team_id,
-            amount: row.amount,
-            atMs: row.at_ms,
-        })),
+        bids,
         values: valuesRes,
     };
+}
+
+/**
+ * A full auction's bid events exceed PostgREST's row cap (~200 lots × ~10
+ * events each) — drain in (player_id, seq)-ordered pages. Offset pagination
+ * is safe here: archived bid rows are immutable.
+ */
+export async function fetchArchiveBids(client: Client, archiveId: string): Promise<ArchivedBid[]> {
+    const bids: ArchivedBid[] = [];
+    for (let offset = 0; ; offset += DETAIL_PAGE_SIZE) {
+        const { data, error } = await client
+            .from('live_draft_archive_bids')
+            .select('player_id, seq, kind, team_id, amount, at_ms')
+            .eq('archive_id', archiveId)
+            .order('player_id')
+            .order('seq')
+            .range(offset, offset + DETAIL_PAGE_SIZE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        for (const row of data) {
+            bids.push({
+                playerId: row.player_id,
+                seq: row.seq,
+                kind: row.kind as ArchivedBid['kind'],
+                teamId: row.team_id,
+                amount: row.amount,
+                atMs: row.at_ms,
+            });
+        }
+        if (data.length < DETAIL_PAGE_SIZE) break;
+    }
+    return bids;
 }
 
 /**

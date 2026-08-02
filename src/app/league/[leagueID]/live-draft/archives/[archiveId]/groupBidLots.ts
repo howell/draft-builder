@@ -71,3 +71,73 @@ export function groupBidLots(bids: ArchivedBid[], picks: ArchivedPick[]): BidLot
     }
     return lots;
 }
+
+/**
+ * A lot paired with its display-resolved name/position (archive row first,
+ * live player lookup as fallback) — the unit the bid-history filter controls
+ * operate on, so search/filter see exactly what the user sees.
+ */
+export interface DisplayLot {
+    lot: BidLot;
+    name: string;
+    position: string | null;
+}
+
+export type LotSortKey = 'draft' | 'price' | 'events' | 'bidders' | 'duration';
+
+export interface LotFilters {
+    /** Case-insensitive substring of the resolved player name. */
+    search: string;
+    /** Resolved position; '' matches all. */
+    position: string;
+    /** Only lots this team actively bid on (open/bid) or won; null for all.
+     *  Passes don't count — consistent with distinctBidders. */
+    teamId: number | null;
+    outcome: 'all' | 'sold' | 'unsold';
+    sortKey: LotSortKey;
+}
+
+/**
+ * Applies the bid-history controls to display lots. 'draft' keeps
+ * groupBidLots order (sold by pick, then unsold by observation); the metric
+ * sorts are descending with unknowns (unsold price, unobserved duration)
+ * last, draft order breaking ties via sort stability.
+ */
+export function filterSortLots(lots: DisplayLot[], filters: LotFilters): DisplayLot[] {
+    const search = filters.search.trim().toLowerCase();
+    const filtered = lots.filter(({ lot, name, position }) => {
+        if (search && !name.toLowerCase().includes(search)) return false;
+        if (filters.position && position !== filters.position) return false;
+        if (filters.teamId !== null) {
+            const active =
+                lot.winningTeamId === filters.teamId ||
+                lot.events.some(e => e.kind !== 'pass' && e.teamId === filters.teamId);
+            if (!active) return false;
+        }
+        if (filters.outcome === 'sold' && lot.pickNumber === null) return false;
+        if (filters.outcome === 'unsold' && lot.pickNumber !== null) return false;
+        return true;
+    });
+
+    const sortKey = filters.sortKey;
+    if (sortKey === 'draft') return filtered;
+    const metric = (lot: BidLot): number | null => {
+        switch (sortKey) {
+            case 'price':
+                return lot.price;
+            case 'events':
+                return lot.events.length;
+            case 'bidders':
+                return lot.distinctBidders;
+            case 'duration':
+                return lot.durationMs;
+        }
+    };
+    return [...filtered].sort((a, b) => {
+        const ma = metric(a.lot);
+        const mb = metric(b.lot);
+        if (ma === null) return mb === null ? 0 : 1;
+        if (mb === null) return -1;
+        return mb - ma;
+    });
+}

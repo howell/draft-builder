@@ -209,9 +209,24 @@
 >   picks with no observed bidding are reported as an INIT-catch-up count. JSONL export matches the
 >   userscript badge format (ts normalized to `Z`) so exports replay via
 >   `scripts/replay-frames.ts` and feed the corpus tooling.
+> - **Bid-history browsing + full bids fetch (2026-08-02) ✅ COMPLETED**:
+>   `fetchArchiveDetail` fetched bids in ONE request, so PostgREST's 1000-row
+>   cap silently truncated any real draft (~2k events) — lots beyond the cap
+>   (ordered by player_id) were mislabeled INIT catch-up on the archive page.
+>   Bids now drain in pages via `fetchArchiveBids` (offset pagination like
+>   values; rows immutable), and the card gained controls: player-name
+>   search, position/team/outcome filters, and metric sorts
+>   (price/events/bidders/duration, descending, unknowns last, draft-order
+>   ties) via pure `filterSortLots` on `DisplayLot`s (lot + resolved
+>   name/position, so search matches what's rendered). Team filter counts
+>   active bids or the win — not passes — mirroring `distinctBidders`.
 > - **Tests**: `archiveExtract.test.ts` (dedup, epoch guard, reconnect
 >   survival, pass interleaving, unsold lots), `archive.test.ts` (JSONL
->   round-trip), `archive.integration.test.ts` (real local Supabase: grants,
+>   round-trip; `fetchArchiveBids` page-drain, mapping, short/empty-page
+>   stop, error propagation), `groupBidLots.test.ts` (grouping +
+>   `filterSortLots` search/filter/sort semantics), `BidHistory.test.tsx`
+>   (controls drive the visible lots; INIT summary; empty states),
+>   `archive.integration.test.ts` (real local Supabase: grants,
 >   WITH CHECK, RLS isolation, watermark survival, unique constraints,
 >   cascade, updated_at trigger), extended `LiveDraftBoard.test.tsx`.
 > - **Manual E2E loop (test league)**: `npm run dev` → mint token on the

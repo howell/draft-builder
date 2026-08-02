@@ -1,4 +1,10 @@
-import { groupBidLots } from '../archives/[archiveId]/groupBidLots';
+import {
+    BidLot,
+    DisplayLot,
+    LotFilters,
+    filterSortLots,
+    groupBidLots,
+} from '../archives/[archiveId]/groupBidLots';
 import type { ArchivedBid, ArchivedPick } from '@/lib/live-draft/archive';
 
 const bid = (playerId: number, seq: number, overrides: Partial<ArchivedBid> = {}): ArchivedBid => ({
@@ -69,5 +75,145 @@ describe('groupBidLots', () => {
         expect(lots).toHaveLength(1);
         expect(lots[0].playerId).toBe(100);
         expect(lots[0].durationMs).toBeNull();
+    });
+});
+
+describe('filterSortLots', () => {
+    const displayLot = (
+        name: string,
+        position: string | null,
+        lot: Partial<BidLot> & { playerId: number }
+    ): DisplayLot => ({
+        name,
+        position,
+        lot: {
+            pickNumber: null,
+            playerName: name,
+            position,
+            price: null,
+            winningTeamId: null,
+            events: [],
+            durationMs: null,
+            distinctBidders: 0,
+            ...lot,
+        },
+    });
+
+    const event = (teamId: number, kind: ArchivedBid['kind'], seq: number): ArchivedBid => ({
+        playerId: 0,
+        seq,
+        kind,
+        teamId,
+        amount: kind === 'pass' ? null : seq + 1,
+        atMs: null,
+    });
+
+    // Team 4 only ever passes; team 2 wins alpha's lot without the hammer
+    // event being its only trace (it also bid).
+    const alpha = displayLot('Caleb Williams', 'QB', {
+        playerId: 101,
+        pickNumber: 1,
+        price: 47,
+        winningTeamId: 2,
+        events: [event(1, 'open', 0), event(2, 'bid', 1)],
+        durationMs: 30_000,
+        distinctBidders: 2,
+    });
+    const beta = displayLot('Jahmyr Gibbs', 'RB', {
+        playerId: 202,
+        pickNumber: 2,
+        price: 81,
+        winningTeamId: 5,
+        events: [event(5, 'open', 0), event(3, 'bid', 1), event(4, 'pass', 2), event(5, 'bid', 3)],
+        durationMs: 90_000,
+        distinctBidders: 2,
+    });
+    const gamma = displayLot('Sleeper Guy', 'WR', {
+        playerId: 404,
+        events: [event(7, 'open', 0)],
+        distinctBidders: 1,
+    });
+    const lots = [alpha, beta, gamma];
+
+    const filters = (overrides: Partial<LotFilters> = {}): LotFilters => ({
+        search: '',
+        position: '',
+        teamId: null,
+        outcome: 'all',
+        sortKey: 'draft',
+        ...overrides,
+    });
+
+    const names = (result: DisplayLot[]) => result.map(d => d.name);
+
+    it('passes everything through untouched with default filters', () => {
+        expect(filterSortLots(lots, filters())).toEqual(lots);
+    });
+
+    it('searches the resolved name, case-insensitive, trimming whitespace', () => {
+        expect(names(filterSortLots(lots, filters({ search: '  GIBBS ' })))).toEqual([
+            'Jahmyr Gibbs',
+        ]);
+        expect(filterSortLots(lots, filters({ search: 'zzz' }))).toEqual([]);
+    });
+
+    it('filters by resolved position', () => {
+        expect(names(filterSortLots(lots, filters({ position: 'QB' })))).toEqual([
+            'Caleb Williams',
+        ]);
+    });
+
+    it('filters by team via active bids or the win — passes do not count', () => {
+        // Team 3 bid on beta's lot only.
+        expect(names(filterSortLots(lots, filters({ teamId: 3 })))).toEqual(['Jahmyr Gibbs']);
+        // Team 2 bid on and won alpha's lot.
+        expect(names(filterSortLots(lots, filters({ teamId: 2 })))).toEqual(['Caleb Williams']);
+        // Team 4 only passed — that is not participation.
+        expect(filterSortLots(lots, filters({ teamId: 4 }))).toEqual([]);
+    });
+
+    it('filters by outcome', () => {
+        expect(names(filterSortLots(lots, filters({ outcome: 'sold' })))).toEqual([
+            'Caleb Williams',
+            'Jahmyr Gibbs',
+        ]);
+        expect(names(filterSortLots(lots, filters({ outcome: 'unsold' })))).toEqual([
+            'Sleeper Guy',
+        ]);
+    });
+
+    it('sorts metrics descending with unknowns last', () => {
+        expect(names(filterSortLots(lots, filters({ sortKey: 'price' })))).toEqual([
+            'Jahmyr Gibbs',
+            'Caleb Williams',
+            'Sleeper Guy', // unsold: no price
+        ]);
+        expect(names(filterSortLots(lots, filters({ sortKey: 'events' })))).toEqual([
+            'Jahmyr Gibbs',
+            'Caleb Williams',
+            'Sleeper Guy',
+        ]);
+        expect(names(filterSortLots(lots, filters({ sortKey: 'duration' })))).toEqual([
+            'Jahmyr Gibbs',
+            'Caleb Williams',
+            'Sleeper Guy', // never sold: no duration
+        ]);
+    });
+
+    it('breaks metric ties by draft order (stable sort)', () => {
+        // alpha and beta tie on distinctBidders; draft order has alpha first.
+        expect(names(filterSortLots(lots, filters({ sortKey: 'bidders' })))).toEqual([
+            'Caleb Williams',
+            'Jahmyr Gibbs',
+            'Sleeper Guy',
+        ]);
+    });
+
+    it('composes search, filters, and sort', () => {
+        const result = filterSortLots(
+            lots,
+            filters({ search: 'i', outcome: 'sold', sortKey: 'price' })
+        );
+        expect(names(result)).toEqual(['Jahmyr Gibbs', 'Caleb Williams']);
     });
 });
