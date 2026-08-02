@@ -3,10 +3,15 @@
 /**
  * Read-only board view of an archived draft: the archived frames are folded
  * through the exact same buildLiveBoard pipeline the game-day page uses
- * (ordered by source_frame_id, which reproduces the live fold), with the
- * ranked pool supplying player names.
+ * (ordered by source_frame_id, which reproduces the live fold).
  *
- * If the pool is unavailable (no draft history for the league anymore), the
+ * The fold prefers the archive's own frozen values pool — the ranks/prices
+ * the board actually used on draft night — over the live pipeline's pool,
+ * which drifts as ESPN values move and the rankings sheet is edited. Archives
+ * created before values capture existed fall back to the live pool and offer
+ * a one-time backfill (only as faithful as the time elapsed since the draft).
+ *
+ * If neither pool is available (no draft history for the league anymore), the
  * page falls back to the denormalized archived pick rows — archives must
  * outlive pool availability. No predictors or inflation here: the archive
  * shows what happened, not what the model thought.
@@ -23,9 +28,14 @@ import { Button } from '@/ui/Button';
 import { usePlayersQuery } from '@/hooks/queries';
 import { useLeagueQuery } from '@/hooks/queries/useLeagueQuery';
 import { useLeagueTeamsQuery } from '@/hooks/queries/useLeagueTeamsQuery';
-import { useLiveDraftArchiveQuery } from '@/hooks/queries/useLiveDraftArchives';
+import {
+    useBackfillArchiveValuesMutation,
+    useLiveDraftArchiveQuery,
+} from '@/hooks/queries/useLiveDraftArchives';
+import { usePlayerValuesQuery } from '@/hooks/queries/usePlayerValuesQuery';
 import { archiveFramesToJsonl } from '@/lib/live-draft/archive';
-import { BoardFrame, buildLiveBoard } from '@/lib/models/live-draft/liveBoard';
+import { poolToArchiveValues } from '@/lib/models/live-draft/archiveExtract';
+import { BoardFrame, BoardPlayer, buildLiveBoard } from '@/lib/models/live-draft/liveBoard';
 import { useSimulatorData } from '../../useSimulatorData';
 import StatTiles from '../../components/board/StatTiles';
 import PicksTable, { NamedPick } from '../../components/board/PicksTable';
@@ -43,6 +53,8 @@ const ArchiveBoard: React.FC<Props> = ({ leagueId, archiveId, googleApiKey }) =>
     const teamsQuery = useLeagueTeamsQuery(leagueId, CURRENT_SEASON);
     const playersQuery = usePlayersQuery(leagueId);
     const leagueQuery = useLeagueQuery(leagueId);
+    const playerValuesQuery = usePlayerValuesQuery([CURRENT_SEASON]);
+    const backfillMutation = useBackfillArchiveValuesMutation(leagueId);
     const [exporting, setExporting] = useState(false);
 
     const detail = archiveQuery.data;
@@ -65,7 +77,22 @@ const ArchiveBoard: React.FC<Props> = ({ leagueId, archiveId, googleApiKey }) =>
         );
     }, [playersQuery.data, leagueQuery.data]);
 
-    // Preferred path: replay the archived frames through the live fold.
+    // The archive's frozen pool, when it has one — the draft-night inputs.
+    const frozenPool = useMemo<BoardPlayer[] | null>(() => {
+        if (!detail || detail.values.length === 0) return null;
+        return detail.values.map(value => ({
+            id: String(value.playerId),
+            name: value.playerName ?? undefined,
+            defaultPosition: value.position,
+            positionRank: value.positionRank,
+            overallRank: value.overallRank,
+            platformValue: value.platformValue ?? undefined,
+        }));
+    }, [detail]);
+
+    // Preferred path: replay the archived frames through the live fold, using
+    // the frozen pool when available so the view stays stable as live data
+    // drifts. League config (budget, roster) still comes from the live layer.
     const board = useMemo(() => {
         if (!detail || !data) return null;
         const frames: BoardFrame[] = detail.frames.map(f => ({
@@ -76,14 +103,14 @@ const ArchiveBoard: React.FC<Props> = ({ leagueId, archiveId, googleApiKey }) =>
             dir: f.dir,
             data: f.data,
         }));
-        return buildLiveBoard(frames, data.players, {
+        return buildLiveBoard(frames, frozenPool ?? data.players, {
             leagueId: Number(leagueId),
             totalBudgetPerTeam: data.defaultBudget,
             rosterNeeds: data.rosterNeeds,
             knownTeamIds: leagueTeams.map(t => t.id),
             playerLookup,
         });
-    }, [detail, data, leagueTeams, playerLookup, leagueId]);
+    }, [detail, data, frozenPool, leagueTeams, playerLookup, leagueId]);
 
     // Fallback path: the denormalized pick rows, no pool required.
     const fallbackPicks = useMemo<NamedPick[]>(() => {
@@ -138,6 +165,16 @@ const ArchiveBoard: React.FC<Props> = ({ leagueId, archiveId, googleApiKey }) =>
     const picks = board ? board.picks : fallbackPicks;
     const spent = picks.reduce((sum, p) => sum + p.price, 0);
 
+    const backfillValues = () => {
+        if (!data) return;
+        backfillMutation.mutate({
+            archiveId,
+            values: poolToArchiveValues(data.players),
+            valuesSnapshotDate:
+                playerValuesQuery.data?.[CURRENT_SEASON]?.[0]?.snapshotDate ?? null,
+        });
+    };
+
     return (
         <div className="max-w-6xl mx-auto p-4 space-y-4">
             <div>
@@ -156,11 +193,43 @@ const ArchiveBoard: React.FC<Props> = ({ leagueId, archiveId, googleApiKey }) =>
                         `drafted ${new Date(archive.draftedAt).toLocaleString()} · `}
                     {archive.frameCount} frames · {archive.captureCount} capture
                     {archive.captureCount === 1 ? '' : 's'} · {archive.bidCount} bid events ·{' '}
+                    {archive.valueCount > 0
+                        ? `${archive.valueCount} frozen player values` +
+                          (archive.valuesSnapshotDate
+                              ? ` (platform snapshot ${archive.valuesSnapshotDate})`
+                              : '')
+                        : 'no values snapshot'}{' '}
+                    ·{' '}
                     <Link className="underline" href={`/league/${leagueId}/live-draft/archives`}>
                         all archives
                     </Link>
                 </p>
             </div>
+
+            {archive.valueCount === 0 && (
+                <Alert variant="warning">
+                    <span className="flex flex-wrap items-center gap-2">
+                        <span>
+                            This archive predates values capture, so replays use today&apos;s
+                            drifting pool. Freeze the current rankings and prices into it — only
+                            as faithful as they are unchanged since the draft.
+                        </span>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={backfillValues}
+                            disabled={!data || backfillMutation.isPending}
+                        >
+                            {backfillMutation.isPending ? 'Capturing…' : 'Capture values snapshot'}
+                        </Button>
+                    </span>
+                    {backfillMutation.isError && (
+                        <p className="mt-1 text-sm">
+                            Backfill failed: {(backfillMutation.error as Error).message}
+                        </p>
+                    )}
+                </Alert>
+            )}
 
             {board && data ? (
                 <StatTiles

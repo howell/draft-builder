@@ -160,6 +160,19 @@ before the socket connected).
       updates it) and drives the calibrated inflation model on the game-day
       page (`/league/<id>/live-draft`, `LiveDraftBoard.tsx`). Post-draft
       `mDraftDetail` reconciliation remains open.
+- [x] **Archive values snapshot** (2026-08-02) — migration 009
+      (`live_draft_archive_values` + `value_count`/`values_snapshot_date` on
+      the header): archiving freezes the board's ranked pool (custom-rankings
+      order, league-scaled platform prices) alongside picks/bids, because the
+      live pool drifts (ESPN values move, the rankings sheet gets edited) and
+      cannot be reconstructed later. `ArchiveBoard` replays against the frozen
+      pool when present and offers a one-time backfill for older archives;
+      `archiveToHistoricalDraft` (`archiveExtract.ts`) turns a values-bearing
+      archive into a self-contained backtest `HistoricalDraft`;
+      `/api/player-values` gained `asOf` to pin API-source seasons to the
+      snapshot of a given date. Follow-up open: feed values-bearing archives
+      into `useSimulatorData`'s historical set (preferring them over the
+      API-history normalization for the same season).
 - [ ] **Dress-rehearsal test draft** with the userscript installed end-to-end
       (test league + dummy accounts make this cheap). Do this before any app
       work depends on the script.

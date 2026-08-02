@@ -16,7 +16,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/database.types';
 import type { IngestedFrame } from '@/hooks/queries/useLiveDraftFrames';
-import type { ArchiveExtract } from '@/lib/models/live-draft/archiveExtract';
+import type { ArchiveExtract, ArchiveValueRow } from '@/lib/models/live-draft/archiveExtract';
 
 export const ARCHIVE_INSERT_BATCH = 500;
 
@@ -34,6 +34,10 @@ export interface ArchiveSummary {
     captureCount: number;
     pickCount: number;
     bidCount: number;
+    /** 0 for archives created before values capture existed (backfillable). */
+    valueCount: number;
+    /** platform_player_values snapshot current at archive time; null when unknown. */
+    valuesSnapshotDate: string | null;
     totalSpent: number;
     createdAt: string | null;
 }
@@ -75,6 +79,8 @@ export interface ArchiveDetail {
     frames: ArchivedFrame[];
     picks: ArchivedPick[];
     bids: ArchivedBid[];
+    /** The board's frozen pool, overall_rank ascending; empty pre-backfill. */
+    values: ArchiveValueRow[];
 }
 
 export interface CreateArchiveParams {
@@ -86,6 +92,8 @@ export interface CreateArchiveParams {
     /** The accumulated client frame set, id-ascending. */
     frames: IngestedFrame[];
     extract: ArchiveExtract;
+    /** snapshot_date of the platform values snapshot current at archive time. */
+    valuesSnapshotDate?: string | null;
     onProgress?: (done: number, total: number) => void;
 }
 
@@ -104,16 +112,31 @@ function toSummary(row: Database['public']['Tables']['live_draft_archives']['Row
         captureCount: row.capture_count,
         pickCount: row.pick_count,
         bidCount: row.bid_count,
+        valueCount: row.value_count,
+        valuesSnapshotDate: row.values_snapshot_date,
         totalSpent: row.total_spent,
         createdAt: row.created_at,
     };
+}
+
+function toValueRows(archiveId: string, userId: string, values: ArchiveValueRow[]) {
+    return values.map(value => ({
+        archive_id: archiveId,
+        user_id: userId,
+        player_id: value.playerId,
+        player_name: value.playerName,
+        position: value.position,
+        overall_rank: value.overallRank,
+        position_rank: value.positionRank,
+        platform_value: value.platformValue,
+    }));
 }
 
 export async function createLiveDraftArchive(
     client: Client,
     params: CreateArchiveParams
 ): Promise<{ archiveId: string; deletedThroughId: number }> {
-    const { userId, leagueId, name, kind, season, frames, extract, onProgress } = params;
+    const { userId, leagueId, name, kind, season, frames, extract, valuesSnapshotDate, onProgress } = params;
     if (frames.length === 0) {
         throw new Error('Nothing to archive: the ingest buffer is empty');
     }
@@ -132,6 +155,8 @@ export async function createLiveDraftArchive(
             capture_count: extract.captureCount,
             pick_count: extract.picks.length,
             bid_count: extract.bids.length,
+            value_count: extract.values.length,
+            values_snapshot_date: valuesSnapshotDate ?? null,
             total_spent: extract.totalSpent,
         })
         .select('id')
@@ -140,12 +165,12 @@ export async function createLiveDraftArchive(
     const archiveId = header.id;
 
     try {
-        // Copy in units of work for progress: frame batches + picks + bids + commit.
+        // Copy in units of work for progress: frame batches + picks + bids + values + commit.
         const frameBatches: IngestedFrame[][] = [];
         for (let i = 0; i < frames.length; i += ARCHIVE_INSERT_BATCH) {
             frameBatches.push(frames.slice(i, i + ARCHIVE_INSERT_BATCH));
         }
-        const totalSteps = frameBatches.length + 3;
+        const totalSteps = frameBatches.length + 4;
         let done = 0;
         const step = () => onProgress?.(++done, totalSteps);
 
@@ -200,6 +225,15 @@ export async function createLiveDraftArchive(
                     at_ms: bid.atMs,
                 }))
             );
+            if (error) throw error;
+        }
+        step();
+
+        const valueRows = toValueRows(archiveId, userId, extract.values);
+        for (let i = 0; i < valueRows.length; i += ARCHIVE_INSERT_BATCH) {
+            const { error } = await client
+                .from('live_draft_archive_values')
+                .insert(valueRows.slice(i, i + ARCHIVE_INSERT_BATCH));
             if (error) throw error;
         }
         step();
@@ -278,7 +312,7 @@ export async function fetchArchiveDetail(client: Client, archiveId: string): Pro
         if (data.length < DETAIL_PAGE_SIZE) break;
     }
 
-    const [picksRes, bidsRes] = await Promise.all([
+    const [picksRes, bidsRes, valuesRes] = await Promise.all([
         client
             .from('live_draft_archive_picks')
             .select('*')
@@ -290,6 +324,7 @@ export async function fetchArchiveDetail(client: Client, archiveId: string): Pro
             .eq('archive_id', archiveId)
             .order('player_id')
             .order('seq'),
+        fetchArchiveValues(client, archiveId),
     ]);
     if (picksRes.error) throw picksRes.error;
     if (bidsRes.error) throw bidsRes.error;
@@ -317,7 +352,96 @@ export async function fetchArchiveDetail(client: Client, archiveId: string): Pro
             amount: row.amount,
             atMs: row.at_ms,
         })),
+        values: valuesRes,
     };
+}
+
+/**
+ * The frozen pool can exceed PostgREST's row cap — drain in rank-ordered
+ * pages. Offset pagination is safe here: value rows are immutable and ranks
+ * are copied verbatim (0-based, possibly duplicated), so there is no keyset
+ * column to trust.
+ */
+export async function fetchArchiveValues(client: Client, archiveId: string): Promise<ArchiveValueRow[]> {
+    const values: ArchiveValueRow[] = [];
+    for (let offset = 0; ; offset += DETAIL_PAGE_SIZE) {
+        const { data, error } = await client
+            .from('live_draft_archive_values')
+            .select('player_id, player_name, position, overall_rank, position_rank, platform_value')
+            .eq('archive_id', archiveId)
+            .order('overall_rank')
+            .order('player_id')
+            .range(offset, offset + DETAIL_PAGE_SIZE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        for (const row of data) {
+            values.push({
+                playerId: row.player_id,
+                playerName: row.player_name,
+                position: row.position,
+                overallRank: row.overall_rank,
+                positionRank: row.position_rank,
+                platformValue: row.platform_value,
+            });
+        }
+        if (data.length < DETAIL_PAGE_SIZE) break;
+    }
+    return values;
+}
+
+export interface BackfillArchiveValuesParams {
+    archiveId: string;
+    userId: string;
+    values: ArchiveValueRow[];
+    valuesSnapshotDate?: string | null;
+}
+
+/**
+ * Attach a values snapshot to an archive created before values capture
+ * existed. The pool comes from the caller's *current* board pipeline, so this
+ * is only as faithful as the time elapsed since the draft — refuses to touch
+ * an archive that already has values rather than silently blending eras.
+ * Re-runnable: a failed backfill deletes its partial rows and leaves the
+ * header untouched.
+ */
+export async function backfillArchiveValues(
+    client: Client,
+    params: BackfillArchiveValuesParams
+): Promise<{ valueCount: number }> {
+    const { archiveId, userId, values, valuesSnapshotDate } = params;
+    if (values.length === 0) {
+        throw new Error('Nothing to backfill: the current player pool is empty');
+    }
+
+    const { data: header, error: headerError } = await client
+        .from('live_draft_archives')
+        .select('value_count')
+        .eq('id', archiveId)
+        .single();
+    if (headerError) throw headerError;
+    if (header.value_count > 0) {
+        throw new Error('This archive already has a values snapshot');
+    }
+
+    try {
+        const rows = toValueRows(archiveId, userId, values);
+        for (let i = 0; i < rows.length; i += ARCHIVE_INSERT_BATCH) {
+            const { error } = await client
+                .from('live_draft_archive_values')
+                .insert(rows.slice(i, i + ARCHIVE_INSERT_BATCH));
+            if (error) throw error;
+        }
+        const { error: commitError } = await client
+            .from('live_draft_archives')
+            .update({ value_count: values.length, values_snapshot_date: valuesSnapshotDate ?? null })
+            .eq('id', archiveId);
+        if (commitError) throw commitError;
+    } catch (error) {
+        await client.from('live_draft_archive_values').delete().eq('archive_id', archiveId);
+        throw error;
+    }
+
+    return { valueCount: values.length };
 }
 
 /**

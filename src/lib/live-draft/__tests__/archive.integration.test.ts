@@ -21,7 +21,7 @@ import type { Database } from '@/lib/database.types';
 import type { IngestedFrame } from '@/hooks/queries/useLiveDraftFrames';
 import { extractArchive } from '@/lib/models/live-draft/archiveExtract';
 import type { BoardPlayer, LiveBoardConfig } from '@/lib/models/live-draft/liveBoard';
-import { createLiveDraftArchive } from '../archive';
+import { backfillArchiveValues, createLiveDraftArchive, fetchArchiveDetail } from '../archive';
 
 // Integration jest config does not auto-load env files.
 loadEnv({ path: '.env.test.local' });
@@ -140,6 +140,7 @@ maybeDescribe('draft archive integration', () => {
             season: '2026',
             frames,
             extract,
+            valuesSnapshotDate: '2026-08-01',
             onProgress: (done, total) => progress.push([done, total]),
         });
 
@@ -160,6 +161,8 @@ maybeDescribe('draft archive integration', () => {
             capture_count: 1,
             pick_count: 1,
             bid_count: 3,
+            value_count: 2,
+            values_snapshot_date: '2026-08-01',
             total_spent: 9,
         });
 
@@ -198,11 +201,70 @@ maybeDescribe('draft archive integration', () => {
             { kind: 'bid', team_id: 2, amount: 9, seq: 2 },
         ]);
 
+        const { data: values } = await service
+            .from('live_draft_archive_values')
+            .select('player_id, player_name, position, overall_rank, position_rank, platform_value')
+            .eq('archive_id', archiveId)
+            .order('overall_rank');
+        expect(values).toEqual([
+            { player_id: 101, player_name: 'Alpha One', position: 'WR', overall_rank: 0, position_rank: 0, platform_value: null },
+            { player_id: 102, player_name: 'Bravo Two', position: 'RB', overall_rank: 1, position_rank: 0, platform_value: null },
+        ]);
+
+        const detail = await fetchArchiveDetail(client, archiveId);
+        expect(detail.archive.valueCount).toBe(2);
+        expect(detail.archive.valuesSnapshotDate).toBe('2026-08-01');
+        expect(detail.values.map(v => v.playerId)).toEqual([101, 102]);
+
         const { count: remaining } = await service
             .from('live_draft_frames')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', user.id);
         expect(remaining).toBe(0);
+    });
+
+    it('backfills values onto a pre-capture archive exactly once', async () => {
+        const user = await makeUser();
+        const frames = await seedBuffer(user.id);
+        const client = await authedClient(user);
+        // Simulate an archive created before values capture existed.
+        const extract = { ...extractArchive(frames, pool, boardConfig), values: [] };
+        const { archiveId } = await createLiveDraftArchive(client, {
+            userId: user.id,
+            leagueId: LEAGUE_ID,
+            name: 'pre-capture draft',
+            kind: 'test',
+            season: '2026',
+            frames,
+            extract,
+        });
+
+        const { data: before } = await service
+            .from('live_draft_archives').select('value_count').eq('id', archiveId).single();
+        expect(before!.value_count).toBe(0);
+
+        const values = [
+            { playerId: 101, playerName: 'Alpha One', position: 'WR', overallRank: 0, positionRank: 0, platformValue: 41.5 },
+            { playerId: 102, playerName: 'Bravo Two', position: 'RB', overallRank: 1, positionRank: 0, platformValue: null },
+        ];
+        const result = await backfillArchiveValues(client, {
+            archiveId,
+            userId: user.id,
+            values,
+            valuesSnapshotDate: '2026-08-02',
+        });
+        expect(result.valueCount).toBe(2);
+
+        const detail = await fetchArchiveDetail(client, archiveId);
+        expect(detail.archive.valueCount).toBe(2);
+        expect(detail.archive.valuesSnapshotDate).toBe('2026-08-02');
+        // Fractional league-scaled prices survive the round trip.
+        expect(detail.values[0].platformValue).toBe(41.5);
+
+        // A second backfill must refuse rather than blend eras.
+        await expect(
+            backfillArchiveValues(client, { archiveId, userId: user.id, values })
+        ).rejects.toThrow(/already has a values snapshot/);
     });
 
     it('watermark-bounds the buffer delete: frames arriving mid-archive survive', async () => {
@@ -328,7 +390,7 @@ maybeDescribe('draft archive integration', () => {
         expect(dupeFrame?.code).toBe('23505');
     });
 
-    it('cascades archive deletion to frames, picks, and bids', async () => {
+    it('cascades archive deletion to frames, picks, bids, and values', async () => {
         const user = await makeUser();
         const frames = await seedBuffer(user.id);
         const client = await authedClient(user);
@@ -349,6 +411,7 @@ maybeDescribe('draft archive integration', () => {
             'live_draft_archive_frames',
             'live_draft_archive_picks',
             'live_draft_archive_bids',
+            'live_draft_archive_values',
         ] as const) {
             const { count } = await service
                 .from(table).select('*', { count: 'exact', head: true }).eq('archive_id', archiveId);

@@ -421,6 +421,57 @@ export type Database = {
           },
         ]
       }
+      live_draft_archive_values: {
+        Row: {
+          archive_id: string
+          id: number
+          overall_rank: number
+          platform_value: number | null
+          player_id: number
+          player_name: string | null
+          position: string
+          position_rank: number
+          user_id: string
+        }
+        Insert: {
+          archive_id: string
+          id?: never
+          overall_rank: number
+          platform_value?: number | null
+          player_id: number
+          player_name?: string | null
+          position: string
+          position_rank: number
+          user_id: string
+        }
+        Update: {
+          archive_id?: string
+          id?: never
+          overall_rank?: number
+          platform_value?: number | null
+          player_id?: number
+          player_name?: string | null
+          position?: string
+          position_rank?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_draft_archive_values_archive_id_fkey"
+            columns: ["archive_id"]
+            isOneToOne: false
+            referencedRelation: "live_draft_archives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_draft_archive_values_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_draft_archives: {
         Row: {
           bid_count: number
@@ -438,6 +489,8 @@ export type Database = {
           total_spent: number
           updated_at: string | null
           user_id: string
+          value_count: number
+          values_snapshot_date: string | null
         }
         Insert: {
           bid_count?: number
@@ -455,6 +508,8 @@ export type Database = {
           total_spent?: number
           updated_at?: string | null
           user_id: string
+          value_count?: number
+          values_snapshot_date?: string | null
         }
         Update: {
           bid_count?: number
@@ -472,6 +527,8 @@ export type Database = {
           total_spent?: number
           updated_at?: string | null
           user_id?: string
+          value_count?: number
+          values_snapshot_date?: string | null
         }
         Relationships: [
           {

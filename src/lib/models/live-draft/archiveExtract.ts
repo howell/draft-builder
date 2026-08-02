@@ -33,6 +33,8 @@ import {
     reconstructLots,
 } from '@/platforms/espn/liveDraftProtocol';
 import { BoardFrame, BoardPlayer, LiveBoardConfig, buildLiveBoard } from './liveBoard';
+import type { CompletedPick, PredictorPlayer } from './predictor';
+import type { HistoricalDraft } from './backtest';
 
 export interface ArchivePickRow {
     pickNumber: number;
@@ -58,9 +60,28 @@ export interface ArchiveBidRow {
     atMs: number | null;
 }
 
+/**
+ * One pool player's valuation frozen at archive time. The board's pool bakes
+ * in the custom rankings sheet, live platform prices, and the league price
+ * multiplier — none of which can be reconstructed after they drift, so this
+ * is the model-evaluation input an archive must carry itself.
+ */
+export interface ArchiveValueRow {
+    playerId: number;
+    playerName: string | null;
+    position: string;
+    /** Rank in the board's pool (custom rankings baked in), copied verbatim. */
+    overallRank: number;
+    positionRank: number;
+    /** League-scaled platform auction price the board displayed, if any. */
+    platformValue: number | null;
+}
+
 export interface ArchiveExtract {
     picks: ArchivePickRow[];
     bids: ArchiveBidRow[];
+    /** The board's ranked pool, frozen for replay/backtests. */
+    values: ArchiveValueRow[];
     /** All frames, send + receive — everything that gets copied. */
     frameCount: number;
     captureCount: number;
@@ -70,6 +91,30 @@ export interface ArchiveExtract {
     /** Copy/delete watermark: max id across the entire input frame set. */
     maxFrameId: number;
     unresolvedPlayerIds: string[];
+}
+
+/**
+ * Freeze the board's pool into archive value rows. Exported separately from
+ * extractArchive so archives created before values capture existed can be
+ * backfilled from a later pool without re-running the frame extraction.
+ * Players whose id is not numeric (never true for ESPN pools) are dropped
+ * rather than corrupting the numeric id column.
+ */
+export function poolToArchiveValues(pool: BoardPlayer[]): ArchiveValueRow[] {
+    const rows: ArchiveValueRow[] = [];
+    for (const player of pool) {
+        const playerId = Number(player.id);
+        if (!Number.isFinite(playerId)) continue;
+        rows.push({
+            playerId,
+            playerName: player.name ?? null,
+            position: player.defaultPosition,
+            overallRank: player.overallRank,
+            positionRank: player.positionRank,
+            platformValue: player.platformValue ?? null,
+        });
+    }
+    return rows;
 }
 
 export function extractArchive(
@@ -209,11 +254,96 @@ export function extractArchive(
     return {
         picks,
         bids,
+        values: poolToArchiveValues(pool),
         frameCount: frames.length,
         captureCount: captureIds.size,
         totalSpent: picks.reduce((sum, pick) => sum + pick.price, 0),
         draftedAt: Number.isFinite(draftedAtMs) ? new Date(draftedAtMs).toISOString() : null,
         maxFrameId,
         unresolvedPlayerIds: board.unresolvedPlayerIds,
+    };
+}
+
+/** Archived pick fields the backtest conversion needs (subset of the stored row). */
+export interface ArchiveHistoricalPick {
+    pickNumber: number;
+    teamId: number;
+    playerId: number;
+    playerName?: string | null;
+    position?: string | null;
+    price: number;
+}
+
+export interface ArchiveHistoricalConfig {
+    totalBudgetPerTeam: number;
+    /** Distinct drafting teams; derived from the picks when omitted. */
+    teamCount?: number;
+    rosterNeeds: Record<string, number>;
+    /** Season label for backtest display (e.g. "2026"). */
+    season?: string;
+}
+
+/**
+ * Normalize an archive (picks + frozen values) into the backtest's
+ * HistoricalDraft shape. Unlike the API-history path in history.ts, every
+ * value here is the archive's own frozen data — no live lookups, so the
+ * result is stable no matter when it runs.
+ *
+ * Picks outside the frozen pool (deep bench / K / D/ST the rankings never
+ * covered) still count toward budgets, so they are kept with a synthetic
+ * worst-case rank after the pool rather than dropped.
+ */
+export function archiveToHistoricalDraft(
+    picks: ArchiveHistoricalPick[],
+    values: ArchiveValueRow[],
+    config: ArchiveHistoricalConfig
+): HistoricalDraft {
+    const players: PredictorPlayer[] = values.map(value => ({
+        id: String(value.playerId),
+        defaultPosition: value.position,
+        positionRank: value.positionRank,
+        overallRank: value.overallRank,
+        platformValue: value.platformValue ?? undefined,
+    }));
+    const byId = new Map(players.map(player => [player.id, player]));
+
+    const positionCounts = new Map<string, number>();
+    for (const value of values) {
+        positionCounts.set(value.position, Math.max(positionCounts.get(value.position) ?? 0, value.positionRank));
+    }
+
+    let syntheticRank = values.length;
+    const completed: CompletedPick[] = [...picks]
+        .sort((a, b) => a.pickNumber - b.pickNumber)
+        .map(pick => {
+            const id = String(pick.playerId);
+            let player = byId.get(id);
+            if (!player) {
+                const position = pick.position ?? 'UNK';
+                const positionRank = (positionCounts.get(position) ?? 0) + 1;
+                positionCounts.set(position, positionRank);
+                player = {
+                    id,
+                    defaultPosition: position,
+                    positionRank,
+                    overallRank: ++syntheticRank,
+                };
+            }
+            return {
+                player,
+                price: pick.price,
+                teamId: String(pick.teamId),
+                pickNumber: pick.pickNumber,
+            };
+        });
+
+    const teamCount = config.teamCount ?? new Set(picks.map(pick => pick.teamId)).size;
+
+    return {
+        season: config.season,
+        picks: completed,
+        budgetConfig: { totalBudgetPerTeam: config.totalBudgetPerTeam, teamCount },
+        rosterNeeds: config.rosterNeeds,
+        players,
     };
 }

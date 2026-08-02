@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     }
 
     const supabase = createSupabaseServerClient();
-    const results = await Promise.all(body.seasons.map(season => loadSeason(supabase, season)));
+    const results = await Promise.all(body.seasons.map(season => loadSeason(supabase, season, body.asOf)));
 
     const failure = results.find((r): r is Error => r instanceof Error);
     if (failure) {
@@ -59,7 +59,8 @@ export async function GET(req: NextRequest) {
 
 async function loadSeason(
     supabase: ReturnType<typeof createSupabaseServerClient>,
-    season: SeasonId
+    season: SeasonId,
+    asOf?: string
 ): Promise<PlatformPlayerValue[] | Error> {
     // Frozen preseason kit rows win when present.
     const kit = await supabase
@@ -72,18 +73,15 @@ async function loadSeason(
     if (kit.error) return new Error(kit.error.message);
     if (kit.data && kit.data.length > 0) return kit.data.map(toPlayerValue);
 
-    // No kit for this season: find the latest API snapshot date, then fetch
-    // just that snapshot so the row count stays bounded.
-    const latest = await supabase
-        .from('platform_player_values')
-        .select('snapshot_date')
-        .eq('platform', 'espn')
-        .eq('rank_type', 'PPR')
-        .eq('season', season)
-        .order('snapshot_date', { ascending: false })
-        .limit(1);
-    if (latest.error) return new Error(latest.error.message);
-    const snapshotDate = latest.data?.[0]?.snapshot_date;
+    // No kit for this season: resolve which API snapshot date to serve, then
+    // fetch just that snapshot so the row count stays bounded. With asOf,
+    // that is the latest snapshot on or before the date; when every snapshot
+    // postdates asOf, fall back to the earliest one (nearest to the asked-for
+    // day, and better than pretending no values exist).
+    const snapshotDate =
+        (await resolveSnapshotDate(supabase, season, { onOrBefore: asOf })) ??
+        (asOf ? await resolveSnapshotDate(supabase, season, { earliest: true }) : null);
+    if (snapshotDate instanceof Error) return snapshotDate;
     if (!snapshotDate) return [];
 
     const snapshot = await supabase
@@ -95,6 +93,25 @@ async function loadSeason(
         .eq('snapshot_date', snapshotDate);
     if (snapshot.error) return new Error(snapshot.error.message);
     return (snapshot.data ?? []).map(toPlayerValue);
+}
+
+async function resolveSnapshotDate(
+    supabase: ReturnType<typeof createSupabaseServerClient>,
+    season: SeasonId,
+    which: { onOrBefore?: string; earliest?: boolean }
+): Promise<string | null | Error> {
+    let query = supabase
+        .from('platform_player_values')
+        .select('snapshot_date')
+        .eq('platform', 'espn')
+        .eq('rank_type', 'PPR')
+        .eq('season', season);
+    if (which.onOrBefore) query = query.lte('snapshot_date', which.onOrBefore);
+    const { data, error } = await query
+        .order('snapshot_date', { ascending: !!which.earliest })
+        .limit(1);
+    if (error) return new Error(error.message);
+    return data?.[0]?.snapshot_date ?? null;
 }
 
 function toPlayerValue(r: any): PlatformPlayerValue {
@@ -114,6 +131,13 @@ function isSeasonIdArray(value: any): value is SeasonId[] {
     return Array.isArray(value) && value.length > 0 && value.length <= 30 && value.every(isSeasonId);
 }
 
+function isIsoDate(value: any): value is string {
+    return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
 function decodeRequest(searchParams: URLSearchParams): PlayerValuesRequest | DecodeFailure {
-    return Decoder.create(searchParams).decode('seasons', isSeasonIdArray).finalize();
+    const base = Decoder.create(searchParams).decode('seasons', isSeasonIdArray);
+    // asOf is optional; the Decoder treats a missing key as failure, so only
+    // decode it when present.
+    return (searchParams.has('asOf') ? base.decode('asOf', isIsoDate) : base).finalize();
 }

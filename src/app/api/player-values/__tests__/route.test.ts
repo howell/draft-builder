@@ -28,7 +28,10 @@ const mockCreateClient = createSupabaseServerClient as jest.Mock;
 interface QueryRecord {
     select: string;
     filters: Record<string, unknown>;
+    /** upper bounds applied via .lte(), keyed by column */
+    upperBounds: Record<string, unknown>;
     order?: string;
+    orderAscending?: boolean;
     limit?: number;
 }
 
@@ -43,12 +46,17 @@ type Resolver = (q: QueryRecord) => { data?: any[] | null; error?: { message: st
 function mockSupabase(resolver: Resolver) {
     const queries: QueryRecord[] = [];
     const from = jest.fn(() => {
-        const q: QueryRecord = { select: '', filters: {} };
+        const q: QueryRecord = { select: '', filters: {}, upperBounds: {} };
         queries.push(q);
         const builder: any = {
             select: (cols: string) => { q.select = cols; return builder; },
             eq: (col: string, val: unknown) => { q.filters[col] = val; return builder; },
-            order: (col: string) => { q.order = col; return builder; },
+            lte: (col: string, val: unknown) => { q.upperBounds[col] = val; return builder; },
+            order: (col: string, opts?: { ascending?: boolean }) => {
+                q.order = col;
+                q.orderAscending = opts?.ascending;
+                return builder;
+            },
             limit: (n: number) => { q.limit = n; return builder; },
             then: (onFulfilled: any, onRejected: any) =>
                 Promise.resolve(resolver(q))
@@ -76,9 +84,10 @@ function row(season: string, source: string, snapshotDate: string, name: string)
     };
 }
 
-function makeRequest(seasons: string[]) {
+function makeRequest(seasons: string[], asOf?: string) {
     const url = new URL('http://localhost/api/player-values');
     url.searchParams.set('seasons', JSON.stringify(seasons));
+    if (asOf !== undefined) url.searchParams.set('asOf', JSON.stringify(asOf));
     return { nextUrl: url } as any;
 }
 
@@ -143,6 +152,70 @@ describe('GET /api/player-values', () => {
 
         expect(res.status).toBe(200);
         expect(body.data['2018']).toEqual([]);
+    });
+
+    it('pins API-source seasons to the snapshot on or before asOf', async () => {
+        const { queries } = mockSupabase(q => {
+            if (q.filters.source === 'draft_kit_pdf') return { data: [] };
+            if (q.select === 'snapshot_date') {
+                // Later snapshots exist, but the bounded resolution must win.
+                return q.upperBounds.snapshot_date === '2026-08-01'
+                    ? { data: [{ snapshot_date: '2026-08-01' }] }
+                    : { data: [{ snapshot_date: '2026-08-09' }] };
+            }
+            return { data: [row('2026', 'api', q.filters.snapshot_date as string, 'Bijan Robinson')] };
+        });
+
+        const res = await GET(makeRequest(['2026'], '2026-08-01'));
+        const body = await res.json();
+
+        expect(body.data['2026'][0]).toMatchObject({
+            playerName: 'Bijan Robinson',
+            snapshotDate: '2026-08-01',
+        });
+        const resolution = queries.find(q => q.select === 'snapshot_date');
+        expect(resolution?.upperBounds.snapshot_date).toBe('2026-08-01');
+    });
+
+    it('falls back to the earliest snapshot when every snapshot postdates asOf', async () => {
+        const { queries } = mockSupabase(q => {
+            if (q.filters.source === 'draft_kit_pdf') return { data: [] };
+            if (q.select === 'snapshot_date') {
+                // Nothing on or before asOf; the ascending re-query finds the earliest.
+                return q.upperBounds.snapshot_date ? { data: [] } : { data: [{ snapshot_date: '2026-07-26' }] };
+            }
+            return { data: [row('2026', 'api', '2026-07-26', 'Jahmyr Gibbs')] };
+        });
+
+        const res = await GET(makeRequest(['2026'], '2026-07-01'));
+        const body = await res.json();
+
+        expect(body.data['2026'][0].snapshotDate).toBe('2026-07-26');
+        const fallback = queries.find(q => q.select === 'snapshot_date' && !q.upperBounds.snapshot_date);
+        expect(fallback?.orderAscending).toBe(true);
+    });
+
+    it('serves frozen kit rows regardless of asOf', async () => {
+        mockSupabase(q =>
+            q.filters.source === 'draft_kit_pdf'
+                ? { data: [row('2024', 'draft_kit_pdf', '2024-09-01', 'kit-2024')] }
+                : { data: [] }
+        );
+
+        const res = await GET(makeRequest(['2024'], '2024-01-15'));
+        const body = await res.json();
+
+        expect(body.data['2024'][0].source).toBe('draft_kit_pdf');
+    });
+
+    it('rejects a malformed asOf date', async () => {
+        mockSupabase(() => ({ data: [] }));
+
+        const res = await GET(makeRequest(['2026'], 'August 1st'));
+        const body = await res.json();
+
+        expect(res.status).toBe(400);
+        expect(body.status).toContain('asOf');
     });
 
     it('surfaces query errors as a 500', async () => {

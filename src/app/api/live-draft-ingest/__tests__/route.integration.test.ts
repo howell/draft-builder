@@ -124,7 +124,7 @@ maybeDescribe('/api/live-draft-ingest integration', () => {
         expect(res.status).toBe(200);
         expect(await res.json()).toEqual({ status: 'ok', received: 2 });
         expect(res.headers.get('Access-Control-Allow-Origin')).toBe(ESPN_ORIGIN);
-        expect(res.headers.get('Cache-Control')).toBe('no-cache');
+        expect(res.headers.get('Cache-Control')).toBe('no-store');
 
         const { data } = await service.from('live_draft_frames')
             .select('seq, dir, data').eq('user_id', user.id).order('seq');

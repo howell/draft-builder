@@ -24,6 +24,7 @@ import {
     useArchiveLiveDraftMutation,
     useLiveDraftArchivesQuery,
 } from '@/hooks/queries/useLiveDraftArchives';
+import { usePlayerValuesQuery } from '@/hooks/queries/usePlayerValuesQuery';
 import type { IngestedFrame } from '@/hooks/queries/useLiveDraftFrames';
 
 interface Props {
@@ -43,6 +44,15 @@ const ArchiveDraftDialog: React.FC<Props> = ({ leagueId, frames, pool, config, o
     const extract = useMemo(
         () => extractArchive(frames as BoardFrame[], pool, config),
         [frames, pool, config]
+    );
+
+    // Stamp which platform values snapshot was current at archive time, tying
+    // the archive to the normalized backtest inputs. Best-effort: an archive
+    // without the stamp is still complete (the pool itself is copied).
+    const playerValuesQuery = usePlayerValuesQuery([CURRENT_SEASON]);
+    const valuesSnapshotDate = useMemo(
+        () => playerValuesQuery.data?.[CURRENT_SEASON]?.[0]?.snapshotDate ?? null,
+        [playerValuesQuery.data]
     );
 
     const existing = useMemo(() => archivesQuery.data ?? [], [archivesQuery.data]);
@@ -72,6 +82,7 @@ const ArchiveDraftDialog: React.FC<Props> = ({ leagueId, frames, pool, config, o
                 kind: effectiveKind,
                 frames,
                 extract,
+                valuesSnapshotDate,
                 onProgress: (done, total) => setProgress([done, total]),
             },
             { onSuccess: ({ archiveId }) => setSavedArchiveId(archiveId) }
@@ -117,7 +128,8 @@ const ArchiveDraftDialog: React.FC<Props> = ({ leagueId, frames, pool, config, o
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                     {extract.frameCount} frames · {extract.captureCount} capture
                     {extract.captureCount === 1 ? '' : 's'} · {extract.picks.length} picks ·{' '}
-                    {extract.bids.length} bid events · ${extract.totalSpent} spent
+                    {extract.bids.length} bid events · {extract.values.length} player values ·{' '}
+                    ${extract.totalSpent} spent
                     {extract.draftedAt && ` · started ${new Date(extract.draftedAt).toLocaleString()}`}
                 </p>
                 {extract.unresolvedPlayerIds.length > 0 && (

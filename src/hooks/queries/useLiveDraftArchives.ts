@@ -7,11 +7,12 @@ import {
     ArchiveDetail,
     ArchiveKind,
     ArchiveSummary,
+    backfillArchiveValues,
     createLiveDraftArchive,
     fetchArchiveDetail,
     fetchArchiveSummaries,
 } from '@/lib/live-draft/archive';
-import type { ArchiveExtract } from '@/lib/models/live-draft/archiveExtract';
+import type { ArchiveExtract, ArchiveValueRow } from '@/lib/models/live-draft/archiveExtract';
 import { cacheKeys } from './cache-keys';
 import { IngestedFrame, resetLiveDraftFrames } from './useLiveDraftFrames';
 
@@ -49,6 +50,8 @@ export interface ArchiveDraftInput {
     kind: ArchiveKind;
     frames: IngestedFrame[];
     extract: ArchiveExtract;
+    /** snapshot_date of the platform values snapshot current at archive time. */
+    valuesSnapshotDate?: string | null;
     onProgress?: (done: number, total: number) => void;
 }
 
@@ -72,6 +75,7 @@ export function useArchiveLiveDraftMutation(leagueId: LeagueId) {
                 season: CURRENT_SEASON,
                 frames: input.frames,
                 extract: input.extract,
+                valuesSnapshotDate: input.valuesSnapshotDate,
                 onProgress: input.onProgress,
             });
         },
@@ -81,6 +85,41 @@ export function useArchiveLiveDraftMutation(leagueId: LeagueId) {
         },
         onError: (error) => {
             console.error('[useArchiveLiveDraftMutation] Archive failed:', error);
+        },
+    });
+}
+
+export interface BackfillValuesInput {
+    archiveId: string;
+    values: ArchiveValueRow[];
+    valuesSnapshotDate?: string | null;
+}
+
+/**
+ * Attach a values snapshot to an archive that predates values capture, using
+ * the current board pool. The archive detail cache is invalidated (its
+ * Infinity staleTime assumes immutability, which a backfill breaks once).
+ */
+export function useBackfillArchiveValuesMutation(leagueId: LeagueId) {
+    const { user } = useAuth();
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (input: BackfillValuesInput) => {
+            if (!user) throw new Error('Sign in to update an archive');
+            return backfillArchiveValues(supabase, {
+                archiveId: input.archiveId,
+                userId: user.id,
+                values: input.values,
+                valuesSnapshotDate: input.valuesSnapshotDate,
+            });
+        },
+        onSuccess: (_result, input) => {
+            void queryClient.invalidateQueries({ queryKey: cacheKeys.liveDraftArchives(user?.id, leagueId) });
+            void queryClient.invalidateQueries({ queryKey: cacheKeys.liveDraftArchive(user?.id, input.archiveId) });
+        },
+        onError: (error) => {
+            console.error('[useBackfillArchiveValuesMutation] Backfill failed:', error);
         },
     });
 }

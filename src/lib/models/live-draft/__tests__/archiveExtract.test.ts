@@ -5,7 +5,7 @@
  * without losing bids from before a mid-draft reconnect.
  */
 
-import { extractArchive } from '../archiveExtract';
+import { archiveToHistoricalDraft, extractArchive, poolToArchiveValues } from '../archiveExtract';
 import { BoardPlayer, LiveBoardConfig } from '../liveBoard';
 import { makeFrameFixtures } from './test-utils/frameFixtures';
 
@@ -271,6 +271,7 @@ describe('extractArchive', () => {
         expect(result).toEqual({
             picks: [],
             bids: [],
+            values: poolToArchiveValues(pool),
             frameCount: 0,
             captureCount: 0,
             totalSpent: 0,
@@ -278,5 +279,101 @@ describe('extractArchive', () => {
             maxFrameId: 0,
             unresolvedPlayerIds: [],
         });
+    });
+});
+
+describe('poolToArchiveValues', () => {
+    it('freezes the pool verbatim, dropping non-numeric ids', () => {
+        const values = poolToArchiveValues([
+            ...pool,
+            { id: 'not-a-number', name: 'Ghost', defaultPosition: 'K', positionRank: 9, overallRank: 9 },
+            { id: '-16016', name: 'Cowboys D/ST', defaultPosition: 'D/ST', positionRank: 3, overallRank: 40, platformValue: 2.5 },
+        ]);
+
+        expect(values.map(v => v.playerId)).toEqual([101, 102, 103, -16016]);
+        expect(values[0]).toEqual({
+            playerId: 101,
+            playerName: 'Alpha One',
+            position: 'WR',
+            overallRank: 0,
+            positionRank: 0,
+            platformValue: null,
+        });
+        // League-scaled platform prices can be fractional; carried as-is.
+        expect(values[3].platformValue).toBe(2.5);
+    });
+
+    it('is included in the extract for every pool player', () => {
+        const result = extractArchive(
+            [frame('cap-a', 0, 'SOLD 1 101 10 12 0')],
+            pool,
+            config
+        );
+        expect(result.values).toEqual(poolToArchiveValues(pool));
+    });
+});
+
+describe('archiveToHistoricalDraft', () => {
+    const values = [
+        { playerId: 101, playerName: 'Alpha One', position: 'WR', overallRank: 0, positionRank: 0, platformValue: 41 },
+        { playerId: 102, playerName: 'Bravo Two', position: 'RB', overallRank: 1, positionRank: 0, platformValue: 38.5 },
+        { playerId: 103, playerName: 'Charlie Three', position: 'QB', overallRank: 2, positionRank: 0, platformValue: null },
+    ];
+
+    it('builds a self-contained HistoricalDraft from frozen picks and values', () => {
+        const draft = archiveToHistoricalDraft(
+            [
+                { pickNumber: 2, teamId: 3, playerId: 102, price: 44 },
+                { pickNumber: 1, teamId: 1, playerId: 101, price: 52 },
+            ],
+            values,
+            { totalBudgetPerTeam: 200, rosterNeeds: { QB: 1, RB: 2, WR: 2 }, season: '2026' }
+        );
+
+        expect(draft.season).toBe('2026');
+        expect(draft.players).toHaveLength(3);
+        expect(draft.players[0]).toEqual({
+            id: '101',
+            defaultPosition: 'WR',
+            positionRank: 0,
+            overallRank: 0,
+            platformValue: 41,
+        });
+        // platformValue null -> undefined so predictors see "no platform price".
+        expect(draft.players[2].platformValue).toBeUndefined();
+
+        // Picks come back pick-number ordered, resolved against the frozen pool.
+        expect(draft.picks.map(p => p.pickNumber)).toEqual([1, 2]);
+        expect(draft.picks[0]).toEqual({
+            player: draft.players[0],
+            price: 52,
+            teamId: '1',
+            pickNumber: 1,
+        });
+        expect(draft.budgetConfig).toEqual({ totalBudgetPerTeam: 200, teamCount: 2 });
+        expect(draft.rosterNeeds).toEqual({ QB: 1, RB: 2, WR: 2 });
+    });
+
+    it('keeps picks outside the frozen pool with synthetic worst-case ranks', () => {
+        const draft = archiveToHistoricalDraft(
+            [
+                { pickNumber: 1, teamId: 1, playerId: 101, price: 52 },
+                { pickNumber: 2, teamId: 2, playerId: 999, position: 'K', price: 1 },
+                { pickNumber: 3, teamId: 2, playerId: 998, position: 'K', price: 1 },
+            ],
+            values,
+            { totalBudgetPerTeam: 200, rosterNeeds: { QB: 1, RB: 2, WR: 2 } }
+        );
+
+        const [, kicker1, kicker2] = draft.picks;
+        expect(kicker1.player.defaultPosition).toBe('K');
+        // Ranks land after the entire frozen pool and stay distinct per pick.
+        expect(kicker1.player.overallRank).toBeGreaterThan(values.length);
+        expect(kicker2.player.overallRank).toBeGreaterThan(kicker1.player.overallRank);
+        expect(kicker2.player.positionRank).toBeGreaterThan(kicker1.player.positionRank);
+        // Synthetic players are not part of the pool the backtest prices from.
+        expect(draft.players).toHaveLength(3);
+        // teamCount derives from distinct drafting teams when not supplied.
+        expect(draft.budgetConfig.teamCount).toBe(2);
     });
 });

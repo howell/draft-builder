@@ -46,6 +46,10 @@ jest.mock('@/hooks/queries/useLiveDraftArchives', () => ({
     useClearLiveDraftFramesMutation: () => idleMutation(),
 }));
 
+jest.mock('@/hooks/queries/usePlayerValuesQuery', () => ({
+    usePlayerValuesQuery: () => ({ data: undefined }),
+}));
+
 const mockPlans = jest.fn();
 const mockSavePlan = jest.fn();
 jest.mock('@/hooks/queries/useLeagueRosterPlans', () => ({

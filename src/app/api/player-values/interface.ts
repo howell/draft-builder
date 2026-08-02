@@ -3,6 +3,13 @@ import { SeasonId } from '@/platforms/common';
 export interface PlayerValuesRequest {
     /** seasons to fetch, e.g. ["2023","2024"] */
     seasons: SeasonId[];
+    /**
+     * Optional as-of date (YYYY-MM-DD): API-source seasons return the latest
+     * snapshot taken on or before this date instead of the latest overall,
+     * so archived drafts can be scored against the values of their own day.
+     * Draft-kit rows are frozen preseason artifacts and always win regardless.
+     */
+    asOf?: string;
 }
 
 /** One player's platform valuation for a season (ESPN 10-team/$200 baseline). */
