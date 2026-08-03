@@ -312,32 +312,16 @@ export async function fetchArchiveDetail(client: Client, archiveId: string): Pro
         if (data.length < DETAIL_PAGE_SIZE) break;
     }
 
-    const [picksRes, bids, valuesRes] = await Promise.all([
-        client
-            .from('live_draft_archive_picks')
-            .select('*')
-            .eq('archive_id', archiveId)
-            .order('pick_number'),
+    const [picks, bids, valuesRes] = await Promise.all([
+        fetchArchivePicks(client, archiveId),
         fetchArchiveBids(client, archiveId),
         fetchArchiveValues(client, archiveId),
     ]);
-    if (picksRes.error) throw picksRes.error;
 
     return {
         archive: toSummary(header),
         frames,
-        picks: (picksRes.data ?? []).map(row => ({
-            pickNumber: row.pick_number,
-            teamId: row.team_id,
-            playerId: row.player_id,
-            playerName: row.player_name,
-            position: row.position,
-            price: row.price,
-            nominatingTeamId: row.nominating_team_id,
-            observedBidCount: row.observed_bid_count,
-            distinctBidders: row.distinct_bidders,
-            soldAtMs: row.sold_at_ms,
-        })),
+        picks,
         bids,
         values: valuesRes,
     };
@@ -373,6 +357,31 @@ export async function fetchArchiveBids(client: Client, archiveId: string): Promi
         if (data.length < DETAIL_PAGE_SIZE) break;
     }
     return bids;
+}
+
+/**
+ * Just the parsed pick rows — what backtest normalization needs, without the
+ * frame copy fetchArchiveDetail drags along (~20k rows for a two-tab draft).
+ */
+export async function fetchArchivePicks(client: Client, archiveId: string): Promise<ArchivedPick[]> {
+    const { data, error } = await client
+        .from('live_draft_archive_picks')
+        .select('*')
+        .eq('archive_id', archiveId)
+        .order('pick_number');
+    if (error) throw error;
+    return (data ?? []).map(row => ({
+        pickNumber: row.pick_number,
+        teamId: row.team_id,
+        playerId: row.player_id,
+        playerName: row.player_name,
+        position: row.position,
+        price: row.price,
+        nominatingTeamId: row.nominating_team_id,
+        observedBidCount: row.observed_bid_count,
+        distinctBidders: row.distinct_bidders,
+        soldAtMs: row.sold_at_ms,
+    }));
 }
 
 /**

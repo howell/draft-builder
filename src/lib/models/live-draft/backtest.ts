@@ -56,6 +56,12 @@ export interface ModelBacktestResult {
     overall: MetricBucket;
     byPhase: Record<DraftPhase, MetricBucket>;
     byPosition: Record<string, MetricBucket>;
+    /**
+     * Per-draft buckets keyed by season label ("2026", or "draft N" when the
+     * draft carries no season). Under backtestHeldOut each entry is that
+     * draft's own held-out fold — the out-of-sample score for its season.
+     */
+    bySeason: Record<string, MetricBucket>;
 }
 
 export interface BacktestReport {
@@ -104,19 +110,25 @@ interface ModelAccumulators {
     overall: Accumulator;
     byPhase: Record<DraftPhase, Accumulator>;
     byPosition: Record<string, Accumulator>;
+    bySeason: Record<string, Accumulator>;
 }
 
 const emptyModelAcc = (): ModelAccumulators => ({
     overall: emptyAcc(),
     byPhase: { early: emptyAcc(), mid: emptyAcc(), late: emptyAcc() },
     byPosition: {},
+    bySeason: {},
 });
+
+const seasonLabelOf = (draft: HistoricalDraft, index: number): string =>
+    draft.season ?? `draft ${index + 1}`;
 
 /** Replay one draft, scoring every predictor at every pick. */
 function replayDraft(
     draft: HistoricalDraft,
     predictors: PricePredictor[],
-    accumulators: ModelAccumulators[]
+    accumulators: ModelAccumulators[],
+    seasonLabel: string
 ): number {
     const { picks, budgetConfig, rosterNeeds, players } = draft;
     const rosterSize = Object.values(rosterNeeds).reduce((a, b) => a + b, 0);
@@ -152,6 +164,8 @@ function replayDraft(
             const pos = actual.player.defaultPosition;
             (acc.byPosition[pos] ??= emptyAcc());
             record(acc.byPosition[pos], predicted, actual.price);
+            (acc.bySeason[seasonLabel] ??= emptyAcc());
+            record(acc.bySeason[seasonLabel], predicted, actual.price);
         }
 
         // Advance state past this pick.
@@ -180,6 +194,10 @@ function buildReport(
         for (const [pos, bucket] of Object.entries(acc.byPosition)) {
             byPosition[pos] = finalize(bucket);
         }
+        const bySeason: Record<string, MetricBucket> = {};
+        for (const [season, bucket] of Object.entries(acc.bySeason)) {
+            bySeason[season] = finalize(bucket);
+        }
         return {
             modelId: identity.id,
             label: identity.label,
@@ -190,6 +208,7 @@ function buildReport(
                 late: finalize(acc.byPhase.late),
             },
             byPosition,
+            bySeason,
         };
     });
 
@@ -199,8 +218,8 @@ function buildReport(
 export function backtest(drafts: HistoricalDraft[], predictors: PricePredictor[]): BacktestReport {
     const accumulators = predictors.map(emptyModelAcc);
     let totalPicks = 0;
-    for (const draft of drafts) {
-        totalPicks += replayDraft(draft, predictors, accumulators);
+    for (let i = 0; i < drafts.length; i++) {
+        totalPicks += replayDraft(drafts[i], predictors, accumulators, seasonLabelOf(drafts[i], i));
     }
     return buildReport(
         predictors.map(p => ({ id: p.id, label: p.label })),
@@ -246,7 +265,7 @@ export function backtestHeldOut(
             accumulators = predictors.map(emptyModelAcc);
             identities = predictors.map(p => ({ id: p.id, label: p.label }));
         }
-        totalPicks += replayDraft(drafts[i], predictors, accumulators);
+        totalPicks += replayDraft(drafts[i], predictors, accumulators, seasonLabelOf(drafts[i], i));
     }
 
     return buildReport(identities!, accumulators!, totalPicks, drafts.length, true);

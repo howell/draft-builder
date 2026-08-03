@@ -32,6 +32,8 @@ import { useAuth } from '@/lib/auth/context';
 import { rankPlayers } from '../mocks/MockTable';
 import { BaselineModels, PredictorPlayer } from '@/lib/models/live-draft/predictor';
 import { HistoricalDraft } from '@/lib/models/live-draft/backtest';
+import { archiveToHistoricalDraft } from '@/lib/models/live-draft/archiveExtract';
+import { useArchiveHistoricalInputsQuery } from '@/hooks/queries/useLiveDraftArchives';
 import {
     createPooledBaselineModels,
     normalizeHistoricalDraft,
@@ -57,6 +59,13 @@ export interface SimulatorData {
     historical: HistoricalDraft[];
     /** seasons whose drafts use stored platform ranks/values (vs price-derived fallback) */
     platformValueSeasons: string[];
+    /**
+     * Seasons whose historical draft comes from a values-bearing archive —
+     * the pool frozen on draft night (ex-ante ranks/prices) instead of the
+     * API-history normalization (ex-post, price-derived). Archives win over
+     * the API version for the same season.
+     */
+    archiveSeasons: string[];
     /**
      * The league's draft-room price multiplier (stored per-league setting,
      * falling back to the computed default) — what scales published platform
@@ -119,6 +128,7 @@ export function useSimulatorData(
     const playersQuery = usePlayersQuery(leagueId);
     const historyQuery = useLeagueHistoryQuery(leagueId);
     const draftQuery = useDraftHistoryQuery(leagueId, historyQuery.data);
+    const archiveInputsQuery = useArchiveHistoricalInputsQuery(leagueId);
 
     const scoringType: ScoringType | undefined = useMemo(() => {
         const history = historyQuery.data as Record<string, unknown> | undefined;
@@ -181,19 +191,46 @@ export function useSimulatorData(
             SimulatorPlayer & { suggestedCost?: number }
         >).map(p => ({ ...p, platformValue: p.suggestedCost }));
 
-        // Normalize every season with draft data for the backtest/calibration.
-        const historical: HistoricalDraft[] = [];
-        const platformValueSeasons: string[] = [];
-        for (const [draftDetail, draftPlayers] of draftQuery.data.entries()) {
-            const seasonInfo = history[String(draftDetail.season)] as any;
-            const auctionBudget =
+        const seasonBudget = (season: string) => {
+            const seasonInfo = history[season] as any;
+            return (
                 (typeof seasonInfo === 'object' && seasonInfo?.draft?.auctionBudget) ||
                 latestInfo.draft.auctionBudget ||
-                200;
-            const seasonLineup =
-                typeof seasonInfo === 'object' && seasonInfo?.rosterSettings
-                    ? draftableRosterSlots(seasonInfo.rosterSettings)
-                    : lineupSettings;
+                200
+            );
+        };
+        const seasonRoster = (season: string) => {
+            const seasonInfo = history[season] as any;
+            return typeof seasonInfo === 'object' && seasonInfo?.rosterSettings
+                ? draftableRosterSlots(seasonInfo.rosterSettings)
+                : lineupSettings;
+        };
+
+        // Values-bearing archives are the preferred history for their season:
+        // the pool they carry is the one frozen on draft night, where the
+        // API-history path rebuilds from data that drifts after the fact.
+        // Several real archives for one season keep the fullest observation.
+        const archiveDrafts = new Map<string, HistoricalDraft>();
+        for (const input of archiveInputsQuery.data ?? []) {
+            const candidate = archiveToHistoricalDraft(input.picks, input.values, {
+                totalBudgetPerTeam: seasonBudget(input.season),
+                rosterNeeds: seasonRoster(input.season),
+                season: input.season,
+            });
+            if (candidate.picks.length === 0) continue;
+            const existing = archiveDrafts.get(input.season);
+            if (!existing || candidate.picks.length > existing.picks.length) {
+                archiveDrafts.set(input.season, candidate);
+            }
+        }
+
+        // Normalize every season with draft data for the backtest/calibration.
+        const historical: HistoricalDraft[] = [...archiveDrafts.values()];
+        const platformValueSeasons: string[] = [];
+        for (const [draftDetail, draftPlayers] of draftQuery.data.entries()) {
+            if (archiveDrafts.has(String(draftDetail.season))) continue;
+            const auctionBudget = seasonBudget(String(draftDetail.season));
+            const seasonLineup = seasonRoster(String(draftDetail.season));
 
             const drafted = mergeDraftAndPlayerInfo(draftDetail.picks, draftPlayers, [], platform);
             const seasonValues = playerValuesQuery.data?.[String(draftDetail.season)];
@@ -247,9 +284,10 @@ export function useSimulatorData(
             teamCount: latestDraft.budgetConfig.teamCount,
             historical,
             platformValueSeasons: platformValueSeasons.sort(),
+            archiveSeasons: [...archiveDrafts.keys()].sort(),
             priceMultiplier: effectiveMultiplier(multipliersQuery.data?.[leagueId], latestInfo),
         };
-    }, [league, leagueId, playersQuery.data, historyQuery.data, draftQuery.data, rankingsQuery.data, playerValuesQuery.data, multipliersQuery.data]);
+    }, [league, leagueId, playersQuery.data, historyQuery.data, draftQuery.data, rankingsQuery.data, playerValuesQuery.data, multipliersQuery.data, archiveInputsQuery.data]);
 
     const isLoading =
         authLoading ||
@@ -261,7 +299,10 @@ export function useSimulatorData(
         // Wait for stored values, but a failure falls back to price-derived ranks.
         playerValuesQuery.isLoading ||
         // Same for the multiplier setting: a failure falls back to the default.
-        multipliersQuery.isLoading;
+        multipliersQuery.isLoading ||
+        // And for archives: a failure falls back to API-normalized history.
+        // (Disabled for anonymous sessions, where isLoading stays false.)
+        archiveInputsQuery.isLoading;
 
     const error =
         leagueQuery.error ||

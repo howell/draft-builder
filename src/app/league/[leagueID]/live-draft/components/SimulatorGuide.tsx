@@ -43,6 +43,8 @@ export const HELP = {
     midMae:
         'Dollar miss over the middle third of each draft — where inflation dynamics (money vs talent remaining) matter most.',
     lateMae: 'Dollar miss over the final third of each draft, where most picks land near $1.',
+    seasonMae:
+        'Each column is one draft\'s own fold: under held-out scoring the models never saw that season, so an archive-backed season (†) is a true out-of-sample test on the frozen draft-night pool.',
     trainRegression:
         'Train the legacy 8-feature linear model on the selected seasons and add its column to the explorer and backtest. Changing seasons, budget, or teams discards the trained model.',
     picks:

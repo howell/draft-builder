@@ -7,10 +7,13 @@ import {
     ArchiveDetail,
     ArchiveKind,
     ArchiveSummary,
+    ArchivedPick,
     backfillArchiveValues,
     createLiveDraftArchive,
     fetchArchiveDetail,
+    fetchArchivePicks,
     fetchArchiveSummaries,
+    fetchArchiveValues,
 } from '@/lib/live-draft/archive';
 import type { ArchiveExtract, ArchiveValueRow } from '@/lib/models/live-draft/archiveExtract';
 import { cacheKeys } from './cache-keys';
@@ -42,6 +45,55 @@ export function useLiveDraftArchiveQuery(archiveId: string | undefined): UseQuer
         enabled: !authLoading && !!user && !!archiveId,
         // Complete archives are immutable; don't re-poll them.
         staleTime: Infinity,
+    });
+}
+
+/** One real, complete, values-bearing archive in backtest-consumable form. */
+export interface ArchiveHistoricalInput {
+    archiveId: string;
+    name: string;
+    season: string;
+    draftedAt: string | null;
+    picks: ArchivedPick[];
+    values: ArchiveValueRow[];
+}
+
+/**
+ * The league's archives that qualify as backtest history: real drafts,
+ * completely copied, carrying a frozen values pool. Picks + values only —
+ * the frame copy is never fetched. Anonymous sessions resolve to [] (archives
+ * only exist server-side under RLS).
+ */
+export function useArchiveHistoricalInputsQuery(leagueId: LeagueId): UseQueryResult<ArchiveHistoricalInput[]> {
+    const { user, loading: authLoading } = useAuth();
+
+    return useQuery<ArchiveHistoricalInput[]>({
+        queryKey: [...cacheKeys.liveDraftArchives(user?.id, leagueId), 'historicalInputs'],
+        queryFn: async () => {
+            const summaries = await fetchArchiveSummaries(supabase, String(leagueId));
+            const eligible = summaries.filter(
+                a => a.kind === 'real' && a.status === 'complete' && a.valueCount > 0
+            );
+            return Promise.all(
+                eligible.map(async archive => {
+                    const [picks, values] = await Promise.all([
+                        fetchArchivePicks(supabase, archive.id),
+                        fetchArchiveValues(supabase, archive.id),
+                    ]);
+                    return {
+                        archiveId: archive.id,
+                        name: archive.name,
+                        season: archive.season,
+                        draftedAt: archive.draftedAt,
+                        picks,
+                        values,
+                    };
+                })
+            );
+        },
+        enabled: !authLoading && !!user,
+        // Complete archives are immutable; refetch only picks up new archives.
+        staleTime: 60 * 1000,
     });
 }
 

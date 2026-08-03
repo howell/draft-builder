@@ -170,9 +170,15 @@ before the socket connected).
       `archiveToHistoricalDraft` (`archiveExtract.ts`) turns a values-bearing
       archive into a self-contained backtest `HistoricalDraft`;
       `/api/player-values` gained `asOf` to pin API-source seasons to the
-      snapshot of a given date. Follow-up open: feed values-bearing archives
-      into `useSimulatorData`'s historical set (preferring them over the
-      API-history normalization for the same season).
+      snapshot of a given date. Follow-up closed same day: `useSimulatorData`
+      folds real/complete/values-bearing archives into the historical set via
+      `useArchiveHistoricalInputsQuery` (picks+values only, frames never
+      fetched), archives replacing the API-history normalization for their
+      season (`archiveSeasons`, marked † in the season toggles); the backtest
+      report gained per-season fold buckets (`bySeason`) and a by-season MAE
+      table, so an archive-backed season's held-out fold — the true
+      out-of-sample score on ex-ante draft-night inputs — reads directly off
+      the simulator page.
 - [ ] **Dress-rehearsal test draft** with the userscript installed end-to-end
       (test league + dummy accounts make this cheap). Do this before any app
       work depends on the script.

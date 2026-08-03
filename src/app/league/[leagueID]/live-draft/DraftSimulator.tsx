@@ -657,9 +657,10 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                         {data.historical.map(d => {
                             const season = d.season ?? '?';
                             const active = !excludedSeasons.has(season);
-                            const label = data.platformValueSeasons.includes(season)
-                                ? `${season}*`
-                                : season;
+                            const label =
+                                season +
+                                (data.platformValueSeasons.includes(season) ? '*' : '') +
+                                (data.archiveSeasons.includes(season) ? '†' : '');
                             return (
                                 <label key={season} className="flex items-center gap-2">
                                     <input
@@ -674,7 +675,8 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                             );
                         })}
                         <span className="text-xs text-gray-500">
-                            * = stored platform values · drives baseline, priors, regression, and backtest
+                            * = stored platform values · † = frozen draft-night archive · drives
+                            baseline, priors, regression, and backtest
                         </span>
                     </div>
                 </CardBody>
@@ -931,6 +933,52 @@ const DraftSimulator: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                                     ))}
                                 </tbody>
                             </table>
+                            {(() => {
+                                const seasons = Object.keys(report.models[0]?.bySeason ?? {}).sort();
+                                if (seasons.length <= 1) return null;
+                                return (
+                                    <table className="w-full text-sm mt-4">
+                                        <thead>
+                                            <tr className="text-left border-b border-gray-200 dark:border-gray-700">
+                                                <th className="py-2 pr-2">
+                                                    <Tooltip text={HELP.seasonMae}>
+                                                        <span>
+                                                            {report.heldOut ? 'Held-out' : 'In-sample'}{' '}
+                                                            MAE by season
+                                                        </span>
+                                                    </Tooltip>
+                                                </th>
+                                                {seasons.map(season => (
+                                                    <th key={season} className="py-2 pr-2 text-right">
+                                                        {season}
+                                                        {data.archiveSeasons.includes(season) && '†'}
+                                                    </th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {report.models.map(m => (
+                                                <tr
+                                                    key={m.modelId}
+                                                    className="border-b border-gray-100 dark:border-gray-800"
+                                                >
+                                                    <td className="py-1.5 pr-2">{m.label}</td>
+                                                    {seasons.map(season => (
+                                                        <td
+                                                            key={season}
+                                                            className="py-1.5 pr-2 text-right tabular-nums"
+                                                        >
+                                                            {m.bySeason[season]
+                                                                ? `$${m.bySeason[season].mae.toFixed(1)}`
+                                                                : '—'}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                );
+                            })()}
                             <p className="text-xs text-gray-500 mt-2">
                                 {report.totalPicks} picks scored across {report.draftCount}{' '}
                                 draft{report.draftCount === 1 ? '' : 's'}. Baseline and inflation
