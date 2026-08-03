@@ -116,10 +116,24 @@ export function importEspnTeamInfo(info: EspnT.Team): LeagueTeam {
 }
 
 export function importEspnPlayersInfo(info: EspnT.PlayersInfo): Player[] {
-    return info.players.map(importEspnPlayerInfo);
+    const superflex = isSuperflexSettings(info.settings);
+    return info.players.map(player => importEspnPlayerInfo(player, superflex));
 }
 
-export function importEspnPlayerInfo(info: EspnT.PlayerInfo): Player {
+/**
+ * Superflex/2-QB formats price QBs on their own column: ESPN's draft room
+ * shows SUPERFLEX-based stickers for these leagues, and reading PPR instead
+ * ranks the top QB ~36th at a fraction of the room price (2026 real-draft
+ * finding). Detected from the lineup: an OP slot, or 2+ dedicated QB slots.
+ */
+function isSuperflexSettings(settings?: EspnT.Settings): boolean {
+    const slots = settings?.rosterSettings?.lineupSlotCounts;
+    if (!slots) return false;
+    const count = (slotId: string) => slots[slotId] ?? 0;
+    return count('7') > 0 || count('0') >= 2;
+}
+
+export function importEspnPlayerInfo(info: EspnT.PlayerInfo, superflex = false): Player {
     return {
         ids: {
             espn: info.id.toString(),
@@ -129,18 +143,21 @@ export function importEspnPlayerInfo(info: EspnT.PlayerInfo): Player {
         fullName: info.player.fullName,
         position: positionName(info.player.defaultPositionId),
         eligiblePositions: info.player.eligibleSlots.map(slotName),
-        platformPrice: espnPlatformPrice(info),
-        platformRank: espnPlatformRank(info)
+        platformPrice: espnPlatformPrice(info, superflex),
+        platformRank: espnPlatformRank(info, superflex)
     };
 }
 
-// `draftAuctionValue` mirrors ESPN's live/average auction market, which ESPN
-// resets to 0 once a season completes (and briefly between seasons). The
-// published preseason auction value in `draftRanksByRankType` is durable, so we
-// fall back to it to avoid showing $0 for every player during those windows.
-function espnPlatformPrice(info: EspnT.PlayerInfo): number {
+// `draftAuctionValue` mirrors ESPN's live/average auction market — the actual
+// draft-room sticker, already league-scoped and format-aware — but ESPN
+// resets it to 0 almost immediately once a draft/season completes. The
+// published preseason auction values in `draftRanksByRankType` are durable,
+// so fall back to them: the SUPERFLEX column first for superflex leagues,
+// then PPR/STANDARD.
+function espnPlatformPrice(info: EspnT.PlayerInfo, superflex = false): number {
     const ranks = info.player.draftRanksByRankType;
     return info.draftAuctionValue
+        || (superflex ? ranks?.SUPERFLEX?.auctionValue : undefined)
         || ranks?.PPR?.auctionValue
         || ranks?.STANDARD?.auctionValue
         || 0;
@@ -149,11 +166,15 @@ function espnPlatformPrice(info: EspnT.PlayerInfo): number {
 // ESPN publishes a dense draft rank alongside the sparse auction values: in a
 // season-2025 sample every one of the 2750 players carrying
 // `draftRanksByRankType` had a nonzero PPR rank, while only 250 had a nonzero
-// auction value. Prefer PPR (most leagues are PPR or half-PPR, and ESPN offers
-// no half-PPR rank type) and fall back to STANDARD, mirroring the price lookup
-// above. Returns undefined rather than 0 so "unranked" stays distinguishable
-// from "ranked first".
-function espnPlatformRank(info: EspnT.PlayerInfo): number | undefined {
+// auction value. Prefer the league-format column (SUPERFLEX for superflex
+// leagues — it moves the top QB from ~36th to ~5th overall), then PPR (most
+// leagues are PPR or half-PPR, and ESPN offers no half-PPR rank type), then
+// STANDARD, mirroring the price lookup above. Returns undefined rather than 0
+// so "unranked" stays distinguishable from "ranked first".
+function espnPlatformRank(info: EspnT.PlayerInfo, superflex = false): number | undefined {
     const ranks = info.player.draftRanksByRankType;
-    return ranks?.PPR?.rank || ranks?.STANDARD?.rank || undefined;
+    return (superflex ? ranks?.SUPERFLEX?.rank : undefined)
+        || ranks?.PPR?.rank
+        || ranks?.STANDARD?.rank
+        || undefined;
 }

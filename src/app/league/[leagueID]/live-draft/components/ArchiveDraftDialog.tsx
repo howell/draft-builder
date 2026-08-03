@@ -33,9 +33,11 @@ interface Props {
     pool: BoardPlayer[];
     config: LiveBoardConfig;
     onClose: () => void;
+    /** Fired after a successful archive (e.g. to release the pinned pool). */
+    onArchived?: () => void;
 }
 
-const ArchiveDraftDialog: React.FC<Props> = ({ leagueId, frames, pool, config, onClose }) => {
+const ArchiveDraftDialog: React.FC<Props> = ({ leagueId, frames, pool, config, onClose, onArchived }) => {
     const archivesQuery = useLiveDraftArchivesQuery(leagueId);
     const archiveMutation = useArchiveLiveDraftMutation(leagueId);
     const [progress, setProgress] = useState<[number, number] | null>(null);
@@ -85,7 +87,12 @@ const ArchiveDraftDialog: React.FC<Props> = ({ leagueId, frames, pool, config, o
                 valuesSnapshotDate,
                 onProgress: (done, total) => setProgress([done, total]),
             },
-            { onSuccess: ({ archiveId }) => setSavedArchiveId(archiveId) }
+            {
+                onSuccess: ({ archiveId }) => {
+                    setSavedArchiveId(archiveId);
+                    onArchived?.();
+                },
+            }
         );
     };
 

@@ -107,8 +107,12 @@ export async function fetchAllPlayerInfo(leagueID: LeagueId, season: SeasonId, a
 }
 
 function buildPlayerRoute(leagueID: LeagueId, season: SeasonId, scoringPeriodId = 0) {
+    // mSettings rides along so the importer can read the league's lineup and
+    // pick the rank type matching its format (superflex leagues value QBs on
+    // the SUPERFLEX column, not PPR). The x-fantasy-filter only scopes the
+    // players collection; the settings block is unaffected.
     return buildRoute(`${season}/segments/0/leagues/${leagueID}`,
-        `?scoringPeriodId=${scoringPeriodId}&view=kona_player_info`
+        `?scoringPeriodId=${scoringPeriodId}&view=kona_player_info&view=mSettings`
     );
 }
 

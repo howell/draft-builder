@@ -1,13 +1,13 @@
 'use server'
 import { NextRequest } from 'next/server';
-import { PlayerValuesRequest, PlayerValuesResponse, PlatformPlayerValue } from './interface';
+import { PlayerValuesRequest, PlayerValuesResponse, PlatformPlayerValue, RankType } from './interface';
 import { makeResponse } from '@/app/api/utils';
 import { Decoder, DecodeFailure } from '../Decoder';
 import { isSeasonId, SeasonId } from '@/platforms/common';
 import { createSupabaseServerClient } from '@/lib/supabase';
 
 const COLUMNS =
-    'season, source, snapshot_date, rank_type, player_id, player_name, position, overall_rank, position_rank, auction_value';
+    'season, source, snapshot_date, rank_type, player_id, player_name, position, overall_rank, position_rank, auction_value, market_value';
 
 // The current season gets a fresh API snapshot daily (and ingests can land any
 // time), so the default 24h public cache guarantees up to a day of staleness —
@@ -37,7 +37,10 @@ export async function GET(req: NextRequest) {
     }
 
     const supabase = createSupabaseServerClient();
-    const results = await Promise.all(body.seasons.map(season => loadSeason(supabase, season, body.asOf)));
+    const rankType = body.rankType ?? 'PPR';
+    const results = await Promise.all(
+        body.seasons.map(season => loadSeasonWithFallback(supabase, season, rankType, body.asOf))
+    );
 
     const failure = results.find((r): r is Error => r instanceof Error);
     if (failure) {
@@ -57,9 +60,26 @@ export async function GET(req: NextRequest) {
     return makeResponse<PlayerValuesResponse>({ status: 'ok', data }, 200, true, CACHE_TTL_SECONDS);
 }
 
+/**
+ * Load a season at the requested rank type, falling back to PPR when that
+ * type has no rows at all (SUPERFLEX kits/snapshots don't exist for every
+ * season) — format-blind values beat an empty pool.
+ */
+async function loadSeasonWithFallback(
+    supabase: ReturnType<typeof createSupabaseServerClient>,
+    season: SeasonId,
+    rankType: RankType,
+    asOf?: string
+): Promise<PlatformPlayerValue[] | Error> {
+    const primary = await loadSeason(supabase, season, rankType, asOf);
+    if (primary instanceof Error || primary.length > 0 || rankType === 'PPR') return primary;
+    return loadSeason(supabase, season, 'PPR', asOf);
+}
+
 async function loadSeason(
     supabase: ReturnType<typeof createSupabaseServerClient>,
     season: SeasonId,
+    rankType: RankType,
     asOf?: string
 ): Promise<PlatformPlayerValue[] | Error> {
     // Frozen preseason kit rows win when present.
@@ -67,7 +87,7 @@ async function loadSeason(
         .from('platform_player_values')
         .select(COLUMNS)
         .eq('platform', 'espn')
-        .eq('rank_type', 'PPR')
+        .eq('rank_type', rankType)
         .eq('season', season)
         .eq('source', 'draft_kit_pdf');
     if (kit.error) return new Error(kit.error.message);
@@ -79,8 +99,8 @@ async function loadSeason(
     // postdates asOf, fall back to the earliest one (nearest to the asked-for
     // day, and better than pretending no values exist).
     const snapshotDate =
-        (await resolveSnapshotDate(supabase, season, { onOrBefore: asOf })) ??
-        (asOf ? await resolveSnapshotDate(supabase, season, { earliest: true }) : null);
+        (await resolveSnapshotDate(supabase, season, rankType, { onOrBefore: asOf })) ??
+        (asOf ? await resolveSnapshotDate(supabase, season, rankType, { earliest: true }) : null);
     if (snapshotDate instanceof Error) return snapshotDate;
     if (!snapshotDate) return [];
 
@@ -88,7 +108,7 @@ async function loadSeason(
         .from('platform_player_values')
         .select(COLUMNS)
         .eq('platform', 'espn')
-        .eq('rank_type', 'PPR')
+        .eq('rank_type', rankType)
         .eq('season', season)
         .eq('snapshot_date', snapshotDate);
     if (snapshot.error) return new Error(snapshot.error.message);
@@ -98,13 +118,14 @@ async function loadSeason(
 async function resolveSnapshotDate(
     supabase: ReturnType<typeof createSupabaseServerClient>,
     season: SeasonId,
+    rankType: RankType,
     which: { onOrBefore?: string; earliest?: boolean }
 ): Promise<string | null | Error> {
     let query = supabase
         .from('platform_player_values')
         .select('snapshot_date')
         .eq('platform', 'espn')
-        .eq('rank_type', 'PPR')
+        .eq('rank_type', rankType)
         .eq('season', season);
     if (which.onOrBefore) query = query.lte('snapshot_date', which.onOrBefore);
     const { data, error } = await query
@@ -122,6 +143,7 @@ function toPlayerValue(r: any): PlatformPlayerValue {
         overallRank: r.overall_rank,
         positionRank: r.position_rank,
         auctionValue: r.auction_value,
+        marketValue: r.market_value ?? null,
         source: r.source as PlatformPlayerValue['source'],
         snapshotDate: r.snapshot_date,
     };
@@ -135,9 +157,15 @@ function isIsoDate(value: any): value is string {
     return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
+function isRankType(value: any): value is RankType {
+    return value === 'PPR' || value === 'SUPERFLEX';
+}
+
 function decodeRequest(searchParams: URLSearchParams): PlayerValuesRequest | DecodeFailure {
-    const base = Decoder.create(searchParams).decode('seasons', isSeasonIdArray);
-    // asOf is optional; the Decoder treats a missing key as failure, so only
-    // decode it when present.
-    return (searchParams.has('asOf') ? base.decode('asOf', isIsoDate) : base).finalize();
+    // asOf/rankType are optional; the Decoder treats a missing key as
+    // failure, so only decode them when present.
+    let decoder = Decoder.create(searchParams).decode('seasons', isSeasonIdArray);
+    if (searchParams.has('asOf')) decoder = decoder.decode('asOf', isIsoDate);
+    if (searchParams.has('rankType')) decoder = decoder.decode('rankType', isRankType);
+    return decoder.finalize();
 }

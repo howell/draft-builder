@@ -66,6 +66,8 @@ interface ValueRow {
     overall_rank: number | null;
     position_rank: number | null;
     auction_value: number | null;
+    /** ESPN-wide live market average at snapshot time; API-source rows only */
+    market_value?: number | null;
     bye_week: number | null;
 }
 
@@ -179,6 +181,10 @@ interface SeasonPlayer {
     position: string;
     pprRank: number | null;
     pprAuctionValue: number | null;
+    sfRank: number | null;
+    sfAuctionValue: number | null;
+    /** ESPN-wide live auction-market average; drifts daily, zeroed off-season */
+    marketValue: number | null;
 }
 
 async function fetchSeasonPlayers(season: string): Promise<SeasonPlayer[]> {
@@ -195,6 +201,9 @@ async function fetchSeasonPlayers(season: string): Promise<SeasonPlayer[]> {
             position: positionName(p.defaultPositionId),
             pprRank: p.draftRanksByRankType?.PPR?.rank ?? null,
             pprAuctionValue: p.draftRanksByRankType?.PPR?.auctionValue ?? null,
+            sfRank: p.draftRanksByRankType?.SUPERFLEX?.rank ?? null,
+            sfAuctionValue: p.draftRanksByRankType?.SUPERFLEX?.auctionValue ?? null,
+            marketValue: p.ownership?.auctionValueAverage || null,
         }));
 }
 
@@ -292,33 +301,52 @@ function rowsFromSheet(
     return { rows, unmatched };
 }
 
-/** Current-season values straight from the API's draft ranks. */
+/**
+ * Current-season values straight from the API's draft ranks — one snapshot
+ * per published rank type (PPR + SUPERFLEX), each carrying the ESPN-wide
+ * live market average so draft-day market state survives the off-season
+ * zeroing (the draft room's sticker is market-based and unrecoverable
+ * after the draft otherwise).
+ */
 function rowsFromApi(season: string, players: SeasonPlayer[]): ValueRow[] {
     const today = new Date().toISOString().slice(0, 10);
-    const ranked = players
-        .filter(p => p.pprRank !== null && p.pprRank > 0)
-        .filter(p => (p.pprAuctionValue ?? 0) > 0 || p.pprRank! <= 400)
-        .sort((a, b) => a.pprRank! - b.pprRank!);
 
-    const positionCounters: Record<string, number> = {};
-    return ranked.map(p => {
-        positionCounters[p.position] = (positionCounters[p.position] ?? 0) + 1;
-        return {
-            platform: 'espn' as const,
-            season,
-            snapshot_date: today,
-            source: 'api' as const,
-            rank_type: 'PPR' as const,
-            player_id: p.id,
-            player_name: p.name,
-            team: null,
-            position: p.position,
-            overall_rank: p.pprRank,
-            position_rank: positionCounters[p.position],
-            auction_value: p.pprAuctionValue,
-            bye_week: null,
-        };
-    });
+    const rowsFor = (
+        rankType: 'PPR' | 'SUPERFLEX',
+        rankOf: (p: SeasonPlayer) => number | null,
+        valueOf: (p: SeasonPlayer) => number | null
+    ): ValueRow[] => {
+        const ranked = players
+            .filter(p => rankOf(p) !== null && rankOf(p)! > 0)
+            .filter(p => (valueOf(p) ?? 0) > 0 || rankOf(p)! <= 400)
+            .sort((a, b) => rankOf(a)! - rankOf(b)!);
+
+        const positionCounters: Record<string, number> = {};
+        return ranked.map(p => {
+            positionCounters[p.position] = (positionCounters[p.position] ?? 0) + 1;
+            return {
+                platform: 'espn' as const,
+                season,
+                snapshot_date: today,
+                source: 'api' as const,
+                rank_type: rankType,
+                player_id: p.id,
+                player_name: p.name,
+                team: null,
+                position: p.position,
+                overall_rank: rankOf(p),
+                position_rank: positionCounters[p.position],
+                auction_value: valueOf(p),
+                market_value: p.marketValue,
+                bye_week: null,
+            };
+        });
+    };
+
+    return [
+        ...rowsFor('PPR', p => p.pprRank, p => p.pprAuctionValue),
+        ...rowsFor('SUPERFLEX', p => p.sfRank, p => p.sfAuctionValue),
+    ];
 }
 
 // ---------------------------------------------------------------------------

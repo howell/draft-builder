@@ -69,12 +69,13 @@ function mockSupabase(resolver: Resolver) {
     return { queries };
 }
 
-function row(season: string, source: string, snapshotDate: string, name: string) {
+function row(season: string, source: string, snapshotDate: string, name: string, rankType = 'PPR') {
     return {
         season,
         source,
         snapshot_date: snapshotDate,
-        rank_type: 'PPR',
+        rank_type: rankType,
+        market_value: 44.5,
         player_id: `id-${name}`,
         player_name: name,
         position: 'RB',
@@ -84,10 +85,11 @@ function row(season: string, source: string, snapshotDate: string, name: string)
     };
 }
 
-function makeRequest(seasons: string[], asOf?: string) {
+function makeRequest(seasons: string[], asOf?: string, rankType?: string) {
     const url = new URL('http://localhost/api/player-values');
     url.searchParams.set('seasons', JSON.stringify(seasons));
     if (asOf !== undefined) url.searchParams.set('asOf', JSON.stringify(asOf));
+    if (rankType !== undefined) url.searchParams.set('rankType', JSON.stringify(rankType));
     return { nextUrl: url } as any;
 }
 
@@ -216,6 +218,47 @@ describe('GET /api/player-values', () => {
 
         expect(res.status).toBe(400);
         expect(body.status).toContain('asOf');
+    });
+
+    it('serves the SUPERFLEX column when requested and exposes marketValue', async () => {
+        const { queries } = mockSupabase(q => {
+            if (q.filters.source === 'draft_kit_pdf') return { data: [] };
+            if (q.select === 'snapshot_date') return { data: [{ snapshot_date: '2026-08-02' }] };
+            return { data: [row('2026', 'api', '2026-08-02', 'Josh Allen', q.filters.rank_type as string)] };
+        });
+
+        const res = await GET(makeRequest(['2026'], undefined, 'SUPERFLEX'));
+        const body = await res.json();
+
+        expect(body.data['2026'][0]).toMatchObject({ playerName: 'Josh Allen', marketValue: 44.5 });
+        for (const q of queries) {
+            expect(q.filters.rank_type).toBe('SUPERFLEX');
+        }
+    });
+
+    it('falls back to PPR when the requested rank type has no rows', async () => {
+        const { queries } = mockSupabase(q => {
+            if (q.filters.rank_type === 'SUPERFLEX') return { data: [] };
+            if (q.filters.source === 'draft_kit_pdf') return { data: [] };
+            if (q.select === 'snapshot_date') return { data: [{ snapshot_date: '2026-08-02' }] };
+            return { data: [row('2026', 'api', '2026-08-02', 'Jahmyr Gibbs')] };
+        });
+
+        const res = await GET(makeRequest(['2026'], undefined, 'SUPERFLEX'));
+        const body = await res.json();
+
+        expect(body.data['2026'][0].playerName).toBe('Jahmyr Gibbs');
+        expect(queries.some(q => q.filters.rank_type === 'PPR')).toBe(true);
+    });
+
+    it('rejects an unknown rank type', async () => {
+        mockSupabase(() => ({ data: [] }));
+
+        const res = await GET(makeRequest(['2026'], undefined, 'HALF_PPR'));
+        const body = await res.json();
+
+        expect(res.status).toBe(400);
+        expect(body.status).toContain('rankType');
     });
 
     it('surfaces query errors as a 500', async () => {

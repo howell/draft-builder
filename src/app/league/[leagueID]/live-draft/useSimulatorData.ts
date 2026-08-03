@@ -157,7 +157,22 @@ export function useSimulatorData(
             .map(detail => String(detail.season))
             .sort();
     }, [draftQuery.data]);
-    const playerValuesQuery = usePlayerValuesQuery(draftSeasons);
+    // Superflex/2-QB leagues value QBs on ESPN's SUPERFLEX column — reading
+    // PPR ranks the top QB ~36th at a fraction of the room price.
+    const valuesRankType = useMemo(() => {
+        const history = historyQuery.data as Record<string, unknown> | undefined;
+        if (!history || typeof history !== 'object') return undefined;
+        const info = (history[CURRENT_SEASON] ??
+            Object.values(history).find(i => typeof i === 'object' && i !== null)) as
+            | { rosterSettings?: Record<string, number> }
+            | undefined;
+        const roster = info?.rosterSettings;
+        if (!roster) return undefined;
+        return (roster['OP'] ?? 0) > 0 || (roster['QB'] ?? 0) >= 2
+            ? ('SUPERFLEX' as const)
+            : ('PPR' as const);
+    }, [historyQuery.data]);
+    const playerValuesQuery = usePlayerValuesQuery(draftSeasons, undefined, valuesRankType);
     const multipliersQuery = useLeaguePriceMultipliersQuery();
 
     const data = useMemo<SimulatorData | null>(() => {

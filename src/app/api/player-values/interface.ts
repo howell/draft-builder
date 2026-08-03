@@ -10,7 +10,16 @@ export interface PlayerValuesRequest {
      * Draft-kit rows are frozen preseason artifacts and always win regardless.
      */
     asOf?: string;
+    /**
+     * Which published rank type to serve (default PPR). Superflex/2-QB
+     * leagues should ask for SUPERFLEX — QBs are valued on their own column
+     * there. Seasons with no rows of the requested type fall back to PPR
+     * rather than returning nothing.
+     */
+    rankType?: RankType;
 }
+
+export type RankType = 'PPR' | 'SUPERFLEX';
 
 /** One player's platform valuation for a season (ESPN 10-team/$200 baseline). */
 export interface PlatformPlayerValue {
@@ -22,6 +31,8 @@ export interface PlatformPlayerValue {
     /** 1-indexed as published */
     positionRank: number | null;
     auctionValue: number | null;
+    /** ESPN-wide live auction-market average at snapshot time; null for kit rows and older snapshots */
+    marketValue: number | null;
     source: 'draft_kit_pdf' | 'api';
     snapshotDate: string;
 }

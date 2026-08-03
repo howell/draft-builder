@@ -179,6 +179,19 @@ before the socket connected).
       table, so an archive-backed season's held-out fold — the true
       out-of-sample score on ex-ante draft-night inputs — reads directly off
       the simulator page.
+- [x] **Sticker-source corrections** (2026-08-02, from real-draft analysis) —
+      the draft room's sticker is the league-scoped live-market
+      `draftAuctionValue`, zeroed by ESPN almost immediately post-draft; the
+      board's PPR fallback was format-blind for superflex. Three fixes:
+      (1) player fetches ride `view=mSettings` and the importer selects the
+      SUPERFLEX rank column for OP/2-QB lineups (`isSuperflexSettings`,
+      EspnApi.ts); (2) `usePinnedDraftPool` pins the board's pool in
+      localStorage on the rising edge of frames arriving, so pricing and
+      archiving keep draft-start values through refetches/zeroing — released
+      on archive or buffer clear; (3) migration 010 adds `market_value`, the
+      daily ingest snapshots both PPR and SUPERFLEX columns plus the
+      ESPN-wide market average, and `/api/player-values` accepts `rankType`
+      (PPR fallback when a season has no SUPERFLEX rows).
 - [ ] **Dress-rehearsal test draft** with the userscript installed end-to-end
       (test league + dummy accounts make this cheap). Do this before any app
       work depends on the script.

@@ -47,6 +47,7 @@ import { firstOpenSlotFor } from '@/lib/models/live-draft/rosterPlan';
 import { useSimulatorData } from './useSimulatorData';
 import { useRosterPlan } from './hooks/useRosterPlan';
 import ArchiveDraftDialog from './components/ArchiveDraftDialog';
+import { usePinnedDraftPool } from './usePinnedDraftPool';
 import MyRosterPlanner from './components/board/MyRosterPlanner';
 import StatusBand from './components/board/StatusBand';
 import SearchSettings from '../mocks/SearchSettings';
@@ -110,6 +111,14 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
     }, [playersQuery.data, leagueQuery.data]);
 
     const frames = framesQuery.data;
+    // Pin the pool the moment the draft goes live: ESPN zeroes its live
+    // sticker basis right after the draft, and the pool query refetches
+    // every few minutes, so pricing/archiving must not track the live fetch.
+    const { pool: draftPool, pinnedAt, clearPin } = usePinnedDraftPool(
+        leagueId,
+        data?.players,
+        (frames?.length ?? 0) > 0
+    );
     const boardConfig = useMemo<LiveBoardConfig | null>(() => {
         if (!data) return null;
         return {
@@ -121,16 +130,16 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
         };
     }, [data, leagueTeams, playerLookup, leagueId]);
     const board = useMemo(() => {
-        if (!data || !boardConfig) return null;
-        return buildLiveBoard(frames ?? [], data.players, boardConfig);
-    }, [data, frames, boardConfig]);
+        if (!draftPool || !boardConfig) return null;
+        return buildLiveBoard(frames ?? [], draftPool, boardConfig);
+    }, [draftPool, frames, boardConfig]);
 
     const [archiving, setArchiving] = useState(false);
     const clearMutation = useClearLiveDraftFramesMutation(leagueId);
     const clearBuffer = () => {
         const count = frames?.length ?? 0;
         if (window.confirm(`Delete all ${count} ingested frames for this league? Archived drafts are not affected.`)) {
-            clearMutation.mutate();
+            clearMutation.mutate(undefined, { onSuccess: clearPin });
         }
     };
 
@@ -166,10 +175,10 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
             rosterNeeds: data.rosterNeeds,
             picks: board.picks,
             teams: board.teams,
-            availablePlayers: data.players.filter(p => !draftedIds.has(p.id)),
+            availablePlayers: (draftPool ?? []).filter(p => !draftedIds.has(p.id)),
             currentPickNumber: board.picks.length + 1,
         };
-    }, [data, board, teamCount, rosterSize]);
+    }, [data, board, draftPool, teamCount, rosterSize]);
 
     const inflationField = useMemo(() => {
         if (!data || !currentContext || !historyOptions) return null;
@@ -261,8 +270,8 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
     }, [currentContext, predictors, searchSettings, nameQuery, planEstimate, planSelectedPlayers, data, plan.budget]);
 
     const poolById = useMemo(
-        () => new Map((data?.players ?? []).map(p => [p.id, p])),
-        [data]
+        () => new Map((draftPool ?? []).map(p => [p.id, p])),
+        [draftPool]
     );
     const handleExplorerClick = useMemo(() => {
         if (!plan.myTeamId) return undefined;
@@ -292,7 +301,7 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
         }
         const timeline = computeInflationTimeline(
             board.picks,
-            data.players,
+            draftPool ?? data.players,
             { totalBudgetPerTeam: data.defaultBudget, teamCount },
             data.rosterNeeds,
             data.baseline,
@@ -304,7 +313,7 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
             deltas: new Map(timeline.map(point => [point.pickNumber, point.delta])),
             modelPrices: new Map(timeline.map(point => [point.pickNumber, point.modelPrice])),
         };
-    }, [data, board, historyOptions, elasticity, blend, teamCount]);
+    }, [data, board, draftPool, historyOptions, elasticity, blend, teamCount]);
 
     const [pickPositionFilter, setPickPositionFilter] = useState<string | null>(null);
     const filteredPicks = useMemo(() => {
@@ -394,6 +403,7 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                     {board.framesSeen} frames · {board.captureCount} capture
                     {board.captureCount === 1 ? '' : 's'}
                     {lastFrameTs && ` · last ${new Date(lastFrameTs).toLocaleTimeString()}`}
+                    {pinnedAt && ` · values pinned ${new Date(pinnedAt).toLocaleTimeString()}`}
                 </p>
             </div>
             {clearMutation.isError && (
@@ -405,9 +415,10 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                 <ArchiveDraftDialog
                     leagueId={leagueId}
                     frames={frames ?? []}
-                    pool={data.players}
+                    pool={draftPool ?? data.players}
                     config={boardConfig}
                     onClose={() => setArchiving(false)}
+                    onArchived={clearPin}
                 />
             )}
 
@@ -447,7 +458,7 @@ const LiveDraftBoard: React.FC<Props> = ({ leagueId, googleApiKey }) => {
                         <div className="space-y-4 lg:col-span-2">
                             <MyRosterPlanner
                                 board={board}
-                                players={data.players}
+                                players={draftPool ?? data.players}
                                 estimate={planEstimate}
                                 teams={leagueTeams}
                                 teamLabel={teamLabel}

@@ -735,6 +735,7 @@ export type Database = {
           bye_week: number | null
           created_at: string | null
           id: string
+          market_value: number | null
           overall_rank: number | null
           platform: string
           player_id: string | null
@@ -752,6 +753,7 @@ export type Database = {
           bye_week?: number | null
           created_at?: string | null
           id?: string
+          market_value?: number | null
           overall_rank?: number | null
           platform?: string
           player_id?: string | null
@@ -769,6 +771,7 @@ export type Database = {
           bye_week?: number | null
           created_at?: string | null
           id?: string
+          market_value?: number | null
           overall_rank?: number | null
           platform?: string
           player_id?: string | null

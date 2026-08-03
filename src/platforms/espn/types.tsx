@@ -190,11 +190,16 @@ export type DraftPick = {
 export type PlayersInfo = {
     players: PlayerInfo[];
     positionAgainstOpponent: any;
+    /** Present when the request includes view=mSettings (player fetches do,
+     *  so the importer can pick the rank type matching the league format). */
+    settings?: Settings;
 };
 
 export type DraftRanksByRankType = {
     STANDARD: RankInfo;
     PPR: RankInfo;
+    /** QB-boosted values for superflex/2-QB leagues; absent for some seasons */
+    SUPERFLEX?: RankInfo;
 };
 
 export type RankInfo = {
